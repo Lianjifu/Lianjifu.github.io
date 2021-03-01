@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="1. 认识网络编程 网络编程从大的方面来讲就是对信息的发送到接收，中间传输为物理线路的作用。小的方面是指编写运行在多个设备（计算机）的程序，这些设备都通过网络连接起来。  2. IP地址一个IP地址就是一个32位无符号整数，IP地址通常是以一个称为点分十进制表示法来表示。每个字节由它的十进制值来表示，并且用句号（英文中的句号）和其它字节间分开。  A类：地址范围1.0.0.1 - 126.255.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python高级编程02 -- 网络编程">
+<meta property="og:url" content="http://lianjifu.cn/2021/03/01/python%E8%BF%9B%E9%98%B602-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/index.html">
+<meta property="og:site_name" content="LianJiFu&#39;blogs">
+<meta property="og:description" content="1. 认识网络编程 网络编程从大的方面来讲就是对信息的发送到接收，中间传输为物理线路的作用。小的方面是指编写运行在多个设备（计算机）的程序，这些设备都通过网络连接起来。  2. IP地址一个IP地址就是一个32位无符号整数，IP地址通常是以一个称为点分十进制表示法来表示。每个字节由它的十进制值来表示，并且用句号（英文中的句号）和其它字节间分开。  A类：地址范围1.0.0.1 - 126.255.">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/images/69af3eb2-4809-44db-94a0-d93181875879.png">
+<meta property="article:published_time" content="2021-03-01T12:09:53.367Z">
+<meta property="article:modified_time" content="2021-03-01T12:54:15.888Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/images/69af3eb2-4809-44db-94a0-d93181875879.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2021/03/01/python%E8%BF%9B%E9%98%B602-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Python高级编程02 -- 网络编程 | LianJiFu'blogs</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2021/03/01/python%E8%BF%9B%E9%98%B602-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Python高级编程02 -- 网络编程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-03-01 20:09:53 / 修改时间：20:54:15" itemprop="dateCreated datePublished" datetime="2021-03-01T20:09:53+08:00">2021-03-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">编程类</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h4 id="1-认识网络编程"><a href="#1-认识网络编程" class="headerlink" title="1. 认识网络编程"></a>1. 认识网络编程</h4><ul>
+<li>网络编程从大的方面来讲就是对信息的发送到接收，中间传输为物理线路的作用。小的方面是指编写运行在多个设备（计算机）的程序，这些设备都通过网络连接起来。</li>
+</ul>
+<h4 id="2-IP地址"><a href="#2-IP地址" class="headerlink" title="2. IP地址"></a>2. IP地址</h4><p>一个IP地址就是一个32位无符号整数，IP地址通常是以一个称为点分十进制表示法来表示。每个字节由它的十进制值来表示，并且用句号（英文中的句号）和其它字节间分开。</p>
+<ul>
+<li>A类：地址范围1.0.0.1 - 126.255.255.254  —-有126个网络</li>
+<li>B类：地址范围128.1.0.1 - 191.255.255.254 —-有16384个网络</li>
+<li>C类：地址范围192.0.1.1-233.255.255.254  —-有2097152个网络</li>
+<li>D类：用于多点广播</li>
+<li>私有IP:10.0.0.0-10.255.255.255 , 172.16.0.0-172.31.255.255, 192.168.0.0-192.168.255.255(<strong>注意：IP地址127.0.0.1-127.255.255.255用于回路测试</strong>)</li>
+</ul>
+<h4 id="3-OSI模型与IP-TCP协议模型"><a href="#3-OSI模型与IP-TCP协议模型" class="headerlink" title="3. OSI模型与IP/TCP协议模型"></a>3. OSI模型与IP/TCP协议模型</h4><ul>
+<li><p>OSI模型<br>开放式系统互联通信参考模型（Open System Interconnection Reference Model）简称OSI模型，一种概念模型，由国际标准化组织（ISO）提出，一个试图使各种计算机在世界范围内互连为网络的标准框架。</p>
+<span id="more"></span>
+
+</li>
+</ul>
+<p><strong>ISO模型</strong></p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>7.应用层 application layer</td>
+<td>网络进程到应用程序。针对特定应用规定各层协议、时序、表示等，进行封装 。在端系统中用软件来实现，如HTTP，HTTPS,FTP,SSH,SMTP,POP3等</td>
+</tr>
+<tr>
+<td>6.表示层 presentation layer</td>
+<td>数据表示形式，加密和解密，把机器相关的数据转换成独立与机器的数据。规定数据的格式化表示，数据格式的转换等</td>
+</tr>
+<tr>
+<td>5.会话层 session layer</td>
+<td>主机间通讯，管理应用程序之间的会话。规定通讯时序；数据交换的定界、同步，创建检查点等。</td>
+</tr>
+<tr>
+<td>4.传输层 transport layer</td>
+<td>在网络的各个节点之间可靠地分发数据包。所有传输遗留问题；复用；流量；可靠。</td>
+</tr>
+<tr>
+<td>3.网络层 network layer</td>
+<td>在网络的各个节点之间进行地址分配、路由和（不一定可靠的）分发报文。路由（IP寻址）；拥塞控制。</td>
+</tr>
+<tr>
+<td>2.数据链路层 data link layer</td>
+<td>一个可靠的点对点数据直链。检错与纠错（CRC码）；多路访问；寻址。</td>
+</tr>
+<tr>
+<td>1.物理层 physical layer</td>
+<td>一个（不一定可靠的）点对点数据直链。定义机械特性；电气特性；功能特性；过程特性</td>
+</tr>
+</tbody></table>
+<ul>
+<li>TCP/IP协议<br>互联网协议族（Internet Protocol Suits，缩写IPS）是一个网络通信模型，以及一整个网络传输协议家族，为互联网的基础通信架构。它常被通称为TCP/IP协议族（TCP/IP Protocol Suite,或TCP/IP Protocols,）简称TCP/IP。因为该协议家族的两个核心协议：TCP(传输控制协议)和IP（网际协议）</li>
+</ul>
+<p><strong>TCP/IP协议</strong><br><img src="/images/69af3eb2-4809-44db-94a0-d93181875879.png"></p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>协议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>4.应用层 application layer</td>
+<td>HTTP、FTP、DNS</td>
+</tr>
+<tr>
+<td>3.传输层 transport layer</td>
+<td>TCP、UDP、RIP、SCTP</td>
+</tr>
+<tr>
+<td>2.网络互联层 internet layer</td>
+<td>IP</td>
+</tr>
+<tr>
+<td>1.网络接口层 link layer</td>
+<td>以太网、Wi-Fi、MPLS</td>
+</tr>
+</tbody></table>
+<h4 id="4-Socket-套接字"><a href="#4-Socket-套接字" class="headerlink" title="4. Socket(套接字)"></a>4. Socket(套接字)</h4><h5 id="4-1-Python提供了两个级别访问的网络服务"><a href="#4-1-Python提供了两个级别访问的网络服务" class="headerlink" title="4.1 Python提供了两个级别访问的网络服务"></a>4.1 Python提供了两个级别访问的网络服务</h5><ul>
+<li>低级的网络服务支持基本的Socket，它提供了标准的BSD Sockets API,可以访问底层操作系统Socket接口的全部方法。</li>
+<li>高级别的网络服务模块SocketServer , 它提供可服务器中心类，可以简化服务器的开发。</li>
+</ul>
+<h5 id="4-2-什么是Socket"><a href="#4-2-什么是Socket" class="headerlink" title="4.2 什么是Socket?"></a>4.2 什么是Socket?</h5><ul>
+<li>Socket 是对TCP/IP协议族的一种封装，是应用层与TCP/IP协议族通信的中间软件抽象层。从设计模式的角度看来，Socket其实就是一个门面模式，它把复杂的TCP/IP协议族隐藏在Socket接口后面，对用户来说，一组简单的接口就是全部，让socket去组织数据，以符合指定的协议。</li>
+<li>Socket 还可以认为是一种网络间不同计算机上的进程通信的一种方式，利用三元组（IP地址，协议，端口）就可以唯一标识网络中的进程，网络中的进程通信可以利用这个标识与其它进程进行交互。</li>
+<li>Socket起源于Unix，Unix/Linux 基本哲学之一就是“一切皆文件”，都可以用”打开（open）–&gt;读写（write/read）–&gt;关闭（close）”模式来进行操作。因此Socket也被处理为一种特殊的文件。</li>
+</ul>
+<h5 id="4-3-创建socket"><a href="#4-3-创建socket" class="headerlink" title="4.3 创建socket"></a>4.3 创建socket</h5><ul>
+<li>在python中使用socket模块的函数socket就可以完成：</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> socket
+socket<span class="token punctuation">.</span>socket<span class="token punctuation">(</span>AddressFamily<span class="token punctuation">,</span>Type<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<blockquote>
+<p>说明：函数socket.socket创建一个socket，该函数带有两个参数<br> Address Family:可以选择AF_INET（用于Internet进程间通信）或者AF_UNIX(用于同一台机器进程间通信)，实际工作中常用AF_INET<br> Type:套接字类型，可以是SOCK_STREAM（流式套接字，主要用于TCP协议）或者SOCK_DGRAM(数据报套接字，主要用于UDP协议)</p>
+</blockquote>
+<ul>
+<li>创建一个TCP socket（tcp套接字）</li>
+</ul>
+<pre class="line-numbers language-none"><code class="language-none">import socket
+# 创建tcp的套接字
+s&#x3D; socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+
+# ...这里是使用套接字的功能
+
+# 不用的时候，关闭套接字
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>创建一个UDP socket(UDP套接字)</li>
+</ul>
+<pre class="line-numbers language-none"><code class="language-none">import socket
+
+# 创建udp的套接字
+s&#x3D; socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+
+# ...这里是使用套接字的功能（省略...）
+
+# 不用的时候，关闭套接字
+
+s.close()
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h5 id="4-4-Socket对象（内建）方法"><a href="#4-4-Socket对象（内建）方法" class="headerlink" title="4.4 Socket对象（内建）方法"></a>4.4 Socket对象（内建）方法</h5><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>服务器端套接字</td>
+<td></td>
+</tr>
+<tr>
+<td>s.bind()</td>
+<td>绑定地址（host,port）到套接字，在AF_INET下，以元组（host,port）的形式表示地址。</td>
+</tr>
+<tr>
+<td>s.listen()</td>
+<td>开始TCP监听。backlog指定在拒绝连接之前，操作系统可以挂起的最大连接数量。该值至少为1，大部分应用程序设为5就可以了。</td>
+</tr>
+<tr>
+<td>s.accept()</td>
+<td>被动接受TCP客户端连接，（阻塞式）等待连接的到来</td>
+</tr>
+<tr>
+<td>客户端套接字</td>
+<td></td>
+</tr>
+<tr>
+<td>s.connect()</td>
+<td>主动初始化TCP服务器。一般address的格式为元组（hostname,port）,如果连接出错，返回socket.error错误</td>
+</tr>
+<tr>
+<td>公共用途的套接字函数</td>
+<td></td>
+</tr>
+<tr>
+<td>s.recv()</td>
+<td>接收TCP数据，数据以字符串形式返回，bufsize指定要接收的最大数据量。flag提供有关消息的其他信息，通常可以忽略。</td>
+</tr>
+<tr>
+<td>s.send()</td>
+<td>发送TCP 数据，将string中的数据发送到连接的套接字。返回值是要发送的字节数量，该数量可能小于string的字节大小。</td>
+</tr>
+<tr>
+<td>s.sendall()</td>
+<td>完整发送TCP数据，完整发送TCP数据。将string中的数据发送到连接的套接字，但在返回之前会尝试发送所有的数据。成功返回None，失败则抛出异常。</td>
+</tr>
+<tr>
+<td>s.recvfrom()</td>
+<td>接收UDP数据，与recv()类似，但返回值是（data,address）。其中data是包含接收数据的字符串，address是发送数据的套接字地址。</td>
+</tr>
+<tr>
+<td>s.sendto()</td>
+<td>发送UDP数据，将数据发送到套接字，address是形式为（ipaddr,port）的元组，指定远程地址。返回值是发送的字节数。</td>
+</tr>
+<tr>
+<td>s.close()</td>
+<td>关闭套接字</td>
+</tr>
+<tr>
+<td>s.getpeername()</td>
+<td>返回连接套接字的远程地址。返回值通常是元组（ipaddr,port）.</td>
+</tr>
+<tr>
+<td>s.getsockname()</td>
+<td>返回套接字自己的地址。通常是一个元组（ipaddr,port）</td>
+</tr>
+<tr>
+<td>s.settimeout(timeout)</td>
+<td>设置套接字操作的超时期，timeout是一个浮点数，单位是秒。值为None表示没有超时期。一般，超时期应该在刚创建套接字时设置，因为它们可能用于连接的操作（如connet()）</td>
+</tr>
+<tr>
+<td>s.gettimeout()</td>
+<td>返回当前超时期的值，单位是秒，如果没有设置超时期，则返回None.</td>
+</tr>
+<tr>
+<td>s.fileno()</td>
+<td>返回套接字的文件描述符</td>
+</tr>
+<tr>
+<td>s.setblocking(flag)</td>
+<td>如果flag为0，则将套接字设为非阻塞模式，否则将套接字设为阻塞模式（默认值）。非阻塞模式下，如果调用recv()没有发现任何数据，或send()调用无法立即发送数据，那么将引起socket.error异常。</td>
+</tr>
+<tr>
+<td>s.makefile()</td>
+<td>创建一个与该套接字相关连的文件</td>
+</tr>
+</tbody></table>
+<hr>
+<h4 id="5-网络-UDP"><a href="#5-网络-UDP" class="headerlink" title="5. 网络-UDP"></a>5. 网络-UDP</h4><ul>
+<li>创建一个udp客户端程序的流程：</li>
+</ul>
+<ol>
+<li>创建客户端套接字</li>
+<li>发送/接收数据</li>
+<li>关闭套接字</li>
+</ol>
+<center> ![](/images/e5b906b9-14d0-4853-8a11-76064e29ae96.jpg)</center>
+
+<br>
+
+<p>代码如下：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> socket <span class="token keyword">import</span> <span class="token operator">*</span>
+
+<span class="token comment"># 1. 创建udp 套接字</span>
+udp_socket <span class="token operator">=</span> socket<span class="token punctuation">(</span>AF_INET<span class="token punctuation">,</span>SOCK_DGRAM<span class="token punctuation">)</span>
+
+<span class="token comment"># 2. 准备接收方的地址</span>
+<span class="token comment">#  192.168.1.100 表示目的IP地址 8080表示目的端口</span>
+dest_addr <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token string">"192,.168.1.103"</span> <span class="token punctuation">,</span> <span class="token number">8080</span><span class="token punctuation">)</span> <span class="token comment"># 注意是元组，ip是字符串，端口是数字</span>
+
+<span class="token comment"># 3.从键盘获得数据</span>
+send_data <span class="token operator">=</span> <span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入要发送的数据："</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 4.发送数据到指定的电脑上的指定程序中</span>
+udp_socket<span class="token punctuation">.</span>sendto<span class="token punctuation">(</span>send_data<span class="token punctuation">.</span>encode<span class="token punctuation">(</span><span class="token string">"utf-8"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> dest_addr<span class="token punctuation">)</span>
+
+<span class="token comment"># 5.关闭套接字</span>
+udp_socket<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>udp 网络程序-发送、接收数据</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> socket <span class="token keyword">import</span> <span class="token operator">*</span>
+
+<span class="token comment"># 1. 创建udp 套接字</span>
+udp_socket <span class="token operator">=</span> socket<span class="token punctuation">(</span>AF_INET<span class="token punctuation">,</span> SOCK_DGRAM<span class="token punctuation">)</span>
+
+<span class="token comment"># 2. 准备接收方的地址</span>
+<span class="token comment"># 192.168.1.100 表示 目的地址  8080表示目的端口</span>
+dest_addr <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token string">"192,168.1.100"</span><span class="token punctuation">,</span><span class="token number">8080</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 3. 从键盘获取数据</span>
+send_data <span class="token operator">=</span> <span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入要发送的数据："</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 4.发送数据到指定的电脑上</span>
+udp_socket<span class="token punctuation">.</span>sendto<span class="token punctuation">(</span>send_data<span class="token punctuation">.</span>encode<span class="token punctuation">(</span><span class="token string">"utf-8"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> dest_addr<span class="token punctuation">)</span>
+
+<span class="token comment"># 5.等待接收对方发送的数据</span>
+recv_data <span class="token operator">=</span> udp_socket<span class="token punctuation">.</span>recvfrom<span class="token punctuation">(</span><span class="token number">1024</span><span class="token punctuation">)</span> <span class="token comment"># 2014 表示本次接收的最大字节数</span>
+
+<span class="token comment"># 6.显示对方发送的数据</span>
+<span class="token comment"># 接收到的数据recv_data 是一个元组</span>
+<span class="token comment"># 第1个元素是对方发送的数据</span>
+<span class="token comment"># 第2个元素是对方的IP和端口</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>recv_data<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">.</span>decode<span class="token punctuation">(</span><span class="token string">"gbk"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>recv_data<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 7.关闭套接字</span>
+udp_socker<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<ul>
+<li>python3–编程转换</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token builtin">str</span>  <span class="token operator">-</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">></span> <span class="token builtin">bytes</span><span class="token punctuation">:</span>encode 编码
+<span class="token comment"># 说明 字符串通过编码成为字节码</span>
+
+<span class="token builtin">bytes</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">></span> <span class="token builtin">str</span><span class="token punctuation">:</span>decode  解码
+<span class="token comment"># 说明字节码通过解码成为字符串</span>
+
+<span class="token comment"># 其中decode（）与encode（）方法可以接受参数，其声明分别为：</span>
+<span class="token builtin">bytes</span><span class="token punctuation">.</span>decode<span class="token punctuation">(</span>encoding<span class="token operator">=</span><span class="token string">"utf-8"</span><span class="token punctuation">,</span>errors<span class="token operator">=</span><span class="token string">"strict"</span><span class="token punctuation">)</span>
+<span class="token builtin">str</span><span class="token punctuation">.</span>encode<span class="token punctuation">(</span>encoding<span class="token operator">=</span><span class="token string">"utf-8"</span><span class="token punctuation">,</span>errors<span class="token operator">=</span><span class="token string">"strict"</span><span class="token punctuation">)</span><span class="token comment"># errors是指错误的处理方案。</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>udp绑定信息</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">
+<span class="token comment"># 绑定本地的相关信息，如果一个网络程序不绑定，则系统会随机分配</span>
+local_addr <span class="token operator">=</span> （<span class="token string">""</span><span class="token punctuation">,</span><span class="token number">7788</span>） <span class="token comment"># ip地址和端口号，ip一般不用写，表示本机的任何一个IP</span>
+udp_socker<span class="token punctuation">.</span>bind<span class="token punctuation">(</span>loacl_addr<span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>总结：</li>
+</ul>
+<ul>
+<li>一个udp网络程序，可以不绑定，此时操作系统会随机进行分配一个端口，如果重新运行此程序端口可能会发生变化。</li>
+<li>一个udp网络程序，也可以绑定信息（ip地址，端口号），如果绑定成功，那么操作系统用这个端口号来进行区别收到的网络数据是否是此进程。</li>
+</ul>
+<h3 id="6、网络-TCP"><a href="#6、网络-TCP" class="headerlink" title="6、网络-TCP"></a>6、网络-TCP</h3><ul>
+<li><p>定义：TCP协议，传输控制协议是一种面向连接、可靠、基于字节流的传输层通信协议。</p>
+</li>
+<li><p>步骤：TCP通信需要经过创建连接、数据传送、终止连接三个步骤</p>
+</li>
+<li><p>TCP特点：</p>
+</li>
+<li><p>面向连接：双方必须先建立连接才能进行数据的传输，双方都必须为该连接分配必要的系统内核资源，以管理连接的状态和连接上的传输。</p>
+</li>
+<li><p>TCP采用发送应答机制：发送的每个报文段都必须得到接收方的应答才认为这个TCP报文段传输成功。</p>
+</li>
+<li><p>超时重传：在定时时间内没有收到应答就重新发送这个报文段。</p>
+</li>
+<li><p>错误校验：tcp用一个校验和函数来检验数据是否有错误，在发送和接收时都要计算校验和。</p>
+</li>
+<li><p>流量控制和阻塞管理：流量控制用来避免主机发送得过快而使接收方来不及完全收下。</p>
+</li>
+</ul>
+<ul>
+<li><p>TCP与UDP的不同点</p>
+</li>
+<li><p>面向连接（确定有创建三方交握，连接已创建才作传输）</p>
+</li>
+<li><p>有序数据传输</p>
+</li>
+<li><p>重发丢失的数据包</p>
+</li>
+<li><p>舍弃重复的数据包</p>
+</li>
+<li><p>无差错的数据传输</p>
+</li>
+<li><p>阻塞/流量控制</p>
+</li>
+</ul>
+<ul>
+<li>TCP模型<center>![](/images/15059c2c-bad3-4c87-a3e0-182e534f51e0.png)
+
+
+</li>
+</ul>
+<ul>
+<li>TCP客户端构建流程</li>
+<li>创建socket</li>
+<li>输入目的信息</li>
+<li>链接服务器</li>
+<li>接收对方数据</li>
+<li>关闭套接字</li>
+</ul>
+<p>代码：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> socket <span class="token keyword">import</span> <span class="token operator">*</span>
+
+<span class="token comment"># 创建socket</span>
+tcp_client_socket <span class="token operator">=</span> socket<span class="token punctuation">(</span>AF_INET<span class="token punctuation">,</span> SOCK_STREAM<span class="token punctuation">)</span>
+
+<span class="token comment"># 目的信息</span>
+sever_ip <span class="token operator">=</span> <span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入服务器IP:"</span><span class="token punctuation">)</span>
+sever_port <span class="token operator">=</span> <span class="token builtin">int</span> <span class="token punctuation">(</span><span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入服务器port:"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 链接服务器</span>
+tcp_client_socket<span class="token punctuation">.</span>connect<span class="token punctuation">(</span><span class="token punctuation">(</span>server_ip<span class="token punctuation">,</span> server_port<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment"># 元组</span>
+
+<span class="token comment"># 提示用户输入数据</span>
+send_data <span class="token operator">=</span> <span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入要发送的数据："</span><span class="token punctuation">)</span>
+tcp_client_socket<span class="token punctuation">.</span>send<span class="token punctuation">(</span>send_data<span class="token punctuation">.</span>encode<span class="token punctuation">(</span><span class="token string">"gbk"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 接收对方发送过来的数据，最大接收1024个字节</span>
+recvData <span class="token operator">=</span> tcp_client_socket<span class="token punctuation">.</span>recv<span class="token punctuation">(</span><span class="token number">1024</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"接收到的数据为："</span><span class="token punctuation">,</span> recvData<span class="token punctuation">.</span>decode<span class="token punctuation">(</span><span class="token string">"gbk"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 关闭套接字</span>
+
+tcp_client_socket<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：<br>请输入服务器ip:10.10.0.47<br>请输入服务器port:8080<br>请输入要发送的数据：你好啊<br>接收到的数据为: 我很好，你呢</p>
+<ul>
+<li>TCP服务器<ul>
+<li>socket创建一个套接字</li>
+<li>bind 绑定ip和port</li>
+<li>listen 使套接字变为可以被动链接</li>
+<li>accept等待客户端的链接</li>
+<li>recv/send接收发送数据</li>
+</ul>
+</li>
+</ul>
+<p>代码：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> socket <span class="token keyword">import</span> <span class="token operator">*</span>
+
+<span class="token comment"># 创建socket</span>
+tcp_server_socket <span class="token operator">=</span> socket<span class="token punctuation">(</span>AF_INET<span class="token punctuation">,</span> SOCK_STREAM<span class="token punctuation">)</span>
+
+<span class="token comment"># 本地信息</span>
+address <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">,</span> <span class="token number">7788</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 绑定</span>
+tcp_server_socket<span class="token punctuation">.</span>bind<span class="token punctuation">(</span>address<span class="token punctuation">)</span>
+
+<span class="token comment"># 使用socket创建的套接字默认的属性是主动的，使用listen将其变为被动的，这样就可以接收别人的链接了</span>
+tcp_server_socket<span class="token punctuation">.</span>listen<span class="token punctuation">(</span><span class="token number">128</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 如果有新的客户端来链接服务器，那么就产生一个新的套接字专门为这个客户端服务</span>
+<span class="token comment"># client_socket用来为这个客户端服务</span>
+<span class="token comment"># tcp_server_socket就可以省下来专门等待其他新客户端的链接</span>
+client_socket<span class="token punctuation">,</span> clientAddr <span class="token operator">=</span> tcp_server_socket<span class="token punctuation">.</span>accept<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 接收对方发送过来的数据</span>
+recv_data <span class="token operator">=</span> client_socket<span class="token punctuation">.</span>recv<span class="token punctuation">(</span><span class="token number">1024</span><span class="token punctuation">)</span>  <span class="token comment"># 接收1024个字节</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">'接收到的数据为:'</span><span class="token punctuation">,</span> recv_data<span class="token punctuation">.</span>decode<span class="token punctuation">(</span><span class="token string">'gbk'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 发送一些数据到客户端</span>
+client_socket<span class="token punctuation">.</span>send<span class="token punctuation">(</span><span class="token string">"thank you !"</span><span class="token punctuation">.</span>encode<span class="token punctuation">(</span><span class="token string">'gbk'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 关闭为这个客户端服务的套接字，只要关闭了，就意味着为不能再为这个客户端服务了，如果还需要服务，只能再次重新连接</span>
+client_socket<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>tcp注意点</li>
+<li>tcp服务器一般情况下都需要绑定，否则客户端找不到这个服务器</li>
+<li>tcp客户端一般不绑定，因为是主动链接服务器，所以只要确定好服务器的ip、port等信息就好，本地客户端可以随机</li>
+<li>tcp服务器中通过listen可以将socket创建出来的主动套接字变为被动的，这是做tcp服务器时必须要做的</li>
+<li>当客户端需要链接服务器时，就需要使用connect进行链接，udp是不需要链接的而是直接发送，但是tcp必须先链接，只有链接成功才能通信</li>
+<li>当一个tcp客户端连接服务器时，服务器端会有1个新的套接字，这个套接字用来标记这个客户端，单独为这个客户端服务</li>
+<li>listen后的套接字是被动套接字，用来接收新的客户端的链接请求的，而accept返回的新套接字是标记这个新客户端的</li>
+<li>关闭listen后的套接字意味着被动套接字关闭了，会导致新的客户端不能够链接服务器，但是之前已经链接成功的客户端正常通信。</li>
+<li>关闭accept返回的套接字意味着这个客户端已经服务完毕</li>
+<li>当客户端的套接字调用close后，服务器端会recv解堵塞，并且返回的长度为0，因此服务器可以通过返回数据的长度来区别客户端是否已经下线</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/python/" rel="tag"># python</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/02/28/python%E8%BF%9B%E9%98%B601-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E7%BC%96%E7%A8%8B/" rel="prev" title="Python高级编程01 -- 多线程编程">
+      <i class="fa fa-chevron-left"></i> Python高级编程01 -- 多线程编程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/03/01/python%E8%BF%9B%E9%98%B603-%E8%BF%AD%E4%BB%A3%E5%99%A8%E3%80%81%E7%94%9F%E6%88%90%E5%99%A8/" rel="next" title="Python高级编程03 -- 迭代器、生成器">
+      Python高级编程03 -- 迭代器、生成器 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E8%AE%A4%E8%AF%86%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B"><span class="nav-number">1.</span> <span class="nav-text">1. 认识网络编程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-IP%E5%9C%B0%E5%9D%80"><span class="nav-number">2.</span> <span class="nav-text">2. IP地址</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-OSI%E6%A8%A1%E5%9E%8B%E4%B8%8EIP-TCP%E5%8D%8F%E8%AE%AE%E6%A8%A1%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">3. OSI模型与IP&#x2F;TCP协议模型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-Socket-%E5%A5%97%E6%8E%A5%E5%AD%97"><span class="nav-number">4.</span> <span class="nav-text">4. Socket(套接字)</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#4-1-Python%E6%8F%90%E4%BE%9B%E4%BA%86%E4%B8%A4%E4%B8%AA%E7%BA%A7%E5%88%AB%E8%AE%BF%E9%97%AE%E7%9A%84%E7%BD%91%E7%BB%9C%E6%9C%8D%E5%8A%A1"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 Python提供了两个级别访问的网络服务</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#4-2-%E4%BB%80%E4%B9%88%E6%98%AFSocket"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 什么是Socket?</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#4-3-%E5%88%9B%E5%BB%BAsocket"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 创建socket</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#4-4-Socket%E5%AF%B9%E8%B1%A1%EF%BC%88%E5%86%85%E5%BB%BA%EF%BC%89%E6%96%B9%E6%B3%95"><span class="nav-number">4.4.</span> <span class="nav-text">4.4 Socket对象（内建）方法</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-%E7%BD%91%E7%BB%9C-UDP"><span class="nav-number">5.</span> <span class="nav-text">5. 网络-UDP</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6%E3%80%81%E7%BD%91%E7%BB%9C-TCP"><span class="nav-number"></span> <span class="nav-text">6、网络-TCP</span></a></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">37k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">34 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;| 
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date(); 
+      function createtime() { 
+          var grt= new Date("02/28/2021 12:00:00");//此处修改你的建站时间或者网站上线时间 
+          now.setTime(now.getTime()+250); 
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days); 
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours); 
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum); 
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;} 
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum); 
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;} 
+      } 
+  setInterval("createtime()",250);
+  </script>
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+ 
+   <canvas class="fireworks" style="position: fixed;left: 0;top: 0;z-index: 1; pointer-events: none;" ></canvas> 
+   <script type="text/javascript" src="//cdn.bootcss.com/animejs/2.2.0/anime.min.js"></script> 
+   <script type="text/javascript" src="/js/src/fireworks.js"></script>
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"/live2dw/assets/hibiki.model.json"},"display":{"position":"right","width":150,"height":400},"mobile":{"show":true}});</script></body>
+</html>

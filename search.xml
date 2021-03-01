@@ -1,0 +1,2390 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Python高级编程02 -- 网络编程</title>
+    <url>/2021/03/01/python%E8%BF%9B%E9%98%B602-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/</url>
+    <content><![CDATA[<h4 id="1-认识网络编程"><a href="#1-认识网络编程" class="headerlink" title="1. 认识网络编程"></a>1. 认识网络编程</h4><ul>
+<li>网络编程从大的方面来讲就是对信息的发送到接收，中间传输为物理线路的作用。小的方面是指编写运行在多个设备（计算机）的程序，这些设备都通过网络连接起来。</li>
+</ul>
+<h4 id="2-IP地址"><a href="#2-IP地址" class="headerlink" title="2. IP地址"></a>2. IP地址</h4><p>一个IP地址就是一个32位无符号整数，IP地址通常是以一个称为点分十进制表示法来表示。每个字节由它的十进制值来表示，并且用句号（英文中的句号）和其它字节间分开。</p>
+<ul>
+<li>A类：地址范围1.0.0.1 - 126.255.255.254  —-有126个网络</li>
+<li>B类：地址范围128.1.0.1 - 191.255.255.254 —-有16384个网络</li>
+<li>C类：地址范围192.0.1.1-233.255.255.254  —-有2097152个网络</li>
+<li>D类：用于多点广播</li>
+<li>私有IP:10.0.0.0-10.255.255.255 , 172.16.0.0-172.31.255.255, 192.168.0.0-192.168.255.255(<strong>注意：IP地址127.0.0.1-127.255.255.255用于回路测试</strong>)</li>
+</ul>
+<h4 id="3-OSI模型与IP-TCP协议模型"><a href="#3-OSI模型与IP-TCP协议模型" class="headerlink" title="3. OSI模型与IP/TCP协议模型"></a>3. OSI模型与IP/TCP协议模型</h4><ul>
+<li><p>OSI模型<br>开放式系统互联通信参考模型（Open System Interconnection Reference Model）简称OSI模型，一种概念模型，由国际标准化组织（ISO）提出，一个试图使各种计算机在世界范围内互连为网络的标准框架。</p>
+<span id="more"></span>
+
+</li>
+</ul>
+<p><strong>ISO模型</strong></p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>7.应用层 application layer</td>
+<td>网络进程到应用程序。针对特定应用规定各层协议、时序、表示等，进行封装 。在端系统中用软件来实现，如HTTP，HTTPS,FTP,SSH,SMTP,POP3等</td>
+</tr>
+<tr>
+<td>6.表示层 presentation layer</td>
+<td>数据表示形式，加密和解密，把机器相关的数据转换成独立与机器的数据。规定数据的格式化表示，数据格式的转换等</td>
+</tr>
+<tr>
+<td>5.会话层 session layer</td>
+<td>主机间通讯，管理应用程序之间的会话。规定通讯时序；数据交换的定界、同步，创建检查点等。</td>
+</tr>
+<tr>
+<td>4.传输层 transport layer</td>
+<td>在网络的各个节点之间可靠地分发数据包。所有传输遗留问题；复用；流量；可靠。</td>
+</tr>
+<tr>
+<td>3.网络层 network layer</td>
+<td>在网络的各个节点之间进行地址分配、路由和（不一定可靠的）分发报文。路由（IP寻址）；拥塞控制。</td>
+</tr>
+<tr>
+<td>2.数据链路层 data link layer</td>
+<td>一个可靠的点对点数据直链。检错与纠错（CRC码）；多路访问；寻址。</td>
+</tr>
+<tr>
+<td>1.物理层 physical layer</td>
+<td>一个（不一定可靠的）点对点数据直链。定义机械特性；电气特性；功能特性；过程特性</td>
+</tr>
+</tbody></table>
+<ul>
+<li>TCP/IP协议<br>互联网协议族（Internet Protocol Suits，缩写IPS）是一个网络通信模型，以及一整个网络传输协议家族，为互联网的基础通信架构。它常被通称为TCP/IP协议族（TCP/IP Protocol Suite,或TCP/IP Protocols,）简称TCP/IP。因为该协议家族的两个核心协议：TCP(传输控制协议)和IP（网际协议）</li>
+</ul>
+<p><strong>TCP/IP协议</strong><br><img src="/images/69af3eb2-4809-44db-94a0-d93181875879.png"></p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>协议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>4.应用层 application layer</td>
+<td>HTTP、FTP、DNS</td>
+</tr>
+<tr>
+<td>3.传输层 transport layer</td>
+<td>TCP、UDP、RIP、SCTP</td>
+</tr>
+<tr>
+<td>2.网络互联层 internet layer</td>
+<td>IP</td>
+</tr>
+<tr>
+<td>1.网络接口层 link layer</td>
+<td>以太网、Wi-Fi、MPLS</td>
+</tr>
+</tbody></table>
+<h4 id="4-Socket-套接字"><a href="#4-Socket-套接字" class="headerlink" title="4. Socket(套接字)"></a>4. Socket(套接字)</h4><h5 id="4-1-Python提供了两个级别访问的网络服务"><a href="#4-1-Python提供了两个级别访问的网络服务" class="headerlink" title="4.1 Python提供了两个级别访问的网络服务"></a>4.1 Python提供了两个级别访问的网络服务</h5><ul>
+<li>低级的网络服务支持基本的Socket，它提供了标准的BSD Sockets API,可以访问底层操作系统Socket接口的全部方法。</li>
+<li>高级别的网络服务模块SocketServer , 它提供可服务器中心类，可以简化服务器的开发。</li>
+</ul>
+<h5 id="4-2-什么是Socket"><a href="#4-2-什么是Socket" class="headerlink" title="4.2 什么是Socket?"></a>4.2 什么是Socket?</h5><ul>
+<li>Socket 是对TCP/IP协议族的一种封装，是应用层与TCP/IP协议族通信的中间软件抽象层。从设计模式的角度看来，Socket其实就是一个门面模式，它把复杂的TCP/IP协议族隐藏在Socket接口后面，对用户来说，一组简单的接口就是全部，让socket去组织数据，以符合指定的协议。</li>
+<li>Socket 还可以认为是一种网络间不同计算机上的进程通信的一种方式，利用三元组（IP地址，协议，端口）就可以唯一标识网络中的进程，网络中的进程通信可以利用这个标识与其它进程进行交互。</li>
+<li>Socket起源于Unix，Unix/Linux 基本哲学之一就是“一切皆文件”，都可以用”打开（open）–&gt;读写（write/read）–&gt;关闭（close）”模式来进行操作。因此Socket也被处理为一种特殊的文件。</li>
+</ul>
+<h5 id="4-3-创建socket"><a href="#4-3-创建socket" class="headerlink" title="4.3 创建socket"></a>4.3 创建socket</h5><ul>
+<li>在python中使用socket模块的函数socket就可以完成：</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> socket
+socket<span class="token punctuation">.</span>socket<span class="token punctuation">(</span>AddressFamily<span class="token punctuation">,</span>Type<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<blockquote>
+<p>说明：函数socket.socket创建一个socket，该函数带有两个参数<br> Address Family:可以选择AF_INET（用于Internet进程间通信）或者AF_UNIX(用于同一台机器进程间通信)，实际工作中常用AF_INET<br> Type:套接字类型，可以是SOCK_STREAM（流式套接字，主要用于TCP协议）或者SOCK_DGRAM(数据报套接字，主要用于UDP协议)</p>
+</blockquote>
+<ul>
+<li>创建一个TCP socket（tcp套接字）</li>
+</ul>
+<pre class="line-numbers language-none"><code class="language-none">import socket
+# 创建tcp的套接字
+s&#x3D; socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+
+# ...这里是使用套接字的功能
+
+# 不用的时候，关闭套接字
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>创建一个UDP socket(UDP套接字)</li>
+</ul>
+<pre class="line-numbers language-none"><code class="language-none">import socket
+
+# 创建udp的套接字
+s&#x3D; socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+
+# ...这里是使用套接字的功能（省略...）
+
+# 不用的时候，关闭套接字
+
+s.close()
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h5 id="4-4-Socket对象（内建）方法"><a href="#4-4-Socket对象（内建）方法" class="headerlink" title="4.4 Socket对象（内建）方法"></a>4.4 Socket对象（内建）方法</h5><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>服务器端套接字</td>
+<td></td>
+</tr>
+<tr>
+<td>s.bind()</td>
+<td>绑定地址（host,port）到套接字，在AF_INET下，以元组（host,port）的形式表示地址。</td>
+</tr>
+<tr>
+<td>s.listen()</td>
+<td>开始TCP监听。backlog指定在拒绝连接之前，操作系统可以挂起的最大连接数量。该值至少为1，大部分应用程序设为5就可以了。</td>
+</tr>
+<tr>
+<td>s.accept()</td>
+<td>被动接受TCP客户端连接，（阻塞式）等待连接的到来</td>
+</tr>
+<tr>
+<td>客户端套接字</td>
+<td></td>
+</tr>
+<tr>
+<td>s.connect()</td>
+<td>主动初始化TCP服务器。一般address的格式为元组（hostname,port）,如果连接出错，返回socket.error错误</td>
+</tr>
+<tr>
+<td>公共用途的套接字函数</td>
+<td></td>
+</tr>
+<tr>
+<td>s.recv()</td>
+<td>接收TCP数据，数据以字符串形式返回，bufsize指定要接收的最大数据量。flag提供有关消息的其他信息，通常可以忽略。</td>
+</tr>
+<tr>
+<td>s.send()</td>
+<td>发送TCP 数据，将string中的数据发送到连接的套接字。返回值是要发送的字节数量，该数量可能小于string的字节大小。</td>
+</tr>
+<tr>
+<td>s.sendall()</td>
+<td>完整发送TCP数据，完整发送TCP数据。将string中的数据发送到连接的套接字，但在返回之前会尝试发送所有的数据。成功返回None，失败则抛出异常。</td>
+</tr>
+<tr>
+<td>s.recvfrom()</td>
+<td>接收UDP数据，与recv()类似，但返回值是（data,address）。其中data是包含接收数据的字符串，address是发送数据的套接字地址。</td>
+</tr>
+<tr>
+<td>s.sendto()</td>
+<td>发送UDP数据，将数据发送到套接字，address是形式为（ipaddr,port）的元组，指定远程地址。返回值是发送的字节数。</td>
+</tr>
+<tr>
+<td>s.close()</td>
+<td>关闭套接字</td>
+</tr>
+<tr>
+<td>s.getpeername()</td>
+<td>返回连接套接字的远程地址。返回值通常是元组（ipaddr,port）.</td>
+</tr>
+<tr>
+<td>s.getsockname()</td>
+<td>返回套接字自己的地址。通常是一个元组（ipaddr,port）</td>
+</tr>
+<tr>
+<td>s.settimeout(timeout)</td>
+<td>设置套接字操作的超时期，timeout是一个浮点数，单位是秒。值为None表示没有超时期。一般，超时期应该在刚创建套接字时设置，因为它们可能用于连接的操作（如connet()）</td>
+</tr>
+<tr>
+<td>s.gettimeout()</td>
+<td>返回当前超时期的值，单位是秒，如果没有设置超时期，则返回None.</td>
+</tr>
+<tr>
+<td>s.fileno()</td>
+<td>返回套接字的文件描述符</td>
+</tr>
+<tr>
+<td>s.setblocking(flag)</td>
+<td>如果flag为0，则将套接字设为非阻塞模式，否则将套接字设为阻塞模式（默认值）。非阻塞模式下，如果调用recv()没有发现任何数据，或send()调用无法立即发送数据，那么将引起socket.error异常。</td>
+</tr>
+<tr>
+<td>s.makefile()</td>
+<td>创建一个与该套接字相关连的文件</td>
+</tr>
+</tbody></table>
+<hr>
+<h4 id="5-网络-UDP"><a href="#5-网络-UDP" class="headerlink" title="5. 网络-UDP"></a>5. 网络-UDP</h4><ul>
+<li>创建一个udp客户端程序的流程：</li>
+</ul>
+<ol>
+<li>创建客户端套接字</li>
+<li>发送/接收数据</li>
+<li>关闭套接字</li>
+</ol>
+<center> ![](/images/e5b906b9-14d0-4853-8a11-76064e29ae96.jpg)</center>
+
+<br>
+
+<p>代码如下：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> socket <span class="token keyword">import</span> <span class="token operator">*</span>
+
+<span class="token comment"># 1. 创建udp 套接字</span>
+udp_socket <span class="token operator">=</span> socket<span class="token punctuation">(</span>AF_INET<span class="token punctuation">,</span>SOCK_DGRAM<span class="token punctuation">)</span>
+
+<span class="token comment"># 2. 准备接收方的地址</span>
+<span class="token comment">#  192.168.1.100 表示目的IP地址 8080表示目的端口</span>
+dest_addr <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token string">"192,.168.1.103"</span> <span class="token punctuation">,</span> <span class="token number">8080</span><span class="token punctuation">)</span> <span class="token comment"># 注意是元组，ip是字符串，端口是数字</span>
+
+<span class="token comment"># 3.从键盘获得数据</span>
+send_data <span class="token operator">=</span> <span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入要发送的数据："</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 4.发送数据到指定的电脑上的指定程序中</span>
+udp_socket<span class="token punctuation">.</span>sendto<span class="token punctuation">(</span>send_data<span class="token punctuation">.</span>encode<span class="token punctuation">(</span><span class="token string">"utf-8"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> dest_addr<span class="token punctuation">)</span>
+
+<span class="token comment"># 5.关闭套接字</span>
+udp_socket<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>udp 网络程序-发送、接收数据</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> socket <span class="token keyword">import</span> <span class="token operator">*</span>
+
+<span class="token comment"># 1. 创建udp 套接字</span>
+udp_socket <span class="token operator">=</span> socket<span class="token punctuation">(</span>AF_INET<span class="token punctuation">,</span> SOCK_DGRAM<span class="token punctuation">)</span>
+
+<span class="token comment"># 2. 准备接收方的地址</span>
+<span class="token comment"># 192.168.1.100 表示 目的地址  8080表示目的端口</span>
+dest_addr <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token string">"192,168.1.100"</span><span class="token punctuation">,</span><span class="token number">8080</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 3. 从键盘获取数据</span>
+send_data <span class="token operator">=</span> <span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入要发送的数据："</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 4.发送数据到指定的电脑上</span>
+udp_socket<span class="token punctuation">.</span>sendto<span class="token punctuation">(</span>send_data<span class="token punctuation">.</span>encode<span class="token punctuation">(</span><span class="token string">"utf-8"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> dest_addr<span class="token punctuation">)</span>
+
+<span class="token comment"># 5.等待接收对方发送的数据</span>
+recv_data <span class="token operator">=</span> udp_socket<span class="token punctuation">.</span>recvfrom<span class="token punctuation">(</span><span class="token number">1024</span><span class="token punctuation">)</span> <span class="token comment"># 2014 表示本次接收的最大字节数</span>
+
+<span class="token comment"># 6.显示对方发送的数据</span>
+<span class="token comment"># 接收到的数据recv_data 是一个元组</span>
+<span class="token comment"># 第1个元素是对方发送的数据</span>
+<span class="token comment"># 第2个元素是对方的IP和端口</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>recv_data<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">.</span>decode<span class="token punctuation">(</span><span class="token string">"gbk"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>recv_data<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 7.关闭套接字</span>
+udp_socker<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<ul>
+<li>python3–编程转换</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token builtin">str</span>  <span class="token operator">-</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">></span> <span class="token builtin">bytes</span><span class="token punctuation">:</span>encode 编码
+<span class="token comment"># 说明 字符串通过编码成为字节码</span>
+
+<span class="token builtin">bytes</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">-</span><span class="token operator">></span> <span class="token builtin">str</span><span class="token punctuation">:</span>decode  解码
+<span class="token comment"># 说明字节码通过解码成为字符串</span>
+
+<span class="token comment"># 其中decode（）与encode（）方法可以接受参数，其声明分别为：</span>
+<span class="token builtin">bytes</span><span class="token punctuation">.</span>decode<span class="token punctuation">(</span>encoding<span class="token operator">=</span><span class="token string">"utf-8"</span><span class="token punctuation">,</span>errors<span class="token operator">=</span><span class="token string">"strict"</span><span class="token punctuation">)</span>
+<span class="token builtin">str</span><span class="token punctuation">.</span>encode<span class="token punctuation">(</span>encoding<span class="token operator">=</span><span class="token string">"utf-8"</span><span class="token punctuation">,</span>errors<span class="token operator">=</span><span class="token string">"strict"</span><span class="token punctuation">)</span><span class="token comment"># errors是指错误的处理方案。</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>udp绑定信息</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">
+<span class="token comment"># 绑定本地的相关信息，如果一个网络程序不绑定，则系统会随机分配</span>
+local_addr <span class="token operator">=</span> （<span class="token string">""</span><span class="token punctuation">,</span><span class="token number">7788</span>） <span class="token comment"># ip地址和端口号，ip一般不用写，表示本机的任何一个IP</span>
+udp_socker<span class="token punctuation">.</span>bind<span class="token punctuation">(</span>loacl_addr<span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>总结：</li>
+</ul>
+<ul>
+<li>一个udp网络程序，可以不绑定，此时操作系统会随机进行分配一个端口，如果重新运行此程序端口可能会发生变化。</li>
+<li>一个udp网络程序，也可以绑定信息（ip地址，端口号），如果绑定成功，那么操作系统用这个端口号来进行区别收到的网络数据是否是此进程。</li>
+</ul>
+<h3 id="6、网络-TCP"><a href="#6、网络-TCP" class="headerlink" title="6、网络-TCP"></a>6、网络-TCP</h3><ul>
+<li><p>定义：TCP协议，传输控制协议是一种面向连接、可靠、基于字节流的传输层通信协议。</p>
+</li>
+<li><p>步骤：TCP通信需要经过创建连接、数据传送、终止连接三个步骤</p>
+</li>
+<li><p>TCP特点：</p>
+</li>
+<li><p>面向连接：双方必须先建立连接才能进行数据的传输，双方都必须为该连接分配必要的系统内核资源，以管理连接的状态和连接上的传输。</p>
+</li>
+<li><p>TCP采用发送应答机制：发送的每个报文段都必须得到接收方的应答才认为这个TCP报文段传输成功。</p>
+</li>
+<li><p>超时重传：在定时时间内没有收到应答就重新发送这个报文段。</p>
+</li>
+<li><p>错误校验：tcp用一个校验和函数来检验数据是否有错误，在发送和接收时都要计算校验和。</p>
+</li>
+<li><p>流量控制和阻塞管理：流量控制用来避免主机发送得过快而使接收方来不及完全收下。</p>
+</li>
+</ul>
+<ul>
+<li><p>TCP与UDP的不同点</p>
+</li>
+<li><p>面向连接（确定有创建三方交握，连接已创建才作传输）</p>
+</li>
+<li><p>有序数据传输</p>
+</li>
+<li><p>重发丢失的数据包</p>
+</li>
+<li><p>舍弃重复的数据包</p>
+</li>
+<li><p>无差错的数据传输</p>
+</li>
+<li><p>阻塞/流量控制</p>
+</li>
+</ul>
+<ul>
+<li>TCP模型<center>![](/images/15059c2c-bad3-4c87-a3e0-182e534f51e0.png)
+
+
+</li>
+</ul>
+<ul>
+<li>TCP客户端构建流程</li>
+<li>创建socket</li>
+<li>输入目的信息</li>
+<li>链接服务器</li>
+<li>接收对方数据</li>
+<li>关闭套接字</li>
+</ul>
+<p>代码：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> socket <span class="token keyword">import</span> <span class="token operator">*</span>
+
+<span class="token comment"># 创建socket</span>
+tcp_client_socket <span class="token operator">=</span> socket<span class="token punctuation">(</span>AF_INET<span class="token punctuation">,</span> SOCK_STREAM<span class="token punctuation">)</span>
+
+<span class="token comment"># 目的信息</span>
+sever_ip <span class="token operator">=</span> <span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入服务器IP:"</span><span class="token punctuation">)</span>
+sever_port <span class="token operator">=</span> <span class="token builtin">int</span> <span class="token punctuation">(</span><span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入服务器port:"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 链接服务器</span>
+tcp_client_socket<span class="token punctuation">.</span>connect<span class="token punctuation">(</span><span class="token punctuation">(</span>server_ip<span class="token punctuation">,</span> server_port<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment"># 元组</span>
+
+<span class="token comment"># 提示用户输入数据</span>
+send_data <span class="token operator">=</span> <span class="token builtin">input</span><span class="token punctuation">(</span><span class="token string">"请输入要发送的数据："</span><span class="token punctuation">)</span>
+tcp_client_socket<span class="token punctuation">.</span>send<span class="token punctuation">(</span>send_data<span class="token punctuation">.</span>encode<span class="token punctuation">(</span><span class="token string">"gbk"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 接收对方发送过来的数据，最大接收1024个字节</span>
+recvData <span class="token operator">=</span> tcp_client_socket<span class="token punctuation">.</span>recv<span class="token punctuation">(</span><span class="token number">1024</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"接收到的数据为："</span><span class="token punctuation">,</span> recvData<span class="token punctuation">.</span>decode<span class="token punctuation">(</span><span class="token string">"gbk"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 关闭套接字</span>
+
+tcp_client_socket<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：<br>请输入服务器ip:10.10.0.47<br>请输入服务器port:8080<br>请输入要发送的数据：你好啊<br>接收到的数据为: 我很好，你呢</p>
+<ul>
+<li>TCP服务器<ul>
+<li>socket创建一个套接字</li>
+<li>bind 绑定ip和port</li>
+<li>listen 使套接字变为可以被动链接</li>
+<li>accept等待客户端的链接</li>
+<li>recv/send接收发送数据</li>
+</ul>
+</li>
+</ul>
+<p>代码：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> socket <span class="token keyword">import</span> <span class="token operator">*</span>
+
+<span class="token comment"># 创建socket</span>
+tcp_server_socket <span class="token operator">=</span> socket<span class="token punctuation">(</span>AF_INET<span class="token punctuation">,</span> SOCK_STREAM<span class="token punctuation">)</span>
+
+<span class="token comment"># 本地信息</span>
+address <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">,</span> <span class="token number">7788</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 绑定</span>
+tcp_server_socket<span class="token punctuation">.</span>bind<span class="token punctuation">(</span>address<span class="token punctuation">)</span>
+
+<span class="token comment"># 使用socket创建的套接字默认的属性是主动的，使用listen将其变为被动的，这样就可以接收别人的链接了</span>
+tcp_server_socket<span class="token punctuation">.</span>listen<span class="token punctuation">(</span><span class="token number">128</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 如果有新的客户端来链接服务器，那么就产生一个新的套接字专门为这个客户端服务</span>
+<span class="token comment"># client_socket用来为这个客户端服务</span>
+<span class="token comment"># tcp_server_socket就可以省下来专门等待其他新客户端的链接</span>
+client_socket<span class="token punctuation">,</span> clientAddr <span class="token operator">=</span> tcp_server_socket<span class="token punctuation">.</span>accept<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 接收对方发送过来的数据</span>
+recv_data <span class="token operator">=</span> client_socket<span class="token punctuation">.</span>recv<span class="token punctuation">(</span><span class="token number">1024</span><span class="token punctuation">)</span>  <span class="token comment"># 接收1024个字节</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">'接收到的数据为:'</span><span class="token punctuation">,</span> recv_data<span class="token punctuation">.</span>decode<span class="token punctuation">(</span><span class="token string">'gbk'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 发送一些数据到客户端</span>
+client_socket<span class="token punctuation">.</span>send<span class="token punctuation">(</span><span class="token string">"thank you !"</span><span class="token punctuation">.</span>encode<span class="token punctuation">(</span><span class="token string">'gbk'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 关闭为这个客户端服务的套接字，只要关闭了，就意味着为不能再为这个客户端服务了，如果还需要服务，只能再次重新连接</span>
+client_socket<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>tcp注意点</li>
+<li>tcp服务器一般情况下都需要绑定，否则客户端找不到这个服务器</li>
+<li>tcp客户端一般不绑定，因为是主动链接服务器，所以只要确定好服务器的ip、port等信息就好，本地客户端可以随机</li>
+<li>tcp服务器中通过listen可以将socket创建出来的主动套接字变为被动的，这是做tcp服务器时必须要做的</li>
+<li>当客户端需要链接服务器时，就需要使用connect进行链接，udp是不需要链接的而是直接发送，但是tcp必须先链接，只有链接成功才能通信</li>
+<li>当一个tcp客户端连接服务器时，服务器端会有1个新的套接字，这个套接字用来标记这个客户端，单独为这个客户端服务</li>
+<li>listen后的套接字是被动套接字，用来接收新的客户端的链接请求的，而accept返回的新套接字是标记这个新客户端的</li>
+<li>关闭listen后的套接字意味着被动套接字关闭了，会导致新的客户端不能够链接服务器，但是之前已经链接成功的客户端正常通信。</li>
+<li>关闭accept返回的套接字意味着这个客户端已经服务完毕</li>
+<li>当客户端的套接字调用close后，服务器端会recv解堵塞，并且返回的长度为0，因此服务器可以通过返回数据的长度来区别客户端是否已经下线</li>
+</ul>
+]]></content>
+      <categories>
+        <category>编程类</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python高级编程03 -- 迭代器、生成器</title>
+    <url>/2021/03/01/python%E8%BF%9B%E9%98%B603-%E8%BF%AD%E4%BB%A3%E5%99%A8%E3%80%81%E7%94%9F%E6%88%90%E5%99%A8/</url>
+    <content><![CDATA[<h3 id="1、迭代器"><a href="#1、迭代器" class="headerlink" title="1、迭代器"></a>1、迭代器</h3><ul>
+<li>定义：迭代器是访问集合元素的一种方式。迭代器对象从集合的第一个元素开始访问，直到所有的元素被访问完结束。迭代器只能往前不会后退。</li>
+</ul>
+<ul>
+<li>优点：迭代器的一大优点是不要求事先准备好整个迭代过程中所有元素。迭代器仅仅在迭代到某个元素时才计算该元素，而在这之前或之后，元素可以不存在或者被销毁。这个特点使得它特别适合用于遍历一些巨大的集合，比如几个G的文件。</li>
+</ul>
+<ul>
+<li><p>特点：</p>
+</li>
+<li><p>访问者不需要关心迭代器内部的结构，仅需通过next()方法不断去取下一个内容。</p>
+</li>
+<li><p>不能随机访问集合中的某个值，只能从头到尾依次访问。</p>
+<span id="more"></span>
+</li>
+<li><p>访问到一半时不能往回退</p>
+</li>
+<li><p>便于循环比较大的数据集合，节省内存</p>
+</li>
+</ul>
+<ul>
+<li><p>首先讨论下迭代、迭代器、迭代对象三者的定义</p>
+</li>
+<li><p>迭代是访问集合元素的一种方式。<br>例如对list、tuple、str等类型的数据使用for…in…的循环语法从其中依次拿到数据进行使用，我们把这样的过程称为遍历，也叫迭代。</p>
+</li>
+<li><p>迭代器是一个可以记住遍历的位置的对象<br>本质：对可迭代对象进行迭代使用的过程，发现在for…in…中每循环一次都会返回对象中的下一条数据，一直向后读取数据直到迭代了所有数据后结束。在这个过程中就应该迭代器去记录每次访问到了第几天数据，以便每次迭代都可以返回下一条数据。一个实现了<code>__iter__</code>方法和<code>__next__</code>方法的对象，就是迭代器。</p>
+</li>
+<li><p>迭代器对象从集合的一个元素开始访问，直到所有的元素被访问完结束。<br>例如通过for…in…这类语句迭代读取一条数据供我们使用的对象称之为迭代对象。<br>本质：迭代对象 通过<code>__iter__</code>方法向我们提供一个迭代器，我们在迭代一个可迭代对象的时候，实际上就是先获取该对象提供的一个迭代器，然后通过这个迭代器开始获取对象中的每一个数据。也就是说，一个具备了<code>__iter__</code>方法的对象，就是一个可迭代对象。</p>
+</li>
+<li><p>如何判断一个对象是否可以迭代？<br>可以使用isinstance()判断一个对象是否是Iterable对象，当返回的是True表示是Iterable对象，返回的是false则不是.</p>
+</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> collections <span class="token keyword">import</span> Iterable
+
+In <span class="token punctuation">[</span><span class="token number">51</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> Iterable<span class="token punctuation">)</span>   <span class="token comment">#列表可以迭代</span>
+Out<span class="token punctuation">[</span><span class="token number">51</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token boolean">True</span>
+
+In <span class="token punctuation">[</span><span class="token number">52</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span><span class="token punctuation">&#123;</span><span class="token punctuation">&#125;</span><span class="token punctuation">,</span> Iterable<span class="token punctuation">)</span>   <span class="token comment">#字典可以迭代</span>
+Out<span class="token punctuation">[</span><span class="token number">52</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token boolean">True</span>
+
+In <span class="token punctuation">[</span><span class="token number">53</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span><span class="token string">'abc'</span><span class="token punctuation">,</span> Iterable<span class="token punctuation">)</span>  <span class="token comment">#字符串可以迭代</span>
+Out<span class="token punctuation">[</span><span class="token number">53</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token boolean">True</span>
+
+In <span class="token punctuation">[</span><span class="token number">54</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span>mylist<span class="token punctuation">,</span> Iterable<span class="token punctuation">)</span>  <span class="token comment">#mylist容器对象不能迭代</span>
+Out<span class="token punctuation">[</span><span class="token number">54</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token boolean">False</span>
+
+In <span class="token punctuation">[</span><span class="token number">55</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">,</span> Iterable<span class="token punctuation">)</span>   <span class="token comment"># int整型不是iterable ， 即int整型不是可以迭代的</span>
+Out<span class="token punctuation">[</span><span class="token number">55</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token boolean">False</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<ul>
+<li> 如何判断一个对象是否是迭代器？<br>可以使用isinstance()判断一个对象是否是Iterator对象</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">In <span class="token punctuation">[</span><span class="token number">56</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token keyword">from</span> collections <span class="token keyword">import</span> Iterator
+
+In <span class="token punctuation">[</span><span class="token number">57</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> Iterator<span class="token punctuation">)</span>  <span class="token comment"># 列表不是迭代对象</span>
+Out<span class="token punctuation">[</span><span class="token number">57</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token boolean">False</span>
+
+In <span class="token punctuation">[</span><span class="token number">58</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span><span class="token builtin">iter</span><span class="token punctuation">(</span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">,</span> Iterator<span class="token punctuation">)</span> 元组是迭代对象
+Out<span class="token punctuation">[</span><span class="token number">58</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token boolean">True</span>
+
+In <span class="token punctuation">[</span><span class="token number">59</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token builtin">isinstance</span><span class="token punctuation">(</span><span class="token builtin">iter</span><span class="token punctuation">(</span><span class="token string">"abc"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> Iterator<span class="token punctuation">)</span>
+Out<span class="token punctuation">[</span><span class="token number">59</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token boolean">True</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>iter()函数与next()函数<br>通过iter()函数获取可迭代对象的迭代器，然后可以对获取到的迭代器不断使用next()函数来获取下一条数据。iter()函数实际上就是调用了可迭代对象的<code>__iter__</code>方法.迭代完最后一个数据之后，再次调用next()函数会抛出stopIteration的异常，来告诉我们所有数据都已迭代完成，不用再执行next()函数。</li>
+</ul>
+<pre class="line-numbers language-none"><code class="language-none">&gt;&gt;&gt; li &#x3D; [11, 22, 33]
+&gt;&gt;&gt; li_iter &#x3D; iter(li)
+&gt;&gt;&gt; next(li_iter)
+11
+&gt;&gt;&gt; next(li_iter)
+22
+&gt;&gt;&gt; next(li_iter)
+33
+&gt;&gt;&gt; next(li_iter)
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+StopIteration
+&gt;&gt;
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<ul>
+<li>迭代器Iterator<br>迭代器是用来帮助我们记录每次迭代访问到的位置，当我们对迭代器使用next()函数的时候，迭代器会向我们返回它所记录位置的下一个位置的数据。<br>一个实现了<code>__iter__</code>方法和<code>__next__</code>方法的对象，就是迭代器</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">
+<span class="token keyword">class</span> <span class="token class-name">MyList</span><span class="token punctuation">(</span><span class="token builtin">object</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token triple-quoted-string string">"""自定义的一个可迭代对象"""</span>
+    <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>items <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>
+
+    <span class="token keyword">def</span> <span class="token function">add</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> val<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>items<span class="token punctuation">.</span>append<span class="token punctuation">(</span>val<span class="token punctuation">)</span>
+
+    <span class="token keyword">def</span> <span class="token function">__iter__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        myiterator <span class="token operator">=</span> MyIterator<span class="token punctuation">(</span>self<span class="token punctuation">)</span>
+        <span class="token keyword">return</span> myiterator
+    <span class="token keyword">class</span> <span class="token class-name">MyIterator</span><span class="token punctuation">(</span><span class="token builtin">object</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token triple-quoted-string string">"""自定义的供上面可迭代对象使用的一个迭代器"""</span>
+    <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> mylist<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        self<span class="token punctuation">.</span>mylist <span class="token operator">=</span> mylist
+        <span class="token comment"># current用来记录当前访问到的位置</span>
+        self<span class="token punctuation">.</span>current <span class="token operator">=</span> <span class="token number">0</span>
+
+    <span class="token keyword">def</span> <span class="token function">__next__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">if</span> self<span class="token punctuation">.</span>current <span class="token operator">&lt;</span> <span class="token builtin">len</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>mylist<span class="token punctuation">.</span>items<span class="token punctuation">)</span><span class="token punctuation">:</span>
+            item <span class="token operator">=</span> self<span class="token punctuation">.</span>mylist<span class="token punctuation">.</span>items<span class="token punctuation">[</span>self<span class="token punctuation">.</span>current<span class="token punctuation">]</span>
+            self<span class="token punctuation">.</span>current <span class="token operator">+=</span> <span class="token number">1</span>
+            <span class="token keyword">return</span> item
+
+        <span class="token keyword">else</span><span class="token punctuation">:</span>
+            <span class="token keyword">raise</span> StopIteration
+
+    <span class="token keyword">def</span> <span class="token function">__iter__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> self
+
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">'__main__'</span><span class="token punctuation">:</span>
+    mylist <span class="token operator">=</span> MyList<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    mylist<span class="token punctuation">.</span>add<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+    mylist<span class="token punctuation">.</span>add<span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span>
+    mylist<span class="token punctuation">.</span>add<span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span>
+    mylist<span class="token punctuation">.</span>add<span class="token punctuation">(</span><span class="token number">4</span><span class="token punctuation">)</span>
+    mylist<span class="token punctuation">.</span>add<span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span>
+    <span class="token keyword">for</span> num <span class="token keyword">in</span> mylist<span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span>num<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>斐波那契数列迭代器使用</li>
+<li>数学中有个著名的斐波那契数列（Fibonacci）,数列中第一个数为0，第二个数为1，其后的每一个数都可由前两个数相加得到：</li>
+<li>0,1,1,2,3,5,8,13,21,34，…</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">class</span> <span class="token class-name">FibIterator</span><span class="token punctuation">(</span><span class="token builtin">object</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token triple-quoted-string string">"""斐波那契数列迭代器"""</span>
+    <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> n<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token triple-quoted-string string">"""初始化"""</span>
+        <span class="token comment"># n: int ，指明生成数列的前n个数</span>
+        self<span class="token punctuation">.</span>n <span class="token operator">=</span> n
+        <span class="token comment">#  current用来保存当前生成到数列中的第几个数了</span>
+        self<span class="token punctuation">.</span>current <span class="token operator">=</span> <span class="token number">0</span>
+        <span class="token comment">#  num1用来保存前一个数，初始值为数列中的第一个数0</span>
+        self<span class="token punctuation">.</span>num1 <span class="token operator">=</span> <span class="token number">0</span>
+        <span class="token comment"># num2 用来保存前一个数，初始值为数列中的第二个数1</span>
+        self<span class="token punctuation">.</span>num2 <span class="token operator">=</span> <span class="token number">1</span>
+
+    <span class="token keyword">def</span> <span class="token function">__next__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token triple-quoted-string string">"""被next()函数调用来获取下一个数"""</span>
+        <span class="token keyword">if</span> self<span class="token punctuation">.</span>current <span class="token operator">&lt;</span> self<span class="token punctuation">.</span>n<span class="token punctuation">:</span>
+            num <span class="token operator">=</span> self<span class="token punctuation">.</span>num1
+            self<span class="token punctuation">.</span>num1<span class="token punctuation">,</span> self<span class="token punctuation">.</span>num2 <span class="token operator">=</span> self<span class="token punctuation">.</span>num2<span class="token punctuation">,</span> self<span class="token punctuation">.</span>num1 <span class="token operator">+</span> self<span class="token punctuation">.</span>num2
+            <span class="token comment"># current 用来记录当前访问的位置</span>
+            self<span class="token punctuation">.</span>current <span class="token operator">+=</span> <span class="token number">1</span>
+            <span class="token keyword">return</span> num
+
+    <span class="token keyword">def</span> <span class="token function">__iter__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token triple-quoted-string string">"""迭代器的_iter__返回自身即可"""</span>
+        <span class="token keyword">return</span> self
+
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">"__main__"</span><span class="token punctuation">:</span>
+    fib <span class="token operator">=</span> FibIterator<span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span>
+    <span class="token keyword">for</span> num <span class="token keyword">in</span> fib<span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span>num<span class="token punctuation">,</span> end<span class="token operator">=</span><span class="token string">""</span><span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>补充：<br>   并不是只要for循环能接收可迭代对象<br>   除了for循环能接收可迭代对象，list、tuple等也能接收。<br>   li = list(FibIterator(15))<br>   print(li)<br>   tp = tuple(FibIterator(6))<br>   print(tp</p>
+<hr>
+<h3 id="2-生成器"><a href="#2-生成器" class="headerlink" title="2.生成器"></a>2.生成器</h3><ul>
+<li>一个函数调用时返回一个迭代器，那这个函数就叫做生成器（generator）;如果函数中包含yield语法，那这个函数就会变成生成器；</li>
+<li>要创造一个generator，有很多种方法。第一种方法很简单，只要把一个列表生成式的[]改成（），就创建了一个generator.</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token operator">>></span><span class="token operator">></span> L <span class="token operator">=</span> <span class="token punctuation">[</span>x <span class="token operator">*</span> x <span class="token keyword">for</span> x <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">]</span>
+<span class="token operator">>></span><span class="token operator">></span> L
+<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">4</span><span class="token punctuation">,</span> <span class="token number">9</span><span class="token punctuation">,</span> <span class="token number">16</span><span class="token punctuation">,</span> <span class="token number">25</span><span class="token punctuation">,</span> <span class="token number">36</span><span class="token punctuation">,</span> <span class="token number">49</span><span class="token punctuation">,</span> <span class="token number">64</span><span class="token punctuation">,</span> <span class="token number">81</span><span class="token punctuation">]</span>
+<span class="token operator">>></span><span class="token operator">></span> g <span class="token operator">=</span> <span class="token punctuation">(</span>x <span class="token operator">*</span> x <span class="token keyword">for</span> x <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token operator">>></span><span class="token operator">></span> g
+<span class="token operator">&lt;</span>generator <span class="token builtin">object</span> <span class="token operator">&lt;</span>genexpr<span class="token operator">></span> at <span class="token number">0x1022ef630</span><span class="token operator">></span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>1&gt; 创建L和g的区别仅在于最外层的[]和(),L是list,而g是一个generator<br>2&gt; 我们可以直接打印出list的每一个元素，但我们怎么打印出generator的每一个元素呢？<br>3&gt; 如果要一个一个打印出来，可以通过next()函数获得generator的下一个返回值。<br>4&gt; generator保存的是算法，每次调用next(g),就计算出g的下一个元素的值，直到计算到最后一个元素，没有更多的元素时，抛出StopIteration的错误。<br>5&gt; 要是不断调用next(g)是不是太变态了，正确的打开方式是使用for循环，是不是很爽？因为generator也是可迭代对象哦。这样就不需要关心什么StopIteration的错误了。</p>
+<ul>
+<li> 使用yield关键字修改斐波那契数列迭代器程序</li>
+</ul>
+<pre class="line-numbers language-none"><code class="language-none">In [30]: def fib(n):
+....:     current &#x3D; 0
+....:     num1, num2 &#x3D; 0, 1
+....:     while current &lt; n:
+....:         num &#x3D; num1
+....:         num1, num2 &#x3D; num2, num1+num2
+....:         current +&#x3D; 1
+....:         yield num
+....:     return &#39;done&#39;
+....:<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li><p>但函数执行到yied时停止执行，会返回一个生成器对象</p>
+</li>
+<li><p>使用yield关键字的函数不再是函数，而是生成器。（使用了yield的函数就是生成器）</p>
+</li>
+<li><p>yield关键字有两点作用：</p>
+<ul>
+<li>保存当前运行状态（断点），然后暂停执行，即将生成器（函数）挂起</li>
+<li>将yield关键字后面表达式的值作为返回值返回，此时可以理解为起到了return的作用</li>
+</ul>
+</li>
+<li><p>可以使用next()函数让生成器从断点处继续执行，即唤醒生成器（函数）</p>
+</li>
+<li><p>python3中的生成器可以使用rerurn返回最终运行的返回值，而Python2中的生成器不允许使用return返回一个返回值（即可以使用return从生成器中退出，但return后不能有任何表达式）。</p>
+</li>
+<li><p>唤醒生成器：</p>
+</li>
+<li><p>使用<code>__next__()</code>函数唤醒生成器继续执行（不常用）</p>
+</li>
+<li><p>使用next()函数唤醒生成器继续执行</p>
+</li>
+<li><p>使用send()函数来唤醒执行，使用send()函数的一个好处就是可以在唤醒的同时向断点出传入一个附加数据。</p>
+</li>
+<li><p>next与send的区别</p>
+</li>
+<li><p>next或者send调用的结果一定是yield后面的值</p>
+</li>
+<li><p>next不能给生成器传递参数</p>
+</li>
+<li><p>send可以传递参数，当使用send传递的时候，就相当于yield xxx的结果，因此i = yield 1 此时就变成了i 的值为send的参数。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>编程类</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python高级编程04 -- 闭包、装饰器</title>
+    <url>/2021/03/01/python%E8%BF%9B%E9%98%B604-%E9%97%AD%E5%8C%85%E3%80%81%E8%A3%85%E9%A5%B0%E5%99%A8/</url>
+    <content><![CDATA[<h3 id="1-闭包"><a href="#1-闭包" class="headerlink" title="1. 闭包"></a>1. 闭包</h3><ul>
+<li><p>说明：在一个函数中又定义了一个函数，并且内部函数可以引用外部函数的参数和局部变量，当外部函数返回内部函数时，相关参数和变量都保存在返回的函数中，这种称为闭包。</p>
+<span id="more"></span>
+
+</li>
+</ul>
+<p>一个闭包的实际例子：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token triple-quoted-string string">"""闭包的例子"""</span>
+<span class="token keyword">def</span> <span class="token function">line_conf</span><span class="token punctuation">(</span>a<span class="token punctuation">,</span>b<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">line</span><span class="token punctuation">(</span>x<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> a<span class="token operator">*</span>x <span class="token operator">+</span> b
+    <span class="token keyword">return</span> line
+line1 <span class="token operator">=</span> line_conf<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span><span class="token number">1</span><span class="token punctuation">)</span>
+line2 <span class="token operator">=</span> line_conf<span class="token punctuation">(</span><span class="token number">4</span><span class="token punctuation">,</span><span class="token number">5</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>line1<span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>line2<span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>结果：<br>6<br>25</p>
+<ul>
+<li>闭包的优缺点：<br>优点：(1)闭包具有提高代码可复用性的作用(2)减少了代码的可移植性。<br>缺点：由于闭包引用了外部函数的局部变量，则外部函数的局部变量没有及时释放，消耗内存。</li>
+</ul>
+<h3 id="2-装饰器"><a href="#2-装饰器" class="headerlink" title="2. 装饰器"></a>2. 装饰器</h3><blockquote>
+<p>假设我们需要增强一个函数的功能，但又不希望修改函数的定义，在代码运行期间动态增加的方式，称为装饰器（Decorator）</p>
+</blockquote>
+<ul>
+<li>装饰器的作用：</li>
+<li>引入日志</li>
+<li>函数执行时间统计</li>
+<li>执行函数前预备处理</li>
+<li>执行函数后清理功能</li>
+<li>权限校验等场景</li>
+<li>缓存</li>
+</ul>
+<p>一个装饰器的例子：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">
+<span class="token keyword">def</span> <span class="token function">w1</span><span class="token punctuation">(</span>func<span class="token punctuation">)</span>：
+    <span class="token keyword">def</span> <span class="token function">inner</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"----权限验证----"</span><span class="token punctuation">)</span>
+        func<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword">return</span> inner
+<span class="token decorator annotation punctuation">@w1</span>
+<span class="token keyword">def</span> <span class="token function">f1</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"----f1----"</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：<br>—-权限验证—-<br>—-f1—-</p>
+<p>整个运行过程如下：</p>
+<ol>
+<li>def w1(func):—–&gt; 将w1函数加载到内存</li>
+<li><code>@w1</code>： —-&gt; 执行w1函数，并将<code>@W1</code>下面的函数作为w1函数的参数，即<code>@w1</code>等价于w1（f1）inner()函数，将执行完的W1函数返回值赋值给<code>@w1</code>下面的函数的函数名f1即将w1的返回值再重新赋值给f1.</li>
+</ol>
+<ul>
+<li>一个装饰器或多个装饰器使用：</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token comment"># 定义函数：完成包裹数据</span>
+<span class="token keyword">def</span> <span class="token function">makeBold</span><span class="token punctuation">(</span>func<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">wrapped</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> <span class="token string">"&lt;b>"</span> <span class="token operator">+</span> func<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">+</span> <span class="token string">"&lt;/b>"</span>
+    <span class="token keyword">return</span> wrapped
+
+<span class="token comment"># 定义函数:完成包裹数据</span>
+<span class="token keyword">def</span> <span class="token function">makeItalic</span><span class="token punctuation">(</span>func<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">wrapped</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> <span class="token string">"&lt;i>"</span> <span class="token operator">+</span>func<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">+</span> <span class="token string">"&lt;/i>"</span>
+
+<span class="token decorator annotation punctuation">@makeBold</span>
+<span class="token keyword">def</span> <span class="token function">test1</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">return</span> <span class="token string">"hello world-1"</span>
+
+<span class="token decorator annotation punctuation">@makeItalic</span>
+<span class="token keyword">def</span> <span class="token function">test2</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">return</span> <span class="token string">"hello world-2"</span>
+
+<span class="token decorator annotation punctuation">@makeBold</span>
+<span class="token decorator annotation punctuation">@makeItalic</span>
+<span class="token keyword">def</span> <span class="token function">test3</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">return</span> <span class="token string">"hello world-3"</span>
+
+<span class="token keyword">print</span><span class="token punctuation">(</span>test1<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>test2<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>test3<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>装饰器–无参数的函数：</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token triple-quoted-string string">"""无参数的函数"""</span>
+<span class="token keyword">from</span> time <span class="token keyword">import</span> ctime<span class="token punctuation">,</span>sleep
+
+<span class="token keyword">def</span> <span class="token function">timefun</span><span class="token punctuation">(</span>func<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">wrapped_func</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"---%s called at %s"</span> <span class="token operator">%</span><span class="token punctuation">(</span>func<span class="token punctuation">.</span>__name__<span class="token punctuation">,</span>ctime<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+        func<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword">return</span> wrapped_func
+<span class="token comment"># foo = timefun(foo) </span>
+<span class="token comment"># foo 先作为参数赋值给func后，foo接收指向timefun返回的wrapped_func</span>
+<span class="token decorator annotation punctuation">@timefun</span>
+<span class="token keyword">def</span> <span class="token function">foo</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"我是无参数函数"</span><span class="token punctuation">)</span>
+
+foo<span class="token punctuation">(</span><span class="token punctuation">)</span>
+sleep<span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span>
+foo<span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token comment"># 调用foo(),即等价调用wrapped_func()</span>
+<span class="token comment"># 内部函数wrapped_func被引用，所以外部函数的func变量（自由变量）并没有释放</span>
+<span class="token comment"># func里保存的是原foo函数对象 </span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：<br>— foo called at Sun Aug 13 17:12:21 2017<br>我是无参函数<br>— foo called at Sun Aug 13 17:12:21 2017<br>我是无参函数</p>
+<ul>
+<li>装饰器–有参数函数</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> time
+
+<span class="token keyword">def</span> <span class="token function">f</span><span class="token punctuation">(</span>func<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">wrapped_func</span><span class="token punctuation">(</span>a<span class="token punctuation">,</span>b<span class="token punctuation">)</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span>a<span class="token punctuation">,</span>b<span class="token punctuation">)</span>
+        func<span class="token punctuation">(</span>a<span class="token punctuation">,</span>b<span class="token punctuation">)</span>
+    <span class="token keyword">return</span> wrapped_func
+
+<span class="token decorator annotation punctuation">@f</span>
+<span class="token keyword">def</span> <span class="token function">test</span><span class="token punctuation">(</span>a<span class="token punctuation">,</span>b<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span>a<span class="token operator">+</span>b<span class="token punctuation">)</span>
+test<span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">,</span><span class="token number">5</span><span class="token punctuation">)</span>
+time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span>
+test<span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">,</span><span class="token number">4</span><span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：<br>3,5<br>8<br>2,4<br>6</p>
+<ul>
+<li>装饰器函数-不定长参数</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> time
+<span class="token keyword">def</span> <span class="token function">f</span><span class="token punctuation">(</span>func<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">wrapped_func</span><span class="token punctuation">(</span><span class="token operator">*</span>args<span class="token punctuation">,</span> <span class="token operator">**</span>kwargs<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        fun<span class="token punctuation">(</span><span class="token operator">*</span>args<span class="token punctuation">,</span><span class="token operator">**</span>kwargs<span class="token punctuation">)</span>
+    <span class="token keyword">return</span> wrappend_func
+
+<span class="token decorator annotation punctuation">@f</span>
+<span class="token keyword">def</span> <span class="token function">test1</span><span class="token punctuation">(</span>a<span class="token punctuation">,</span>b<span class="token punctuation">,</span>c<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span>a<span class="token operator">+</span>b<span class="token operator">+</span>c<span class="token punctuation">)</span>
+
+
+test<span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">,</span><span class="token number">5</span><span class="token punctuation">,</span><span class="token number">7</span><span class="token punctuation">)</span>
+time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span>
+test<span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">,</span><span class="token number">4</span><span class="token punctuation">,</span><span class="token number">9</span><span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>装饰器–有return</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> time 
+<span class="token keyword">def</span> <span class="token function">f</span><span class="token punctuation">(</span>func<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">wrapped_f</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"====%s called ====="</span><span class="token operator">%</span>func<span class="token punctuation">.</span>__name__<span class="token punctuation">)</span>
+        f<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword">return</span> wrapped_f
+
+<span class="token decorator annotation punctuation">@f</span>
+<span class="token keyword">def</span> <span class="token function">test</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"I am test"</span><span class="token punctuation">)</span>
+
+<span class="token decorator annotation punctuation">@f</span>
+<span class="token keyword">def</span> <span class="token function">getInfo</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">return</span>  <span class="token string">"---hello---"</span>
+
+test<span class="token punctuation">(</span><span class="token punctuation">)</span>
+time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span>
+test<span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>getInfo<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>执行结果：<br>====test called =====<br>I am test<br>====test called =====<br>I am test<br>====getInfo called =====<br>None</p>
+<p>如果装饰器为 return func() 运行结果：<br>====test called =====<br>I am  test<br>====test called =====<br>I am test<br>====getInfo called =====<br>—hello—</p>
+<ul>
+<li>装饰器–带参数，在原有装饰器的基础上，设置外部变量</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> time
+
+<span class="token keyword">def</span> <span class="token function">f_arg</span><span class="token punctuation">(</span>pre<span class="token operator">=</span><span class="token string">"hello"</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">f</span><span class="token punctuation">(</span>func<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">def</span> <span class="token function">wrapped_f</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"===%s call ==="</span><span class="token operator">%</span>func<span class="token punctuation">.</span>__name__<span class="token punctuation">)</span>
+            <span class="token keyword">return</span> func
+        <span class="token keyword">return</span> wrapped_func
+    <span class="token keyword">return</span> f
+
+<span class="token decorator annotation punctuation">@f_arg</span><span class="token punctuation">(</span><span class="token string">"java"</span><span class="token punctuation">)</span>
+<span class="token keyword">def</span> <span class="token function">test1</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"I am test1"</span><span class="token punctuation">)</span>
+
+<span class="token decorator annotation punctuation">@f</span><span class="token operator">-</span>arg<span class="token punctuation">(</span><span class="token string">"python"</span><span class="token punctuation">)</span>
+<span class="token keyword">def</span> <span class="token function">test2</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"I am test2"</span><span class="token punctuation">)</span>
+
+test1<span class="token punctuation">(</span><span class="token punctuation">)</span>
+time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span>
+test1<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+test2<span class="token punctuation">(</span><span class="token punctuation">)</span>
+time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span>
+test2<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：<br>====test1 called ===<br>====test1 called ===<br>====test2 called ===<br>====test2 called ===<br>====&gt;&gt;&gt;&gt;&gt;&gt;&gt;  可以理解为 test() = f_arg(“java”)(test)()</p>
+<p>装饰过程：<br>1.调用f_arg(“hello”)<br>2.将步骤1得到的返回值，即f返回，然后f()<br>3.将f(test1)的结果返回，即wrapped_f<br>4.让test1 = wrapped_f , 即test1现在指向wrapped_f</p>
+<ul>
+<li>装饰器–类装饰器</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token triple-quoted-string string">"""类装饰器"""</span>
+<span class="token keyword">class</span> <span class="token class-name">Test</span><span class="token punctuation">(</span><span class="token builtin">object</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span>func<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"==>>>初始化"</span><span class="token punctuation">)</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"==>>>func name is  %s"</span><span class="token operator">%</span>func<span class="token punctuation">.</span>__name__<span class="token punctuation">)</span>
+        self<span class="token punctuation">.</span>__func <span class="token operator">=</span> func
+
+    <span class="token keyword">def</span> <span class="token function">__call__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"====装饰器中的功能===="</span><span class="token punctuation">)</span>
+        self<span class="token punctuation">.</span>__func<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token decorator annotation punctuation">@Test</span>
+<span class="token keyword">def</span> <span class="token function">test</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"====test===="</span><span class="token punctuation">)</span>
+
+test<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<p>运行结果：<br>==&gt;&gt;&gt;初始化<br>==&gt;&gt;&gt;func name is test<br>====装饰器的功能====<br>====test====</p>
+<p>说明：</p>
+<ol>
+<li><p>当用Test来装作装饰器对test函数进行装饰的时候，首先会创建Test的实例对象。并且会把test这个函数名当做参数传递到<code>__init__</code>方法中。即在<code>__init__</code>方法中的属性<code>self.__func</code>指向了test指向的函数</p>
+</li>
+<li><p>test指向了用Test创建出来的实例对象</p>
+</li>
+<li><p>当在使用test()进行调用时，就相当于让这个对象（），因此会调用这个对象的<code>__call__</code>方法</p>
+</li>
+<li><p>为了能够在<code>__call__</code>方法中调用原来test指向的函数体，所以在<code>__init__</code>方法中就需要一个实例属性来保存这个函数体的引用<br>所以才有了<code>self.__func</code> = func这句代码，从而在调用<code>__call__</code>方法中能够调用到test之前的函数体。</p>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>编程类</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python高级编程05 -- 协程</title>
+    <url>/2021/03/01/python%E8%BF%9B%E9%98%B605-%E5%8D%8F%E7%A8%8B/</url>
+    <content><![CDATA[<h3 id="1-简单协程"><a href="#1-简单协程" class="headerlink" title="1. 简单协程"></a>1. 简单协程</h3><ul>
+<li>概念：协程，又称为微线程，纤程,英文名Coroutine。协程的作用，是在执行函数A时，可以随时中断，去执行函数B,然后中断继续执行函数A(可以自由切换)。但这一过程并不是函数调用（没有调用语句），这一整个过程看似像多线程，然而协程只有一个线程执行。</li>
+</ul>
+<p>简单实现协程：</p>
+<span id="more"></span>
+
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> time
+
+<span class="token keyword">def</span> <span class="token function">work1</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">while</span> <span class="token boolean">True</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"------work1----"</span><span class="token punctuation">)</span>
+        <span class="token keyword">yield</span>
+        time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">0.5</span><span class="token punctuation">)</span>
+
+<span class="token keyword">def</span> <span class="token function">work2</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">while</span> <span class="token boolean">True</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"------work2-----"</span><span class="token punctuation">)</span>
+        <span class="token keyword">yield</span>
+        time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">0.5</span><span class="token punctuation">)</span>
+
+
+<span class="token keyword">def</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    w1 <span class="token operator">=</span> work1<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    w2 <span class="token operator">=</span> work2<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword">while</span> <span class="token boolean">True</span><span class="token punctuation">:</span>
+        <span class="token builtin">next</span><span class="token punctuation">(</span>w1<span class="token punctuation">)</span>
+        <span class="token builtin">next</span><span class="token punctuation">(</span>w2<span class="token punctuation">)</span>
+
+
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">"__main__"</span><span class="token punctuation">:</span>
+    main<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：<br>—-work1—<br>—-work2—<br>—-work1—<br>—-work2—<br>—-work1—<br>—-work2—<br>…省略…</p>
+<ul>
+<li>协程的好处：</li>
+<li>无需线程上下文切换的开销</li>
+<li>无需原子操作锁定及同步的开销</li>
+<li>方便切换切换控制流，简化编程模型</li>
+<li>高并发+高扩展性+低成本：一个CPU支持上万的协程都不是问题。所以很适合用于高并发处理。</li>
+</ul>
+<ul>
+<li>缺点：</li>
+<li>无法利用核资源：协程的本质是个单线程，它不能同时将单个CPU的多个核用上，协程需要和进程配合才能运行在多CPU上。当然我们日常所编写的绝大部分应用都没有这个必要，除非是CPU密集型应用。</li>
+<li>进行阻塞（Blocking） 操作（如IO时）会阻塞掉整个程序。</li>
+</ul>
+<h3 id="2-greenlet"><a href="#2-greenlet" class="headerlink" title="2. greenlet"></a>2. greenlet</h3><blockquote>
+<p>为了更好使用协程来完成多任务，python中greenle模块对其封装，从而使得切换任务变得更加简单。</p>
+</blockquote>
+<p>greenlet的使用：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token comment"># coding=utf-8</span>
+
+<span class="token keyword">from</span> greenlet <span class="token keyword">import</span> greenlet
+<span class="token keyword">import</span> time
+
+<span class="token keyword">def</span> <span class="token function">test1</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    whle <span class="token boolean">True</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"---A----"</span><span class="token punctuation">)</span>
+        gr2<span class="token punctuation">.</span>switch<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">0.5</span><span class="token punctuation">)</span>
+
+
+<span class="token keyword">def</span> <span class="token function">test2</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">while</span> <span class="token boolean">True</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"----B----"</span><span class="token punctuation">)</span>
+        gr1<span class="token punctuation">.</span>switch<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">0.5</span><span class="token punctuation">)</span>
+
+gr1 <span class="token operator">=</span> greenlet<span class="token punctuation">(</span>test1<span class="token punctuation">)</span>
+gr2 <span class="token operator">=</span> greenlet<span class="token punctuation">(</span>test2<span class="token punctuation">)</span>
+
+<span class="token comment"># 切换到gr1中运行</span>
+gr1<span class="token punctuation">.</span>switch<span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行效果：<br>—A–<br>—B–<br>—A–<br>—B–<br>—A–<br>—B–<br>…省略…</p>
+<h3 id="3-gevent"><a href="#3-gevent" class="headerlink" title="3. gevent"></a>3. gevent</h3><blockquote>
+<p>gevent是一个第三方库，可以轻松通过gevent实现并发同步或异步编程，在gevent中用到的主要模式greenlet，它是以c扩展模块形式介入python轻量级协程。greenlet全部运行在主程序操作系统进程的内部，但它们被协助式地调度。</p>
+</blockquote>
+<ul>
+<li><p>能够自动切换任务的模块gevent</p>
+</li>
+<li><p>其原理是当一个greenlet遇到IO(指的是input output输入输出，比如网络、文件操作等)操作时，比如访问网络，就自动切换到其他的greenlet,等到IO操作完成，再在适当的时候切换回来继续执行。</p>
+</li>
+<li><p>由于IO操作非常耗时，经常使程序处于等待状态，有了gevent为我们自动化切换协程，就保证总有greenlet在运行，而不是等待IO</p>
+</li>
+<li><p>gevent使用</p>
+</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> gevent
+
+<span class="token keyword">def</span> <span class="token function">f</span><span class="token punctuation">(</span>n<span class="token punctuation">)</span>
+    <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span>n<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span>gevent<span class="token punctuation">.</span>getcurrent<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> i<span class="token punctuation">)</span>
+
+g1 <span class="token operator">=</span> gevent<span class="token punctuation">.</span>spawn<span class="token punctuation">(</span>f<span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span>
+g2 <span class="token operator">=</span> gevent<span class="token punctuation">.</span>spawn<span class="token punctuation">(</span>f<span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span>
+g3 <span class="token operator">=</span> gevent<span class="token punctuation">.</span>spawn<span class="token punctuation">(</span>f<span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span>
+g1<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span>
+g2<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span>
+g3<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果</p>
+<pre class="line-numbers language-none"><code class="language-none">&lt;Greenlet at 0x10e49f550: f(5)&gt; 0
+&lt;Greenlet at 0x10e49f550: f(5)&gt; 1
+&lt;Greenlet at 0x10e49f550: f(5)&gt; 2
+&lt;Greenlet at 0x10e49f550: f(5)&gt; 3
+&lt;Greenlet at 0x10e49f550: f(5)&gt; 4
+&lt;Greenlet at 0x10e49f910: f(5)&gt; 0
+&lt;Greenlet at 0x10e49f910: f(5)&gt; 1
+&lt;Greenlet at 0x10e49f910: f(5)&gt; 2
+&lt;Greenlet at 0x10e49f910: f(5)&gt; 3
+&lt;Greenlet at 0x10e49f910: f(5)&gt; 4
+&lt;Greenlet at 0x10e49f4b0: f(5)&gt; 0
+&lt;Greenlet at 0x10e49f4b0: f(5)&gt; 1
+&lt;Greenlet at 0x10e49f4b0: f(5)&gt; 2
+&lt;Greenlet at 0x10e49f4b0: f(5)&gt; 3
+&lt;Greenlet at 0x10e49f4b0: f(5)&gt; 4<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>gevent自动切换任务</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> gevent
+
+<span class="token keyword">def</span> <span class="token function">f</span><span class="token punctuation">(</span>n<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span>n<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span>gevent<span class="token punctuation">.</span>getcurrent<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> i<span class="token punctuation">)</span>
+        <span class="token comment"># 用来模拟一个耗时操作，注意不是time模块中的sleep</span>
+        gevent<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+
+
+g1 <span class="token operator">=</span> gevent<span class="token punctuation">.</span>spawn<span class="token punctuation">(</span>f<span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span>
+g2 <span class="token operator">=</span> gevent<span class="token punctuation">.</span>spawn<span class="token punctuation">(</span>f<span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span>
+g3 <span class="token operator">=</span> gevent<span class="token punctuation">.</span>spawn<span class="token punctuation">(</span>f<span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span>
+g1<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span>
+g2<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span>
+g3<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：</p>
+<pre class="line-numbers language-none"><code class="language-none">&lt;Greenlet at 0x7fa70ffa1c30: f(5)&gt; 0
+&lt;Greenlet at 0x7fa70ffa1870: f(5)&gt; 0
+&lt;Greenlet at 0x7fa70ffa1eb0: f(5)&gt; 0
+&lt;Greenlet at 0x7fa70ffa1c30: f(5)&gt; 1
+&lt;Greenlet at 0x7fa70ffa1870: f(5)&gt; 1
+&lt;Greenlet at 0x7fa70ffa1eb0: f(5)&gt; 1
+&lt;Greenlet at 0x7fa70ffa1c30: f(5)&gt; 2
+&lt;Greenlet at 0x7fa70ffa1870: f(5)&gt; 2
+&lt;Greenlet at 0x7fa70ffa1eb0: f(5)&gt; 2
+&lt;Greenlet at 0x7fa70ffa1c30: f(5)&gt; 3
+&lt;Greenlet at 0x7fa70ffa1870: f(5)&gt; 3
+&lt;Greenlet at 0x7fa70ffa1eb0: f(5)&gt; 3
+&lt;Greenlet at 0x7fa70ffa1c30: f(5)&gt; 4
+&lt;Greenlet at 0x7fa70ffa1870: f(5)&gt; 4
+&lt;Greenlet at 0x7fa70ffa1eb0: f(5)&gt; 4
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<pre class="line-numbers language-none"><code class="language-none">from gevent import monkey
+import gevent
+import random
+import time
+
+# 有耗时操作时需要
+monkey.patch_all()  # 将程序中用到的耗时操作的代码，换为gevent中自己实现的模块
+
+def coroutine_work(coroutine_name):
+    for i in range(10):
+        print(coroutine_name, i)
+        time.sleep(random.random())
+
+gevent.joinall([
+        gevent.spawn(coroutine_work, &quot;work1&quot;),
+        gevent.spawn(coroutine_work, &quot;work2&quot;)
+])<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：</p>
+<pre class="line-numbers language-none"><code class="language-none">运行结果
+work1 0
+work2 0
+work1 1
+work1 2
+work1 3
+work2 1
+work1 4
+work2 2
+work1 5
+work2 3
+work1 6
+work1 7
+work1 8
+work2 4
+work2 5
+work1 9
+work2 6
+work2 7
+work2 8
+work2 9<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>通过gevent实现单线程下的多socket并发</li>
+</ul>
+<p><strong>server side</strong></p>
+<pre class="line-numbers language-none"><code class="language-none">import sys
+import socket
+import time
+import gevent
+
+from gevent import socket,monkey
+monkey.patch_all()
+
+
+def server(port):
+    s &#x3D; socket.socket()
+    s.bind((&#39;0.0.0.0&#39;, port))
+    s.listen(500)
+    while True:
+        cli, addr &#x3D; s.accept()
+        gevent.spawn(handle_request, cli)
+
+
+def handle_request(conn):
+    try:
+        while True:
+            data &#x3D; conn.recv(1024)
+            print(&quot;recv:&quot;, data)
+            conn.send(data)
+            if not data:
+                conn.shutdown(socket.SHUT_WR)
+
+    except Exception as  ex:
+        print(ex)
+    finally:
+        conn.close()
+if __name__ &#x3D;&#x3D; &#39;__main__&#39;:
+    server(8001)
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p><strong>client side</strong></p>
+<pre class="line-numbers language-none"><code class="language-none">import socket
+
+HOST &#x3D; &#39;localhost&#39;    # The remote host
+PORT &#x3D; 8001           # The same port as used by the server
+s &#x3D; socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((HOST, PORT))
+while True:
+    msg &#x3D; bytes(input(&quot;&gt;&gt;:&quot;),encoding&#x3D;&quot;utf8&quot;)
+    s.sendall(msg)
+    data &#x3D; s.recv(1024)
+    #print(data)
+
+    print(&#39;Received&#39;, repr(data))
+s.close()
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+]]></content>
+      <categories>
+        <category>编程类</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python高级编程06 --元类、内建类</title>
+    <url>/2021/03/01/python%E8%BF%9B%E9%98%B606-%E5%85%83%E7%B1%BB%E3%80%81%E5%86%85%E5%BB%BA%E7%B1%BB/</url>
+    <content><![CDATA[<h3 id="1-元类"><a href="#1-元类" class="headerlink" title="1. 元类"></a>1. 元类</h3><ul>
+<li>类也是对象<br>在理解元类之前，我们需要掌握python中的类。在大多数编程语言中，类就是一组用来描述如何生成一个对象的代码段。在python中这一点仍然成立：</li>
+</ul>
+<pre class="line-numbers language-Python" data-language="Python"><code class="language-Python">&gt;&gt;&gt; class Obj(object):
+…       pass
+…
+&gt;&gt;&gt; my_obj&#x3D; Obj()
+&gt;&gt;&gt; print my_obj
+&lt;__main__.Obj obj at 0x8974f2c&gt;
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<span id="more"></span>
+
+<p>但是在python类还远不止如此。类同样也是一种对象。是的，没错，就是对象。只有你使用关键字class,python解释器在执行的时候就会创建一个对象。</p>
+<ul>
+<li>动态地创建类<br>因为类也是对象，你可以在运行时动态的创建它们，就像其他任何对象一样。首先，你可以再函数中创建类，使用class关键字即可。</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token operator">>></span><span class="token operator">></span> <span class="token keyword">def</span> <span class="token function">choose_class</span><span class="token punctuation">(</span>name<span class="token punctuation">)</span><span class="token punctuation">:</span>
+      <span class="token keyword">if</span> name <span class="token operator">==</span> <span class="token string">'foo'</span><span class="token punctuation">:</span>
+            <span class="token keyword">class</span> <span class="token class-name">Foo</span><span class="token punctuation">(</span><span class="token builtin">object</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+                <span class="token keyword">pass</span>
+            <span class="token keyword">return</span> Foo    <span class="token comment"># 返回的是类，不是类的实例</span>
+        <span class="token keyword">else</span><span class="token punctuation">:</span>
+            <span class="token keyword">class</span> <span class="token class-name">Bar</span><span class="token punctuation">(</span><span class="token builtin">object</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+                <span class="token keyword">pass</span>
+            <span class="token keyword">return</span> Bar
+
+<span class="token operator">>></span><span class="token operator">></span> MyClass <span class="token operator">=</span> choose_class<span class="token punctuation">(</span><span class="token string">'foo'</span><span class="token punctuation">)</span>
+<span class="token operator">>></span><span class="token operator">></span> <span class="token keyword">print</span> MyClass     <span class="token comment"># 函数返回的是类，不是类的实例</span>
+<span class="token operator">&lt;</span><span class="token keyword">class</span> <span class="token string">'__main__'</span><span class="token punctuation">.</span>Foo<span class="token operator">></span>
+<span class="token operator">>></span><span class="token operator">></span> <span class="token keyword">print</span> MyClass<span class="token punctuation">(</span><span class="token punctuation">)</span>   <span class="token comment"># 你可以通过这个类创建类实例，也就是对象</span>
+<span class="token operator">&lt;</span>__main__<span class="token punctuation">.</span>Foo <span class="token builtin">object</span> at <span class="token number">0x89c6d4c</span><span class="token operator">></span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>但这不够动态，因为你仍然需要自己编写整个类的代码。由于类也是对象，所以它们必须是通过什么东西来生成的才对。当你使用class关键字时，python解释器自动创建这个对象。但就和python中的大多数事情一样，python仍然提供给你手动处理的方法。还记得内建函数type吗？这个古老但强大的函数就够让你知道一个对象的类型是什么：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token operator">>></span><span class="token operator">></span> <span class="token keyword">print</span> <span class="token builtin">type</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+<span class="token operator">&lt;</span><span class="token builtin">type</span> <span class="token string">'int'</span><span class="token operator">></span>
+<span class="token operator">>></span><span class="token operator">></span> <span class="token keyword">print</span> <span class="token builtin">type</span><span class="token punctuation">(</span><span class="token string">"1"</span><span class="token punctuation">)</span>
+<span class="token operator">&lt;</span><span class="token builtin">type</span> <span class="token string">'str'</span><span class="token operator">></span>
+<span class="token operator">>></span><span class="token operator">></span> <span class="token keyword">print</span> <span class="token builtin">type</span><span class="token punctuation">(</span>ObjectCreator<span class="token punctuation">)</span>
+<span class="token operator">&lt;</span><span class="token builtin">type</span> <span class="token string">'type'</span><span class="token operator">></span>
+<span class="token operator">>></span><span class="token operator">></span> <span class="token keyword">print</span> <span class="token builtin">type</span><span class="token punctuation">(</span>ObjectCreator<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token operator">&lt;</span><span class="token keyword">class</span> <span class="token string">'__main__.ObjectCreator'</span><span class="token operator">></span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>type有一种完全不同的功能，它也能动态的创建类。<br>type可以接受一个类的描述作为参数，然后返回一个类。（可能你会觉得根据传入参数的不同，同一个函数拥有两种完全不同的用法是一件很傻的事情，但这在python中是为了保持向后兼容性）</p>
+<p>tpye可以像这样工作：</p>
+<pre class="line-numbers language-none"><code class="language-none">type（类名，由父类名称组成的元组（针对继承的情况，可以为空），包含属性的字典（名称和值））<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">Test2 <span class="token operator">=</span> <span class="token builtin">type</span><span class="token punctuation">(</span><span class="token string">"Test2"</span><span class="token punctuation">,</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span><span class="token punctuation">&#123;</span><span class="token punctuation">&#125;</span><span class="token punctuation">)</span> <span class="token comment">#定了一个Test2类</span>
+In <span class="token punctuation">[</span><span class="token number">5</span><span class="token punctuation">]</span><span class="token punctuation">:</span> Test2<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">#创建了一个Test2类的实例对象</span>
+Out<span class="token punctuation">[</span><span class="token number">5</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token operator">&lt;</span>__main__<span class="token punctuation">.</span>Test2 at <span class="token number">0x10d406b38</span><span class="token operator">></span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>使用type创建带有属性的类<br>type接受一个字典来为类定义属性</li>
+</ul>
+<pre class="line-numbers language-none"><code class="language-none">&gt;&gt;&gt; Foo &#x3D; type(&quot;Foo&quot;,(),&#123;&quot;bar&quot;:True&#125;)
+可以翻译为：
+&gt;&gt;&gt; class Foo(object):
+...             bar &#x3D; True<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>说明：type的第2个参数，元组中是父类的名字，而不是字符串。添加的属性的类属性，并不是实例属性</p>
+<ul>
+<li>使用type创建带有方法的类</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">def</span> <span class="token function">echo_bar</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span>：
+        <span class="token keyword">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>bar<span class="token punctuation">)</span>
+<span class="token comment">#让FooChild类中的echo_bar属性，指向了上面定义的函数</span>
+FooChild <span class="token operator">=</span> <span class="token builtin">type</span><span class="token punctuation">(</span><span class="token string">"FooChild"</span><span class="token punctuation">,</span><span class="token punctuation">(</span>Foo<span class="token punctuation">,</span><span class="token punctuation">)</span><span class="token punctuation">,</span><span class="token punctuation">&#123;</span><span class="token string">"echo_bar"</span><span class="token punctuation">:</span>echo_bar<span class="token punctuation">&#125;</span><span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>添加静态方法</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">In <span class="token punctuation">[</span><span class="token number">36</span><span class="token punctuation">]</span><span class="token punctuation">:</span> @<span class="token builtin">staticmethod</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">:</span> <span class="token keyword">def</span> <span class="token function">testStatic</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">:</span>     <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"static method ...."</span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">:</span>
+In <span class="token punctuation">[</span><span class="token number">37</span><span class="token punctuation">]</span><span class="token punctuation">:</span> Foochild <span class="token operator">=</span> <span class="token builtin">type</span><span class="token punctuation">(</span><span class="token string">'Foochild'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span>Foo<span class="token punctuation">,</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token punctuation">&#123;</span><span class="token string">"echo_bar"</span><span class="token punctuation">:</span>echo_bar<span class="token punctuation">,</span> <span class="token string">"testStatic"</span><span class="token punctuation">:</span> testStatic<span class="token punctuation">&#125;</span><span class="token punctuation">)</span>
+In <span class="token punctuation">[</span><span class="token number">38</span><span class="token punctuation">]</span><span class="token punctuation">:</span> fooclid <span class="token operator">=</span> Foochild<span class="token punctuation">(</span><span class="token punctuation">)</span>
+In <span class="token punctuation">[</span><span class="token number">39</span><span class="token punctuation">]</span><span class="token punctuation">:</span> fooclid<span class="token punctuation">.</span>testStatic
+Out<span class="token punctuation">[</span><span class="token number">39</span><span class="token punctuation">]</span><span class="token punctuation">:</span> <span class="token operator">&lt;</span>function __main__<span class="token punctuation">.</span>testStatic<span class="token operator">></span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>添加类方法</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">In <span class="token punctuation">[</span><span class="token number">42</span><span class="token punctuation">]</span><span class="token punctuation">:</span> @<span class="token builtin">classmethod</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">:</span> <span class="token keyword">def</span> <span class="token function">testClass</span><span class="token punctuation">(</span>cls<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">:</span>     <span class="token keyword">print</span><span class="token punctuation">(</span>cls<span class="token punctuation">.</span>bar<span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">:</span>
+In <span class="token punctuation">[</span><span class="token number">43</span><span class="token punctuation">]</span><span class="token punctuation">:</span> Foochild <span class="token operator">=</span> <span class="token builtin">type</span><span class="token punctuation">(</span><span class="token string">'Foochild'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span>Foo<span class="token punctuation">,</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token punctuation">&#123;</span><span class="token string">"echo_bar"</span><span class="token punctuation">:</span>echo_bar<span class="token punctuation">,</span> <span class="token string">"testStatic"</span><span class="token punctuation">:</span>testStatic<span class="token punctuation">,</span> <span class="token string">"testClass"</span><span class="token punctuation">:</span>testClass<span class="token punctuation">&#125;</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>那么到底什么是元类呢？<br>元类就是用来创建类的“东西”。你创建类就是为了创建类的实例对象，不是吗？但是我们已经学习到了python中的类也是对象。好吧，元类就是用来创建这些类（对象）的，元类就是类的类，你可以这样理解为：</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">MyClass <span class="token operator">=</span> MetaClass<span class="token punctuation">(</span><span class="token punctuation">)</span>
+MyObject <span class="token operator">=</span> MyClass<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<p> 你已经看到了type可以让你像这样做：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">MyClass <span class="token operator">=</span> <span class="token builtin">type</span><span class="token punctuation">(</span><span class="token string">'MyClass'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token punctuation">&#123;</span><span class="token punctuation">&#125;</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>这是因为函数type实际上是一个元类。type就是python在背后用来创建所有类的元类。现在你想指定为什么type全部采用小写形式而不是Type呢？好吧这是为了和str保持一致性，str是用来创建字符串对象的类，而int是用来创建整数对象的类。type就是创建类对象的类。你可以通过检查<code>__class__</code>属性来看到这一点。python中所有的东西，注意，我是指所有的东西–都是对象。这包括整数、字符串、函数以及类。它们全部都是对象。而它们都是一个类创建而来。</p>
+<h3 id="内建属性"><a href="#内建属性" class="headerlink" title="内建属性"></a>内建属性</h3><table>
+<thead>
+<tr>
+<th align="center">常用专有属性</th>
+<th align="center">说明</th>
+<th>触发方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><code>__init__</code></td>
+<td align="center">构造初始化函数</td>
+<td>创建实例后,赋值时使用,在<code>__new__</code>后</td>
+</tr>
+<tr>
+<td align="center"><code>__new__</code></td>
+<td align="center">生成实例所需属性</td>
+<td>创建实例时</td>
+</tr>
+<tr>
+<td align="center"><code>__class__</code></td>
+<td align="center">实例所在的类</td>
+<td>实例.<code>__class__</code></td>
+</tr>
+<tr>
+<td align="center"><code>__str__</code></td>
+<td align="center">实例字符串表示,可读性</td>
+<td>print(类实例),如没实现，使用repr结果</td>
+</tr>
+<tr>
+<td align="center"><code>__repr__</code></td>
+<td align="center">实例字符串表示,准确性</td>
+<td>类实例 回车 或者 print(repr(类实例))</td>
+</tr>
+<tr>
+<td align="center"><code>__del__</code></td>
+<td align="center">析构</td>
+<td>del删除实例</td>
+</tr>
+<tr>
+<td align="center"><code>__dict__ </code></td>
+<td align="center">实例自定义属性</td>
+<td>vars(实例.<code>__dict__</code>)</td>
+</tr>
+<tr>
+<td align="center"><code>__doc__</code></td>
+<td align="center">类文档,子类不继承</td>
+<td>help(类或实例)</td>
+</tr>
+<tr>
+<td align="center"><code>__getattribute__</code></td>
+<td align="center">属性访问拦截器</td>
+<td>访问实例属性时</td>
+</tr>
+<tr>
+<td align="center"><code>__bases__</code></td>
+<td align="center">类的所有父类构成元素</td>
+<td>类名.<code>__bases__</code></td>
+</tr>
+</tbody></table>
+<ul>
+<li>常用标准库</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="center">标准库</th>
+<th align="center">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">builtins</td>
+<td align="center">内建函数默认加载</td>
+</tr>
+<tr>
+<td align="center">os</td>
+<td align="center">操作系统接口</td>
+</tr>
+<tr>
+<td align="center">sys</td>
+<td align="center">Python自身的运行环境</td>
+</tr>
+<tr>
+<td align="center">functools</td>
+<td align="center">常用的工具</td>
+</tr>
+<tr>
+<td align="center">json</td>
+<td align="center">编码和解码 JSON 对象</td>
+</tr>
+<tr>
+<td align="center">logging</td>
+<td align="center">记录日志，调试</td>
+</tr>
+<tr>
+<td align="center">multiprocessing</td>
+<td align="center">多进程</td>
+</tr>
+<tr>
+<td align="center">threading</td>
+<td align="center">多线程</td>
+</tr>
+<tr>
+<td align="center">copy</td>
+<td align="center">拷贝</td>
+</tr>
+<tr>
+<td align="center">time</td>
+<td align="center">时间</td>
+</tr>
+<tr>
+<td align="center">datetime</td>
+<td align="center">日期和时间</td>
+</tr>
+<tr>
+<td align="center">calendar</td>
+<td align="center">日历</td>
+</tr>
+<tr>
+<td align="center">hashlib</td>
+<td align="center">加密算法</td>
+</tr>
+<tr>
+<td align="center">random</td>
+<td align="center">生成随机数</td>
+</tr>
+<tr>
+<td align="center">re</td>
+<td align="center">字符串正则匹配</td>
+</tr>
+<tr>
+<td align="center">socket</td>
+<td align="center">标准的 BSD Sockets API</td>
+</tr>
+<tr>
+<td align="center">shutil</td>
+<td align="center">文件和目录管理</td>
+</tr>
+<tr>
+<td align="center">glob</td>
+<td align="center">基于文件通配符搜索</td>
+</tr>
+</tbody></table>
+<ul>
+<li>常用扩展库</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="center">扩展库</th>
+<th align="center">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">requests</td>
+<td align="center">使用的是 urllib3，继承了urllib2的所有特性</td>
+</tr>
+<tr>
+<td align="center">urllib</td>
+<td align="center">基于http的高层库</td>
+</tr>
+<tr>
+<td align="center">scrapy</td>
+<td align="center">爬虫</td>
+</tr>
+<tr>
+<td align="center">beautifulsoup4</td>
+<td align="center">HTML/XML的解析器</td>
+</tr>
+<tr>
+<td align="center">celery</td>
+<td align="center">分布式任务调度模块</td>
+</tr>
+<tr>
+<td align="center">redis</td>
+<td align="center">缓存</td>
+</tr>
+<tr>
+<td align="center">Pillow(PIL)</td>
+<td align="center">图像处理</td>
+</tr>
+<tr>
+<td align="center">xlsxwriter</td>
+<td align="center">仅写excle功能,支持xlsx</td>
+</tr>
+<tr>
+<td align="center">xlwt</td>
+<td align="center">仅写excle功能,支持xls ,2013或更早版office</td>
+</tr>
+<tr>
+<td align="center">xlrd</td>
+<td align="center">仅读excle功能</td>
+</tr>
+<tr>
+<td align="center">elasticsearch</td>
+<td align="center">全文搜索引擎</td>
+</tr>
+<tr>
+<td align="center">pymysql</td>
+<td align="center">数据库连接库</td>
+</tr>
+<tr>
+<td align="center">mongoengine/pymongo</td>
+<td align="center">mongodbpython接口</td>
+</tr>
+<tr>
+<td align="center">matplotlib</td>
+<td align="center">画图</td>
+</tr>
+<tr>
+<td align="center">numpy/scipy</td>
+<td align="center">科学计算</td>
+</tr>
+<tr>
+<td align="center">django/tornado/flask</td>
+<td align="center">web框架</td>
+</tr>
+<tr>
+<td align="center">xmltodict</td>
+<td align="center">xml 转 dict</td>
+</tr>
+<tr>
+<td align="center">SimpleHTTPServer</td>
+<td align="center">简单地HTTP Server,不使用Web框架</td>
+</tr>
+<tr>
+<td align="center">gevent</td>
+<td align="center">基于协程的Python网络库</td>
+</tr>
+<tr>
+<td align="center">fabric</td>
+<td align="center">系统管理</td>
+</tr>
+<tr>
+<td align="center">pandas</td>
+<td align="center">数据处理库</td>
+</tr>
+<tr>
+<td align="center">scikit-learn</td>
+<td align="center">机器学习库</td>
+</tr>
+</tbody></table>
+]]></content>
+      <categories>
+        <category>编程类</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python高级编程07 -- HTTP协议</title>
+    <url>/2021/03/01/python%E8%BF%9B%E9%98%B607-HTTP%E5%8D%8F%E8%AE%AE/</url>
+    <content><![CDATA[<h4 id="HTTP协议"><a href="#HTTP协议" class="headerlink" title="HTTP协议"></a>HTTP协议</h4><ul>
+<li><p>HTML是一种用来定义网页的文本，会HTML,就可以编写网页；</p>
+</li>
+<li><p>HTTP是在网络上传输HTML的协议，用于浏览器和服务器的通信。</p>
+<span id="more"></span>
+
+</li>
+</ul>
+<h4 id="HTTP协议的分析："><a href="#HTTP协议的分析：" class="headerlink" title="HTTP协议的分析："></a>HTTP协议的分析：</h4><p><img src="/images/4ad2d1a7-5e68-402b-99c2-ec3b8d050912.png"></p>
+<ul>
+<li><p>浏览器请求分析：<br>第一行： <strong>GET/login.jsp HTTP/1.1</strong><br>说明：GET表示一个读取请求，将从服务器获得网页数据， / 表示URL的路径，URL总是以/开头，/就表示首页，最后的HTTP/1.1指示采用的HTTP协议版本是1.1。目前HTTP协议的版本是1.1，但是大部分服务器也支持1.0版本，主要区别在于1.1版本允许多个HTTP请求复用一个TCP连接，以加速传输速度。<br>第二行：  <strong>Host:nsdual.boxuegu.com</strong><br>表示请求的域名nsdual.boxuegu.com。如果一台服务器有多个网站，服务器就需要通过Host来区别浏览器请求的是哪个网站。</p>
+</li>
+<li><p>服务器响应分析：<br>继续往下找到Respon Headers,点击view source,显示服务器返回的原始响应数据。<br><img src="/images/208fae3b-46a3-4704-b173-095f8427e860.png"><br>HTTP响应分为Header和Body两部分（Body是可选项），我们在Network中看到的Header最重要的几行如下：</p>
+</li>
+</ul>
+<p><strong>HTTP/1.1 200 OK</strong><br>说明：200 表示一个成功的响应，后面的OK是说明。其他的功能，例如：</p>
+<ul>
+<li>重定向302：表示访问的资源已被移动，并告诉客户端新的资源地址位置。</li>
+<li>失败的响应有404 Not Found：网页不存在</li>
+<li>500 Internal Server Error: 服务器内部出错<br>Content-Type:text/html<br>说明：Content-Type指示响应的内容，这里是text/html表示HTML网页。<br>注意：浏览器就是依靠Content-Type来判断响应的内容是网页还是图片，是视频还是音乐。浏览器并不靠URL来判断响应的内容。</li>
+</ul>
+<h4 id="HTTP请求"><a href="#HTTP请求" class="headerlink" title="HTTP请求"></a>HTTP请求</h4><ul>
+<li><p>浏览器首先向服务器发送HTTP请求，请求包括：<br>方法：GET还是POST,GET仅请求资源，POST会附带用户数据；<br>路径：/full/url/path;<br>域名：由Host头指定 <code>Host:www.sina.com</code><br>以及其他相关的Header;<br>如果是POST,那么请求还包括一个Body,包含用户数据</p>
+</li>
+<li><p>服务器向浏览器返回HTTP响应<br>响应代码：200表示成功，3XX表示重定向，4XX表示客户端发送的请求有错误，5XX表示服务器端处理时发生了错误；<br>响应类型：由Content-Type指定；<br>以及其他相关的Header;<br>通常服务器的HTTP响应会携带内容，也就是有一个Body,包含响应的内容，网页的HTML源码就在Body中。</p>
+</li>
+<li><p>浏览器还需要继续向服务器请求其他资源，比如图片，就再次发出HTTP请求，重复以上步骤<br>HTTP协议同时具备极强的扩展性，虽然浏览器请求的是<code>http://www.sina.com</code>的首页，但是新浪在HTML中可以链入其他服务器的资源，比如<code>&lt;img src=&quot;http://i1.sinaimg.cn/home/2013/1008/U8455P30DT20131008135420.png&quot;&gt;</code>,从而将请求压力分散到各个服务器上，并且一个站点可以链接到其他站点，无视个站点互相链接起来，就形成了World Wide Web, 简称WWW。</p>
+</li>
+</ul>
+<h4 id="HTTP格式"><a href="#HTTP格式" class="headerlink" title="HTTP格式"></a>HTTP格式</h4><ul>
+<li><p>HTTP GET请求的格式<br>GET /path HTTP/1.1<br>Header1: Value1<br>Header2: Value2<br>Header3: Value3<br>每个Header一行一个，换行符是\r\n。</p>
+</li>
+<li><p>HTTP POST请求的格式<br>POST /path HTTP/1.1<br>Header1: Value1<br>Header2: Value2<br>Header3: Value3</p>
+<p>body data goes here<br>当遇到连续两个\r\n时，Header部分结束，后面的数据全部是Body.</p>
+</li>
+<li><p>HTTP响应的格式<br>200 OK<br>Header1: Value1<br>Header2: Value2<br>Header3: Value3</p>
+<p>body data goes here…<br>HTTP响应如果包含body，也是通过\r\n\r\n来分隔的。</p>
+</li>
+</ul>
+<p>注意:<br>(1). Body的数据类型由Content-Type头来确定，如果是网页，Body就是文本，如果是图片，Body就是图片的二进制数据。</p>
+<p>(2). 当存在Content-Encoding时，Body数据是被压缩的，最常见的压缩方式是gzip，所以，看到Content-Encoding: gzip时，需要将Body数据先解压缩，才能得到真正的数据。</p>
+<p>(3). 压缩的目的在于减少Body的大小，加快网络传输。</p>
+]]></content>
+      <categories>
+        <category>编程类</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python高级编程08 -- 正则表达式</title>
+    <url>/2021/03/01/python%E8%BF%9B%E9%98%B608-%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/</url>
+    <content><![CDATA[<h3 id="1-正则表达式到底是什么？"><a href="#1-正则表达式到底是什么？" class="headerlink" title="1. 正则表达式到底是什么？"></a>1. 正则表达式到底是什么？</h3><p>我们通常在编写处理字符串的程序或网页时，经常会有查找符合某些复杂规则的字符串的需要。正则表达式就是用于描述这些规则的工具。换句话说，正则表达式就是记录文本规则的代码。</p>
+<blockquote>
+<p>字符是计算机软件处理文字时最基本的单位，可能是字母，数字，标点符号，空格，换行符，汉字等等。字符串是0个或更多字符的序列。文本也就是文字，字符串。说某个字符串匹配某个正则表达式，通常是指这个字符串里有一部分（或几部分分别）能满足表达式给出的条件。</p>
+</blockquote>
+<span id="more"></span>
+
+<h3 id="2-正则表达式在python中"><a href="#2-正则表达式在python中" class="headerlink" title="2. 正则表达式在python中"></a>2. 正则表达式在python中</h3><p>(1). re模块在古老的Python1.5版本中引入，用于替换那些已过时的regex模块和regsub模块–这两个模块在Python2.5版中移除，而且此后导入这两个模块中的任意一个都会触发ImportError异常。<br>(2). re模块支持更强大而且更通用的Perl风格（Perl 5风格）的正则表达式，该模块允许多个线程共享一个已编译的正则表达式对象，也支持命名子组。</p>
+<ul>
+<li>re模块的使用</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token comment"># 导入re模块</span>
+<span class="token keyword">import</span> re
+
+<span class="token comment"># 使用match 方法进行匹配操作</span>
+result <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span>正则表达式，要匹配的字符串<span class="token punctuation">)</span>
+
+<span class="token comment"># 如果上一步匹配到数据的话， 可以使用group 方法来提取数据</span>
+result<span class="token punctuation">.</span>group<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<ul>
+<li>re模块示例（匹配baidu开头的语句）</li>
+</ul>
+<pre class="line-numbers language-none"><code class="language-none">import re
+
+result &#x3D; re.match(&quot;baidu&quot;, &quot;baidu.com&quot;)
+
+result.group()
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果为：<br>baidu<br>说明： re.match()能够匹配出以XXX开头的字符串</p>
+<ul>
+<li>匹配单个字符</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">字符</th>
+<th align="left">功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">.</td>
+<td align="left">匹配任意1个字符（除了\n）</td>
+</tr>
+<tr>
+<td align="left">[ ]</td>
+<td align="left">匹配[ ]中列举的字符</td>
+</tr>
+<tr>
+<td align="left">\d</td>
+<td align="left">匹配数字，即0-9</td>
+</tr>
+<tr>
+<td align="left">\D</td>
+<td align="left">匹配非数字，即不是数字</td>
+</tr>
+<tr>
+<td align="left">\s</td>
+<td align="left">匹配空白，即 空格，tab键</td>
+</tr>
+<tr>
+<td align="left">\S</td>
+<td align="left">匹配非空白</td>
+</tr>
+<tr>
+<td align="left">\w</td>
+<td align="left">匹配单词字符，即a-z、A-Z、0-9、_</td>
+</tr>
+<tr>
+<td align="left">\W</td>
+<td align="left">匹配非单词字符</td>
+</tr>
+</tbody></table>
+<p>示例：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">
+<span class="token keyword">import</span> re
+
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"."</span> <span class="token punctuation">,</span><span class="token string">"M"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">.</span>group<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"t.o"</span><span class="token punctuation">,</span><span class="token string">"too"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">.</span>group<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"t.o"</span><span class="token punctuation">,</span> <span class="token string">"two"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">.</span>group<span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：<br>M<br>too<br>two</p>
+<ul>
+<li>匹配多个字符</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>字符</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>*</td>
+<td>匹配前一个字符出现0次或者无限次，即可有可无</td>
+</tr>
+<tr>
+<td>+</td>
+<td>匹配前一个字符出现1次或者无限次，即至少有1次</td>
+</tr>
+<tr>
+<td>?</td>
+<td>匹配前一个字符出现1次或者0次，即要么有1次，要么没有</td>
+</tr>
+<tr>
+<td>{m}</td>
+<td>匹配前一个字符出现m次</td>
+</tr>
+<tr>
+<td>{m,n}</td>
+<td>匹配前一个字符出现从m到n次</td>
+</tr>
+</tbody></table>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> re
+
+<span class="token comment"># 使用*匹配</span>
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"[A_Z][a-z]*"</span><span class="token punctuation">,</span><span class="token string">"Aabcdef"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">.</span>group<span class="token punctuation">)</span>
+
+<span class="token comment"># 使用+匹配</span>
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"[a-z]+"</span><span class="token punctuation">,</span><span class="token string">"name"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">.</span>group<span class="token punctuation">)</span>
+
+<span class="token comment"># 使用？ 匹配</span>
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"[1-9]?\d"</span><span class="token punctuation">,</span><span class="token string">"33"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">.</span>group<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 使用&#123;m&#125;</span>
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"[a-zA-Z0-9_]&#123;6&#125;"</span><span class="token punctuation">,</span><span class="token string">"12a3g45678"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">.</span>group<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：<br>Aabcdef<br>33<br>12a3g4</p>
+<ul>
+<li>匹配开头结尾</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>字符</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>^</td>
+<td>匹配字符串开头</td>
+</tr>
+<tr>
+<td>$</td>
+<td>匹配字符串结尾</td>
+</tr>
+</tbody></table>
+<p>示例1：$     需求：匹配163.com的邮箱地址</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">
+email_list <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token string">"xiaoWang@163.com"</span><span class="token punctuation">,</span> <span class="token string">"xiaoWang@163.comheihei"</span><span class="token punctuation">,</span> <span class="token string">".com.xiaowang@qq.com"</span><span class="token punctuation">]</span>
+
+<span class="token keyword">for</span> email <span class="token keyword">in</span> email_list<span class="token punctuation">:</span>
+    ret <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">"[\w]&#123;4,20&#125;@163\.com$"</span><span class="token punctuation">,</span> email<span class="token punctuation">)</span>
+    <span class="token keyword">if</span> ret<span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"%s 是符合规定的邮件地址,匹配后的结果是:%s"</span> <span class="token operator">%</span> <span class="token punctuation">(</span>email<span class="token punctuation">,</span> ret<span class="token punctuation">.</span>group<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token keyword">else</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"%s 不符合要求"</span> <span class="token operator">%</span> email<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：<br>xiaoWang@ 163.com 是符合规定的邮件地址,匹配后的结果是: xiaoWang@ 163.com<br>xiaoWang@ 163.comheihei 不符合要求<br>.com.xiaowang@ qq.com 不符合要求</p>
+<ul>
+<li>匹配分组</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>字符</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>(ab)</td>
+<td>将括号中字符作为一个分组</td>
+</tr>
+<tr>
+<td><code>\num</code></td>
+<td>引用分组num匹配到的字符串</td>
+</tr>
+<tr>
+<td><code>(?P&lt;name&gt;)</code></td>
+<td>分组起别名</td>
+</tr>
+<tr>
+<td>(?P=name)</td>
+<td>引用别名为name分组匹配到的字符串</td>
+</tr>
+</tbody></table>
+<ul>
+<li>re模块的高级用法-<strong>search</strong></li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">
+<span class="token comment"># 需求：匹配出文章阅读的次数</span>
+<span class="token keyword">import</span> re
+
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>search<span class="token punctuation">(</span><span class="token string">r"\d+"</span><span class="token punctuation">,</span> <span class="token string">"阅读次数为 9999"</span><span class="token punctuation">)</span>
+ret<span class="token punctuation">.</span>group<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：<br>‘9999’</p>
+<ul>
+<li>re模块的高级用法-<strong>findall</strong></li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token comment"># 需求：统计出python、c、C++相应文章阅读的次数</span>
+<span class="token keyword">import</span> re
+
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>findall<span class="token punctuation">(</span><span class="token string">r"\d"</span><span class="token punctuation">,</span> <span class="token string">"python = 9999, c= 7890, c++ = 12345"</span><span class="token punctuation">)</span>  <span class="token comment"># findall 以列表的形式返回</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：<br>[‘9999’, ‘7890’, ‘12345’]</p>
+<ul>
+<li>re模块的高级用法-sub<br>将匹配到的数据进行替换</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python">
+<span class="token comment"># 需求：将匹配到的阅读次数加1</span>
+<span class="token keyword">import</span> re
+
+ret <span class="token operator">=</span> re<span class="token punctuation">.</span>sub<span class="token punctuation">(</span><span class="token string">r"\d+"</span><span class="token punctuation">,</span> <span class="token string">"998"</span><span class="token punctuation">,</span> <span class="token string">"python = 997"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：<br>python = 998</p>
+<ul>
+<li>re模块高级用法-split<br>根据匹配进行切割字符串，并返回一个列表</li>
+</ul>
+<pre class="line-numbers language-none"><code class="language-none"># 需求：切割字符串“info:xiaoZhang 33 shangdong”
+
+import re
+
+ret &#x3D; re.split(r&quot;:|&quot;, &quot;info:xiaoZhang 33 shandong&quot;)
+print(ret)<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：<br>[‘info’, ‘xiaoZhang’, ‘33’, ‘shandong’]</p>
+<h3 id="python贪婪和非贪婪"><a href="#python贪婪和非贪婪" class="headerlink" title="python贪婪和非贪婪"></a>python贪婪和非贪婪</h3><p>python里数量词默认是贪婪的（在少数语言里也可能是默认非贪婪），总是尝试匹配尽可能多的字符;<br>非贪婪则相反，总是尝试匹配尽可能少的字符。<br>在”*”,”?”,”+”,”{m,n}”后面加上？，使贪婪变成非贪婪。</p>
+<pre class="line-numbers language-none"><code class="language-none">&gt;&gt;&gt; s&#x3D;&quot;This is a number 234-235-22-423&quot;
+&gt;&gt;&gt; r&#x3D;re.match(&quot;.+(\d+-\d+-\d+-\d+)&quot;,s)
+&gt;&gt;&gt; r.group(1)
+&#39;4-235-22-423&#39;
+&gt;&gt;&gt; r&#x3D;re.match(&quot;.+?(\d+-\d+-\d+-\d+)&quot;,s)
+&gt;&gt;&gt; r.group(1)
+&#39;234-235-22-423&#39;
+&gt;&gt;&gt;<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<ul>
+<li>r的作用<br>Python中字符串前面加上 r 表示原生字符串。解决正则表达式里使用“\”作为转义字符的问题<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token operator">>></span><span class="token operator">></span> ret <span class="token operator">=</span> re<span class="token punctuation">.</span>match<span class="token punctuation">(</span><span class="token string">r"c:\\a"</span><span class="token punctuation">,</span>mm<span class="token punctuation">)</span><span class="token punctuation">.</span>group<span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token operator">>></span><span class="token operator">></span> <span class="token keyword">print</span><span class="token punctuation">(</span>ret<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+结果：<br>c:\a</li>
+</ul>
+<p><img src="/images/1.png"></p>
+]]></content>
+      <categories>
+        <category>编程类</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python高级编程01 -- 多线程编程</title>
+    <url>/2021/02/28/python%E8%BF%9B%E9%98%B601-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E7%BC%96%E7%A8%8B/</url>
+    <content><![CDATA[<h4 id="1-多线程"><a href="#1-多线程" class="headerlink" title="1. 多线程"></a>1. 多线程</h4><ul>
+<li><p>概念：简单地说操作系统可以同时执行多个不用程序。例如：一边用浏览器上网，一边在听音乐，一边在用笔记软件记笔记。</p>
+</li>
+<li><p>并发：指的是任务数多余cpu核数，通过操作系统的各种任务调度算法，实现用多个任务“一起”执行（实际上总有一些任务不在执行，因为切换任务的熟度相当快，看上去一起执行而已）</p>
+</li>
+<li><p>并行：指的是任务数小于等于CPU核数，即任务真的是一起执行的。</p>
+<span id="more"></span>
+
+</li>
+</ul>
+<h4 id="2-线程"><a href="#2-线程" class="headerlink" title="2. 线程"></a>2. 线程</h4><ul>
+<li><p>概念：线程是进程的一个实体，是CPU调度和分派的基本单位。</p>
+</li>
+<li><p>threading–单线程执行：</p>
+</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> time
+
+<span class="token keyword">def</span> <span class="token function">saySorry</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"亲爱的，我错了，我能吃饭了吗？"</span><span class="token punctuation">)</span>
+    <span class="token comment"># 时间停顿1秒</span>
+    time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+
+
+<span class="token keyword">if</span>  __name__ <span class="token operator">==</span> <span class="token string">"__main__"</span><span class="token punctuation">:</span>
+    <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        saySorry<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：<br><img src="/images/01.gif"></p>
+<ul>
+<li>threading–多线程执行：</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> threading
+<span class="token keyword">import</span> time
+
+<span class="token keyword">def</span> <span class="token function">saySorry</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"亲爱的，我错了，我能吃饭了吗？"</span><span class="token punctuation">)</span>
+    time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">"__main__"</span><span class="token punctuation">:</span>
+    <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        t <span class="token operator">=</span> threading<span class="token punctuation">.</span>Threading<span class="token punctuation">(</span>target<span class="token operator">=</span>saySorry<span class="token punctuation">)</span>
+        <span class="token comment"># 启动线程，即让线程开始执行</span>
+        t<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：<br><img src="/images/02.gif"></p>
+<ul>
+<li><p>单线程与多线程比较</p>
+</li>
+<li><p>单线程要比多线程花费时间多</p>
+</li>
+<li><p>在创建完线程，需要调用start()方法来启动</p>
+</li>
+</ul>
+<ul>
+<li>查看线程数量</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> threading
+<span class="token keyword">import</span> time
+
+<span class="token keyword">class</span> <span class="token class-name">MyThread</span><span class="token punctuation">(</span>threading<span class="token punctuation">.</span>Thread<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">run</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+            <span class="token comment"># name 属性中保存的是当前线程的名字</span>
+            msg <span class="token operator">=</span> <span class="token string">"I'm"</span> <span class="token operator">+</span>self<span class="token punctuation">.</span>name <span class="token operator">+</span> <span class="token string">'@'</span> <span class="token operator">+</span><span class="token builtin">str</span><span class="token punctuation">(</span>i<span class="token punctuation">)</span> 
+            <span class="token keyword">print</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span>
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">"__main__"</span><span class="token punctuation">:</span>
+    t <span class="token operator">=</span> MyThread<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    t<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token comment"># 通过带下标索引enumerate()方法</span>
+length <span class="token operator">=</span> <span class="token builtin">len</span><span class="token punctuation">(</span>threading<span class="token punctuation">.</span><span class="token builtin">enumerate</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"当前运行的线程数为：%d"</span><span class="token operator">%</span>length<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<ul>
+<li>线程执行代码的封装：<blockquote>
+<p>思考：定义一个新的子类class,只有继承threading.Thead就可以，然后重写run方法。</p>
+</blockquote>
+</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> threading
+<span class="token keyword">import</span> time
+
+<span class="token keyword">class</span> <span class="token class-name">MyThread</span><span class="token punctuation">(</span>threading<span class="token punctuation">.</span>Thread<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">run</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+            msg <span class="token operator">=</span> <span class="token string">"I'm"</span> <span class="token operator">+</span>self<span class="token punctuation">.</span>name <span class="token operator">+</span> <span class="token string">'@'</span> <span class="token operator">+</span><span class="token builtin">str</span><span class="token punctuation">(</span>i<span class="token punctuation">)</span> <span class="token comment">#name 属性中保存的是当前线程的名字</span>
+            <span class="token keyword">print</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span>
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">"__main__"</span><span class="token punctuation">:</span>
+    t <span class="token operator">=</span> MyThread<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    t<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：</p>
+<p><img src="/images/03.gif"></p>
+<p>说明：threading.Thread类有一个run方法，用户定义线程的功能函数，可以在自己的线程类中覆盖该方法。而创建自己的线程实例后，通过Thread类的start方法，可以启动该线程，当该线程获得执行的机会时，就会调用run方法执行线程。</p>
+<ul>
+<li><p>线程的状态</p>
+</li>
+<li><p>多线程的执行顺序是不确定的。当执行到sleep语句时，线程将被阻塞，到sleep结束后，线程进入就绪状态，等待调度。而线程调度将自行选择一个线程执行。</p>
+</li>
+<li><p>状态：<br>(1) New 创建线程<br>(2) Runnable 就绪，等待调度<br>(3) Running 运行。<br>(4) Blocked 阻塞。阻塞可能在Wait Locked Sleeping<br>(5) Dead 消亡</p>
+</li>
+<li><p>线程中执行到阻塞，可能有三种情况：</p>
+</li>
+<li><p>同步：线程中获取同步锁，但是资源已经被其他线程锁定时，进入Locked状态，直到该资源可获取（获取的顺序由Lock队列控制）</p>
+</li>
+<li><p>睡眠：线程运行sleep()或join()方法后，线程进入Sleeping状态。区别在于sleep等待固定的时间，而join是等待子线程执行完。当然join也可以指定一个“超时时间”。从语义上来说，如果两个线程a,b, 在a中调用b.join()，相当于合并(join)成一个线程。最常见的情况是在主线程中join所有的子线程。</p>
+</li>
+<li><p>等待：线程中执行wait()方法后，线程进入Waiting状态，等待其他线程的通知(notify）。</p>
+</li>
+</ul>
+<ul>
+<li><p>线程类型<br>线程有着不同的状态，也有不同的类型：</p>
+</li>
+<li><p>主线程</p>
+</li>
+<li><p>子线程</p>
+</li>
+<li><p>守护线程（后台线程）</p>
+</li>
+<li><p>前台线程</p>
+</li>
+</ul>
+<ul>
+<li>多线程–共享全局变量问题</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> threading <span class="token keyword">import</span> Thread
+<span class="token keyword">import</span> time
+
+g_num <span class="token operator">=</span> <span class="token number">100</span>
+
+<span class="token keyword">def</span> <span class="token function">work1</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">global</span> g_num
+    <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        g_num <span class="token operator">+=</span> <span class="token number">1</span>
+
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"----in work1, g_num is %d---"</span><span class="token operator">%</span>g_num<span class="token punctuation">)</span>
+
+
+<span class="token keyword">def</span> <span class="token function">work2</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">global</span> g_num
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"----in work2, g_num is %d---"</span><span class="token operator">%</span>g_num<span class="token punctuation">)</span>
+
+
+<span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"---线程创建之前g_num is %d---"</span><span class="token operator">%</span>g_num<span class="token punctuation">)</span>
+
+t1 <span class="token operator">=</span> Thread<span class="token punctuation">(</span>target<span class="token operator">=</span>work1<span class="token punctuation">)</span>
+t1<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">#延时一会，保证t1线程中的事情做完</span>
+time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+
+t2 <span class="token operator">=</span> Thread<span class="token punctuation">(</span>target<span class="token operator">=</span>work2<span class="token punctuation">)</span>
+t2<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果：</p>
+<p><code>---线程创建之前g_num is 100---</code><br><code>----in work1, g_num is 103---</code><br><code>----in work2, g_num is 103---</code></p>
+<ul>
+<li><p>共享全局变量问题说明：</p>
+</li>
+<li><p>在一个进程内的所有线程共享全局变量，很方便在多个线程间共享数据。</p>
+</li>
+<li><p>缺点就是，线程是对全局变量随意更改可能造成多线程之间对全局变量的混乱（即线程非安全）</p>
+</li>
+<li><p>如果多个线程它同时对同一个全局变量操作，会出现资源竞争问题，从而数据结果会不正确。</p>
+</li>
+</ul>
+<ul>
+<li>解决方案：<br>可以通过线程同步来进行解决线程同时修改全局变量的方式，在线程对全局变量进行修改时，都要先上锁，处理完后再解锁，在上锁的整个过程中不允许其他线程访问，就保证了数据的正确性。</li>
+</ul>
+<h4 id="3-同步与互斥锁"><a href="#3-同步与互斥锁" class="headerlink" title="3. 同步与互斥锁"></a>3. 同步与互斥锁</h4><h5 id="3-1-同步"><a href="#3-1-同步" class="headerlink" title="3.1 同步"></a>3.1 同步</h5><ul>
+<li>如果多个线程共同对某个数据修改，则可能出现不可预料的结果，为了保证数据的正确性，需要对多个线程进行同步。</li>
+<li>使用Tread对象的Lock和Rlock可以实现简单的线程同步，这两个对象都有acquire方法和release方法。对于那些需要每次只允许一个线程操作的数据，可以将其操作放到acquire和release方法之间。</li>
+</ul>
+<h5 id="3-2-互斥锁"><a href="#3-2-互斥锁" class="headerlink" title="3.2 互斥锁"></a>3.2 互斥锁</h5><ul>
+<li>互斥锁为资源引入一个状态：锁定/非锁定</li>
+<li>互斥锁的作用：保证每次只有一个线程进行写入操作，从而保证了多线程情况下数据的正确性。</li>
+<li>threading 模块中定义了Loack类，可以方便处理锁定：</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> threading
+<span class="token keyword">import</span> time
+
+<span class="token keyword">class</span> <span class="token class-name">MyThread1</span><span class="token punctuation">(</span>threading<span class="token punctuation">.</span>Thread<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">run</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">if</span> mutexA<span class="token punctuation">.</span>acquire<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            <span class="token keyword">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>name<span class="token operator">+</span><span class="token string">'----do1---up----'</span><span class="token punctuation">)</span>
+            time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+
+            <span class="token keyword">if</span> mutexB<span class="token punctuation">.</span>acquire<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+                <span class="token keyword">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>name<span class="token operator">+</span><span class="token string">'----do1---down----'</span><span class="token punctuation">)</span>
+                mutexB<span class="token punctuation">.</span>release<span class="token punctuation">(</span><span class="token punctuation">)</span>
+            mutexA<span class="token punctuation">.</span>release<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token keyword">class</span> <span class="token class-name">MyThread2</span><span class="token punctuation">(</span>threading<span class="token punctuation">.</span>Thread<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">run</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">if</span> mutexB<span class="token punctuation">.</span>acquire<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            <span class="token keyword">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>name<span class="token operator">+</span><span class="token string">'----do2---up----'</span><span class="token punctuation">)</span>
+            time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+            <span class="token keyword">if</span> mutexA<span class="token punctuation">.</span>acquire<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+                <span class="token keyword">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>name<span class="token operator">+</span><span class="token string">'----do2---down----'</span><span class="token punctuation">)</span>
+                mutexA<span class="token punctuation">.</span>release<span class="token punctuation">(</span><span class="token punctuation">)</span>
+            mutexB<span class="token punctuation">.</span>release<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+mutexA <span class="token operator">=</span> threading<span class="token punctuation">.</span>Lock<span class="token punctuation">(</span><span class="token punctuation">)</span>
+mutexB <span class="token operator">=</span> threading<span class="token punctuation">.</span>Lock<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">'__main__'</span><span class="token punctuation">:</span>
+    t1 <span class="token operator">=</span> MyThread1<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    t2 <span class="token operator">=</span> MyThread2<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    t1<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    t2<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token comment"># 创建锁</span>
+mutex <span class="token operator">=</span> threading<span class="token punctuation">.</span>Lock<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 锁定</span>
+<span class="token comment"># acquire 获得，取得，学到，捕获。</span>
+mutex<span class="token punctuation">.</span>acquire<span class="token punctuation">(</span><span class="token punctuation">[</span>blocking<span class="token punctuation">]</span><span class="token punctuation">)</span>  
+
+<span class="token comment"># 释放</span>
+mutex<span class="token punctuation">.</span>release<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<ul>
+<li>说明：锁定方法acquirc 可以有一个blocking参数</li>
+<li>如果设定blocking为True，则当前线程会阻塞，直到获取到这个锁为止（如果没有指定，那么默认为True）</li>
+<li>如果设定blocking 为False，则当前线程不会阻塞。</li>
+</ul>
+<ul>
+<li><p>上锁解锁的过程</p>
+</li>
+<li><p>当一个线程调用锁的acquire()方法获得锁时，锁就进入“locked” 状态。</p>
+</li>
+<li><p>每次只有一个线程可以获得锁。如果此时另一个线程试图获得这个锁，该线程就会变为“blocked”状态，称为“阻塞”，直到拥有锁的线程调用锁的release()方法释放锁之后，锁进入“unlocked”状态。</p>
+</li>
+<li><p>线程调度程序从处于同步阻塞状态的线程中选择一个来获得锁，并使得该线程进入运行（running）状态。</p>
+</li>
+</ul>
+<ul>
+<li><p>锁的好处：</p>
+</li>
+<li><p>确保了某段关键代码只能由一个线程从头到尾完整地执行</p>
+</li>
+</ul>
+<ul>
+<li><p>锁的坏处：</p>
+</li>
+<li><p>阻止了多线程并发执行，包含锁的某段代码实际上只能以单线程模式执行，效率就大大地下降了</p>
+</li>
+<li><p>由于可以存在多个锁，不同的线程持有不同的锁，并试图获取对方持有的锁时，可能会造成死锁</p>
+</li>
+<li><p>死锁<br>定义：在线程间共享多个资源的时候，如果两个线程分别占有一部分资源并且同时等待对方的资源，就会造成死锁。<br>例子：</p>
+</li>
+</ul>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">import</span> threading
+<span class="token keyword">import</span> time
+
+<span class="token keyword">class</span> <span class="token class-name">MyThread1</span><span class="token punctuation">(</span>threading<span class="token punctuation">.</span>Thread<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">run</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">if</span> mutexA<span class="token punctuation">.</span>acquire<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            <span class="token keyword">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>name<span class="token operator">+</span><span class="token string">'----do1---up----'</span><span class="token punctuation">)</span>
+            time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+
+            <span class="token keyword">if</span> mutexB<span class="token punctuation">.</span>acquire<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+                <span class="token keyword">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>name<span class="token operator">+</span><span class="token string">'----do1---down----'</span><span class="token punctuation">)</span>
+                mutexB<span class="token punctuation">.</span>release<span class="token punctuation">(</span><span class="token punctuation">)</span>
+            mutexA<span class="token punctuation">.</span>release<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token keyword">class</span> <span class="token class-name">MyThread2</span><span class="token punctuation">(</span>threading<span class="token punctuation">.</span>Thread<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">def</span> <span class="token function">run</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">if</span> mutexB<span class="token punctuation">.</span>acquire<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            <span class="token keyword">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>name<span class="token operator">+</span><span class="token string">'----do2---up----'</span><span class="token punctuation">)</span>
+            time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+            <span class="token keyword">if</span> mutexA<span class="token punctuation">.</span>acquire<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+                <span class="token keyword">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>name<span class="token operator">+</span><span class="token string">'----do2---down----'</span><span class="token punctuation">)</span>
+                mutexA<span class="token punctuation">.</span>release<span class="token punctuation">(</span><span class="token punctuation">)</span>
+            mutexB<span class="token punctuation">.</span>release<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+mutexA <span class="token operator">=</span> threading<span class="token punctuation">.</span>Lock<span class="token punctuation">(</span><span class="token punctuation">)</span>
+mutexB <span class="token operator">=</span> threading<span class="token punctuation">.</span>Lock<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">'__main__'</span><span class="token punctuation">:</span>
+    t1 <span class="token operator">=</span> MyThread1<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    t2 <span class="token operator">=</span> MyThread2<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    t1<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    t2<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>运行结果<br><img src="/images/04.gif"></p>
+<ul>
+<li>避免死锁</li>
+<li>程序设计时要尽量避免死锁（银行家算法）</li>
+<li>添加超时时间等。</li>
+</ul>
+<h4 id="4-进程"><a href="#4-进程" class="headerlink" title="4. 进程"></a>4. 进程</h4><p>定义：一个程序运行起来后，代码和用到的资源称之为进程。它是操作系统分配资源的基本单元。</p>
+<h5 id="4-1-进程的状态"><a href="#4-1-进程的状态" class="headerlink" title="4.1 进程的状态"></a>4.1 进程的状态</h5><p>图分析：<br><img src="/images/05.png"></p>
+<p>就绪态：运行的条件都已经慢去，正去等待cpu执行。<br>执行态：cpu正在执行其功能<br>等待态：等待某些条件满足，例如一个程序sleep了，此时就处于等待态。</p>
+<h5 id="4-2-进程的创建"><a href="#4-2-进程的创建" class="headerlink" title="4.2 进程的创建"></a>4.2 进程的创建</h5><p>进程的创建实现例子：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> multiprocessing <span class="token keyword">import</span> Process
+<span class="token keyword">import</span> time
+
+<span class="token keyword">def</span> <span class="token function">run_proc</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token triple-quoted-string string">"""子进程要执行的代码"""</span>
+    <span class="token keyword">while</span> <span class="token boolean">True</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"----2----"</span><span class="token punctuation">)</span>
+        time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+
+<span class="token keyword">if</span> __name__<span class="token operator">==</span><span class="token string">'__main__'</span><span class="token punctuation">:</span>
+    p <span class="token operator">=</span> Process<span class="token punctuation">(</span>target<span class="token operator">=</span>run_proc<span class="token punctuation">)</span>  <span class="token comment">#创建一个进程</span>
+    p<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span>  <span class="token comment">#创建一个Process 实例，用start（）方式启动。</span>
+    <span class="token keyword">while</span> <span class="token boolean">True</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"----1----"</span><span class="token punctuation">)</span>
+        time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<ul>
+<li>multiprocessing模块说明：multiprocessing模块是多跨平台版本的多进程模块，提供了一个Process类来代表一个进程对象，这个对象可以理解为是一个独立的进程，可以执行另外的事情。</li>
+<li>Process语法结构<br>Process([group [, target [, name [, args [, kwargs]]]]])</li>
+<li>target：如果传递了函数的引用，可以任务这个子进程就执行这里的代码</li>
+<li>args：给target指定的函数传递的参数，以元组的方式传递</li>
+<li>kwargs：给target指定的函数传递命名参数</li>
+<li>name：给进程设定一个名字，可以不设定</li>
+<li>group：指定进程组，大多数情况下用不到</li>
+<li>Process创建的实例对象的常用方法：</li>
+<li>start()：启动子进程实例（创建子进程）</li>
+<li>is_alive()：判断进程子进程是否还在活着</li>
+<li>join([timeout])：是否等待子进程执行结束，或等待多少秒</li>
+<li>terminate()：不管任务是否完成，立即终止子进程</li>
+<li>Process创建的实例对象的常用属性：</li>
+<li>name：当前进程的别名，默认为Process-N，N为从1开始递增的整数</li>
+<li>pid：当前进程的pid（进程号）</li>
+</ul>
+<h5 id="4-3-线程与进程的区别"><a href="#4-3-线程与进程的区别" class="headerlink" title="4.3 线程与进程的区别"></a>4.3 线程与进程的区别</h5><ul>
+<li><p>定义的不同 </p>
+</li>
+<li><p>进程是系统进行资源分配和调度的一个独立单位。</p>
+</li>
+<li><p>线程是进程的一个实体，是CPU调度的基本单位。它是比进程更小的能独立运行的基本单位.线程自己基本上不拥有系统资源,只拥有一点在运行中必不可少的资源(如程序计数器,一组寄存器和栈),但是它可与同属一个进程的其他的线程共享进程所拥有的全部资源.</p>
+</li>
+<li><p>区别：</p>
+</li>
+<li><p>一个程序至少有一个进程,一个进程至少有一个线程.</p>
+</li>
+<li><p>线程的划分尺度小于进程(资源比进程少)，使得多线程程序的并发性高。</p>
+</li>
+<li><p>进程在执行过程中拥有独立的内存单元，而多个线程共享内 存，从而极大地提高了程序的运行效率</p>
+</li>
+<li><p>线线程不能够独立执行，必须依存在进程中</p>
+</li>
+<li><p>优缺点<br>线程和进程在使用上各有优缺点：线程执行开销小，但不利于资源的管理和保护；而进程正相反。</p>
+</li>
+</ul>
+<h4 id="5-进程间通信–Queue"><a href="#5-进程间通信–Queue" class="headerlink" title="5. 进程间通信–Queue"></a>5. 进程间通信–Queue</h4><p>可以使用multiprocessing模块的Queue实现多进程之间的数据传递，Queue本身是一个消息列队程序，首先用一个小实例来演示一下Queue的工作原理：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> multiprocessing <span class="token keyword">import</span> Queue
+
+q <span class="token operator">=</span> Queue<span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span>   <span class="token comment"># 初始化一个Queue对象，最多可接收三条put消息</span>
+q<span class="token punctuation">.</span>put<span class="token punctuation">(</span><span class="token string">"消息1"</span><span class="token punctuation">)</span>
+q<span class="token punctuation">.</span>put<span class="token punctuation">(</span><span class="token string">"消息2"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>q<span class="token punctuation">.</span>full<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>  <span class="token comment"># False</span>
+q<span class="token punctuation">.</span>put<span class="token punctuation">(</span><span class="token string">"消息3"</span><span class="token punctuation">)</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span>q<span class="token punctuation">.</span>full<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>  <span class="token comment"># True</span>
+
+<span class="token comment"># 因为消息队列已满下面的try 都会抛出异常， 第一个try 会等待2秒后再抛出异常，第二个Try会立刻抛出异常</span>
+<span class="token keyword">try</span><span class="token punctuation">:</span>
+    q<span class="token punctuation">.</span>put<span class="token punctuation">(</span><span class="token string">"消息4"</span><span class="token punctuation">,</span><span class="token boolean">True</span><span class="token punctuation">,</span><span class="token number">2</span><span class="token punctuation">)</span>
+<span class="token keyword">except</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"消息队列已满，现有消息数量：%s"</span><span class="token operator">%</span>q<span class="token punctuation">.</span>qsize<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token keyword">try</span><span class="token punctuation">:</span>
+    q<span class="token punctuation">.</span>put_nowait<span class="token punctuation">(</span><span class="token string">"消息4"</span><span class="token punctuation">)</span>
+<span class="token keyword">except</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"消息队列已满，现有消息数量：%s"</span><span class="token operator">%</span>q<span class="token punctuation">.</span>qsize<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 推荐的方式，先判断消息队列是否已满，再写入</span>
+<span class="token keyword">if</span> <span class="token keyword">not</span> q<span class="token punctuation">.</span>full<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    q<span class="token punctuation">.</span>put_nowait<span class="token punctuation">(</span><span class="token string">"消息4"</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 读取消息时，先判断消息队列是否为空，再读取</span>
+<span class="token keyword">if</span> <span class="token keyword">not</span> q<span class="token punctuation">.</span>empty<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span>q<span class="token punctuation">.</span>qsize<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span>q<span class="token punctuation">.</span>get_nowait<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：</p>
+<pre class="line-numbers language-none"><code class="language-none">False
+True
+消息列队已满，现有消息数量:3
+消息列队已满，现有消息数量:3
+消息1
+消息2
+消息3<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<ul>
+<li>说明：<br>初始化Queue()对象时（例如：q=Queue()），若括号中没有指定最大可接收的消息数量，或数量为负值，那么就代表可接受的消息数量没有上限（直到内存的尽头）；</li>
+<li>Queue.qsize()：返回当前队列包含的消息数量；</li>
+<li>Queue.empty()：如果队列为空，返回True，反之False ；</li>
+<li>Queue.full()：如果队列满了，返回True,反之False；</li>
+<li>Queue.get([block[, timeout]])：获取队列中的一条消息，然后将其从列队中移除，block默认值为True；<br>1）如果block使用默认值，且没有设置timeout（单位秒），消息列队如果为空，此时程序将被阻塞（停在读取状态），直到从消息列队读到消息为止，<br>如果设置了timeout，则会等待timeout秒，若还没读取到任何消息，则抛出”Queue.Empty”异常；<br>2）如果block值为False，消息列队如果为空，则会立刻抛出”Queue.Empty”异常；</li>
+<li>Queue.get_nowait()：相当Queue.get(False)；</li>
+<li>Queue.put(item,[block[, timeout]])：将item消息写入队列，block默认值为True；<br>1）如果block使用默认值，且没有设置timeout（单位秒），消息列队如果已经没有空间可写入，此时程序将被阻塞（停在写入状态），直到从消息列队腾出空间为止，如果设置了timeout，则会等待timeout秒，若还没空间，则抛出”Queue.Full”异常；<br>2）如果block值为False，消息列队如果没有空间可写入，则会立刻抛出”Queue.Full”异常；</li>
+<li>Queue.put_nowait(item)：相当Queue.put(item, False)；</li>
+<li>Queue.put(item,[block[, timeout]])：将item消息写入队列，block默认值为True；<br>1）如果block使用默认值，且没有设置timeout（单位秒），消息列队如果已经没有空间可写入，此时程序将被阻塞（停在写入状态），直到从消息列队腾出空间为止，如果设置了timeout，则会等待timeout秒，若还没空间，则抛出”Queue.Full”异常；<br>2）如果block值为False，消息列队如果没有空间可写入，则会立刻抛出”Queue.Full”异常；</li>
+<li>Queue.put_nowait(item)：相当Queue.put(item, False)；</li>
+</ul>
+<h5 id="Queue实例"><a href="#Queue实例" class="headerlink" title="Queue实例"></a>Queue实例</h5><p>在父进程中创建两个子进程，一个往Queue里写数据，一个从Queue里读数据</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> multiprocessing <span class="token keyword">import</span> Process<span class="token punctuation">,</span> Queue
+<span class="token keyword">import</span> os<span class="token punctuation">,</span> time<span class="token punctuation">,</span> random
+
+<span class="token comment"># 写数据进程执行的代码:</span>
+<span class="token keyword">def</span> <span class="token function">write</span><span class="token punctuation">(</span>q<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">for</span> value <span class="token keyword">in</span> <span class="token punctuation">[</span><span class="token string">'A'</span><span class="token punctuation">,</span> <span class="token string">'B'</span><span class="token punctuation">,</span> <span class="token string">'C'</span><span class="token punctuation">]</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">'Put %s to queue...'</span> <span class="token operator">%</span> value<span class="token punctuation">)</span>
+        q<span class="token punctuation">.</span>put<span class="token punctuation">(</span>value<span class="token punctuation">)</span>
+        time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span>random<span class="token punctuation">.</span>random<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment"># 读数据进程执行的代码:</span>
+<span class="token keyword">def</span> <span class="token function">read</span><span class="token punctuation">(</span>q<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">while</span> <span class="token boolean">True</span><span class="token punctuation">:</span>
+        <span class="token keyword">if</span> <span class="token keyword">not</span> q<span class="token punctuation">.</span>empty<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            value <span class="token operator">=</span> q<span class="token punctuation">.</span>get<span class="token punctuation">(</span><span class="token boolean">True</span><span class="token punctuation">)</span>
+            <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">'Get %s from queue.'</span> <span class="token operator">%</span> value<span class="token punctuation">)</span>
+            time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span>random<span class="token punctuation">.</span>random<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token keyword">else</span><span class="token punctuation">:</span>
+            <span class="token keyword">break</span>
+
+<span class="token keyword">if</span> __name__<span class="token operator">==</span><span class="token string">'__main__'</span><span class="token punctuation">:</span>
+    <span class="token comment"># 父进程创建Queue，并传给各个子进程：</span>
+    q <span class="token operator">=</span> Queue<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    pw <span class="token operator">=</span> Process<span class="token punctuation">(</span>target<span class="token operator">=</span>write<span class="token punctuation">,</span> args<span class="token operator">=</span><span class="token punctuation">(</span>q<span class="token punctuation">,</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    pr <span class="token operator">=</span> Process<span class="token punctuation">(</span>target<span class="token operator">=</span>read<span class="token punctuation">,</span> args<span class="token operator">=</span><span class="token punctuation">(</span>q<span class="token punctuation">,</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token comment"># 启动子进程pw，写入:</span>
+    pw<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span>    
+    <span class="token comment"># 等待pw结束:</span>
+    pw<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token comment"># 启动子进程pr，读取:</span>
+    pr<span class="token punctuation">.</span>start<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    pr<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token comment"># pr进程里是死循环，无法等待其结束，只能强行终止:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">)</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">'所有数据都写入并且读完'</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：<br><img src="/images/13123123123123126.gif"></p>
+<h4 id="6-进程池Pool"><a href="#6-进程池Pool" class="headerlink" title="6. 进程池Pool"></a>6. 进程池Pool</h4><p>针对大量的目标，手动创建进程的工作量巨大，此时就可以用到multiprocessing模块提供的Pool方法。<br>Pool过程说明：<br>初始化Pool时，可以指定一个最大进程数，当有新的请求提交到Pool中时，如果池还没有满，那么就会创建一个新的进程用来执行该请求；但如果池中的进程数已经达到指定的最大值，那么该请求就会等待，直到池中有进程结束，才会用之前的进程来执行新的任务，请看下面的实例：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token keyword">from</span> multiprocessing <span class="token keyword">import</span> Pool
+<span class="token keyword">import</span> os<span class="token punctuation">,</span> time<span class="token punctuation">,</span> random
+
+<span class="token keyword">def</span> <span class="token function">worker</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    t_start <span class="token operator">=</span> time<span class="token punctuation">.</span>time<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"%s开始执行,进程号为%d"</span> <span class="token operator">%</span> <span class="token punctuation">(</span>msg<span class="token punctuation">,</span>os<span class="token punctuation">.</span>getpid<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token comment"># random.random()随机生成0~1之间的浮点数</span>
+    time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span>random<span class="token punctuation">.</span>random<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">*</span><span class="token number">2</span><span class="token punctuation">)</span> 
+    t_stop <span class="token operator">=</span> time<span class="token punctuation">.</span>time<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span>msg<span class="token punctuation">,</span><span class="token string">"执行完毕，耗时%0.2f"</span> <span class="token operator">%</span> <span class="token punctuation">(</span>t_stop<span class="token operator">-</span>t_start<span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+po<span class="token operator">=</span>Pool<span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span> <span class="token comment">#定义一个进程池，最大进程数3</span>
+<span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token comment">#Pool().apply_async(要调用的目标,(传递给目标的参数元祖,))</span>
+    <span class="token comment">#每次循环将会用空闲出来的子进程去调用目标</span>
+    po<span class="token punctuation">.</span>apply_async<span class="token punctuation">(</span>worker<span class="token punctuation">,</span><span class="token punctuation">(</span>i<span class="token punctuation">,</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"----start----"</span><span class="token punctuation">)</span>
+po<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">#关闭进程池，关闭后po不再接收新的请求</span>
+po<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">#等待po中所有子进程执行完成，必须放在close语句之后</span>
+<span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"-----end-----"</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果:</p>
+<pre class="line-numbers language-none"><code class="language-none">----start----
+0开始执行,进程号为21466
+1开始执行,进程号为21468
+2开始执行,进程号为21467
+0 执行完毕，耗时1.01
+3开始执行,进程号为21466
+2 执行完毕，耗时1.24
+4开始执行,进程号为21467
+3 执行完毕，耗时0.56
+5开始执行,进程号为21466
+1 执行完毕，耗时1.68
+6开始执行,进程号为21468
+4 执行完毕，耗时0.67
+7开始执行,进程号为21467
+5 执行完毕，耗时0.83
+8开始执行,进程号为21466
+6 执行完毕，耗时0.75
+9开始执行,进程号为21468
+7 执行完毕，耗时1.03
+8 执行完毕，耗时1.05
+9 执行完毕，耗时1.69
+-----end-----<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<ul>
+<li>multiprocessing.Pool常用函数解析：</li>
+<li>apply_async(func[, args[, kwds]]) ：使用非阻塞方式调用func（并行执行，堵塞方式必须等待上一个进程退出才能执行下一个进程），args为传递给func的参数列表，kwds为传递给func的关键字参数列表；</li>
+<li>close()：关闭Pool，使其不再接受新的任务；</li>
+<li>terminate()：不管任务是否完成，立即终止；</li>
+<li>join()：主进程阻塞，等待子进程的退出， 必须在close或terminate之后使用；</li>
+</ul>
+<h5 id="进程池中的Queue"><a href="#进程池中的Queue" class="headerlink" title="进程池中的Queue"></a>进程池中的Queue</h5><p>要使用Pool创建进程，就需要使用multiprocessing.Manager()中的Queue(),而不是multiprocesing.Queue()，否则会得到一条如下的错误信息：</p>
+<p>RuntimeError: Queue objects should only be shared between processes through inheritance.</p>
+<p>进程池中的进程通信：</p>
+<pre class="line-numbers language-python" data-language="python"><code class="language-python"><span class="token comment"># 修改import中的Queue为Manager</span>
+<span class="token keyword">from</span> multiprocessing <span class="token keyword">import</span> Manager<span class="token punctuation">,</span>Pool
+<span class="token keyword">import</span> os<span class="token punctuation">,</span>time<span class="token punctuation">,</span>random
+
+<span class="token keyword">def</span> <span class="token function">reader</span><span class="token punctuation">(</span>q<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"reader启动(%s),父进程为(%s)"</span> <span class="token operator">%</span> <span class="token punctuation">(</span>os<span class="token punctuation">.</span>getpid<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> os<span class="token punctuation">.</span>getppid<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token builtin">range</span><span class="token punctuation">(</span>q<span class="token punctuation">.</span>qsize<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"reader从Queue获取到消息：%s"</span> <span class="token operator">%</span> q<span class="token punctuation">.</span>get<span class="token punctuation">(</span><span class="token boolean">True</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token keyword">def</span> <span class="token function">writer</span><span class="token punctuation">(</span>q<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"writer启动(%s),父进程为(%s)"</span> <span class="token operator">%</span> <span class="token punctuation">(</span>os<span class="token punctuation">.</span>getpid<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> os<span class="token punctuation">.</span>getppid<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token keyword">for</span> i <span class="token keyword">in</span> <span class="token string">"itcast"</span><span class="token punctuation">:</span>
+        q<span class="token punctuation">.</span>put<span class="token punctuation">(</span>i<span class="token punctuation">)</span>
+
+<span class="token keyword">if</span> __name__<span class="token operator">==</span><span class="token string">"__main__"</span><span class="token punctuation">:</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"(%s) start"</span> <span class="token operator">%</span> os<span class="token punctuation">.</span>getpid<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    q <span class="token operator">=</span> Manager<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span>Queue<span class="token punctuation">(</span><span class="token punctuation">)</span>  <span class="token comment"># 使用Manager中的Queue</span>
+    po <span class="token operator">=</span> Pool<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token comment"># 使用阻塞模式创建进程，这样就不需要在reader中使用死循环了，可以让writer完全执行完成后，再用reader去读取</span>
+    po<span class="token punctuation">.</span>apply_async<span class="token punctuation">(</span>writer<span class="token punctuation">,</span> <span class="token punctuation">(</span>q<span class="token punctuation">,</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    time<span class="token punctuation">.</span>sleep<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>  <span class="token comment"># 先让上面的任务向Queue存入数据，然后再让下面的任务开始从中取数据</span>
+
+    po<span class="token punctuation">.</span>apply_async<span class="token punctuation">(</span>reader<span class="token punctuation">,</span> <span class="token punctuation">(</span>q<span class="token punctuation">,</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    po<span class="token punctuation">.</span>close<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    po<span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"(%s) End"</span> <span class="token operator">%</span> os<span class="token punctuation">.</span>getpid<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>运行结果：</p>
+<pre class="line-numbers language-none"><code class="language-none">(11095) start
+writer启动(11097),父进程为(11095)
+reader启动(11098),父进程为(11095)
+reader从Queue获取到消息：i
+reader从Queue获取到消息：t
+reader从Queue获取到消息：c
+reader从Queue获取到消息：a
+reader从Queue获取到消息：s
+reader从Queue获取到消息：t
+(11095) End<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+]]></content>
+      <categories>
+        <category>编程类</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+      </tags>
+  </entry>
+</search>
