@@ -1,2 +1,55 @@
-##  Welcome to my personal home page address www.lianjifu.cn
-### This is my personal blog. Welcome to my tech blog where I will share some notes on learning and learning experiences.
+# LianJiFu'blogs
+
+个人技术博客，部署于 [lianjifu.cn](https://www.lianjifu.cn)。
+
+## 内容
+
+### Claude Code 源码深度分析系列
+
+深入逆向分析 Claude Code（49 万行 TypeScript）的源码架构，共 26 章 + 2 个附录：
+
+| 章节 | 主题 |
+|------|------|
+| 第 1 章 | 全景概览 |
+| 第 2 章 | 启动流程 |
+| 第 3 章 | 类型系统设计 |
+| 第 4 章 | 查询引擎 |
+| 第 5 章 | 消息系统 |
+| 第 6 章 | 流式处理 |
+| 第 7 章 | 工具架构 |
+| 第 8 章 | 内置工具深度解析 |
+| 第 9 章 | 工具执行管线 |
+| 第 10 章 | Agent 模型 |
+| 第 11 章 | 子 Agent 编排 |
+| 第 12 章 | Skill 系统 |
+| 第 13 章 | 权限模型 |
+| 第 14 章 | Bash 安全分析 |
+| 第 15 章 | MCP 协议实现 |
+| 第 16 章 | MCP 认证体系 |
+| 第 17 章 | 状态管理 |
+| 第 18 章 | 会话管理与压缩 |
+| 第 19 章 | React + Ink 终端 UI |
+| 第 20 章 | REPL 实现 |
+| 第 21 章 | 性能优化 |
+| 第 22 章 | 测试策略 |
+| 第 23 章 | 构建系统 |
+| 第 24 章 | 设计模式提炼 |
+| 第 25 章 | 工程哲学 |
+| 第 26 章 | 认知循环 |
+| 附录 A | 术语表 |
+| 附录 B | 源码导航 |
+
+## 技术栈
+
+- 静态站点生成器：Hexo 5.4.0
+- 主题：NexT 7.8.0（Pisces 方案）
+- 部署：GitHub Pages + 自定义域名
+- 图表：Mermaid（异步加载）
+
+## 本地开发
+
+```bash
+# 启动本地预览服务器
+python3 -m http.server 4000
+# 访问 http://localhost:4000
+```
