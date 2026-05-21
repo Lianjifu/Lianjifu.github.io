@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 15 章：MCP 协议实现__DESCRIPTION__quot;好的协议不是定义通信的格式，而是定义通信的边界。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在Claude Code 能接几百个外部工具，答案全在 MCP 协议里——这章就是它的设计说明书选 JSON-RPC 2.0 不是为了炫技，而是让工具提供者和 AI 客户端各自独立迭代，互不踩踏它解决什么问题装了五六个 MCP 服务器后工具列表乱了怎么办——协议">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 15 章：MCP 协议实现">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-15-mcp-protocol/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 15 章：MCP 协议实现__DESCRIPTION__quot;好的协议不是定义通信的格式，而是定义通信的边界。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在Claude Code 能接几百个外部工具，答案全在 MCP 协议里——这章就是它的设计说明书选 JSON-RPC 2.0 不是为了炫技，而是让工具提供者和 AI 客户端各自独立迭代，互不踩踏它解决什么问题装了五六个 MCP 服务器后工具列表乱了怎么办——协议">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-15-mcp-protocol/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 15 章：MCP 协议实现 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-15-mcp-protocol/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 15 章：MCP 协议实现
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 15 章：MCP 协议实现</h1>
+<blockquote>
+<p>&quot;好的协议不是定义通信的格式，而是定义通信的边界。&quot;</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>Claude Code 能接几百个外部工具，答案全在 MCP 协议里——这章就是它的设计说明书</li><li>选 JSON-RPC 2.0 不是为了炫技，而是让工具提供者和 AI 客户端各自独立迭代，互不踩踏</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>装了五六个 MCP 服务器后工具列表乱了怎么办——协议层自动做服务发现，不用手写配置</li><li>本地跑服务用 stdio，远程走 SSE/WebSocket，同进程嵌入用 SDK——七种传输层包了你所有场景</li><li>mcp__server__tool 三段式命名看着啰嗦，但真的根治了同名工具打架的问题</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>MCP 在系统里的定位就像 USB 控制器——外设（工具）插进来，系统层帮你做协议转换和调度</li><li>client.ts 三千多行代码不是白写的，它就是整个 MCP 通信的中枢神经</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>启动时先握手互相亮底牌（capabilities exchange），然后拉工具列表——像刚认识时交换名片</li><li>工具结果太大？2048 字符一刀切，外加进度汇报，防止上下文被撑爆</li><li>Elicitation 是最酷的设计：工具执行到一半还能回过头问你要信息——不是一次性交易就结束了</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>消息走 JSON-RPC 2.0，工具名标准化成三段式——规整得像命名规范模板</li><li>2048 字符截断是小细节但很重要——OpenAPI 生成的描述能塞 60KB，不截断 Claude 就没法干别的了</li><li>连接用 memoize 只建一次，工具列表放 LRU cache——省内存又省时间</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：压根没用 MCP——工具调用直接撸 VS Code 扩展 API，简单粗暴</li><li><strong>OpenClaw</strong>：走消息队列路线，Agent 间自己聊天，不需要标准化发现协议</li><li><strong>Harness Agent</strong>：绑在自己的 API Gateway 上，协议层和平台深度耦合——换平台就得重来</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>标准化协议让工具提供者和 AI 客户端各自独立迭代</li><li>七种传输层覆盖你能想到的所有部署场景</li><li>Elicitation 让工具调用从一次性变成可对话的</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>Model Context Protocol（MCP）是 Claude Code 可扩展性的核心基础设施。通过 MCP，外部服务可以将自己的工具、资源和提示注入到 Claude 的能力空间中，使其能够操作数据库、调用 API、访问设计工具等几乎任何外部系统。本章将深入 <code>src/services/mcp/client.ts</code> 这个超过 3300 行的协议引擎，解析其连接管理、工具转换和资源系统的完整实现。</p>
+<hr>
+<h2 id="mcp-协议概述">15.1 MCP 协议概述</h2>
+<p>MCP 建立在 JSON-RPC 2.0 之上，通过多种传输层（Transport）承载消息。其核心思想是将 AI 工具调用抽象为标准化的请求-响应协议，使得工具提供者和 AI 客户端可以独立演进。</p>
+<p>协议的基本交互模式：</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+sequenceDiagram
+    participant CC as Claude Code (Client)
+    participant MCP as MCP Server
+
+    CC-&gt;&gt;MCP: initialize (capabilities, protocolVersion)
+    MCP--&gt;&gt;CC: initialize response (serverCapabilities)
+    CC-&gt;&gt;MCP: initialized (通知)
+
+    Note over CC,MCP: 连接已建立
+
+    CC-&gt;&gt;MCP: tools/list
+    MCP--&gt;&gt;CC: tools (name, description, inputSchema)
+
+    CC-&gt;&gt;MCP: resources/list
+    MCP--&gt;&gt;CC: resources (uri, name, mimeType)
+
+    CC-&gt;&gt;MCP: tools/call (name, arguments)
+    MCP--&gt;&gt;CC: result (content[])
+
+    MCP-&gt;&gt;CC: elicitation/request (URL/Form)
+    CC--&gt;&gt;MCP: elicitation/response</div><p>Claude Code 作为 MCP 客户端，使用 <code>@modelcontextprotocol/sdk</code> 官方 SDK 实现协议层。但在 SDK 之上，Claude Code 构建了大量的工程逻辑：连接池管理、认证处理、工具类型转换、输出截断、错误恢复等。</p>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<ul>
+<li>MCP 协议的定位类比 USB 标准：统一的外设接入协议，只要双方遵守约定就能互通——工具提供者和 AI 客户端各自独立迭代。</li>
+<li>选择 JSON-RPC 2.0 作为基础协议是务实的：简单、广泛支持、有成熟实现。不需要自己发明 RPC 协议。</li>
+<li>三段式命名（mcp__server__tool）看似啰嗦，但根治了同名工具冲突的问题——不同 MCP 服务器的工具即使同名也不会打架。</li>
+<li>MCP 的&quot;能力协商&quot;（capabilities exchange）机制是握手阶段的亮点：启动时双方亮底牌，知道彼此支持什么功能，不强求一致。</li>
+</ul>
+</div><hr>
+<h2 id="七种传输层">15.2 七种传输层</h2>
+<p>Claude Code 支持多种 MCP 传输层，覆盖了从本地进程到远程服务的完整场景。</p>
+<h3 id="stdio-传输">15.2.1 stdio 传输</h3>
+<p>最基础的传输方式——启动一个子进程，通过标准输入/输出传递 JSON-RPC 消息：</p>
+<pre><code class="language-typescript">// src/services/mcp/client.ts (connectToServer 函数内)
+if (!serverRef.type || serverRef.type === 'stdio') {
+  transport = new StdioClientTransport({
+    command: serverRef.command,
+    args: serverRef.args,
+    env: { ...subprocessEnv(), ...expandedEnv },
+    cwd: getOriginalCwd(),
+  })
+}</code></pre><p>stdio 是本地 MCP 服务器的首选传输。它的优势是简单、安全（进程隔离）、不需要网络端口。</p>
+<h3 id="sse-传输server-sent-events">15.2.2 SSE 传输（Server-Sent Events）</h3>
+<p>用于远程 HTTP MCP 服务器的旧式传输：</p>
+<pre><code class="language-typescript">if (serverRef.type === 'sse') {
+  const authProvider = new ClaudeAuthProvider(name, serverRef)
+  const combinedHeaders = await getMcpServerHeaders(name, serverRef)
+
+  const transportOptions: SSEClientTransportOptions = {
+    authProvider,
+    fetch: wrapFetchWithTimeout(
+      wrapFetchWithStepUpDetection(createFetchWithInit(), authProvider),
+    ),
+    requestInit: {
+      headers: {
+        'User-Agent': getMCPUserAgent(),
+        ...combinedHeaders,
+      },
+    },
+  }
+
+  // EventSource 连接不能使用超时包装——它是长连接
+  transportOptions.eventSourceInit = {
+    fetch: async (url, init) =&gt; {
+      const authHeaders: Record&lt;string, string&gt; = {}
+      const tokens = await authProvider.tokens()
+      if (tokens) {
+        authHeaders.Authorization = `Bearer ${tokens.access_token}`
+      }
+      return fetch(url, { ...init, ...proxyOptions, headers: {
+        'User-Agent': getMCPUserAgent(),
+        ...authHeaders, ...init?.headers, ...combinedHeaders,
+        Accept: 'text/event-stream',
+      }})
+    },
+  }
+
+  transport = new SSEClientTransport(new URL(serverRef.url), transportOptions)
+}</code></pre><p>SSE 传输的关键设计：POST 请求使用超时包装（60 秒），但 EventSource 连接（GET）不使用——因为 SSE 流是持久连接，加超时会错误地断开它。</p>
+<h3 id="http-streamable-传输">15.2.3 HTTP Streamable 传输</h3>
+<p>这是 MCP 2025-03-26 规范定义的新一代传输：</p>
+<pre><code class="language-typescript">// MCP Streamable HTTP 规范要求客户端声明接受 JSON 和 SSE
+const MCP_STREAMABLE_HTTP_ACCEPT = 'application/json, text/event-stream'</code></pre><p>HTTP Streamable 传输统一了请求-响应和流式通知，是 SSE 传输的演进版本。</p>
+<h3 id="websocket-传输">15.2.4 WebSocket 传输</h3>
+<p>用于需要全双工通信的场景，特别是 IDE 集成：</p>
+<pre><code class="language-typescript">if (serverRef.type === 'ws-ide') {
+  const tlsOptions = getWebSocketTLSOptions()
+  const wsHeaders = {
+    'User-Agent': getMCPUserAgent(),
+    ...(serverRef.authToken &amp;&amp; {
+      'X-Claude-Code-Ide-Authorization': serverRef.authToken,
+    }),
+  }
+  // Bun 和 Node.js ws 模块的差异处理
+  let wsClient: WsClientLike
+  if (typeof Bun !== 'undefined') {
+    // Bun WebSocket
+  } else {
+    wsClient = await createNodeWsClient(url, { headers: wsHeaders, ...tlsOptions })
+  }
+  transport = new WebSocketTransport(wsClient)
+}</code></pre><h3 id="sdk-传输">15.2.5 SDK 传输</h3>
+<p>用于同进程的 MCP 服务器（如 Agent SDK 嵌入场景）：</p>
+<pre><code class="language-typescript">if (serverRef.type === 'sdk') {
+  transport = new SdkControlClientTransport(serverRef)
+}</code></pre><h3 id="ide-变体sse-ide-ws-ide">15.2.6 IDE 变体（sse-ide, ws-ide）</h3>
+<p>IDE 传输是 SSE 和 WebSocket 的简化版本，去掉了 OAuth 认证层，因为 IDE 服务器运行在本地，通过锁文件或 token 进行身份验证。</p>
+<h3 id="claudeai-proxy-传输">15.2.7 claudeai-proxy 传输</h3>
+<p>这是 claude.ai 网页版的代理传输，通过 Anthropic 的基础设施中转 MCP 请求：</p>
+<pre><code class="language-typescript">export function createClaudeAiProxyFetch(innerFetch: FetchLike): FetchLike {
+  return async (url, init) =&gt; {
+    const doRequest = async () =&gt; {
+      await checkAndRefreshOAuthTokenIfNeeded()
+      const currentTokens = getClaudeAIOAuthTokens()
+      if (!currentTokens) throw new Error('No claude.ai OAuth token available')
+      const headers = new Headers(init?.headers)
+      headers.set('Authorization', `Bearer ${currentTokens.accessToken}`)
+      const response = await innerFetch(url, { ...init, headers })
+      return { response, sentToken: currentTokens.accessToken }
+    }
+
+    const { response, sentToken } = await doRequest()
+    if (response.status !== 401) return response
+
+    // 401 重试逻辑
+    const tokenChanged = await handleOAuth401Error(sentToken).catch(() =&gt; false)
+    if (!tokenChanged) {
+      const now = getClaudeAIOAuthTokens()?.accessToken
+      if (!now || now === sentToken) return response
+    }
+    try {
+      return (await doRequest()).response
+    } catch {
+      return response // 重试失败，返回原始 401
+    }
+  }
+}</code></pre><p>401 重试逻辑的设计值得研究：它精确地捕获了发送时使用的 token，避免在并发 401 场景下出现 ABA 问题——另一个连接器可能已经在你检查之前刷新了 token。</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>七种传输层覆盖了你能想到的所有部署场景——从本地子进程到远程服务器。</p>
+<ul>
+<li>stdio：启动子进程，通过 stdin/stdout 通信，适合本地开发和简单部署。</li>
+<li>SSE（Server-Sent Events）：单向推送 + HTTP 请求，比 WebSocket 简单但功能足够。</li>
+<li>Streamable HTTP：基于 HTTP 标准流，不需要长连接，适合 Serverless 架构。</li>
+<li>切换传输方式不需要修改业务代码——从 stdio 切到 SSE 只需改连接配置。</li>
+</ul>
+</div><hr>
+<h2 id="客户端实现">15.3 客户端实现</h2>
+<h3 id="连接管理">15.3.1 连接管理</h3>
+<p>连接建立使用了 memoize 模式，确保每个服务器只维护一个连接：</p>
+<pre><code class="language-typescript">export const connectToServer = memoize(
+  async (name: string, serverRef: ScopedMcpServerConfig, serverStats?):
+    Promise&lt;MCPServerConnection&gt; =&gt; {
+    const connectStartTime = Date.now()
+    try {
+      let transport
+      // ... 根据 serverRef.type 创建传输层
+
+      // 创建 MCP SDK Client
+      const client = new Client(
+        { name: 'claude-code', version: '...' },
+        { capabilities: { ... } },
+      )
+
+      await client.connect(transport)
+
+      return {
+        name, type: 'connected', client,
+        capabilities: client.getServerCapabilities(),
+        config: serverRef,
+      }
+    } catch (error) {
+      // 认证失败 -&gt; needs-auth
+      // 其他失败 -&gt; error
+    }
+  },
+  (name, serverRef) =&gt; getServerCacheKey(name, serverRef),
+)</code></pre><p>memoize 的 key 是服务器名称和完整配置的 JSON 序列化——这确保了同名但不同配置的服务器不会共用连接。</p>
+<h3 id="连接批次控制">15.3.2 连接批次控制</h3>
+<pre><code class="language-typescript">export function getMcpServerConnectionBatchSize(): number {
+  return parseInt(process.env.MCP_SERVER_CONNECTION_BATCH_SIZE || '', 10) || 3
+}
+
+function getRemoteMcpServerConnectionBatchSize(): number {
+  return parseInt(process.env.MCP_REMOTE_SERVER_CONNECTION_BATCH_SIZE || '', 10) || 20
+}</code></pre><p>本地服务器（stdio）的并发连接限制为 3——因为每个连接都会启动子进程，过多的并发进程会拖慢系统。远程服务器的限制为 20——网络请求的开销更小。</p>
+<h3 id="会话过期与重连">15.3.3 会话过期与重连</h3>
+<pre><code class="language-typescript">export function isMcpSessionExpiredError(error: Error): boolean {
+  const httpStatus =
+    'code' in error ? (error as Error &amp; { code?: number }).code : undefined
+  if (httpStatus !== 404) return false
+  return (
+    error.message.includes('"code":-32001') ||
+    error.message.includes('"code": -32001')
+  )
+}</code></pre><p>MCP 规范要求服务器在会话过期时返回 HTTP 404 + JSON-RPC 错误码 -32001。客户端同时检查两个信号来避免误判——普通的 404（错误 URL、服务器宕机）不会触发重连逻辑。</p>
+<div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<ul>
+<li>client.ts 三千多行代码展示了 MCP 客户端实现的完整复杂度：连接管理、工具发现、资源管理、进度跟踪、错误处理——远不止一个 API 调用那么简单。</li>
+<li>工具转换（ToolConversion）是 MCP 集成的关键环节：MCP 工具的描述格式和 Claude Code 本地工具的格式不同，需要做一次&quot;协议转换&quot;。</li>
+<li>七种传输层（stdio、SSE、WebSocket、Streamable HTTP 等）覆盖了你能想到的所有部署场景：本地子进程、远程服务器、浏览器插件、同进程嵌入。</li>
+<li>传输层的抽象设计让上层代码不关心底层通信方式——本地还是远程，对调用方来说是一样的。</li>
+</ul>
+</div><hr>
+<h2 id="工具转换">15.4 工具转换</h2>
+<p>MCP 服务器返回的工具定义需要转换为 Claude Code 内部的 <code>Tool</code> 类型。这个转换过程发生在 <code>fetchToolsForClient</code> 中。</p>
+<h3 id="工具名称构建">15.4.1 工具名称构建</h3>
+<pre><code class="language-typescript">// src/services/mcp/mcpStringUtils.ts
+export function buildMcpToolName(serverName: string, toolName: string): string {
+  return `${getMcpPrefix(serverName)}${normalizeNameForMCP(toolName)}`
+}
+
+export function getMcpPrefix(serverName: string): string {
+  return `mcp__${normalizeNameForMCP(serverName)}__`
+}</code></pre><p>MCP 工具名称遵循 <code>mcp__&lt;server&gt;__&lt;tool&gt;</code> 的三段式格式。这个设计确保了：</p>
+<ol>
+<li>不同服务器的同名工具不会冲突</li>
+<li>权限规则可以在服务器级别批量控制</li>
+<li>用户可以通过命名约定理解工具来源</li>
+</ol>
+<h3 id="工具属性映射">15.4.2 工具属性映射</h3>
+<pre><code class="language-typescript">export const fetchToolsForClient = memoizeWithLRU(
+  async (client: MCPServerConnection): Promise&lt;Tool[]&gt; =&gt; {
+    // ...
+    return toolsToProcess.map((tool): Tool =&gt; {
+      const fullyQualifiedName = buildMcpToolName(client.name, tool.name)
+      return {
+        ...MCPTool,
+        name: skipPrefix ? tool.name : fullyQualifiedName,
+        mcpInfo: { serverName: client.name, toolName: tool.name },
+        isMcp: true,
+
+        // MCP annotations → 内部属性
+        searchHint: typeof tool._meta?.['anthropic/searchHint'] === 'string'
+          ? tool._meta['anthropic/searchHint'].replace(/\s+/g, ' ').trim() || undefined
+          : undefined,
+        alwaysLoad: tool._meta?.['anthropic/alwaysLoad'] === true,
+
+        isConcurrencySafe() { return tool.annotations?.readOnlyHint ?? false },
+        isReadOnly() { return tool.annotations?.readOnlyHint ?? false },
+        isDestructive() { return tool.annotations?.destructiveHint ?? false },
+        isOpenWorld() { return tool.annotations?.openWorldHint ?? false },
+
+        inputJSONSchema: tool.inputSchema as Tool['inputJSONSchema'],
+
+        async checkPermissions() {
+          return {
+            behavior: 'passthrough' as const,
+            message: 'MCPTool requires permission.',
+            suggestions: [{
+              type: 'addRules' as const,
+              rules: [{ toolName: fullyQualifiedName, ruleContent: undefined }],
+              behavior: 'allow' as const,
+              destination: 'localSettings' as const,
+            }],
+          }
+        },
+        // ...
+      }
+    })
+  },
+  (client) =&gt; client.name,
+  MCP_FETCH_CACHE_SIZE,
+)</code></pre><p>转换的关键映射关系：</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart LR
+    subgraph "MCP Tool 定义"
+        A[tool.name]
+        B[tool.description]
+        C[tool.inputSchema]
+        D[tool.annotations.readOnlyHint]
+        E[tool.annotations.destructiveHint]
+        F[tool.annotations.openWorldHint]
+        G["tool._meta['anthropic/searchHint']"]
+        H["tool._meta['anthropic/alwaysLoad']"]
+    end
+    subgraph "内部 Tool 类型"
+        I[name: mcp__server__tool]
+        J[description/prompt]
+        K[inputJSONSchema]
+        L[isReadOnly / isConcurrencySafe]
+        M[isDestructive]
+        N[isOpenWorld]
+        O[searchHint]
+        P[alwaysLoad]
+    end
+    A --&gt; I
+    B --&gt; J
+    C --&gt; K
+    D --&gt; L
+    E --&gt; M
+    F --&gt; N
+    G --&gt; O
+    H --&gt; P</div><p>MCP 工具的 <code>checkPermissions</code> 默认返回 <code>passthrough</code>——意味着 MCP 工具没有自定义的权限逻辑，完全依赖全局的规则系统。同时它提供了一个 <code>suggestion</code>，建议用户将该工具添加到本地设置的 allow 列表中。</p>
+<h3 id="工具描述截断">15.4.3 工具描述截断</h3>
+<pre><code class="language-typescript">const MAX_MCP_DESCRIPTION_LENGTH = 2048
+
+async prompt() {
+  const desc = tool.description ?? ''
+  return desc.length &gt; MAX_MCP_DESCRIPTION_LENGTH
+    ? desc.slice(0, MAX_MCP_DESCRIPTION_LENGTH) + '... [truncated]'
+    : desc
+}</code></pre><p>OpenAPI 生成的 MCP 服务器经常把完整的端点文档（15-60KB）塞进工具描述。2048 字符的截断限制在保留核心意图的同时，防止上下文窗口被淹没。</p>
+<h3 id="工具调用与会话恢复">15.4.4 工具调用与会话恢复</h3>
+<pre><code class="language-typescript">async call(args, context, _canUseTool, parentMessage, onProgress?) {
+  const MAX_SESSION_RETRIES = 1
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const connectedClient = await ensureConnectedClient(client)
+      const mcpResult = await callMCPToolWithUrlElicitationRetry({
+        client: connectedClient, clientConnection: client,
+        tool: tool.name, args, meta,
+        signal: context.abortController.signal,
+        setAppState: context.setAppState,
+        onProgress: ...,
+        handleElicitation: context.handleElicitation,
+      })
+      // 处理结果...
+    } catch (error) {
+      if (attempt &lt; MAX_SESSION_RETRIES &amp;&amp; isMcpSessionExpiredError(error)) {
+        // 清除缓存，重新连接
+        connectToServer.cache.delete(key)
+        fetchToolsForClient.cache.delete(name)
+        continue
+      }
+      throw error
+    }
+  }
+}</code></pre><p>会话过期时自动重连一次。重连前清除所有相关缓存（连接、工具列表、资源列表），确保下次使用全新的连接状态。</p>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>工具转换（ToolConversion）是 MCP 集成的关键环节——把 MCP 工具描述转为本地 Tool 格式。</p>
+<ul>
+<li>MCP 工具的 JSON Schema 描述和 Claude Code 的 Zod Schema 不同——需要做一次&quot;协议转换&quot;。</li>
+<li>转换包括：参数格式转换、安全性注解注入、失败处理包装。</li>
+<li>工具转换不是简单的一一映射——MCP 工具的能力描述可能比本地工具更丰富或更有限。</li>
+<li>转换层的设计决定了 MCP 工具的集成深度——转换得好，MCP 工具和本地工具体验一致。</li>
+</ul>
+</div><hr>
+<h2 id="资源系统">15.5 资源系统</h2>
+<p>MCP 资源让服务器向 Claude 暴露结构化数据（文件、数据库记录、API 响应等）。</p>
+<pre><code class="language-typescript">export const fetchResourcesForClient = memoizeWithLRU(
+  async (client: MCPServerConnection): Promise&lt;ServerResource[]&gt; =&gt; {
+    if (client.type !== 'connected') return []
+
+    try {
+      if (!client.capabilities?.resources) return []
+
+      const result = await client.client.request(
+        { method: 'resources/list' },
+        ListResourcesResultSchema,
+      )
+
+      if (!result.resources) return []
+      return result.resources.map(resource =&gt; ({
+        ...resource,
+        server: client.name,  // 附加服务器名称
+      }))
+    } catch (error) {
+      logMCPError(client.name, `Failed to fetch resources: ${errorMessage(error)}`)
+      return []
+    }
+  },
+  (client) =&gt; client.name,
+  MCP_FETCH_CACHE_SIZE,
+)</code></pre><p>资源获取使用 LRU 缓存来避免重复请求。每个资源被标注了来源服务器名称，方便后续的权限检查和 UI 展示。</p>
+<p>MCP Prompt 同样被转换为 Claude Code 的 Command 系统：</p>
+<pre><code class="language-typescript">export const fetchCommandsForClient = memoizeWithLRU(
+  async (client: MCPServerConnection): Promise&lt;Command[]&gt; =&gt; {
+    // ...
+    return promptsToProcess.map(prompt =&gt; ({
+      type: 'prompt' as const,
+      name: 'mcp__' + normalizeNameForMCP(client.name) + '__' + prompt.name,
+      description: prompt.description ?? '',
+      isMcp: true,
+      source: 'mcp',
+      async getPromptForCommand(args) {
+        const connectedClient = await ensureConnectedClient(client)
+        const result = await connectedClient.client.getPrompt({
+          name: prompt.name,
+          arguments: zipObject(argNames, argsArray),
+        })
+        return result.messages.map(message =&gt;
+          transformResultContent(message.content, connectedClient.name),
+        ).flat()
+      },
+    }))
+  },
+)</code></pre><div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>MCP 资源系统是 MCP 协议中常被忽视但极为强大的特性——不只是工具调用，还有资源发现。</p>
+<ul>
+<li>资源（Resource）是 MCP 服务器暴露的数据源——工具是动词，资源是名词。</li>
+<li>资源支持 URI 模式访问——类似 REST API 的资源路径。</li>
+<li>资源通知机制允许服务器主动推送资源变更——客户端不需要轮询。</li>
+<li>资源和工具的结合使用是最强大的场景——先列出资源，再基于资源内容调用工具。</li>
+</ul>
+</div><hr>
+<h2 id="进度流与-elicitation">15.6 进度流与 Elicitation</h2>
+<h3 id="进度报告">15.6.1 进度报告</h3>
+<p>MCP 工具在执行过程中可以报告进度：</p>
+<pre><code class="language-typescript">if (onProgress &amp;&amp; toolUseId) {
+  onProgress({
+    toolUseID: toolUseId,
+    data: {
+      type: 'mcp_progress',
+      status: 'started',
+      serverName: client.name,
+      toolName: tool.name,
+    },
+  })
+}
+
+// ... 执行完成后
+onProgress({
+  toolUseID: toolUseId,
+  data: {
+    type: 'mcp_progress',
+    status: 'completed',
+    serverName: client.name,
+    toolName: tool.name,
+    elapsedTimeMs: Date.now() - startTime,
+  },
+})</code></pre><h3 id="elicitation-机制">15.6.2 Elicitation 机制</h3>
+<p>Elicitation 是 MCP 的一种交互模式，允许服务器在工具执行过程中请求用户输入。有两种模式：</p>
+<pre><code class="language-typescript">// src/services/mcp/elicitationHandler.ts
+function getElicitationMode(params: ElicitRequestParams): 'form' | 'url' {
+  return params.mode === 'url' ? 'url' : 'form'
+}</code></pre><p><strong>URL 模式</strong>：服务器提供一个 URL（通常是 OAuth 回调页面），Claude Code 打开浏览器让用户完成交互，然后等待完成通知：</p>
+<pre><code class="language-typescript">export type ElicitationRequestEvent = {
+  serverName: string
+  requestId: string | number
+  params: ElicitRequestParams
+  signal: AbortSignal
+  respond: (response: ElicitResult) =&gt; void
+  waitingState?: ElicitationWaitingState
+  onWaitingDismiss?: (action: 'dismiss' | 'retry' | 'cancel') =&gt; void
+  completed?: boolean
+}</code></pre><p><strong>Form 模式</strong>：服务器定义一个表单 Schema，Claude Code 在终端中渲染交互式表单，收集用户输入后返回。</p>
+<p>Elicitation 还支持 Hook 拦截，允许自动化环境在不需要人工交互的情况下处理 elicitation 请求：</p>
+<pre><code class="language-typescript">export function registerElicitationHandler(
+  client: Client,
+  serverName: string,
+  setAppState: (f: (prevState: AppState) =&gt; AppState) =&gt; void,
+): void {
+  try {
+    client.setRequestHandler(ElicitRequestSchema, async (request, extra) =&gt; {
+      // 首先运行 Hook
+      // 如果 Hook 提供了响应，直接返回
+      // 否则显示 UI 让用户交互
+    })
+  } catch { /* 服务器未声明 elicitation 能力 */ }
+}</code></pre><p>完成通知使用专门的 <code>ElicitationCompleteNotificationSchema</code> 处理，通过 <code>elicitationId</code> 将完成事件关联到等待中的 elicitation 请求。</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+sequenceDiagram
+    participant Claude as Claude Code
+    participant Server as MCP Server
+    participant Browser as 浏览器
+    participant Hook as Elicitation Hook
+
+    Claude-&gt;&gt;Server: tools/call
+    Server-&gt;&gt;Claude: elicitation/request (URL mode)
+
+    alt Hook 处理
+        Claude-&gt;&gt;Hook: 执行 Hook
+        Hook--&gt;&gt;Claude: 返回响应
+    else 用户交互
+        Claude-&gt;&gt;Browser: 打开 URL
+        Browser-&gt;&gt;Server: 用户完成交互
+        Server-&gt;&gt;Claude: elicitation/complete 通知
+    end
+
+    Claude--&gt;&gt;Server: elicitation/response
+    Server--&gt;&gt;Claude: tools/call result</div><p>这种设计实现了 MCP 协议的完整交互能力——工具不仅可以被动地接收输入、返回结果，还可以在执行过程中主动请求额外信息，打开浏览器进行身份验证，或展示表单收集配置参数。</p>
+<div class="thinking-note"><h3 id="思考笔记-6">思考笔记</h3>
+<p>Elicitation 是 MCP 协议中最具设计感的能力——工具执行到一半可以回过头问你要信息。</p>
+<ul>
+<li>传统工具调用是一次性交易：调用 → 等待 → 结果。Elicitation 打破了这种模式——工具可以在执行中与用户对话。</li>
+<li>进度流让长时间运行的工具可以报告中间状态——用户看到进度比&quot;等待中&quot;更有耐心。</li>
+<li>Elicitation + 进度流的组合让 MCP 工具从&quot;黑盒&quot;变成了&quot;可交互的服务&quot;。</li>
+<li>这种设计对工具开发者的要求更高——工具需要设计多轮交互的流程，不再是一次性的函数调用。</li>
+</ul>
+</div><hr>
+
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-14-bash-security/" class="chapter-prev">← 第 14 章：Bash 安全分析</a>
+      <a href="/2026/05/21/claude-code-16-mcp-auth/" class="chapter-next">第 16 章：MCP 认证体系 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

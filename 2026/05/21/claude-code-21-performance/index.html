@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 21 章：性能优化“在 Agent 系统中，性能不仅关乎用户体验，更关乎成本 —— 每一个浪费的 Token 都是真实的金钱。”Claude Code 运行在终端环境中，面对的性能约束与 Web 应用截然不同。它不需要考虑首屏渲染时间，但需要在数十万 Token 的对话中保持流畅的交互。它不需要优化图片加载，但需要控制每次 API 调用的 Token 预算。本章将系统性地分析 Claude C">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 21 章：性能优化">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-21-performance/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 21 章：性能优化“在 Agent 系统中，性能不仅关乎用户体验，更关乎成本 —— 每一个浪费的 Token 都是真实的金钱。”Claude Code 运行在终端环境中，面对的性能约束与 Web 应用截然不同。它不需要考虑首屏渲染时间，但需要在数十万 Token 的对话中保持流畅的交互。它不需要优化图片加载，但需要控制每次 API 调用的 Token 预算。本章将系统性地分析 Claude C">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-21-performance/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 21 章：性能优化 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-21-performance/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 21 章：性能优化
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 21 章：性能优化</h1>
+<blockquote>
+<p>“在 Agent 系统中，性能不仅关乎用户体验，更关乎成本 —— 每一个浪费的 Token 都是真实的金钱。”Claude Code 运行在终端环境中，面对的性能约束与 Web 应用截然不同。它不需要考虑首屏渲染时间，但需要在数十万 Token 的对话中保持流畅的交互。它不需要优化图片加载，但需要控制每次 API 调用的 Token 预算。本章将系统性地分析 Claude Code 的性能优化策略。</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>终端里的 AI Agent 面临一堆独特的性能问题——几十万 token 的对话不能卡、API 调用都是钱、终端渲染不能闪</li><li>每一个浪费的 token 都是成本——性能优化就是省钱</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>启动慢？懒加载 + 并行预取把 300ms 内的每一毫秒都利用起来</li><li>重复计算？三层 Memoization（TTL/Async/LRU）覆盖不同场景</li><li>内部特性泄漏？feature() 编译时 DCE 让外部构建里根本不存在内部代码</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>贯穿整个系统：bootstrap → 消息处理 → API 通信 → 终端渲染，哪哪都有优化空间</li><li>查询引擎里的 token 预算追踪和上下文窗口管理是性能的守门员</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>启动：条件 require() 代替 import，并行预取把 I/O 藏进模块加载窗口</li><li>运行时：memoizeWithTTL 的写透缓存 + 后台刷新 + identity guard 防竞争</li><li>编译时：feature() 宏在 Bun 打包时求值为布尔常量，假分支被整个 tree-shake 掉</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>src/utils/memoize.ts 的三种 memoization，每种都暴露 cache 管理接口</li><li>profileCheckpoint 打点系统在 300ms 启动过程里标记每个阶段耗时</li><li>src/ink/screen.ts 的 CharPool/StylePool/HyperlinkPool 用对象池减少 GC</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：性能重心在编辑器索引层面，用向量加速代码检索而非 token 级优化</li><li><strong>OpenClaw</strong>：模块化加载 + Agent 间任务分配做负载均衡</li><li><strong>Harness Agent</strong>：基础模型的并发控制 + Harness 层缓存重试</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>三层 Memoization 差异化覆盖不同场景</li><li>feature() DCE 零运行时开销且内部代码物理不存在于外部构建</li><li>BQ 数据指导优化方向——不是拍脑袋优化</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="启动优化-并行预取-懒加载">21.1 启动优化 —— 并行预取 + 懒加载</h2>
+<h3 id="bootstrap-状态">21.1.1 Bootstrap 状态</h3>
+<p>Claude Code 的启动状态集中管理在 <code>src/bootstrap/state.ts</code> 中。这个文件开头有一个醒目的注释：<br>这说明团队对全局状态的扩散有明确的警惕。Bootstrap 状态包含：</p>
+<h3 id="条件导入与懒加载">21.1.2 条件导入与懒加载</h3>
+<p>Claude Code 大量使用条件 <code>require()</code> 代替顶层 <code>import</code>，实现真正的懒加载：<br>这种模式的关键优势是：</p>
+<ol>
+<li><strong>启动时间减少</strong> —— 未使用的模块不会被解析和执行2. <strong>内存节省</strong> —— 条件分支中的模块只在需要时占用内存3. <strong>死代码消除</strong> —— <code>feature()</code> 在编译时求值，假分支的 <code>require</code> 被完全移除</li>
+</ol>
+<h3 id="并行初始化">21.1.3 并行初始化</h3>
+<p>启动过程中的独立初始化步骤是并行执行的。例如设置加载、API key 验证、GrowthBook 特性开关拉取可以同时进行：</p>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<ul>
+<li>启动优化是&quot;感知性能&quot;的典型应用——不是真的让代码跑得更快，而是让用户感觉更快。并行预取把 I/O 延迟藏在模块加载后面，用户感觉不到。</li>
+<li>三层 Memoization（identity guard → memoize → React Compiler）不是过度优化——每一层解决不同粒度的问题：函数级、模块级、组件级。</li>
+<li>懒加载（require() vs import）的选择既是为了性能也是为了安全——不需要的功能连代码都不加载进产物，比运行时检查更安全。</li>
+<li>优化的第一条原则：先测量再优化。profileCheckpoint 为每次启动生成精确的时间线，告诉工程师哪里慢——不靠猜测靠数据。</li>
+</ul>
+</div><hr>
+<h2 id="运行时优化-memoization-lru-cache">21.2 运行时优化 —— Memoization + LRU Cache</h2>
+<h3 id="三层-memoization-体系">21.2.1 三层 Memoization 体系</h3>
+<p>Claude Code 在 <code>src/utils/memoize.ts</code> 中实现了三种不同特征的 memoization 函数，每种针对不同的使用场景：<br><strong>memoizeWithTTL —— 带 TTL 的写透缓存</strong><br>这个设计的精妙之处在于 <strong>identity guard</strong>。当后台刷新进行中时，如果有人调用了 <code>cache.clear()</code>，新的冷启动会创建一个新条目。后台刷新完成时，<code>cache.get(key) === cached</code> 检查确保不会用旧的刷新结果覆盖新的缓存条目。<br><strong>memoizeWithTTLAsync —— 异步版本</strong><br>异步版本增加了一个关键优化 —— <code>inFlight</code> 去重映射：<br>注释中解释了原因：对于 <code>refreshAndGetAwsCredentials</code> 这样的函数，并发冷启动会导致 N 个 <code>aws sso login</code> 进程同时生成。<code>inFlight</code> 去重确保相同参数只有一个计算在进行中。<br><strong>memoizeWithLRU —— 带 LRU 驱逐的 Memoization</strong><br>注释中有一个重要的历史教训：<br>之前使用 lodash 的 <code>memoize</code>（无限缓存），消息处理函数的缓存增长到 300MB 以上。替换为 LRU 后，缓存被限制在固定大小。</p>
+<h3 id="缓存管理接口">21.2.2 缓存管理接口</h3>
+<p>每种 memoize 都暴露了 <code>cache</code> 管理接口：<br>注意 <code>get</code> 使用的是 <code>peek()</code> 而非 <code>get()</code> —— 观察缓存不应改变 LRU 顺序。</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>运行时优化关注的是&quot;系统运行起来之后的性能&quot;——不是启动快，而是持续运行中的响应性。</p>
+<ul>
+<li>三层 Memoization 不是过度设计：identity guard（函数级）、memoize（模块级）、React Compiler（组件级）。</li>
+<li>LRU Cache 假设&quot;最近使用的数据最可能再次被用&quot;——在 Agent 系统中成立。</li>
+<li>对象池减少频繁创建/销毁导致的 GC 压力和渲染抖动。</li>
+<li>核心原则：缓存尽可能靠近数据源——越早缓存，越少重复计算。</li>
+</ul>
+</div><hr>
+<h2 id="feature-flag-编译时死代码消除">21.3 Feature Flag —— 编译时死代码消除</h2>
+<h3 id="feature-宏">21.3.1 feature() 宏</h3>
+<p><code>feature()</code> 是 Claude Code 最重要的编译时优化工具：</p>
+<h3 id="消除效果">21.3.2 消除效果</h3>
+<p>在外部构建中，所有 <code>feature(&#39;ANT_ONLY_FEATURE&#39;)</code> 会被替换为 <code>false</code>，触发 JavaScript 打包器的死代码消除（DCE）。这不仅移除了条件分支内的代码，还移除了仅被该分支引用的 <code>require</code> 目标模块：</p>
+<h3 id="字符串保护">21.3.3 字符串保护</h3>
+<p>敏感字符串（如内部特性名称、UUID）被放入 <code>excluded-strings.txt</code>，确保它们不会出现在外部构建中。<code>feature()</code> 包裹的代码块内的字符串字面量会被自动排除。</p>
+<div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<p>Feature Flag 在性能层面的作用不只是代码消除——它是&quot;零开销抽象&quot;的工程实践。</p>
+<ul>
+<li>feature() 编译时 DCE 实现真正的零开销——没有 dead code、没有运行时判断、没有多余的字节在产物中。</li>
+<li>对比运行时条件（if/else + process.env）：代码仍然在产物中，分支预测有成本。</li>
+<li>Feature Flag 对构建的影响：不同 flag 组合需要不同的构建产物——CI 需要覆盖更多配置。</li>
+<li>从性能角度看，Feature Flag 是 &quot;用构建复杂度换运行时效率&quot;的经典交易。</li>
+</ul>
+</div><hr>
+<h2 id="prompt-cache-共享机制">21.4 Prompt Cache —— 共享机制</h2>
+<h3 id="api-级缓存">21.4.1 API 级缓存</h3>
+<p>Claude API 支持 Prompt Caching —— 当连续请求的前缀相同时，API 会重用已处理的上下文，大幅减少延迟和成本。Claude Code 的系统提示和工具定义被精心组织以最大化缓存命中：</p>
+<h3 id="cache-break-检测">21.4.2 Cache Break 检测</h3>
+<p><code>src/services/api/promptCacheBreakDetection.ts</code> 追踪缓存命中率。当缓存命中率异常下降时，系统会记录事件并尝试诊断原因：<br>注释中引用了真实数据 —— “BQ 2026-03-01: missing this made 20% of tengu_prompt_cache_break events false positives”，说明缓存检测的精确度直接影响诊断的可靠性。</p>
+<h3 id="cachesafeparams">21.4.3 CacheSafeParams</h3>
+<p>分叉 Agent（如压缩 Agent）需要使用与父进程相同的缓存参数以命中缓存：</p>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>undefined</p>
+</div><hr>
+<h2 id="token-预算-控制策略">21.5 Token 预算 —— 控制策略</h2>
+<h3 id="token-追踪">21.5.1 Token 追踪</h3>
+<p>Bootstrap 状态中维护了精细的 Token 统计：<br>REPL 在每个轮次中追踪输出 Token：</p>
+<h3 id="上下文窗口管理">21.5.2 上下文窗口管理</h3>
+<p>上下文窗口是最关键的 Token 预算。其管理涉及多个层次：</p>
+<h3 id="成本控制">21.5.3 成本控制</h3>
+<p>REPL 集成了成本阈值对话框：<br>当会话成本达到预设阈值时，系统暂停并要求用户确认是否继续。这是防止意外高额成本的安全网。</p>
+<h3 id="token-估算">21.5.4 Token 估算</h3>
+<p>精确的 Token 计数需要调用 tokenizer，代价较高。Claude Code 使用估算函数加速常见操作：<br>估算函数使用字符数/4 的经验公式（英文平均每个 Token 约 4 个字符），在需要精确计数时才调用完整的 tokenizer。</p>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>Token 预算控制是性能优化的&quot;经济视角&quot;——不是代码跑多快，而是 token 花多少。</p>
+<ul>
+<li>Token 是 AI Agent 系统的&quot;货币&quot;——所有操作都消耗 token，预算是&quot;不能超支&quot;的硬约束。</li>
+<li>中文 token 估算偏差是中文用户独有的性能问题——中文字符占 token 比率和英文不同。</li>
+<li>Token 预算的控制策略决定了&quot;当预算不足时先牺牲什么&quot;——是先压缩历史还是先降级模型。</li>
+<li>从性能角度看，Token 预算控制比代码优化更重要——一个无限制的循环比一段慢的代码贵得多。</li>
+</ul>
+</div><hr>
+<h2 id="渲染性能">21.6 渲染性能</h2>
+<h3 id="fps-追踪">21.6.1 FPS 追踪</h3>
+<p>Claude Code 追踪终端渲染的帧率指标。当帧率下降时，可以通过 DevBar 查看诊断信息。</p>
+<h3 id="对象池">21.6.2 对象池</h3>
+<p><code>src/ink/screen.ts</code> 中的 <code>CharPool</code>、<code>StylePool</code>、<code>HyperlinkPool</code> 使用对象池模式，避免每帧创建大量临时对象导致 GC 压力。</p>
+<h3 id="usedeferredvalue">21.6.3 useDeferredValue</h3>
+<p>REPL 使用 React 18 的 <code>useDeferredValue</code> 延迟非关键更新：</p>
+<div class="thinking-note"><h3 id="思考笔记-6">思考笔记</h3>
+<p>渲染性能关注的是&quot;终端 UI 刷新有多快&quot;——Ink 组件树的 diff 和终端 I/O 优化。</p>
+<ul>
+<li>差异化输出（diff output）不是渲染&quot;当前状态&quot;，而是计算&quot;当前状态和上一状态的差异&quot;，只输出变化。</li>
+<li>批量更新合并多个状态变更——不是每次状态变化都渲染，而是在帧同步点统一渲染。</li>
+<li>对象池复用组件实例减少频繁创建/销毁——终端渲染中不需要每次都新建虚拟节点。</li>
+<li>React Compiler 的自动 memoization 在这里也起作用——不需要渲染的组件不会被渲染。</li>
+</ul>
+</div><hr>
+<h2 id="本章小结">本章小结</h2>
+<p>Claude Code 的性能优化体系展现了一种务实的工程哲学。<code>memoizeWithTTL</code> 的写透缓存策略、<code>feature()</code> 的编译时死代码消除、三层 memoization 的差异化设计 —— 每一种优化都针对具体的性能瓶颈。<br>最深刻的教训来自真实数据：lodash memoize 的 300MB 内存泄漏引出了 LRU 限制，1,279 个异常会话引出了断路器，20% 的缓存误报引出了压缩后的基线重置。性能优化不是猜测游戏，而是数据驱动的工程实践。</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+gantt
+    title Claude Code 启动时间线
+    dateFormat X
+    axisFormat %L ms
+
+    section 串行
+    CLI 参数解析      :a1, 0, 10
+    配置文件加载       :a2, after a1, 20
+
+    section 并行
+    API Key 验证      :b1, after a2, 50
+    GrowthBook 拉取   :b2, after a2, 40
+    MCP 服务器连接     :b3, after a2, 60
+    插件加载          :b4, after a2, 30
+
+    section 渲染
+    React 树挂载      :c1, after b3, 30</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+stateDiagram-v2
+    [*] --&gt; ColdMiss: 首次调用
+    ColdMiss --&gt; Fresh: 计算并缓存（阻塞）
+    Fresh --&gt; Fresh: TTL 内调用 → 返回缓存
+    Fresh --&gt; Stale: TTL 过期
+    Stale --&gt; Refreshing: 调用 → 返回旧值 + 后台刷新
+    Refreshing --&gt; Fresh: 刷新完成
+    Refreshing --&gt; ColdMiss: 刷新失败 → 删除缓存</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    subgraph "源码"
+        A[REPL.tsx]
+        A --&gt; B{feature VOICE_MODE}
+        B --&gt;|true| C[voice/module.js]
+        B --&gt;|false| D[空实现]
+        A --&gt; E{feature COORDINATOR}
+        E --&gt;|true| F[coordinator/module.js]
+        E --&gt;|false| G[空实现]
+    end
+
+    subgraph "外部构建产物"
+        A2[REPL.tsx]
+        A2 --&gt; D2[空实现]
+        A2 --&gt; G2[空实现]
+    end
+
+    subgraph "内部构建产物"
+        A3[REPL.tsx]
+        A3 --&gt; C3[voice/module.js]
+        A3 --&gt; F3[coordinator/module.js]
+    end</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph LR
+    subgraph "请求 1"
+        S1[系统提示&lt;br/&gt;★ 缓存写入]
+        T1[工具定义&lt;br/&gt;★ 缓存写入]
+        M1[消息历史]
+        N1[新消息]
+    end
+
+    subgraph "请求 2"
+        S2[系统提示&lt;br/&gt;★ 缓存命中]
+        T2[工具定义&lt;br/&gt;★ 缓存命中]
+        M2[消息历史&lt;br/&gt;★ 部分命中]
+        N2[新消息]
+    end</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    CW[上下文窗口 200K]
+    CW --&gt; SP[系统提示&lt;br/&gt;~2-5K tokens]
+    CW --&gt; Tools[工具定义&lt;br/&gt;~10-20K tokens]
+    CW --&gt; History[消息历史&lt;br/&gt;可变]
+    CW --&gt; Output[输出预留&lt;br/&gt;~20K tokens]
+    CW --&gt; Buffer[安全缓冲&lt;br/&gt;~13K tokens]
+
+    History --&gt; |超过阈值| AutoCompact[自动压缩]
+    History --&gt; |微压缩| MicroCompact[Snip 旧工具输出]</div>
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-20-repl/" class="chapter-prev">← 第 20 章：REPL 实现</a>
+      <a href="/2026/05/21/claude-code-22-testing/" class="chapter-next">第 22 章：测试策略 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 6 章：流式处理__DESCRIPTION__quot;在异步世界中，数据流的控制权比数据本身更重要。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在模型回复是流式到达的——用户不想等完整响应才看到输出工具执行可以和 API 流并行跑——减少端到端等待时间它解决什么问题Callback 模式的生产者不等消费者——你还没处理完它又推过来了Promise 只能返回一个值——中间状态没法表达工具顺序执行浪费了 API 流的等">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 6 章：流式处理">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-06-streaming/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 6 章：流式处理__DESCRIPTION__quot;在异步世界中，数据流的控制权比数据本身更重要。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在模型回复是流式到达的——用户不想等完整响应才看到输出工具执行可以和 API 流并行跑——减少端到端等待时间它解决什么问题Callback 模式的生产者不等消费者——你还没处理完它又推过来了Promise 只能返回一个值——中间状态没法表达工具顺序执行浪费了 API 流的等">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-06-streaming/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 6 章：流式处理 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-06-streaming/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 6 章：流式处理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 6 章：流式处理</h1>
+<blockquote>
+<p>&quot;在异步世界中，数据流的控制权比数据本身更重要。&quot;</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>模型回复是流式到达的——用户不想等完整响应才看到输出</li><li>工具执行可以和 API 流并行跑——减少端到端等待时间</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>Callback 模式的生产者不等消费者——你还没处理完它又推过来了</li><li>Promise 只能返回一个值——中间状态没法表达</li><li>工具顺序执行浪费了 API 流的等待时间——好的调度应该是并行的</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>贯穿整个数据管道：API SSE → queryModelWithStreaming → queryLoop → QueryEngine → REPL</li><li>StreamingToolExecutor 在工具执行层和查询循环并行跑</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>AsyncGenerator 的 pull 语义自带背压——消费者慢的时候生产者自然停下来等</li><li>StreamingToolExecutor 管工具的四态生命周期——排队、执行、完成、已产出</li><li>并发安全的工具（Read/Glob）可以并行，不安全的（Bash）串行独占</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>三层 Generator 管道：queryLoop → query → QueryEngine.submitMessage</li><li>yield* 委托把孩子 generator 的值透给消费者，还能接到 return 值</li><li>Bash 出错了通过 siblingAbortController 中止其他兄弟工具</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：支持并行工具调用但没有 Generator Pipeline，走 EventEmitter</li><li><strong>OpenClaw</strong>：工具串行执行，没有流式重叠</li><li><strong>Harness Agent</strong>：流水线式执行，不需要终端实时渲染</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>AsyncGenerator 天然背压 + 取消 + yield* 组合</li><li>进度消息走 pendingProgress 缓冲区不阻塞工具执行</li><li>新/旧两种执行模式可以渐进式切换</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>Claude Code 选择了 AsyncGenerator 作为其核心的流式数据传输范式。这不是一个随意的技术选型——它在背压控制、组合性、取消传播和类型安全四个维度上，都优于传统的 Callback 和 EventEmitter 模式。本章将从设计动机出发，深入分析流式响应的接收、工具执行的进度反馈、Generator 的组合与取消机制。</p>
+<hr>
+<h2 id="asyncgenerator-范式">6.1 AsyncGenerator 范式</h2>
+<h3 id="为什么不是-callback">为什么不是 Callback？</h3>
+<p>Callback 模式是最原始的异步通知机制。如果用 callback 实现查询引擎，接口大致如下：</p>
+<pre><code class="language-typescript">// 假想的 callback 接口
+function query(params: QueryParams, callbacks: {
+  onAssistantMessage: (msg: AssistantMessage) =&gt; void
+  onToolResult: (msg: UserMessage) =&gt; void
+  onProgress: (msg: ProgressMessage) =&gt; void
+  onError: (err: Error) =&gt; void
+  onComplete: (terminal: Terminal) =&gt; void
+}): void</code></pre><p>这种模式的问题在于：</p>
+<ol>
+<li><strong>调用方无法控制速度</strong>：生产者不等消费者处理完就继续推送。</li>
+<li><strong>取消困难</strong>：需要额外的机制（如返回一个 cancel 函数）。</li>
+<li><strong>组合困难</strong>：嵌套 callback 导致&quot;回调地狱&quot;。</li>
+<li><strong>返回值丢失</strong>：<code>Terminal</code> 只能通过 callback 传递，不能用 <code>return</code>。</li>
+</ol>
+<h3 id="为什么不是-promise">为什么不是 Promise？</h3>
+<p>Promise 表示单个异步值。查询引擎需要在一次调用中产生多个中间结果——assistant 消息、进度更新、工具结果——Promise 无法表达这种&quot;多次产出&quot;语义。可以用 <code>Promise&lt;Message[]&gt;</code> 返回所有消息的数组，但这要求等待查询完全结束才能开始处理，对于可能持续数十秒的长查询来说，用户体验是不可接受的。</p>
+<h3 id="asyncgenerator-的优势">AsyncGenerator 的优势</h3>
+<p>Claude Code 的核心查询接口：</p>
+<pre><code class="language-typescript">export async function* query(
+  params: QueryParams,
+): AsyncGenerator&lt;
+  | StreamEvent
+  | RequestStartEvent
+  | Message
+  | TombstoneMessage
+  | ToolUseSummaryMessage,
+  Terminal
+&gt; {</code></pre><p>AsyncGenerator 提供了四个关键能力：</p>
+<p><strong>拉取式消费（Pull-based）</strong>：消费者通过 <code>for await...of</code> 或 <code>.next()</code> 主动拉取下一个值。在消费者没有准备好时，生产者自然地暂停在 <code>yield</code> 点。这是隐式的背压控制。</p>
+<p><strong>返回值语义</strong>：Generator 函数的 <code>return</code> 值（<code>Terminal</code>）通过 <code>IteratorResult.value</code> 在完成时传递，与中间 yield 的值类型独立。<code>query()</code> 的签名中，yield 类型是消息联合，return 类型是 <code>Terminal</code>——调用方既能逐步消费中间消息，又能获得最终的终止原因。</p>
+<p><strong>取消传播</strong>：调用方在 <code>for await...of</code> 中 break 或抛出异常，Generator 会自动触发 <code>return()</code> 方法，执行清理逻辑。这与 <code>using</code> 声明和 <code>AbortController</code> 配合，构成完整的取消链。</p>
+<p><strong>类型安全的组合</strong>：<code>yield*</code> 委托在 TypeScript 中保留类型信息，允许将多个 Generator 串联。</p>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<ul>
+<li>AsyncGenerator 是 Node.js 异步编程中最被低估的 API——它同时实现了惰性求值、背压控制和取消传播。</li>
+<li>Callback 的问题是控制反转（Inversion of Control）：你把回调交给生产者，你就失去了对流程的控制。AsyncGenerator 把控制权还给了消费者。</li>
+<li>用 for await...of 消费 Generator 时，每次迭代的等待既是生产者产出数据的时间，也是消费者处理的时间——天然背压。</li>
+<li>对比：事件发射器（EventEmitter）是推模式，AsyncGenerator 是拉模式。推模式在快速生产者面前会把消费者压垮。</li>
+</ul>
+</div><hr>
+<h2 id="api-流式响应">6.2 API 流式响应</h2>
+<h3 id="消息流的接收">消息流的接收</h3>
+<p>API 流式响应在 <code>queryLoop</code> 的内层 <code>for await</code> 循环中处理：</p>
+<pre><code class="language-typescript">for await (const message of deps.callModel({
+  messages: prependUserContext(messagesForQuery, userContext),
+  systemPrompt: fullSystemPrompt,
+  thinkingConfig: toolUseContext.options.thinkingConfig,
+  tools: toolUseContext.options.tools,
+  signal: toolUseContext.abortController.signal,
+  options: {
+    model: currentModel,
+    fallbackModel,
+    onStreamingFallback: () =&gt; {
+      streamingFallbackOccured = true
+    },
+    querySource,
+    // ...
+  },
+})) {
+  // 处理每个流式事件
+}</code></pre><p><code>deps.callModel</code>（实际上是 <code>queryModelWithStreaming</code>）本身也是一个 AsyncGenerator，它将 Claude API 的 SSE（Server-Sent Events）流转换为结构化的消息对象。</p>
+<h3 id="流式数据流图">流式数据流图</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TD
+    API[Claude API SSE Stream] --&gt; |message_start| QMS[queryModelWithStreaming]
+    API --&gt; |content_block_start| QMS
+    API --&gt; |content_block_delta| QMS
+    API --&gt; |content_block_stop| QMS
+    API --&gt; |message_delta| QMS
+    API --&gt; |message_stop| QMS
+
+    QMS --&gt; |yield AssistantMessage| QL[queryLoop]
+    QMS --&gt; |yield StreamEvent| QL
+
+    QL --&gt; |收集 tool_use blocks| TUB[toolUseBlocks]
+    QL --&gt; |推送到| STE[StreamingToolExecutor]
+
+    STE --&gt; |yield progress| QL
+    STE --&gt; |yield tool_result| QL
+
+    QL --&gt; |yield message| QE[QueryEngine.submitMessage]
+    QL --&gt; |yield stream_event| QE
+
+    QE --&gt; |yield SDKMessage| CALLER[SDK/REPL 调用方]
+
+    subgraph "流式工具执行"
+        STE --&gt; |addTool| QUEUE[工具队列]
+        QUEUE --&gt; |processQueue| EXEC[并行/串行执行]
+        EXEC --&gt; |runToolUse| RESULT[工具结果缓冲]
+        RESULT --&gt; |getCompletedResults| STE
+    end</div><h3 id="流中的消息降级处理">流中的消息降级处理</h3>
+<p>当流式接收过程中模型降级（fallback）发生，引擎需要处理已经 yield 出去的&quot;孤儿&quot;消息：</p>
+<pre><code class="language-typescript">if (streamingFallbackOccured) {
+  // 发射墓碑以撤回已 yield 的 partial messages
+  for (const msg of assistantMessages) {
+    yield { type: 'tombstone' as const, message: msg }
+  }
+
+  // 清空所有状态
+  assistantMessages.length = 0
+  toolResults.length = 0
+  toolUseBlocks.length = 0
+  needsFollowUp = false
+
+  // 废弃流式执行器并创建新的
+  if (streamingToolExecutor) {
+    streamingToolExecutor.discard()
+    streamingToolExecutor = new StreamingToolExecutor(
+      toolUseContext.options.tools,
+      canUseTool,
+      toolUseContext,
+    )
+  }
+}</code></pre><p><code>discard()</code> 方法设置一个标志，阻止已入队的工具启动执行，已在执行中的工具收到合成错误：</p>
+<pre><code class="language-typescript">discard(): void {
+  this.discarded = true
+}</code></pre><h3 id="消息的quot扣留quot与延迟-yield">消息的&quot;扣留&quot;与延迟 yield</h3>
+<p>流式循环中有一个关键的&quot;扣留&quot;逻辑——某些错误消息不会立即 yield 给消费者：</p>
+<pre><code class="language-typescript">let withheld = false
+if (reactiveCompact?.isWithheldPromptTooLong(message)) {
+  withheld = true
+}
+if (isWithheldMaxOutputTokens(message)) {
+  withheld = true
+}
+if (!withheld) {
+  yield yieldMessage
+}</code></pre><p>被扣留的消息仍然被 push 到 <code>assistantMessages</code> 数组中，供流结束后的恢复逻辑检查。这种&quot;先收集后决策&quot;的模式避免了过早地向 SDK 消费者暴露可恢复的错误。</p>
+<p>注释中专门解释了为什么 SDK 消费者不能看到这些中间错误：</p>
+<pre><code>// Yielding early leaks an intermediate error to SDK callers (e.g.
+// cowork/desktop) that terminate the session on any `error` field —
+// the recovery loop keeps running but nobody is listening.</code></pre><div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<ul>
+<li>SSE（Server-Sent Events）是流式 API 的事实标准。相比于 WebSocket，SSE 是单向的、文本协议的、天然支持断线重连的。</li>
+<li>Claude Code 把 API 流式响应解包成消息类型（text、tool_use、content_block_start 等），每一类都是一个 AsyncGenerator 的 yield。这让消费方可以逐类型处理，不用自己解析流。</li>
+<li>流式 API 的好处不只是&quot;快&quot;，而是&quot;实时性&quot;——模型还在推理时，用户就能看到 token 逐个出现。这改变了&quot;等待&quot;的心理感受。</li>
+<li>工具调用块在流中可能是分片到达的，需要收集完整后才能执行。这比普通文本流的处理复杂了一个数量级。</li>
+</ul>
+</div><hr>
+<h2 id="工具执行进度流">6.3 工具执行进度流</h2>
+<h3 id="streamingtoolexecutor-架构">StreamingToolExecutor 架构</h3>
+<p><code>StreamingToolExecutor</code> 是 Claude Code 中最精巧的并发控制器之一。它管理着工具的入队、并行执行、结果缓冲和进度传递。</p>
+<pre><code class="language-typescript">export class StreamingToolExecutor {
+  private tools: TrackedTool[] = []
+  private toolUseContext: ToolUseContext
+  private hasErrored = false
+  private siblingAbortController: AbortController
+  private discarded = false
+  private progressAvailableResolve?: () =&gt; void</code></pre><p>每个工具被追踪为一个 <code>TrackedTool</code> 对象，拥有自己的生命周期状态：</p>
+<pre><code class="language-typescript">type ToolStatus = 'queued' | 'executing' | 'completed' | 'yielded'
+
+type TrackedTool = {
+  id: string
+  block: ToolUseBlock
+  assistantMessage: AssistantMessage
+  status: ToolStatus
+  isConcurrencySafe: boolean
+  promise?: Promise&lt;void&gt;
+  results?: Message[]
+  pendingProgress: Message[]
+  contextModifiers?: Array&lt;(context: ToolUseContext) =&gt; ToolUseContext&gt;
+}</code></pre><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+stateDiagram-v2
+    [*] --&gt; queued: addTool()
+    queued --&gt; executing: processQueue() + canExecuteTool()
+    executing --&gt; completed: 工具执行完成
+    completed --&gt; yielded: getCompletedResults()
+
+    queued --&gt; completed: 被中止（synthetic error）
+    executing --&gt; completed: 被兄弟工具错误中止
+
+    note right of queued
+        等待并发条件满足
+    end note
+
+    note right of executing
+        进度消息实时传递
+    end note</div><h3 id="并发控制策略">并发控制策略</h3>
+<p>并发安全性由工具自己声明：</p>
+<pre><code class="language-typescript">const parsedInput = toolDefinition.inputSchema.safeParse(block.input)
+const isConcurrencySafe = parsedInput?.success
+  ? (() =&gt; {
+      try {
+        return Boolean(toolDefinition.isConcurrencySafe(parsedInput.data))
+      } catch {
+        return false
+      }
+    })()
+  : false</code></pre><p>执行条件检查：</p>
+<pre><code class="language-typescript">private canExecuteTool(isConcurrencySafe: boolean): boolean {
+  const executingTools = this.tools.filter(t =&gt; t.status === 'executing')
+  return (
+    executingTools.length === 0 ||
+    (isConcurrencySafe &amp;&amp; executingTools.every(t =&gt; t.isConcurrencySafe))
+  )
+}</code></pre><p>规则很明确：</p>
+<ul>
+<li>并发安全的工具可以与其他并发安全的工具并行。</li>
+<li>非并发安全的工具必须独占执行——等待所有正在执行的工具完成后才能开始。</li>
+</ul>
+<p>这意味着多个 <code>Read</code> 文件操作可以并行，但 <code>Bash</code> 命令会串行执行。</p>
+<h3 id="进度消息的即时传递">进度消息的即时传递</h3>
+<p>进度消息不经过结果缓冲区，而是通过独立的 <code>pendingProgress</code> 数组即时传递：</p>
+<pre><code class="language-typescript">for await (const update of generator) {
+  if (update.message) {
+    if (update.message.type === 'progress') {
+      tool.pendingProgress.push(update.message)
+      // 唤醒等待进度的消费者
+      if (this.progressAvailableResolve) {
+        this.progressAvailableResolve()
+        this.progressAvailableResolve = undefined
+      }
+    } else {
+      messages.push(update.message)
+    }
+  }
+}</code></pre><p><code>getCompletedResults</code> 在每次调用时都先清空 pending progress：</p>
+<pre><code class="language-typescript">*getCompletedResults(): Generator&lt;MessageUpdate, void&gt; {
+  for (const tool of this.tools) {
+    // 先 yield 进度消息
+    while (tool.pendingProgress.length &gt; 0) {
+      const progressMessage = tool.pendingProgress.shift()!
+      yield { message: progressMessage, newContext: this.toolUseContext }
+    }
+    // 再 yield 完成结果（按序）
+    if (tool.status === 'completed' &amp;&amp; tool.results) {
+      tool.status = 'yielded'
+      for (const message of tool.results) {
+        yield { message, newContext: this.toolUseContext }
+      }
+    }
+  }
+}</code></pre><p>这确保了用户能实时看到工具的执行进度（如 Bash 命令的输出流），而最终结果仍然保持工具的入队顺序。</p>
+<h3 id="错误的级联中止">错误的级联中止</h3>
+<p>当一个 Bash 工具执行出错，<code>StreamingToolExecutor</code> 会级联中止所有兄弟工具：</p>
+<pre><code class="language-typescript">if (isErrorResult) {
+  thisToolErrored = true
+  if (tool.block.name === BASH_TOOL_NAME) {
+    this.hasErrored = true
+    this.erroredToolDescription = this.getToolDescription(tool)
+    this.siblingAbortController.abort('sibling_error')
+  }
+}</code></pre><p>注意只有 <strong>Bash</strong> 错误会触发级联中止。注释解释了原因：</p>
+<pre><code>// Only Bash errors cancel siblings. Bash commands often have implicit
+// dependency chains (e.g. mkdir fails → subsequent commands pointless).
+// Read/WebFetch/etc are independent — one failure shouldn't nuke the rest.</code></pre><p><code>siblingAbortController</code> 是 <code>toolUseContext.abortController</code> 的子控制器——中止兄弟工具不会中止整个查询循环。</p>
+<div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<ul>
+<li>工具进度流是 Generator Pipe 思想的最佳应用——工具在执行时可以 yield 进度更新，而不需要等完成才报告结果。</li>
+<li>pendingProgress 缓冲区设计解决了一个实时性问题：进度消息可能在 UI 还没准备好渲染时就已经产生了，缓冲区让消息可以暂存。</li>
+<li>进度流让&quot;长时间运行的工具&quot;变得可以接受——用户看到进度条在走，就不会焦虑地按 Ctrl+C。</li>
+<li>这是观察者（Observer）和生成器（Generator）模式的融合：工具报告进度，管道传递进度，UI 消费进度——三方松耦合。</li>
+</ul>
+</div><hr>
+<h2 id="generator-组合">6.4 Generator 组合</h2>
+<h3 id="yield-委托">yield* 委托</h3>
+<p>Claude Code 广泛使用 <code>yield*</code> 将 Generator 链式组合。<code>query()</code> 函数是第一层包装：</p>
+<pre><code class="language-typescript">export async function* query(
+  params: QueryParams,
+): AsyncGenerator&lt;..., Terminal&gt; {
+  const consumedCommandUuids: string[] = []
+  const terminal = yield* queryLoop(params, consumedCommandUuids)
+  for (const uuid of consumedCommandUuids) {
+    notifyCommandLifecycle(uuid, 'completed')
+  }
+  return terminal
+}</code></pre><p><code>yield*</code> 的语义：将 <code>queryLoop</code> 的所有 yield 值透传给 <code>query</code> 的消费者，同时捕获 <code>queryLoop</code> 的 return 值（<code>Terminal</code>）赋给 <code>terminal</code>。</p>
+<p>这种组合模式形成了一个三层 Generator 管道：</p>
+<pre><code>queryLoop (产生消息)
+  ↓ yield*
+query (后处理: command lifecycle)
+  ↓ for await...of
+QueryEngine.submitMessage (消息路由: transcript, SDK output)
+  ↓ yield
+SDK/REPL 调用方 (最终消费)</code></pre><h3 id="stop-hook-中的-generator-委托">Stop Hook 中的 Generator 委托</h3>
+<p><code>handleStopHooks</code> 也是一个 AsyncGenerator，通过 <code>yield*</code> 在 queryLoop 中调用：</p>
+<pre><code class="language-typescript">const stopHookResult = yield* handleStopHooks(
+  messagesForQuery,
+  assistantMessages,
+  systemPrompt,
+  userContext,
+  systemContext,
+  toolUseContext,
+  querySource,
+  stopHookActive,
+)</code></pre><p><code>handleStopHooks</code> 可能 yield 出额外的消息（如 hook 摘要、错误通知），这些消息自动透传给查询循环的消费者。同时，它的 return 值——<code>StopHookResult</code>——被解构用于控制流决策。</p>
+<h3 id="取消传播">取消传播</h3>
+<p>Generator 的取消通过三种机制传播：</p>
+<p><strong>1. AbortController 信号</strong></p>
+<pre><code class="language-typescript">const toolAbortController = createChildAbortController(
+  this.siblingAbortController,
+)
+toolAbortController.signal.addEventListener('abort', () =&gt; {
+  if (!this.toolUseContext.abortController.signal.aborted &amp;&amp; !this.discarded) {
+    this.toolUseContext.abortController.abort(toolAbortController.signal.reason)
+  }
+}, { once: true })</code></pre><p>形成树状的 abort 传播：</p>
+<pre><code>toolUseContext.abortController (查询级)
+  └─ siblingAbortController (工具批次级)
+       └─ toolAbortController (单工具级)</code></pre><p><strong>2. Generator.return()</strong></p>
+<p>当 <code>for await...of</code> 循环被 <code>break</code> 或异常中断，Generator 的 <code>return()</code> 被自动调用。<code>using</code> 声明（如 <code>using pendingMemoryPrefetch = ...</code>）确保即使在异常退出路径上，资源清理也能执行。</p>
+<p><strong>3. discarded 标志</strong></p>
+<p><code>StreamingToolExecutor.discard()</code> 不使用 abort 信号，而是设置一个简单的布尔标志：</p>
+<pre><code class="language-typescript">discard(): void {
+  this.discarded = true
+}</code></pre><p>这比 abort 更轻量——被废弃的执行器只需要阻止新工具启动和停止结果产出，不需要中断正在运行的工具（那些工具的结果会被自然丢弃）。</p>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>Generator 组合是 Claude Code 流式架构中最灵活的设计模式——不是通过继承或回调组合代码，而是通过 yield* 组合数据流。</p>
+<ul>
+<li>yield* 委托是 JavaScript 中最被低估的语法特性——它让一个 Generator 可以将自己的产出委托给另一个 Generator，形成无限嵌套的流水线。</li>
+<li>Generator 组合 vs 函数组合：函数组合传递的是返回值，Generator 组合传递的是产出流。前者适合纯计算，后者适合流式处理。</li>
+<li>废弃（discarding）策略通过封闭执行器而非终止 Generator 来实现&quot;软中止&quot;——Generator 还在运行，但它的产出被静默丢弃了。</li>
+<li>这种模式的好处是：正在执行的工具不会被粗暴中断，只是其结果不会被消费。这在工具可能产生副作用时尤为重要。</li>
+</ul>
+</div><hr>
+<h2 id="背压控制">6.5 背压控制</h2>
+<h3 id="隐式背压">隐式背压</h3>
+<p>AsyncGenerator 的 pull-based 语义提供了天然的背压。考虑以下消费链：</p>
+<pre><code class="language-typescript">// QueryEngine.submitMessage
+for await (const message of query({...})) {
+  // 处理 message（可能涉及磁盘 I/O）
+  if (persistSession) {
+    await recordTranscript(messages)  // 阻塞
+  }
+  yield* normalizeMessage(message)    // 向上 yield
+}</code></pre><p>当 <code>recordTranscript</code> 执行磁盘写入时，<code>for await</code> 循环暂停，<code>query()</code> 的 Generator 在上一个 <code>yield</code> 点挂起，<code>queryModelWithStreaming</code> 的 Generator 也随之挂起。底层的 HTTP 流读取暂停，TCP 接收窗口填满，最终 API 服务端会降低发送速率。</p>
+<p>这种从消费者到生产者的速率信号传播完全是隐式的——不需要任何显式的流量控制代码。</p>
+<h3 id="进度消息的无阻塞传递">进度消息的无阻塞传递</h3>
+<p>然而，完全的背压并不总是理想的。进度消息不应阻塞工具执行——用户希望实时看到 Bash 命令的输出，即使 UI 层的渲染略有滞后。</p>
+<p><code>StreamingToolExecutor</code> 通过将进度消息存入独立的缓冲区来解决这个问题：</p>
+<pre><code class="language-typescript">// 工具执行中：进度不阻塞
+if (update.message.type === 'progress') {
+  tool.pendingProgress.push(update.message)
+  if (this.progressAvailableResolve) {
+    this.progressAvailableResolve()
+  }
+}</code></pre><p>消费侧使用 <code>Promise.race</code> 实现非阻塞等待：</p>
+<pre><code class="language-typescript">async *getRemainingResults(): AsyncGenerator&lt;MessageUpdate, void&gt; {
+  while (this.hasUnfinishedTools()) {
+    await this.processQueue()
+
+    for (const result of this.getCompletedResults()) {
+      yield result
+    }
+
+    if (this.hasExecutingTools() &amp;&amp; !this.hasCompletedResults()
+        &amp;&amp; !this.hasPendingProgress()) {
+      const executingPromises = this.tools
+        .filter(t =&gt; t.status === 'executing' &amp;&amp; t.promise)
+        .map(t =&gt; t.promise!)
+
+      const progressPromise = new Promise&lt;void&gt;(resolve =&gt; {
+        this.progressAvailableResolve = resolve
+      })
+
+      await Promise.race([...executingPromises, progressPromise])
+    }
+  }
+}</code></pre><p><code>Promise.race</code> 确保只要有工具完成或有进度可用，循环就会唤醒——不会因为某个长时间运行的工具而阻塞其他工具的进度报告。</p>
+<h3 id="内存管理">内存管理</h3>
+<p>长时间运行的查询会在 <code>mutableMessages</code> 中累积大量消息。Claude Code 使用多种策略控制内存增长：</p>
+<p><strong>Snip Compact</strong>：在 <code>HISTORY_SNIP</code> 功能开启时，旧消息被裁剪：</p>
+<pre><code class="language-typescript">if (feature('HISTORY_SNIP')) {
+  const snipResult = snipModule!.snipCompactIfNeeded(messagesForQuery)
+  messagesForQuery = snipResult.messages
+  snipTokensFreed = snipResult.tokensFreed
+}</code></pre><p><strong>Tool Result Budget</strong>：工具结果的大小受限：</p>
+<pre><code class="language-typescript">messagesForQuery = await applyToolResultBudget(
+  messagesForQuery,
+  toolUseContext.contentReplacementState,
+  // ...
+)</code></pre><p><strong>Auto Compact</strong>：当 token 数超过阈值时自动压缩：</p>
+<pre><code class="language-typescript">const { compactionResult } = await deps.autocompact(
+  messagesForQuery,
+  toolUseContext,
+  { systemPrompt, userContext, systemContext, toolUseContext, forkContextMessages },
+  querySource,
+  tracking,
+  snipTokensFreed,
+)</code></pre><p><strong>Fetch 闭包复用</strong>：</p>
+<pre><code class="language-typescript">// Creating it once means only the latest request body is retained (~700KB),
+// instead of all request bodies from the session (~500MB for long sessions).
+const dumpPromptsFetch = config.gates.isAnt
+  ? createDumpPromptsFetch(toolUseContext.agentId ?? config.sessionId)
+  : undefined</code></pre><p>注释中量化了这个优化的影响：从保留所有请求体（~500MB）到只保留最新的（~700KB）。</p>
+<h3 id="fire-and-forget-与-await-的选择">Fire-and-forget 与 await 的选择</h3>
+<p>消息写入遵循一个明确的策略：</p>
+<pre><code class="language-typescript">// Assistant 消息：fire-and-forget
+if (message.type === 'assistant') {
+  void recordTranscript(messages)
+}
+// User 消息和 compact boundary：await
+else {
+  await recordTranscript(messages)
+}</code></pre><p>这是背压控制的一个精细调节：assistant 消息的 fire-and-forget 允许 API 流继续推进（避免流式更新被磁盘 I/O 阻塞），而 user 消息的 await 确保崩溃恢复的可靠性。写入队列的内部实现保证了顺序性——fire-and-forget 不会导致消息乱序。</p>
+<h3 id="流式工具执行与传统模式的抉择">流式工具执行与传统模式的抉择</h3>
+<p>查询循环中有一个运行时开关决定使用哪种工具执行模式：</p>
+<pre><code class="language-typescript">const useStreamingToolExecution = config.gates.streamingToolExecution
+let streamingToolExecutor = useStreamingToolExecution
+  ? new StreamingToolExecutor(
+      toolUseContext.options.tools,
+      canUseTool,
+      toolUseContext,
+    )
+  : null</code></pre><p>在流结束后，工具结果的收集也依据这个开关分叉：</p>
+<pre><code class="language-typescript">const toolUpdates = streamingToolExecutor
+  ? streamingToolExecutor.getRemainingResults()
+  : runTools(toolUseBlocks, assistantMessages, canUseTool, toolUseContext)</code></pre><p><code>runTools</code> 是传统的顺序执行路径——它本身也是一个 AsyncGenerator，但工具按顺序执行，不利用流式重叠。<code>StreamingToolExecutor</code> 则允许工具在 API 流仍在推送时就开始执行，显著减少了端到端延迟。</p>
+<p>这种双轨设计体现了 Claude Code 的工程哲学——新特性通过功能开关渐进式发布，旧路径作为 fallback 保留，直到新路径经过充分验证。AsyncGenerator 的统一接口（<code>for await...of</code>）使得两种路径对消费者完全透明。</p>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>背压控制是整个流式架构的&quot;调压阀&quot;——没有背压，快速的生产者会把消费者压垮，导致内存暴涨甚至进程崩溃。</p>
+<ul>
+<li>AsyncGenerator 的 pull-based 语义提供了最高级的背压控制——消费者不拉取下一条，生产者就暂停。这比任何缓存策略都更优雅。</li>
+<li>隐式背压（pull-based）vs 显式背压（buffer + 水位线）：前者是语言层面的支持，后者是应用层面的 hack。Claude Code 两者都用——Generator 管数据流，buffer 管进度消息。</li>
+<li>Promise.race 唤醒模式允许 Generator 在等待多个异步源时，谁先返回就处理谁——这是&quot;事件驱动&quot;和&quot;生成器&quot;两种模式的融合。</li>
+<li>双轨设计（StreamingToolExecutor / runTools）的启示：新特性从 feature flag 开始，旧路径长期保留作为安全网——不是&quot;重构&quot;，而是&quot;渐进式迁移&quot;。</li>
+</ul>
+</div>
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-05-message-system/" class="chapter-prev">← 第 5 章：消息系统</a>
+      <a href="/2026/05/21/claude-code-07-tool-architecture/" class="chapter-next">第 7 章：工具架构 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

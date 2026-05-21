@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 5 章：消息系统__DESCRIPTION__quot;在一个以对话为核心的系统中，消息类型的设计就是系统架构的缩影。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在用户输入、模型回复、工具执行、系统事件——所有交互都要用统一的消息格式表达一个 Message 联合类型管 7+ 种消息变体，靠 type 字段区分它解决什么问题内部的丰富消息要转换成 API 能理解的 user/assistant 交替格式——归一化管线">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 5 章：消息系统">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-05-message-system/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 5 章：消息系统__DESCRIPTION__quot;在一个以对话为核心的系统中，消息类型的设计就是系统架构的缩影。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在用户输入、模型回复、工具执行、系统事件——所有交互都要用统一的消息格式表达一个 Message 联合类型管 7+ 种消息变体，靠 type 字段区分它解决什么问题内部的丰富消息要转换成 API 能理解的 user/assistant 交替格式——归一化管线">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-05-message-system/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 5 章：消息系统 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-05-message-system/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 5 章：消息系统
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 5 章：消息系统</h1>
+<blockquote>
+<p>&quot;在一个以对话为核心的系统中，消息类型的设计就是系统架构的缩影。&quot;</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>用户输入、模型回复、工具执行、系统事件——所有交互都要用统一的消息格式表达</li><li>一个 Message 联合类型管 7+ 种消息变体，靠 type 字段区分</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>内部的丰富消息要转换成 API 能理解的 user/assistant 交替格式——归一化管线做这个</li><li>进程崩了消息不能丢——JSONL 增量录制 + 父链追踪保证崩溃安全</li><li>工具结果要存两份：序列化版本给 API、原始数据给 UI 渲染</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>消息是各层的通信载体——查询引擎生产、API 客户端传输、UI 层消费</li><li>Transcript 以 JSONL 存消息链到磁盘，支撑 --resume 恢复</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>工厂函数保证每条消息符合不变量——createUserMessage 自动补 uuid 和 timestamp</li><li>normalizeMessagesForAPI 过五关斩六将：过滤 → 附件重排序 → user 合并 → system 转换 → 媒体剥离</li><li>recordTranscript 通过 messageSet 去重实现增量录制——每次只写新消息</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>UUID 确定性派生——拆分后的子消息在不同时刻保证 UUID 一致，transcript 才能正确 resume</li><li>TombstoneMessage 是事件溯源的&quot;撤回&quot;机制——不删历史，追加一个删除事件</li><li>SYNTHETIC_TOOL_RESULT_PLACEHOLDER 被 HFI 逻辑排除——占位用的内容不能拿去训练模型</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：用 VS Code ExtensionContext.workspaceState 存 JSON，没有消息类型体系</li><li><strong>OpenClaw</strong>：消息类型简化成 user/assistant/system，没有 tombstone/progress 控制消息</li><li><strong>Harness Agent</strong>：数据模型以流水线执行记录为主，对话消息标准化后入审计日志</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>判别联合让 TypeScript 穷举每一条分支，不会有遗漏</li><li>JSONL 崩溃安全 + 父链支持分支会话</li><li>UUID 确定性派生保证 resume 可靠性</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>Claude Code 的消息系统远不止于&quot;用户说了什么、助手回复了什么&quot;的简单交替。它是一个精心分层的类型体系，涵盖了从流式事件到工具结果、从进度通知到墓碑标记的完整生命周期。本章将从类型定义出发，深入到工厂函数、序列化、持久化和 API 归一化的全过程。</p>
+<hr>
+<h2 id="消息类型层次">5.1 消息类型层次</h2>
+<h3 id="核心联合类型">核心联合类型</h3>
+<p>Claude Code 的消息系统建立在一个判别式联合类型（discriminated union）之上。从 <code>src/query.ts</code> 的导入可以看出完整的类型全貌：</p>
+<pre><code class="language-typescript">import type {
+  AssistantMessage,
+  AttachmentMessage,
+  Message,
+  RequestStartEvent,
+  StreamEvent,
+  ToolUseSummaryMessage,
+  UserMessage,
+  TombstoneMessage,
+} from './types/message.js'</code></pre><p><code>Message</code> 是所有消息类型的联合：</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+classDiagram
+    class Message {
+        &lt;&lt;union&gt;&gt;
+        +type: string
+        +uuid: UUID
+        +timestamp: string
+    }
+
+    class UserMessage {
+        +message.role: user
+        +message.content: text
+        +isMeta: boolean
+        +isVirtual: boolean
+    }
+
+    class AssistantMessage {
+        +message.role: assistant
+        +message.content: ContentBlock[]
+        +message.model: string
+    }
+
+    class SystemMessage {
+        +subtype: string
+    }
+
+    class ProgressMessage {
+        +toolUseID: string
+        +data: object
+    }
+
+    class AttachmentMessage {
+        +attachment: object
+    }
+
+    class TombstoneMessage {
+        +message: AssistantMessage
+    }
+
+    class StreamEvent {
+        +event: object
+    }
+
+    class RequestStartEvent
+
+    class ToolUseSummaryMessage {
+        +summary: string
+        +toolUseIds: string[]
+    }
+
+    Message &lt;|-- UserMessage
+    Message &lt;|-- AssistantMessage
+    Message &lt;|-- SystemMessage
+    Message &lt;|-- ProgressMessage
+    Message &lt;|-- AttachmentMessage
+
+    SystemMessage &lt;|-- SystemCompactBoundaryMessage
+    SystemMessage &lt;|-- SystemLocalCommandMessage
+    SystemMessage &lt;|-- SystemAPIErrorMessage
+    SystemMessage &lt;|-- SystemInformationalMessage
+    SystemMessage &lt;|-- SystemMicrocompactBoundaryMessage
+    SystemMessage &lt;|-- SystemMemorySavedMessage
+    SystemMessage &lt;|-- SystemStopHookSummaryMessage
+    SystemMessage &lt;|-- SystemTurnDurationMessage
+    SystemMessage &lt;|-- SystemPermissionRetryMessage
+    SystemMessage &lt;|-- SystemBridgeStatusMessage
+    SystemMessage &lt;|-- SystemAwaySummaryMessage
+    SystemMessage &lt;|-- SystemApiMetricsMessage
+    SystemMessage &lt;|-- SystemScheduledTaskFireMessage
+    SystemMessage &lt;|-- SystemAgentsKilledMessage</div><h3 id="判别字段">判别字段</h3>
+<p><code>type</code> 字段是主判别器。在处理消息的 switch 语句中，TypeScript 的控制流分析可以精确推断每个分支的类型：</p>
+<pre><code class="language-typescript">switch (message.type) {
+  case 'tombstone':
+    // message: TombstoneMessage
+    break
+  case 'assistant':
+    // message: AssistantMessage
+    this.mutableMessages.push(message)
+    yield* normalizeMessage(message)
+    break
+  case 'progress':
+    // message: ProgressMessage
+    break
+  case 'user':
+    // message: UserMessage
+    break
+  case 'stream_event':
+    // message: StreamEvent
+    break
+}</code></pre><h3 id="usermessage-的多面性">UserMessage 的多面性</h3>
+<p><code>UserMessage</code> 是系统中最多态的类型。同一个 <code>type: &quot;user&quot;</code> 下承载了截然不同的语义：</p>
+<p><strong>人类输入</strong>：用户在终端或 SDK 中输入的文本。</p>
+<p><strong>工具结果</strong>：模型的工具调用执行后返回的结果，通过 <code>tool_result</code> content block 标识。<code>toolUseResult</code> 字段存储原始输出，<code>sourceToolAssistantUUID</code> 指向触发这次工具调用的 assistant 消息。</p>
+<p><strong>Meta 消息</strong>：<code>isMeta: true</code> 标记的消息不会在 UI 中显示给用户，仅供模型消费。典型用例包括：</p>
+<ul>
+<li>系统注入的警告提示</li>
+<li>max_output_tokens 恢复指令</li>
+<li>compact 后的摘要</li>
+</ul>
+<p><strong>虚拟消息</strong>：<code>isVirtual: true</code> 标记的消息存在于内存中用于 UI 渲染，但在发送给 API 时被过滤掉。</p>
+<p>这种设计将所有&quot;用户角色&quot;（API 层面 role=&quot;user&quot;）的消息统一到一个类型下，避免了 API 协议的 user/assistant 交替规则被破坏。</p>
+<h3 id="assistantmessage-的丰富元数据">AssistantMessage 的丰富元数据</h3>
+<pre><code class="language-typescript">function baseCreateAssistantMessage({
+  content,
+  isApiErrorMessage = false,
+  apiError,
+  error,
+  errorDetails,
+  isVirtual,
+  usage = {
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+    server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 },
+    service_tier: null,
+    cache_creation: {
+      ephemeral_1h_input_tokens: 0,
+      ephemeral_5m_input_tokens: 0,
+    },
+    inference_geo: null,
+    iterations: null,
+    speed: null,
+  },
+}: ...): AssistantMessage {
+  return {
+    type: 'assistant',
+    uuid: randomUUID(),
+    timestamp: new Date().toISOString(),
+    message: {
+      id: randomUUID(),
+      container: null,
+      model: SYNTHETIC_MODEL,
+      role: 'assistant',
+      stop_reason: 'stop_sequence',
+      stop_sequence: '',
+      type: 'message',
+      usage,
+      content,
+      context_management: null,
+    },
+    requestId: undefined,
+    apiError,
+    error,
+    errorDetails,
+    isApiErrorMessage,
+    isVirtual,
+  }
+}</code></pre><p>注意 <code>usage</code> 的默认值结构——它镜像了 Claude API 响应的完整 usage 对象，包括缓存统计、服务层级、推理地理位置甚至迭代次数。合成消息（如错误消息）使用 <code>SYNTHETIC_MODEL = &#39;&lt;synthetic&gt;&#39;</code> 作为模型标识，这让下游的 <code>isSyntheticApiErrorMessage</code> 检查成为可能。</p>
+<h3 id="tombstonemessage消息的墓碑">TombstoneMessage：消息的墓碑</h3>
+<pre><code class="language-typescript">// Tombstone messages are control signals for removing messages
+case 'tombstone':
+  break</code></pre><p>当模型降级回退（streaming fallback）发生时，之前的 partial assistant 消息已经 yield 给了 UI。为了&quot;撤回&quot;这些消息，引擎发射 tombstone：</p>
+<pre><code class="language-typescript">for (const msg of assistantMessages) {
+  yield { type: 'tombstone' as const, message: msg }
+}</code></pre><p>UI 层接收到 tombstone 后，应从显示列表中移除对应的消息。这是一种事件溯源（event sourcing）模式——不是直接修改历史，而是追加一个&quot;删除&quot;事件。</p>
+<h3 id="systemmessage-的子类型体系">SystemMessage 的子类型体系</h3>
+<p>SystemMessage 通过 <code>subtype</code> 字段进一步细分：</p>
+<ul>
+<li><code>compact_boundary</code>：标记压缩边界，用于 --resume 恢复</li>
+<li><code>local_command</code>：本地命令（如 /compact）的输出</li>
+<li><code>api_error</code>：API 错误通知</li>
+<li><code>informational</code>：一般性信息</li>
+<li><code>microcompact_boundary</code>：微压缩边界</li>
+<li><code>memory_saved</code>：内存保存通知</li>
+<li><code>stop_hook_summary</code>：stop hook 执行摘要</li>
+<li><code>turn_duration</code>：轮次耗时统计</li>
+<li><code>api_metrics</code>：API 性能指标</li>
+<li><code>permission_retry</code>：权限重试通知</li>
+<li><code>bridge_status</code>：桥接状态变更</li>
+<li><code>away_summary</code>：离开期间摘要</li>
+<li><code>agents_killed</code>：代理终止通知</li>
+<li><code>scheduled_task_fire</code>：定时任务触发</li>
+</ul>
+<p>这种扁平的子类型枚举（而非深层继承）让 pattern matching 保持简洁，同时避免了面向对象继承链的刚性约束。</p>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<p>Message 判别联合是 Claude Code 消息系统的&quot;DNA&quot;——它定义了整个系统中消息的边界和变体。</p>
+<ul>
+<li>10 种消息类型覆盖了从用户输入到系统诊断的完整光谱——类型系统在这里起了穷举约束的作用：处理 Message 的代码必须考虑所有变体。</li>
+<li>SystemMessage 通过 subtype 字段进一步细分 10+ 种系统子类型——这是一种&quot;两阶段判别&quot;：先分大类，再分小类。</li>
+<li>Tombstone 和 Progress 这类控制消息的存在说明：Engine 内部的状态管理同时也产生了大量终端用户看不到的消息类型。</li>
+<li>扁平的联合类型 vs 深层继承——Claude Code 选择了前者，因为 pattern matching 比继承链更容易推理和维护。</li>
+</ul>
+</div><hr>
+<h2 id="消息创建与序列化">5.2 消息创建与序列化</h2>
+<h3 id="工厂函数体系">工厂函数体系</h3>
+<p>Claude Code 不直接构造消息对象，而是通过一组工厂函数确保每条消息都满足不变量。</p>
+<p><strong>createUserMessage</strong> 是使用最频繁的工厂函数：</p>
+<pre><code class="language-typescript">export function createUserMessage({
+  content,
+  isMeta,
+  isVisibleInTranscriptOnly,
+  isVirtual,
+  isCompactSummary,
+  toolUseResult,
+  mcpMeta,
+  uuid,
+  timestamp,
+  imagePasteIds,
+  sourceToolAssistantUUID,
+  permissionMode,
+  origin,
+  // ...
+}: { ... }): UserMessage {
+  const m: UserMessage = {
+    type: 'user',
+    message: {
+      role: 'user',
+      content: content || NO_CONTENT_MESSAGE,
+    },
+    isMeta,
+    isVisibleInTranscriptOnly,
+    isVirtual,
+    isCompactSummary,
+    uuid: (uuid as UUID | undefined) || randomUUID(),
+    timestamp: timestamp ?? new Date().toISOString(),
+    toolUseResult,
+    mcpMeta,
+    imagePasteIds,
+    sourceToolAssistantUUID,
+    permissionMode,
+    origin,
+  }
+  return m
+}</code></pre><p>关键不变量：</p>
+<ol>
+<li><code>content</code> 为空时替换为 <code>NO_CONTENT_MESSAGE</code>，防止向 API 发送空消息。</li>
+<li><code>uuid</code> 如果未提供则自动生成，确保每条消息都有唯一标识。</li>
+<li><code>timestamp</code> 如果未提供则使用当前时间。</li>
+</ol>
+<p><strong>createAssistantMessage</strong> 和 <strong>createAssistantAPIErrorMessage</strong> 分别用于正常回复和错误回复：</p>
+<pre><code class="language-typescript">export function createAssistantMessage({
+  content,
+  usage,
+  isVirtual,
+}: { ... }): AssistantMessage {
+  return baseCreateAssistantMessage({
+    content:
+      typeof content === 'string'
+        ? [{ type: 'text', text: content === '' ? NO_CONTENT_MESSAGE : content }]
+        : content,
+    usage,
+    isVirtual,
+  })
+}</code></pre><p>注意字符串到 ContentBlock 数组的自动转换——调用方可以传入纯文本，工厂函数会将其包装为 <code>[{ type: &#39;text&#39;, text: ... }]</code>。</p>
+<p><strong>createProgressMessage</strong> 创建工具执行进度消息：</p>
+<pre><code class="language-typescript">export function createProgressMessage&lt;P extends Progress&gt;({
+  toolUseID,
+  parentToolUseID,
+  data,
+}: { ... }): ProgressMessage&lt;P&gt; {
+  return {
+    type: 'progress',
+    data,
+    toolUseID,
+    parentToolUseID,
+    uuid: randomUUID(),
+    timestamp: new Date().toISOString(),
+  }
+}</code></pre><p>Progress 是泛型参数——不同工具可以定义自己的进度数据结构，类型安全地传递给 UI 层。</p>
+<h3 id="合成消息常量">合成消息常量</h3>
+<p>系统定义了一组固定的合成消息文本：</p>
+<pre><code class="language-typescript">export const INTERRUPT_MESSAGE = '[Request interrupted by user]'
+export const CANCEL_MESSAGE =
+  "The user doesn't want to take this action right now. ..."
+export const REJECT_MESSAGE =
+  "The user doesn't want to proceed with this tool use. ..."
+
+export const SYNTHETIC_MESSAGES = new Set([
+  INTERRUPT_MESSAGE,
+  INTERRUPT_MESSAGE_FOR_TOOL_USE,
+  CANCEL_MESSAGE,
+  REJECT_MESSAGE,
+  NO_RESPONSE_REQUESTED,
+])</code></pre><p><code>SYNTHETIC_MESSAGES</code> 集合用于 <code>isSyntheticMessage</code> 检查——这些消息是系统生成的控制信号，不应被计入用户消息统计。</p>
+<h3 id="确定性-uuid-派生">确定性 UUID 派生</h3>
+<p>当消息需要拆分（normalizeMessages）时，子消息的 UUID 不是随机生成的，而是从父 UUID 确定性派生的：</p>
+<pre><code class="language-typescript">export function deriveUUID(parentUUID: UUID, index: number): UUID {
+  const hex = index.toString(16).padStart(12, '0')
+  return `${parentUUID.slice(0, 24)}${hex}` as UUID
+}</code></pre><p>这意味着同一条消息在不同时刻拆分总是产生相同的子 UUID，这对于 transcript 的一致性和 <code>--resume</code> 功能至关重要。</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>UUID 派生和消息序列化的设计体现了&quot;确定性&quot;在分布式系统中的重要性——同样的操作产生同样的结果，这是可恢复性的基础。</p>
+<ul>
+<li>UUID 确定性派生（父 UUID + 序号）保证日志一致性——无论何时拆分消息，产生的 UUID 都相同，resume 时不会 mismatch。</li>
+<li>预写（pre-write）transcript 模式是&quot;先记日志再干活&quot;——崩溃时至少有最后状态的记录，不会丢数据。</li>
+<li>fire-and-forget 的 transcript 写入说明了一个权衡：实时性要求高时，异步落盘比同步可靠但可能丢最后几条。</li>
+<li>tool_use 与 tool_result 的关联靠 sourceToolAssistantUUID——这是消息系统的&quot;外键约束&quot;，没有它工具结果就不知道属于谁。</li>
+</ul>
+</div><hr>
+<h2 id="工具结果消息">5.3 工具结果消息</h2>
+<h3 id="tool_result-的编码">tool_result 的编码</h3>
+<p>工具执行结果被编码为 <code>UserMessage</code>，其 <code>content</code> 字段包含一个 <code>tool_result</code> content block：</p>
+<pre><code class="language-typescript">createUserMessage({
+  content: [
+    {
+      type: 'tool_result',
+      content: resultContent,
+      is_error: isError,
+      tool_use_id: toolUseBlock.id,
+    },
+  ],
+  toolUseResult: originalOutput,
+  sourceToolAssistantUUID: assistantMessage.uuid,
+})</code></pre><p>这里存在一个重要的双重存储：</p>
+<ul>
+<li><code>content[0].content</code>：发送给 API 的序列化结果（字符串或 content block 数组）。</li>
+<li><code>toolUseResult</code>：工具的原始输出（保持原始类型），用于 UI 渲染和 HFI 数据提取。</li>
+</ul>
+<h3 id="合成工具结果占位符">合成工具结果占位符</h3>
+<p>当工具执行被中断，或 API 调用意外抛出异常，可能出现 <code>tool_use</code> 没有对应 <code>tool_result</code> 的情况。<code>yieldMissingToolResultBlocks</code> 函数处理这个&quot;悬空配对&quot;问题：</p>
+<pre><code class="language-typescript">function* yieldMissingToolResultBlocks(
+  assistantMessages: AssistantMessage[],
+  errorMessage: string,
+) {
+  for (const assistantMessage of assistantMessages) {
+    const toolUseBlocks = assistantMessage.message.content.filter(
+      content =&gt; content.type === 'tool_use',
+    ) as ToolUseBlock[]
+
+    for (const toolUse of toolUseBlocks) {
+      yield createUserMessage({
+        content: [
+          {
+            type: 'tool_result',
+            content: errorMessage,
+            is_error: true,
+            tool_use_id: toolUse.id,
+          },
+        ],
+        toolUseResult: errorMessage,
+        sourceToolAssistantUUID: assistantMessage.uuid,
+      })
+    }
+  }
+}</code></pre><p>占位符的存在有一个训练数据安全影响：</p>
+<pre><code class="language-typescript">// Exported so HFI submission can reject any payload containing it —
+// placeholder satisfies pairing structurally but the content is fake,
+// which poisons training data if submitted.
+export const SYNTHETIC_TOOL_RESULT_PLACEHOLDER =
+  '[Tool result missing due to internal error]'</code></pre><h3 id="权限拒绝的精细消息">权限拒绝的精细消息</h3>
+<p>工具被拒绝时，消息根据上下文有不同的表述：</p>
+<pre><code class="language-typescript">// 用户手动拒绝
+export const REJECT_MESSAGE =
+  "The user doesn't want to proceed with this tool use. The tool use was rejected..."
+
+// 子代理内的拒绝（无用户交互）
+export const SUBAGENT_REJECT_MESSAGE =
+  'Permission for this tool use was denied. The tool use was rejected...'
+
+// 自动模式分类器拒绝
+export function buildYoloRejectionMessage(reason: string): string {
+  return `${AUTO_MODE_REJECTION_PREFIX}${reason}. ` +
+    `If you have other tasks that don't depend on this action, continue working on those. ` +
+    `${DENIAL_WORKAROUND_GUIDANCE} ` + ruleHint
+}</code></pre><p><code>DENIAL_WORKAROUND_GUIDANCE</code> 是一段精心撰写的指导文本：</p>
+<pre><code class="language-typescript">export const DENIAL_WORKAROUND_GUIDANCE =
+  `IMPORTANT: You *may* attempt to accomplish this action using other tools ` +
+  `that might naturally be used to accomplish this goal, ` +
+  `e.g. using head instead of cat. But you *should not* attempt to work ` +
+  `around this denial in malicious ways...`</code></pre><p>这段文本在安全工程和用户体验之间取得平衡——允许模型寻找合理替代方案，但明确禁止恶意绕过。</p>
+<h3 id="消息创建与工具结果的数据流">消息创建与工具结果的数据流</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+sequenceDiagram
+    participant User as 用户输入
+    participant REPL as REPL.tsx
+    participant QE as QueryEngine
+    participant API as Claude API
+    participant STE as StreamingToolExecutor
+    participant Tool as 具体工具
+    participant TS as Transcript Storage
+
+    User-&gt;&gt;REPL: 输入文本
+    REPL-&gt;&gt;QE: submitMessage(prompt)
+    QE-&gt;&gt;QE: createUserMessage({content})
+    QE-&gt;&gt;TS: recordTranscript(messages) [预写]
+    QE-&gt;&gt;API: messages + systemPrompt
+    API--&gt;&gt;QE: AssistantMessage (stream)
+    QE-&gt;&gt;QE: baseCreateAssistantMessage({content, usage})
+
+    Note over API,STE: 模型返回 tool_use block
+    QE-&gt;&gt;STE: addTool(toolUseBlock)
+    STE-&gt;&gt;Tool: tool.call(input, context)
+    Tool--&gt;&gt;STE: ToolResult{data}
+    STE-&gt;&gt;STE: createUserMessage({tool_result})
+    Note right of STE: toolUseResult = 原始输出&lt;br/&gt;content = 序列化结果&lt;br/&gt;sourceToolAssistantUUID = 关联
+
+    STE--&gt;&gt;QE: yield 工具结果消息
+    QE-&gt;&gt;TS: void recordTranscript() [fire-and-forget]
+    QE-&gt;&gt;API: 继续下一轮...</div><h3 id="消息归一化管线">消息归一化管线</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart LR
+    A["内部消息列表&lt;br/&gt;(7+ 种类型)"] --&gt; B["过滤阶段"]
+    B --&gt; B1["移除 progress"]
+    B --&gt; B2["移除 isVirtual"]
+    B --&gt; B3["移除 synthetic API errors"]
+
+    B1 & B2 & B3 --&gt; C["附件重排序&lt;br/&gt;reorderAttachmentsForAPI"]
+
+    C --&gt; D["连续 user 合并&lt;br/&gt;mergeUserMessages"]
+
+    D --&gt; E["system → user 转换&lt;br/&gt;local_command 等"]
+
+    E --&gt; F["媒体剥离&lt;br/&gt;过大图片/PDF"]
+
+    F --&gt; G["API 格式&lt;br/&gt;user/assistant 交替"]
+
+    style A fill:#ecfeff,stroke:#06b6d4
+    style G fill:#dcfce7,stroke:#22c55e</div><div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<p>工具结果消息（tool_result）是&quot;用户&quot;和&quot;系统&quot;的混合体——它既是工具执行的产物，又伪装成用户消息。</p>
+<ul>
+<li>tool_result 塞进 user 消息是 Anthropic API 的要求——API 的 user/assistant 交替规则不允许独立工具结果消息类型。</li>
+<li>UserMessage 承载了过多的语义（工具结果、meta、虚拟消息）——API 约束和设计理想之间的妥协。</li>
+<li>sourceToolAssistantUUID 作为工具结果和工具调用的关联键——没有它消息系统就无法关联请求和响应。</li>
+<li>fire-and-forget 的 transcript 写入是吞吐和可靠性的经典权衡。</li>
+</ul>
+</div><hr>
+<h2 id="消息持久化">5.4 消息持久化</h2>
+<h3 id="transcript-录制机制">Transcript 录制机制</h3>
+<p>Claude Code 使用 JSONL（JSON Lines）格式将对话消息持久化到磁盘。核心入口是 <code>recordTranscript</code> 函数：</p>
+<pre><code class="language-typescript">export async function recordTranscript(
+  messages: Message[],
+  teamInfo?: TeamInfo,
+  startingParentUuidHint?: UUID,
+  allMessages?: readonly Message[],
+): Promise&lt;UUID | null&gt; {
+  const cleanedMessages = cleanMessagesForLogging(messages, allMessages)
+  const sessionId = getSessionId() as UUID
+  const messageSet = await getSessionMessages(sessionId)
+  const newMessages: typeof cleanedMessages = []
+  let startingParentUuid: UUID | undefined = startingParentUuidHint
+  let seenNewMessage = false
+  for (const m of cleanedMessages) {
+    if (messageSet.has(m.uuid as UUID)) {
+      if (!seenNewMessage &amp;&amp; isChainParticipant(m)) {
+        startingParentUuid = m.uuid as UUID
+      }
+    } else {
+      newMessages.push(m)
+      seenNewMessage = true
+    }
+  }
+  if (newMessages.length &gt; 0) {
+    await getProject().insertMessageChain(
+      newMessages,
+      false,
+      undefined,
+      startingParentUuid,
+      teamInfo,
+    )
+  }
+  return (lastRecorded?.uuid as UUID | undefined) ?? startingParentUuid ?? null
+}</code></pre><p>这个函数有几个关键的设计决策：</p>
+<p><strong>增量录制</strong>：通过 <code>messageSet</code> 跟踪已录制的消息 UUID，每次只写入新消息。这避免了在长对话中反复序列化整个历史。</p>
+<p><strong>父链追踪</strong>：<code>startingParentUuid</code> 维护消息之间的因果链。这对于 <code>--resume</code> 恢复和分支管理至关重要。</p>
+<p><strong>前缀检测</strong>：已录制消息只有在形成前缀时才更新 <code>startingParentUuid</code>。这处理了 compaction 场景——新的 compact boundary 和摘要消息出现在保留消息之前，不应被视为父链的一部分。</p>
+<h3 id="crashproof-设计">Crashproof 设计</h3>
+<p>消息持久化的时序经过精心设计以实现崩溃安全：</p>
+<pre><code class="language-typescript">// 用户消息在进入查询循环之前写入
+if (persistSession &amp;&amp; messagesFromUserInput.length &gt; 0) {
+  const transcriptPromise = recordTranscript(messages)
+  if (isBareMode()) {
+    void transcriptPromise  // fire-and-forget for scripts
+  } else {
+    await transcriptPromise  // block for interactive sessions
+  }
+}</code></pre><p>注释中详细解释了为什么用户消息必须在 API 调用之前写入：</p>
+<pre><code>// If the process is killed before that (e.g. user clicks Stop in cowork
+// seconds after send), the transcript is left with only queue-operation
+// entries; getLastSessionLog filters those out, returns null, and --resume
+// fails with "No conversation found".</code></pre><p>对于 assistant 消息，策略不同——使用 fire-and-forget：</p>
+<pre><code class="language-typescript">if (message.type === 'assistant') {
+  void recordTranscript(messages)  // fire-and-forget
+} else {
+  await recordTranscript(messages)  // await for user messages
+}</code></pre><p>原因是 <code>claude.ts</code> 的流式机制——它 yield 一个 assistant 消息后会 mutate 该消息的 <code>usage</code> 和 <code>stop_reason</code> 字段。如果 await 写入，后续的 <code>message_delta</code> 事件就无法及时处理。写入队列的 100ms 延迟 jsonStringify 自然处理了这个竞态。</p>
+<h3 id="compact-boundary-的持久化">Compact Boundary 的持久化</h3>
+<p>压缩边界需要特殊处理——在写入 compact boundary 之前，必须确保保留段的尾部消息已经写入：</p>
+<pre><code class="language-typescript">if (message.type === 'system' &amp;&amp; message.subtype === 'compact_boundary') {
+  const tailUuid = message.compactMetadata?.preservedSegment?.tailUuid
+  if (tailUuid) {
+    const tailIdx = this.mutableMessages.findLastIndex(
+      m =&gt; m.uuid === tailUuid,
+    )
+    if (tailIdx !== -1) {
+      await recordTranscript(this.mutableMessages.slice(0, tailIdx + 1))
+    }
+  }
+}</code></pre><p>如果跳过这一步，<code>--resume</code> 恢复时 <code>applyPreservedSegmentRelinks</code> 的 tail-to-head 遍历会因找不到已录制的尾部消息而失败。</p>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>JSONL 持久化和 --resume 恢复机制是 Claude Code 区别于纯 Web 聊天的重要能力——所有历史都在本地，随时可以回到之前的对话。</p>
+<ul>
+<li>JSONL 追加写比 JSON 批量写更 crash-safe——写一行 flush 一行，写到一半崩溃也不会丢已写部分。</li>
+<li>父链（parentUUID）支持分支会话——同一条消息可以 fork 出多个不同的后续路径，像 git branch 一样灵活。</li>
+<li>入口点存档（entry-point archiving）解决的是&quot;断点续传&quot;的定位问题——从入口到当前消息的路径必须完整记录。</li>
+<li>transcript 的预写 + fire-and-forget 双模式既保证了数据安全性，又不阻塞主流程——是吞吐和可靠性的平衡方案。</li>
+</ul>
+</div><hr>
+<h2 id="消息归一化">5.5 消息归一化</h2>
+<h3 id="normalizemessagesforapi">normalizeMessagesForAPI</h3>
+<p><code>normalizeMessagesForAPI</code> 是消息发送给 API 前的最后一道转换。它的职责是将内部的丰富消息类型映射为 Claude API 接受的 user/assistant 交替格式。</p>
+<pre><code class="language-typescript">export function normalizeMessagesForAPI(
+  messages: Message[],
+  tools: Tools = [],
+): (UserMessage | AssistantMessage)[] {
+  const availableToolNames = new Set(tools.map(t =&gt; t.name))
+
+  const reorderedMessages = reorderAttachmentsForAPI(messages).filter(
+    m =&gt; !((m.type === 'user' || m.type === 'assistant') &amp;&amp; m.isVirtual),
+  )</code></pre><p>转换过程包含多个阶段：</p>
+<p><strong>第一阶段：过滤</strong></p>
+<ul>
+<li>移除 <code>progress</code> 消息（仅用于 UI）</li>
+<li>移除虚拟消息（<code>isVirtual: true</code>）</li>
+<li>移除合成 API 错误消息（<code>isSyntheticApiErrorMessage</code>）</li>
+</ul>
+<p><strong>第二阶段：附件重排序</strong></p>
+<p><code>reorderAttachmentsForAPI</code> 将 attachment 消息上移到它们相关的 tool_result 之前，因为 API 要求 user 消息不能出现在 tool_result 之间。</p>
+<p><strong>第三阶段：连续 user 消息合并</strong></p>
+<p>Bedrock API 不支持连续的 user 消息（1P API 支持但会自动合并），所以归一化函数主动合并它们：</p>
+<pre><code class="language-typescript">case 'user': {
+  const lastMessage = last(result)
+  if (lastMessage?.type === 'user') {
+    result[result.length - 1] = mergeUserMessages(lastMessage, userMsg)
+    return
+  }
+  result.push(userMsg)
+  return
+}</code></pre><p><strong>第四阶段：System 消息转 User 消息</strong></p>
+<p><code>local_command</code> 类型的系统消息需要转换为 user 消息，因为 API 不接受 system role 的中间消息：</p>
+<pre><code class="language-typescript">case 'system': {
+  const userMsg = createUserMessage({
+    content: message.content,
+    uuid: message.uuid,
+    timestamp: message.timestamp,
+  })
+  // ...
+}</code></pre><p><strong>第五阶段：错误引起的媒体剥离</strong></p>
+<p>如果之前的 API 调用因为图片/PDF 过大而失败，归一化函数会从对应的 user 消息中剥离这些媒体块，防止重复触发同样的错误：</p>
+<pre><code class="language-typescript">const typesToStrip = stripTargets.get(normalizedMessage.uuid)
+if (typesToStrip &amp;&amp; normalizedMessage.isMeta) {
+  const content = normalizedMessage.message.content
+  if (Array.isArray(content)) {
+    const filtered = content.filter(
+      block =&gt; !typesToStrip.has(block.type),
+    )
+    // ...
+  }
+}</code></pre><h3 id="normalizemessagesui-归一化">normalizeMessages（UI 归一化）</h3>
+<p>与 API 归一化不同，UI 归一化（<code>normalizeMessages</code>）将多 content block 的消息拆分为每条消息一个 block：</p>
+<pre><code class="language-typescript">export function normalizeMessages(messages: Message[]): NormalizedMessage[] {
+  let isNewChain = false
+  return messages.flatMap(message =&gt; {
+    switch (message.type) {
+      case 'assistant': {
+        isNewChain = isNewChain || message.message.content.length &gt; 1
+        return message.message.content.map((_, index) =&gt; {
+          const uuid = isNewChain
+            ? deriveUUID(message.uuid, index)
+            : message.uuid
+          return {
+            type: 'assistant',
+            message: { ...message.message, content: [_] },
+            uuid,
+            // ...
+          }
+        })
+      }
+      // ...
+    }
+  })
+}</code></pre><p><code>isNewChain</code> 标志确保一旦发生拆分，后续所有消息的 UUID 都重新派生。这维护了 UUID 的唯一性不变量——不会出现两条消息共享同一个 UUID 的情况。</p>
+<h3 id="reordermessagesinui">reorderMessagesInUI</h3>
+<p>UI 渲染需要的消息顺序与 API 不同。<code>reorderMessagesInUI</code> 将工具调用相关的消息按逻辑分组：</p>
+<pre><code>tool_use -&gt; pre_hooks -&gt; tool_result -&gt; post_hooks</code></pre><p>而非按时间顺序。这让用户看到的是一个完整的&quot;工具调用故事&quot;，而非零散的交错事件。</p>
+<pre><code class="language-typescript">// First pass: group messages by tool use ID
+for (const message of messages) {
+  if (isToolUseRequestMessage(message)) {
+    toolUseGroups.set(toolUseID, {
+      toolUse: null,
+      preHooks: [],
+      toolResult: null,
+      postHooks: [],
+    })
+  }
+}
+
+// Second pass: reconstruct in logical order
+for (const message of messages) {
+  if (isToolUseRequestMessage(message)) {
+    const group = toolUseGroups.get(toolUseID)
+    result.push(group.toolUse)
+    result.push(...group.preHooks)
+    if (group.toolResult) result.push(group.toolResult)
+    result.push(...group.postHooks)
+  }
+}</code></pre><p>这种两遍扫描算法（first pass: group, second pass: reconstruct）在保持 O(n) 时间复杂度的同时，实现了任意交错消息的正确重排。</p>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>消息归一化管线是&quot;入站消息的安检通道&quot;——所有消息在发送给 API 之前都要经过 5 个阶段的过滤和重组。</p>
+<ul>
+<li>5 阶段管线（过滤 → 重排序 → 合并 → 转换 → 剥离）每一阶段都有明确的职责——这比一个巨大的处理函数更容易测试和维护。</li>
+<li>连续 user 消息合并且不是简单拼接——因为 tool_result 后的 user 消息和用户真实输入的区别需要在合并时保留关键信息。</li>
+<li>媒体剥离说明了一个现实：token 预算有限，超大附件不能无限制地塞进上下文——归一化管线是最后一层防护。</li>
+<li>user/assistant 交替是 Anthropic API 的硬性要求——归一化管线最后一步确保格式合规，把脏活累活留给框架而非开发者。</li>
+</ul>
+</div>
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-04-query-engine/" class="chapter-prev">← 第 4 章：查询引擎</a>
+      <a href="/2026/05/21/claude-code-06-streaming/" class="chapter-next">第 6 章：流式处理 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

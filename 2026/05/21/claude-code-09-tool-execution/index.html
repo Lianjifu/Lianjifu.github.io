@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 9 章：工具执行管线__DESCRIPTION__quot;并发不是并行，但并发能让并行成为可能。__DESCRIPTION__quot; —— Rob Pike思考维度内容引导思考 展开它为什么存在模型在一次响应里可能同时调好几个工具，谁来排优先级、谁先谁后——这就是调度器要干的事工具执行是整个查询循环的速度瓶颈，安排好了能省几秒，安排不好用户就干等着它解决什么问题并发安全工具（如 Read、Glob）可以并行跑节省时间，非安全的（如 Bash）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 9 章：工具执行管线">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-09-tool-execution/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 9 章：工具执行管线__DESCRIPTION__quot;并发不是并行，但并发能让并行成为可能。__DESCRIPTION__quot; —— Rob Pike思考维度内容引导思考 展开它为什么存在模型在一次响应里可能同时调好几个工具，谁来排优先级、谁先谁后——这就是调度器要干的事工具执行是整个查询循环的速度瓶颈，安排好了能省几秒，安排不好用户就干等着它解决什么问题并发安全工具（如 Read、Glob）可以并行跑节省时间，非安全的（如 Bash）">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-09-tool-execution/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 9 章：工具执行管线 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-09-tool-execution/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 9 章：工具执行管线
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 9 章：工具执行管线</h1>
+<blockquote>
+<p>&quot;并发不是并行，但并发能让并行成为可能。&quot; —— Rob Pike</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>模型在一次响应里可能同时调好几个工具，谁来排优先级、谁先谁后——这就是调度器要干的事</li><li>工具执行是整个查询循环的速度瓶颈，安排好了能省几秒，安排不好用户就干等着</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>并发安全工具（如 Read、Glob）可以并行跑节省时间，非安全的（如 Bash）必须独占——调度器得区分这两种</li><li>工具虽然并行执行但结果必须按调用顺序输出——保持确定性，不然模型就懵了</li><li>Bash 失败了，正在跑的兄弟工具可能就没意义了——级联中止避免浪费算力</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>StreamingToolExecutor 在 L3 工具执行层，是查询循环中 tool_execution 阶段的调度中枢</li><li>通过 AsyncGenerator 管道与 query.ts 的流式响应处理连接，一头的产出就是另一头的输入</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>工具经历四个状态：排队 → 执行 → 完成 → 已产出。每个状态转换都有明确的触发条件</li><li>canExecuteTool 检查当前有多少工具在执行以及它们的并发类型，决定是否放新工具进来</li><li>getCompletedResults 先把进度消息清空，再按入队顺序 yield 完成结果——保证实时更新且不乱序</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>TrackedTool 封装每个工具的元数据、状态和 Promise，调度器通过这个追踪生命周期</li><li>siblingAbortController 是 toolUseContext.abortController 的子控制器——中止兄弟不影响整个查询</li><li>ContentReplacementState 在全局层面管理工具结果的累积预算，超过阈值就替换旧结果</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：工具调用是顺序执行的，不支持并行调度——VS Code 扩展 API 就没这个需求</li><li><strong>OpenClaw</strong>：简化版调度器，支持基本并发但不处理结果保序和错误级联</li><li><strong>Harness Agent</strong>：流水线步骤严格串行，靠编排 DAG 来调度而不是实时并发</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>并发安全工具并行跑显著减少端到端延迟，用户不用傻等</li><li>getCompletedResults 两阶段 yield（先进度再结果）实现实时更新</li><li>三层防线（单次截断 + 磁盘持久化 + 全局预算）防止工具输出撑爆上下文</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>本章深入分析 <code>StreamingToolExecutor</code> 并发调度器和 <code>toolExecution.ts</code> 执行管线的实现，揭示工具执行从队列入队到结果产出的完整数据通路。</p>
+<p>当模型在一次响应中调用多个工具时，Claude Code 面临一个核心调度问题：哪些工具可以并行？哪些必须串行？如果一个工具失败了，正在运行的兄弟工具怎么办？工具输出太大怎么处理？</p>
+<hr>
+<h2 id="streamingtoolexecutor-并发调度器的状态机">9.1 StreamingToolExecutor —— 并发调度器的状态机</h2>
+<h3 id="设计挑战">9.1.1 设计挑战</h3>
+<p>Claude 模型以流式方式生成响应，工具调用也是逐步&quot;流入&quot;的——模型可能先生成第一个工具调用的参数，接着是第二个，然后是第三个。<code>StreamingToolExecutor</code> 需要在工具调用流入的同时就开始执行，而不是等到所有工具调用都生成完毕才开始。</p>
+<p>这带来了几个核心挑战：</p>
+<ol>
+<li>工具调用的到达是渐进的，需要即时调度</li>
+<li>并发安全的工具应该并行执行以提高效率</li>
+<li>非并发安全的工具必须独占执行</li>
+<li>结果必须按到达顺序输出（保持确定性）</li>
+<li>一个工具的失败（特别是 Bash）应该取消正在运行的兄弟工具</li>
+</ol>
+<h3 id="trackedtool-与状态机">9.1.2 TrackedTool 与状态机</h3>
+<p>每个进入调度器的工具被封装为 <code>TrackedTool</code>：</p>
+<pre><code class="language-typescript">// src/services/tools/StreamingToolExecutor.ts
+type ToolStatus = 'queued' | 'executing' | 'completed' | 'yielded'
+
+type TrackedTool = {
+  id: string
+  block: ToolUseBlock
+  assistantMessage: AssistantMessage
+  status: ToolStatus
+  isConcurrencySafe: boolean
+  promise?: Promise&lt;void&gt;
+  results?: Message[]
+  pendingProgress: Message[]
+  contextModifiers?: Array&lt;(context: ToolUseContext) =&gt; ToolUseContext&gt;
+}</code></pre><p>工具在其生命周期内经历四个状态：</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+stateDiagram-v2
+    [*] --&gt; queued: addTool()
+    queued --&gt; executing: canExecuteTool() = true
+    queued --&gt; completed: 已中止（合成错误）
+    executing --&gt; completed: 执行完成
+    completed --&gt; yielded: getCompletedResults()
+    yielded --&gt; [*]
+
+    note right of queued
+        等待调度。
+        可能因为有非并发工具
+        正在执行而阻塞。
+    end note
+
+    note right of executing
+        正在运行。
+        进度消息被立即转发。
+    end note
+
+    note right of completed
+        执行完成，结果已缓冲。
+        等待按序输出。
+    end note
+
+    note right of yielded
+        结果已输出给调用方。
+        终态。
+    end note</div><h3 id="调度器初始化">9.1.3 调度器初始化</h3>
+<pre><code class="language-typescript">export class StreamingToolExecutor {
+  private tools: TrackedTool[] = []
+  private toolUseContext: ToolUseContext
+  private hasErrored = false
+  private erroredToolDescription = ''
+  private siblingAbortController: AbortController
+  private discarded = false
+  private progressAvailableResolve?: () =&gt; void
+
+  constructor(
+    private readonly toolDefinitions: Tools,
+    private readonly canUseTool: CanUseToolFn,
+    toolUseContext: ToolUseContext,
+  ) {
+    this.toolUseContext = toolUseContext
+    this.siblingAbortController = createChildAbortController(
+      toolUseContext.abortController,
+    )
+  }
+}</code></pre><p>注意 <code>siblingAbortController</code> 的设计：它是 <code>toolUseContext.abortController</code> 的子控制器。当一个 Bash 工具出错时，<code>siblingAbortController</code> 被中止，这会终止所有正在执行的兄弟工具的子进程，但<strong>不会</strong>中止父控制器——查询循环不会因此结束。</p>
+<h3 id="工具入队-addtool">9.1.4 工具入队 —— addTool</h3>
+<pre><code class="language-typescript">addTool(block: ToolUseBlock, assistantMessage: AssistantMessage): void {
+  const toolDefinition = findToolByName(this.toolDefinitions, block.name)
+  if (!toolDefinition) {
+    // 未知工具：立即标记为 completed，返回错误
+    this.tools.push({
+      id: block.id, block, assistantMessage,
+      status: 'completed',
+      isConcurrencySafe: true,
+      pendingProgress: [],
+      results: [createUserMessage({
+        content: [{
+          type: 'tool_result',
+          content: `Error: No such tool available: ${block.name}`,
+          is_error: true, tool_use_id: block.id,
+        }],
+      })],
+    })
+    return
+  }
+
+  // 解析输入以确定并发安全性
+  const parsedInput = toolDefinition.inputSchema.safeParse(block.input)
+  const isConcurrencySafe = parsedInput?.success
+    ? (() =&gt; {
+        try {
+          return Boolean(toolDefinition.isConcurrencySafe(parsedInput.data))
+        } catch {
+          return false  // 解析失败 -&gt; 假定不安全
+        }
+      })()
+    : false  // schema 验证失败 -&gt; 假定不安全
+
+  this.tools.push({
+    id: block.id, block, assistantMessage,
+    status: 'queued', isConcurrencySafe,
+    pendingProgress: [],
+  })
+
+  void this.processQueue()
+}</code></pre><p>几个关键设计点：</p>
+<ol>
+<li><strong>未知工具快速失败。</strong> 找不到的工具立即被标记为 <code>completed</code> 并赋予错误结果，不进入队列。</li>
+<li><strong>并发安全性是输入相关的。</strong> <code>isConcurrencySafe</code> 在此时就被计算并固定，因为它取决于具体的输入参数。</li>
+<li><strong>失败关闭。</strong> schema 解析失败或 <code>isConcurrencySafe</code> 抛异常时，默认为 <code>false</code>。</li>
+</ol>
+<h3 id="调度决策-canexecutetool">9.1.5 调度决策 —— canExecuteTool</h3>
+<pre><code class="language-typescript">private canExecuteTool(isConcurrencySafe: boolean): boolean {
+  const executingTools = this.tools.filter(t =&gt; t.status === 'executing')
+  return (
+    executingTools.length === 0 ||
+    (isConcurrencySafe &amp;&amp; executingTools.every(t =&gt; t.isConcurrencySafe))
+  )
+}</code></pre><p>这个函数定义了核心调度规则，可以用一个简洁的真值表表达：</p>
+<table>
+<thead>
+<tr>
+<th>正在执行的工具</th>
+<th>新工具类型</th>
+<th>能否执行</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无</td>
+<td>任何</td>
+<td>是</td>
+</tr>
+<tr>
+<td>全部并发安全</td>
+<td>并发安全</td>
+<td>是</td>
+</tr>
+<tr>
+<td>全部并发安全</td>
+<td>非并发安全</td>
+<td>否</td>
+</tr>
+<tr>
+<td>任何非并发安全</td>
+<td>任何</td>
+<td>否</td>
+</tr>
+</tbody></table>
+<p>简言之：<strong>并发安全的工具可以彼此并行，但非并发安全的工具必须独占执行。</strong></p>
+<h3 id="队列处理-processqueue">9.1.6 队列处理 —— processQueue</h3>
+<pre><code class="language-typescript">private async processQueue(): Promise&lt;void&gt; {
+  for (const tool of this.tools) {
+    if (tool.status !== 'queued') continue
+
+    if (this.canExecuteTool(tool.isConcurrencySafe)) {
+      await this.executeTool(tool)
+    } else {
+      // 非并发工具无法执行时，停止扫描后续工具
+      if (!tool.isConcurrencySafe) break
+    }
+  }
+}</code></pre><p>注意 <code>break</code> 的条件：当遇到一个无法执行的<strong>非并发安全</strong>工具时，停止扫描。这是因为非并发工具必须按顺序执行——后续的工具（无论是否并发安全）都不能跳过它先执行。</p>
+<p>但如果无法执行的是并发安全工具（因为当前有非并发工具在执行），循环会继续扫描——可能后面还有其他需要处理的工具。</p>
+<h3 id="并发执行时序图">9.1.7 并发执行时序图</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+sequenceDiagram
+    participant M as 模型流
+    participant STE as StreamingToolExecutor
+    participant T1 as GrepTool (并发安全)
+    participant T2 as GlobTool (并发安全)
+    participant T3 as FileEditTool (非并发)
+
+    M-&gt;&gt;STE: addTool(Grep, ...)
+    STE-&gt;&gt;STE: canExecuteTool(true) = true
+    STE-&gt;&gt;T1: executeTool (并行启动)
+    M-&gt;&gt;STE: addTool(Glob, ...)
+    STE-&gt;&gt;STE: canExecuteTool(true) = true
+    Note right of STE: 当前执行: [Grep(并发), Glob(并发)]
+    STE-&gt;&gt;T2: executeTool (并行启动)
+    M-&gt;&gt;STE: addTool(FileEdit, ...)
+    STE-&gt;&gt;STE: canExecuteTool(false) = false
+    Note right of STE: FileEdit 进入 queued 等待
+
+    T1--&gt;&gt;STE: 完成
+    T2--&gt;&gt;STE: 完成
+    STE-&gt;&gt;STE: processQueue() 重新扫描
+    STE-&gt;&gt;STE: canExecuteTool(false) = true
+    STE-&gt;&gt;T3: executeTool (独占启动)
+    T3--&gt;&gt;STE: 完成
+    STE--&gt;&gt;M: 按序输出所有结果</div><div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<p>StreamingToolExecutor 是整个工具系统的&quot;交通警察&quot;——它决定哪些工具可以同时跑、哪些必须排队、工具失败了怎么处理。</p>
+<ul>
+<li>四状态模型（排队 → 执行 → 完成 → 已产出）比二状态（等待/完成）更精确：每个状态转换都有明确的触发条件，调度器可以基于状态做精确决策。</li>
+<li>canExecuteTool 检查当前并发量和并发类型，决定新工具是否可以入场——这是调度器的核心决策函数，&quot;拥堵时不让新车上路&quot;。</li>
+<li>结果保序（getCompletedResults）是最容易被忽视但最关键的设计——工具虽然并行执行，但结果必须按发起顺序产出，否则模型会混淆。</li>
+<li>siblingAbortController 通过子控制器实现&quot;中止兄弟不影响父查询&quot;——这比全局 abort 更精细，不会因为一个工具出错而取消整个查询。</li>
+</ul>
+</div><hr>
+<h2 id="并发安全性-isconcurrencysafe-的语义和调度规则">9.2 并发安全性 —— isConcurrencySafe 的语义和调度规则</h2>
+<h3 id="工具的并发安全分类">9.2.1 工具的并发安全分类</h3>
+<p>在 Claude Code 的工具集中，并发安全属性的分布如下：</p>
+<p><strong>始终并发安全：</strong></p>
+<ul>
+<li><code>GlobTool</code> —— 纯文件名搜索，不修改任何状态</li>
+<li><code>GrepTool</code> —— 纯内容搜索</li>
+<li><code>FileReadTool</code> —— 纯读取</li>
+<li><code>WebFetchTool</code> —— HTTP GET，无副作用</li>
+<li><code>TaskCreateTool</code>/<code>TaskGetTool</code>/<code>TaskUpdateTool</code>/<code>TaskListTool</code> —— 任务操作互相独立</li>
+</ul>
+<p><strong>始终非并发安全：</strong></p>
+<ul>
+<li><code>FileEditTool</code> —— 修改文件内容</li>
+<li><code>FileWriteTool</code> —— 创建/覆写文件</li>
+</ul>
+<p><strong>输入相关的并发安全性：</strong></p>
+<ul>
+<li><code>BashTool</code> —— 只有确认为只读的命令才并发安全</li>
+</ul>
+<p>BashTool 的实现值得细看：</p>
+<pre><code class="language-typescript">// BashTool
+isConcurrencySafe(input) {
+  return this.isReadOnly?.(input) ?? false
+},
+isReadOnly(input) {
+  const compoundCommandHasCd = commandHasAnyCd(input.command)
+  const result = checkReadOnlyConstraints(input, compoundCommandHasCd)
+  return result.behavior === 'allow'
+},</code></pre><p>这意味着 <code>ls -la</code> 会被并发执行（只读），但 <code>git push</code> 会独占执行（写操作）。</p>
+<h3 id="错误级联-bash-特殊待遇">9.2.2 错误级联 —— Bash 特殊待遇</h3>
+<p>当工具执行失败时，<code>StreamingToolExecutor</code> 对 Bash 工具有特殊处理：</p>
+<pre><code class="language-typescript">// 在 executeTool 中
+if (isErrorResult) {
+  thisToolErrored = true
+  // 只有 Bash 错误会取消兄弟工具
+  if (tool.block.name === BASH_TOOL_NAME) {
+    this.hasErrored = true
+    this.erroredToolDescription = this.getToolDescription(tool)
+    this.siblingAbortController.abort('sibling_error')
+  }
+}</code></pre><p>源码注释解释了原因：</p>
+<blockquote>
+<p><em>&quot;Only Bash errors cancel siblings. Bash commands often have implicit dependency chains (e.g. mkdir fails -&gt; subsequent commands pointless). Read/WebFetch/etc are independent —— one failure shouldn&#39;t nuke the rest.&quot;</em></p>
+</blockquote>
+<p>这是一个务实的设计决策：Bash 命令之间经常有隐式依赖（前一个创建目录，后一个在该目录中操作），所以一个 Bash 命令失败通常意味着后续 Bash 命令也会失败。但 Read、Grep 等独立工具彼此无关，一个失败不应影响其他。</p>
+<h3 id="中断行为-interruptbehavior">9.2.3 中断行为 —— interruptBehavior</h3>
+<p>当用户在工具执行过程中提交新消息时，<code>StreamingToolExecutor</code> 需要决定每个工具的命运：</p>
+<pre><code class="language-typescript">private getToolInterruptBehavior(tool: TrackedTool): 'cancel' | 'block' {
+  const definition = findToolByName(this.toolDefinitions, tool.block.name)
+  if (!definition?.interruptBehavior) return 'block'  // 默认：阻塞
+  try {
+    return definition.interruptBehavior()
+  } catch {
+    return 'block'
+  }
+}</code></pre><ul>
+<li><code>&#39;cancel&#39;</code> —— 停止工具，丢弃结果（用于可以安全中断的工具）</li>
+<li><code>&#39;block&#39;</code> —— 继续运行，新消息等待（默认行为）</li>
+</ul>
+<p><code>updateInterruptibleState</code> 方法维护一个全局标志，告诉 UI 是否当前有可中断的工具在运行：</p>
+<pre><code class="language-typescript">private updateInterruptibleState(): void {
+  const executing = this.tools.filter(t =&gt; t.status === 'executing')
+  this.toolUseContext.setHasInterruptibleToolInProgress?.(
+    executing.length &gt; 0 &amp;&amp;
+    executing.every(t =&gt; this.getToolInterruptBehavior(t) === 'cancel'),
+  )
+}</code></pre><p>只有当所有正在执行的工具都是 <code>&#39;cancel&#39;</code> 类型时，UI 才会显示&quot;可中断&quot;状态。</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>并发安全性是工具调度中最微妙的设计——不是&quot;能不能同时跑&quot;的技术判断，而是&quot;同时跑会不会出问题&quot;的语义判断。</p>
+<ul>
+<li>并发安全（isConcurrencySafe）的语义是&quot;工具有副作用就不能并发&quot;——两个 Read 可以同时读同一个文件，但两个 Bash 不能同时在同一个目录执行。</li>
+<li>partitionToolCalls 把工具分成并发安全组和非安全组，后者串行执行——这不是性能优化，而是正确性保障。</li>
+<li>结果保序的实现方式是&quot;按入队顺序 yield&quot;——并发执行但串行产出，消费者看到的效果和执行顺序完全一致。</li>
+<li>一个微妙的点：错误级联（cascading abort）——Bash 失败了，正在跑的 Read/Glob 可能也被中止。这不是 bug，而是&quot;错误传播&quot;的设计决策。</li>
+</ul>
+</div><hr>
+<h2 id="工具结果截断-maxresultsizechars-与磁盘持久化">9.3 工具结果截断 —— maxResultSizeChars 与磁盘持久化</h2>
+<h3 id="问题背景">9.3.1 问题背景</h3>
+<p>工具输出可能非常大——一次 <code>grep</code> 可能返回数千行匹配，一个 <code>bash</code> 命令可能产生 MB 级的日志。将所有这些塞入对话消息会迅速耗尽上下文窗口。</p>
+<p>Claude Code 的解决方案是<strong>磁盘持久化</strong>：当工具输出超过阈值时，完整结果保存到磁盘文件，模型只看到一个预览和文件路径。</p>
+<h3 id="持久化阈值">9.3.2 持久化阈值</h3>
+<p>每个工具通过 <code>maxResultSizeChars</code> 声明自己的阈值：</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>maxResultSizeChars</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>FileReadTool</td>
+<td>Infinity</td>
+<td>永不持久化（避免循环读取）</td>
+</tr>
+<tr>
+<td>BashTool</td>
+<td>30,000</td>
+<td>30K 字符</td>
+</tr>
+<tr>
+<td>GrepTool</td>
+<td>20,000</td>
+<td>20K 字符</td>
+</tr>
+<tr>
+<td>FileEditTool</td>
+<td>100,000</td>
+<td>100K 字符</td>
+</tr>
+<tr>
+<td>GlobTool</td>
+<td>100,000</td>
+<td>100K 字符</td>
+</tr>
+<tr>
+<td>WebFetchTool</td>
+<td>100,000</td>
+<td>100K 字符</td>
+</tr>
+</tbody></table>
+<p>实际生效的阈值由 <code>getPersistenceThreshold</code> 函数决定：</p>
+<pre><code class="language-typescript">// src/utils/toolResultStorage.ts
+export function getPersistenceThreshold(
+  toolName: string,
+  declaredMaxResultSizeChars: number,
+): number {
+  // Infinity = 硬性豁免（Read 工具）
+  if (!Number.isFinite(declaredMaxResultSizeChars)) {
+    return declaredMaxResultSizeChars
+  }
+  // GrowthBook 覆盖（A/B 测试用）
+  const overrides = getFeatureValue_CACHED_MAY_BE_STALE(
+    'tengu_satin_quoll', {}
+  )
+  const override = overrides?.[toolName]
+  if (typeof override === 'number' &amp;&amp; Number.isFinite(override) &amp;&amp; override &gt; 0) {
+    return override
+  }
+  // 取 min(工具声明值, 全局默认值)
+  return Math.min(declaredMaxResultSizeChars, DEFAULT_MAX_RESULT_SIZE_CHARS)
+}</code></pre><p>这里有三层：</p>
+<ol>
+<li><code>Infinity</code> 豁免——Read 工具永远不会被持久化</li>
+<li>GrowthBook 远程配置覆盖——可以动态调整某个工具的阈值</li>
+<li>取 min(工具声明, 全局默认) —— 确保不超过全局上限</li>
+</ol>
+<h3 id="持久化流程">9.3.3 持久化流程</h3>
+<pre><code class="language-typescript">// src/utils/toolResultStorage.ts
+export async function persistToolResult(
+  content: NonNullable&lt;ToolResultBlockParam['content']&gt;,
+  toolUseId: string,
+): Promise&lt;PersistedToolResult | PersistToolResultError&gt; {
+  await ensureToolResultsDir()
+  const filepath = getToolResultPath(toolUseId, isJson)
+  const contentStr = isJson ? jsonStringify(content) : content
+
+  // 使用 'wx' 标志 -- 如果文件已存在则跳过
+  try {
+    await writeFile(filepath, contentStr, { encoding: 'utf-8', flag: 'wx' })
+  } catch (error) {
+    if (getErrnoCode(error) !== 'EEXIST') {
+      return { error: getFileSystemErrorMessage(toError(error)) }
+    }
+    // EEXIST: 之前的 turn 已经持久化过
+  }
+
+  const { preview, hasMore } = generatePreview(contentStr, PREVIEW_SIZE_BYTES)
+  return { filepath, originalSize: contentStr.length, isJson, preview, hasMore }
+}</code></pre><p><code>&#39;wx&#39;</code> 标志是一个性能优化——<code>tool_use_id</code> 是唯一的，同一个 ID 的内容是确定性的。使用 <code>wx</code>（独占创建）避免了重复写入，特别是在 microcompact（上下文压缩）重放原始消息时。</p>
+<p>持久化后的结果消息格式：</p>
+<pre><code class="language-typescript">export function buildLargeToolResultMessage(result: PersistedToolResult): string {
+  let message = `${PERSISTED_OUTPUT_TAG}\n`
+  message += `Output too large (${formatFileSize(result.originalSize)}). `
+  message += `Full output saved to: ${result.filepath}\n\n`
+  message += `Preview (first ${formatFileSize(PREVIEW_SIZE_BYTES)}):\n`
+  message += result.preview
+  message += result.hasMore ? '\n...\n' : '\n'
+  message += PERSISTED_OUTPUT_CLOSING_TAG
+  return message
+}</code></pre><p>模型看到的是预览（前 2000 字节）和完整输出的文件路径。如果需要查看更多内容，模型可以使用 FileReadTool 读取持久化文件。</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TD
+    A[工具返回结果] --&gt; B{结果大小 &gt; 阈值?}
+    B --&gt;|否| C[直接包含在消息中]
+    B --&gt;|是| D[保存到磁盘]
+    D --&gt; E[生成预览 2000 字节]
+    E --&gt; F[构建引用消息]
+    F --&gt; G[模型看到预览 + 文件路径]
+    G --&gt; H{模型需要更多?}
+    H --&gt;|是| I[调用 FileReadTool 读取文件]
+    H --&gt;|否| J[继续对话]
+
+    style D fill:#ff9,stroke:#333
+    style G fill:#9f9,stroke:#333</div><div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<p>工具结果截断不是&quot;限制自由&quot;，而是&quot;保护上下文窗口&quot;——一个工具的输出可能撑爆整个上下文，截断是在全局利益和局部自由之间的权衡。</p>
+<ul>
+<li>三层防线（单次截断 → 磁盘持久化 → 全局预算）不是重复设计——每层应对不同粒度的风险：单次输出过大、历史输出累积、全局上下文爆满。</li>
+<li>磁盘持久化的设计最巧妙：工具结果太大时，不截断也不丢弃，而是写到磁盘文件，消息中只保留文件引用路径。这让上下文不会被撑爆，但结果仍然可用。</li>
+<li>maxResultSizeChars 的单次截断阈值避免了&quot;一个工具吃掉所有 token&quot;的问题——每个工具都有公平的 token 配额。</li>
+<li>全局内容替换预算（ContentReplacementState）是最后一道防线：即使每次截断都正常，累加起来也可能太多——全局预算确保总输出不会无限膨胀。</li>
+</ul>
+</div><hr>
+<h2 id="工具钩子-prepost-拦截器">9.4 工具钩子 —— Pre/Post 拦截器</h2>
+<h3 id="钩子系统概览">9.4.1 钩子系统概览</h3>
+<p>Claude Code 的工具执行管线在工具调用前后插入了两类钩子：</p>
+<ul>
+<li><strong>PreToolUse</strong> —— 工具执行前触发，可以修改输入、阻止执行、附加上下文</li>
+<li><strong>PostToolUse</strong> —— 工具执行后触发，可以修改输出、阻止继续</li>
+</ul>
+<p>这些钩子通过 <code>toolHooks.ts</code> 中的函数调度：</p>
+<pre><code class="language-typescript">// src/services/tools/toolHooks.ts
+export async function* runPreToolUseHooks(
+  toolUseContext: ToolUseContext,
+  tool: Tool,
+  processedInput: Record&lt;string, unknown&gt;,
+  toolUseID: string,
+  messageId: string,
+  // ...
+): AsyncGenerator&lt;PreToolHookResult&gt; {
+  for await (const result of executePreToolHooks(
+    tool.name, toolUseID, processedInput,
+    toolUseContext, permissionMode,
+    toolUseContext.abortController.signal,
+  )) {
+    // 处理各种钩子结果...
+  }
+}</code></pre><h3 id="pretooluse-钩子的结果类型">9.4.2 PreToolUse 钩子的结果类型</h3>
+<p>PreToolUse 钩子可以产生多种类型的结果：</p>
+<pre><code class="language-typescript">// toolExecution.ts 中处理的结果类型
+switch (result.type) {
+  case 'message':         // 钩子产生的消息（进度或附件）
+  case 'hookPermissionResult':  // 钩子做出的权限决策
+  case 'hookUpdatedInput':      // 钩子修改了输入
+  case 'preventContinuation':   // 钩子要求停止
+  case 'stopReason':            // 停止原因
+  case 'additionalContext':     // 额外上下文
+  case 'stop':                  // 立即停止
+}</code></pre><p><strong>hookPermissionResult</strong> 是最有趣的——钩子可以替代标准权限系统做出决策。这在 CI/CD 环境中特别有用，自定义钩子可以根据项目规则自动批准或拒绝工具调用。</p>
+<p><strong>hookUpdatedInput</strong> 允许钩子在不做权限决策的情况下修改输入。例如，一个钩子可以将相对路径转为绝对路径，或者添加安全标志。</p>
+<h3 id="posttooluse-钩子">9.4.3 PostToolUse 钩子</h3>
+<pre><code class="language-typescript">export async function* runPostToolUseHooks&lt;Input extends AnyObject, Output&gt;(
+  toolUseContext: ToolUseContext,
+  tool: Tool&lt;Input, Output&gt;,
+  toolUseID: string,
+  messageId: string,
+  toolInput: Record&lt;string, unknown&gt;,
+  toolResponse: Output,
+  // ...
+): AsyncGenerator&lt;PostToolUseHooksResult&lt;Output&gt;&gt; {
+  for await (const result of executePostToolHooks(
+    tool.name, toolUseID, toolInput, toolOutput,
+    toolUseContext, permissionMode,
+    toolUseContext.abortController.signal,
+  )) {
+    // 处理各种钩子结果...
+    // PostToolUse 钩子可以修改 MCP 工具的输出
+    if (result.updatedOutput) {
+      toolOutput = result.updatedOutput
+      yield { updatedMCPToolOutput: toolOutput }
+    }
+  }
+}</code></pre><p>PostToolUse 钩子的一个特殊能力是修改 MCP 工具的输出——这对于过滤敏感信息或规范化输出格式非常有用。</p>
+<h3 id="钩子执行的性能监控">9.4.4 钩子执行的性能监控</h3>
+<pre><code class="language-typescript">// src/services/tools/toolExecution.ts
+export const HOOK_TIMING_DISPLAY_THRESHOLD_MS = 500
+const SLOW_PHASE_LOG_THRESHOLD_MS = 2000
+
+// 钩子执行后
+const preToolHookDurationMs = Date.now() - preToolHookStart
+if (preToolHookDurationMs &gt;= SLOW_PHASE_LOG_THRESHOLD_MS) {
+  logForDebugging(
+    `Slow PreToolUse hooks: ${preToolHookDurationMs}ms for ${tool.name}`,
+    { level: 'info' },
+  )
+}
+
+// 显示钩子执行摘要
+if (preToolHookDurationMs &gt; HOOK_TIMING_DISPLAY_THRESHOLD_MS) {
+  resultingMessages.push({
+    message: createStopHookSummaryMessage(
+      preToolHookInfos.length, preToolHookInfos,
+      /* ... timing info ... */
+    ),
+  })
+}</code></pre><p>当钩子执行时间超过 500ms 时，UI 会显示一个摘要；超过 2000ms 时，会记录调试日志。这帮助用户识别性能瓶颈。</p>
+<h3 id="完整的工具执行管线">9.4.5 完整的工具执行管线</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+sequenceDiagram
+    participant STE as StreamingToolExecutor
+    participant TE as toolExecution
+    participant Pre as PreToolUse Hooks
+    participant Perm as 权限系统
+    participant Tool as 工具实现
+    participant Post as PostToolUse Hooks
+    participant Persist as 结果持久化
+
+    STE-&gt;&gt;TE: runToolUse(block, msg, canUseTool, ctx)
+    TE-&gt;&gt;TE: findToolByName / 别名回退
+    TE-&gt;&gt;TE: Zod safeParse(input)
+    TE-&gt;&gt;TE: tool.validateInput(input)
+    TE-&gt;&gt;TE: 推测性启动分类器(Bash)
+    TE-&gt;&gt;TE: backfillObservableInput(clone)
+
+    TE-&gt;&gt;Pre: runPreToolUseHooks
+    Note right of Pre: 返回: hookPermissionResult? / hookUpdatedInput? / stop?
+    TE-&gt;&gt;Perm: resolveHookPermissionDecision
+    Note right of Perm: hook 决策 &gt; 规则匹配 &gt; 分类器 &gt; 用户交互
+    Perm--&gt;&gt;TE: allow / deny / ask
+
+    alt 权限拒绝
+        TE--&gt;&gt;STE: 错误消息
+    else 权限允许
+        TE-&gt;&gt;TE: startToolSpan (OTel)
+        TE-&gt;&gt;Tool: tool.call(input, ctx, canUseTool, msg, onProgress)
+        Tool--&gt;&gt;TE: ToolResult { data, newMessages?, contextModifier? }
+
+        TE-&gt;&gt;Post: runPostToolUseHooks
+        Post--&gt;&gt;TE: updatedOutput? / blockingError?
+
+        TE-&gt;&gt;Persist: processToolResultBlock(tool, result, id)
+        Note right of Persist: 大于阈值? 保存到磁盘, 返回预览
+        Persist--&gt;&gt;TE: ToolResultBlockParam
+
+        TE--&gt;&gt;STE: yield MessageUpdate
+    end</div><div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>Pre/Post 工具钩子是 Claude Code 最灵活的扩展机制——在工具执行前后插入自定义逻辑，不需要修改工具的代码。</p>
+<ul>
+<li>PreToolUse 钩子在工具执行前触发，可以修改输入、阻止执行或记录审计日志——像是 Web 框架的&quot;请求中间件&quot;。</li>
+<li>PostToolUse 钩子在工具执行后触发，可以检查结果、记录日志或触发后续操作——像是 Web 框架的&quot;响应中间件&quot;。</li>
+<li>钩子系统的同步/异步分离是关键设计：大部分钩子是同步的（不阻塞工具执行），少数关键钩子是异步的（等待钩子完成才继续）。</li>
+<li>对比：Web 框架的中间件和 Agent 工具的钩子本质上是同一模式——&quot;在核心逻辑周围插入横切关注点&quot;。权限检查、审计日志、速率限制都是通过钩子实现的。</li>
+</ul>
+</div><hr>
+<h2 id="内容替换预算-contentreplacementstate-的设计">9.5 内容替换预算 —— ContentReplacementState 的设计</h2>
+<h3 id="问题上下文窗口膨胀">9.5.1 问题：上下文窗口膨胀</h3>
+<p>即使有了 <code>maxResultSizeChars</code> 的单次截断，长对话中累积的工具结果仍然会逐渐填满上下文窗口。每次 API 调用都需要发送完整的消息历史，其中大量旧的工具输出可能已经不再相关。</p>
+<p><code>ContentReplacementState</code> 实现了一个<strong>全局工具结果预算</strong>——在总量超标时，自动将旧的工具结果替换为简短摘要。</p>
+<h3 id="核心数据结构">9.5.2 核心数据结构</h3>
+<pre><code class="language-typescript">// src/utils/toolResultStorage.ts
+export type ContentReplacementState = {
+  seenIds: Set&lt;string&gt;           // 已经处理过的 tool_use_id
+  replacements: Map&lt;string, string&gt;  // id -&gt; 替换后的内容
+}
+
+export function createContentReplacementState(): ContentReplacementState {
+  return { seenIds: new Set(), replacements: new Map() }
+}</code></pre><p>结构非常简洁：</p>
+<ul>
+<li><code>seenIds</code> 跟踪所有已评估过的工具结果 ID</li>
+<li><code>replacements</code> 存储决定替换的结果及其替换内容</li>
+</ul>
+<h3 id="替换决策算法">9.5.3 替换决策算法</h3>
+<pre><code class="language-typescript">export async function enforceToolResultBudget(
+  messages: Message[],
+  state: ContentReplacementState,
+  skipToolNames: ReadonlySet&lt;string&gt; = new Set(),
+): Promise&lt;{
+  messages: Message[]
+  newlyReplaced: ToolResultReplacementRecord[]
+}&gt; {
+  // 1. 收集所有候选工具结果
+  // 2. 按先前决策分区：已替换 / 已冻结 / 新增
+  // 3. 对新增候选者，根据预算决定是否替换
+  // 4. 应用替换到消息中
+}</code></pre><p><code>enforceToolResultBudget</code> 的核心逻辑将候选工具结果分为三类：</p>
+<ol>
+<li><strong>已替换（replaced）</strong> —— 之前的调用已经决定替换，重新应用相同替换</li>
+<li><strong>已冻结（frozen）</strong> —— 已经在 seenIds 中但没有被替换，保持原样</li>
+<li><strong>新增（fresh）</strong> —— 从未见过，需要做替换决策</li>
+</ol>
+<p>对于新增候选者，算法根据剩余预算和结果大小决定是否替换。较旧的、较大的结果优先被替换。</p>
+<h3 id="与子代理的交互">9.5.4 与子代理的交互</h3>
+<p><code>ContentReplacementState</code> 在子代理场景下有特殊的行为：</p>
+<pre><code class="language-typescript">// 克隆状态用于缓存共享的 fork
+export function cloneContentReplacementState(
+  source: ContentReplacementState,
+): ContentReplacementState {
+  return {
+    seenIds: new Set(source.seenIds),
+    replacements: new Map(source.replacements),
+  }
+}
+
+// 从消息历史重建状态（用于子代理恢复）
+export function reconstructContentReplacementState(
+  messages: Message[],
+  records: ContentReplacementRecord[],
+  inheritedReplacements?: ReadonlyMap&lt;string, string&gt;,
+): ContentReplacementState {
+  const state = createContentReplacementState()
+  // 收集所有候选 ID
+  // 从 records 重建替换映射
+  // 合并父代理的替换
+  return state
+}</code></pre><p><strong>fork 子代理</strong>（如 agentSummary）需要与父代理做出相同的替换决策，以保证 prompt cache 命中。所以它们克隆父代理的状态。</p>
+<p><strong>恢复的子代理</strong>（如后台任务恢复）需要从 transcript 中记录的 <code>ContentReplacementRecord</code> 重建状态，因为它们没有父代理的活跃内存。</p>
+<h3 id="预算在-api-调用中的应用">9.5.5 预算在 API 调用中的应用</h3>
+<pre><code class="language-typescript">// 在 query.ts 的 API 调用前应用
+export async function applyToolResultBudget(
+  messages: Message[],
+  state: ContentReplacementState | undefined,
+  writeToTranscript?: (records) =&gt; void,
+  skipToolNames?: ReadonlySet&lt;string&gt;,
+): Promise&lt;Message[]&gt; {
+  if (!state) return messages
+  const result = await enforceToolResultBudget(messages, state, skipToolNames)
+  if (result.newlyReplaced.length &gt; 0 &amp;&amp; writeToTranscript) {
+    writeToTranscript(result.newlyReplaced)
+  }
+  return result.messages
+}</code></pre><p>这个函数在每次 API 调用前被调用：</p>
+<ol>
+<li>如果功能未启用（<code>state</code> 为 <code>undefined</code>），直接返回原消息</li>
+<li>否则，执行预算强制，可能替换某些工具结果</li>
+<li>新的替换决策被写入 transcript，以便后续恢复</li>
+</ol>
+<h3 id="替换预算的工作流">9.5.6 替换预算的工作流</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TD
+    A[API 调用前] --&gt; B{ContentReplacementState 存在?}
+    B --&gt;|否| C[直接使用原消息]
+    B --&gt;|是| D[collectCandidatesByMessage]
+    D --&gt; E[partitionByPriorDecision]
+    E --&gt; F[已替换: 重新应用]
+    E --&gt; G[已冻结: 保持原样]
+    E --&gt; H[新增: 评估预算]
+    H --&gt; I{总量 &gt; 预算?}
+    I --&gt;|否| J[标记为 frozen]
+    I --&gt;|是| K[替换为摘要]
+    F --&gt; L[合并结果]
+    G --&gt; L
+    J --&gt; L
+    K --&gt; L
+    L --&gt; M[返回修改后的消息]
+    K --&gt; N[写入 transcript 记录]
+
+    style K fill:#fbb,stroke:#333
+    style J fill:#9f9,stroke:#333</div><div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>内容替换预算（ContentReplacementState）是防止工具输出无限膨胀的最后防线。</p>
+<ul>
+<li>即使每次工具结果都做了截断，累加起来也可能撑爆上下文——全局预算确保总输出不会无限膨胀。</li>
+<li>旧结果被替换为占位符而非直接截断——模型知道这里曾有结果，只是看不到了。</li>
+<li>&quot;全局视角优于局部视角&quot;——每个工具只看自己的输出，但系统需要看总和。</li>
+<li>三层防线（单次截断 + 磁盘持久化 + 全局预算）层层补充，每一层覆盖上一层的盲区。</li>
+</ul>
+</div><hr>
+<h2 id="完整的工具执行生命周期">9.6 完整的工具执行生命周期</h2>
+<p>将前面各节的内容综合起来，一个工具从模型生成到结果返回的完整生命周期如下：</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TD
+    A[模型流式生成 tool_use block] --&gt; B[StreamingToolExecutor.addTool]
+    B --&gt; C{findToolByName?}
+    C --&gt;|未找到| D[立即 completed + 错误]
+    C --&gt;|找到| E[计算 isConcurrencySafe]
+    E --&gt; F[状态: queued]
+    F --&gt; G{canExecuteTool?}
+    G --&gt;|否| H[等待]
+    G --&gt;|是| I[状态: executing]
+
+    I --&gt; J[runToolUse]
+    J --&gt; K[Zod schema 验证]
+    K --&gt;|失败| L[返回 InputValidationError]
+    K --&gt;|成功| M[validateInput]
+    M --&gt;|失败| L
+    M --&gt;|成功| N[PreToolUse hooks]
+    N --&gt; O[权限检查]
+    O --&gt;|拒绝| P[返回权限错误]
+    O --&gt;|允许| Q[tool.call 执行]
+    Q --&gt; R[PostToolUse hooks]
+    R --&gt; S[processToolResultBlock]
+    S --&gt; T{结果 &gt; 阈值?}
+    T --&gt;|否| U[直接返回]
+    T --&gt;|是| V[持久化到磁盘]
+    V --&gt; W[返回预览 + 路径]
+
+    U --&gt; X[状态: completed]
+    W --&gt; X
+    L --&gt; X
+    P --&gt; X
+    D --&gt; X
+
+    X --&gt; Y[getCompletedResults]
+    Y --&gt; Z[状态: yielded]
+    Z --&gt; AA[应用 contextModifier]
+    AA --&gt; BB[结果返回 query.ts]
+    BB --&gt; CC[applyToolResultBudget]
+    CC --&gt; DD[发送到 API]
+
+    H -.-&gt;|前置工具完成后| G
+
+    style F fill:#ff9,stroke:#333
+    style I fill:#9bf,stroke:#333
+    style X fill:#9f9,stroke:#333
+    style Z fill:#ddd,stroke:#333</div><div class="thinking-note"><h3 id="思考笔记-6">思考笔记</h3>
+<p>工具执行从入队到结果产出是一条完整的数据通路，每一阶段都有明确的职责。</p>
+<ul>
+<li>排队 → 并发检查 → 执行 → 钩子 → 截断 → 产出——每个阶段都是可插拔的，可以独立修改。</li>
+<li>钩子系统（Pre/Post）在核心执行逻辑周围提供扩展点——权限检查、审计日志、指标收集都通过钩子实现。</li>
+<li>内容替换预算在最后阶段兜底——确保即使前面所有阶段都正常，整体输出也不会失控。</li>
+<li>整个生命周期由 AsyncGenerator 串联——每阶段的产出都被惰性消费，天然背压。</li>
+</ul>
+</div><hr>
+<h2 id="本章小结">本章小结</h2>
+<p>工具执行管线是 Claude Code 中工程复杂度最高的子系统之一。其核心设计决策包括：</p>
+<ol>
+<li><strong>StreamingToolExecutor 的四态状态机</strong>（queued -&gt; executing -&gt; completed -&gt; yielded）实现了渐进式调度，工具在流入的同时就开始执行</li>
+<li><strong>并发安全性基于输入</strong>而非工具类型，允许同一工具（如 BashTool）在不同输入下表现不同的并发行为</li>
+<li><strong>Bash 错误级联</strong>是唯一会取消兄弟工具的错误类型，其他工具的失败是独立的</li>
+<li><strong>磁盘持久化</strong>在单次调用层面控制工具输出大小，<code>maxResultSizeChars: Infinity</code> 豁免机制防止循环读取</li>
+<li><strong>Pre/Post 钩子</strong>提供了完整的拦截能力，支持权限覆盖、输入修改、输出过滤</li>
+<li><strong>ContentReplacementState</strong> 在全局层面管理工具结果的累积预算，通过替换旧结果保持上下文窗口在可控范围内</li>
+</ol>
+<p>这三层防线——单次截断（maxResultSizeChars）、磁盘持久化（persistToolResult）和全局预算（enforceToolResultBudget）——共同确保了即使在长对话中，工具输出也不会压垮上下文窗口。</p>
+
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-08-builtin-tools/" class="chapter-prev">← 第 8 章：内置工具深度解析</a>
+      <a href="/2026/05/21/claude-code-10-agent-model/" class="chapter-next">第 10 章：Agent 模型 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

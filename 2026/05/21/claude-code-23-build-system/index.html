@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 23 章：构建系统“构建系统是软件的骨架 —— 用户看不到它，但它决定了软件的形态、大小和到达用户手中的速度。”Claude Code 选择了 Bun 作为运行时和打包器，这一决策深刻影响了整个项目的架构。本章将分析其构建系统的设计、依赖管理策略和发布流程。思考维度内容引导思考 展开它为什么存在一份源码要同时服务内部员工和外部用户——两套构建配置需要精确的代码裁剪Bun 的编译时宏能力给了 N">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 23 章：构建系统">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-23-build-system/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 23 章：构建系统“构建系统是软件的骨架 —— 用户看不到它，但它决定了软件的形态、大小和到达用户手中的速度。”Claude Code 选择了 Bun 作为运行时和打包器，这一决策深刻影响了整个项目的架构。本章将分析其构建系统的设计、依赖管理策略和发布流程。思考维度内容引导思考 展开它为什么存在一份源码要同时服务内部员工和外部用户——两套构建配置需要精确的代码裁剪Bun 的编译时宏能力给了 N">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-23-build-system/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 23 章：构建系统 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-23-build-system/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 23 章：构建系统
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 23 章：构建系统</h1>
+<blockquote>
+<p>“构建系统是软件的骨架 —— 用户看不到它，但它决定了软件的形态、大小和到达用户手中的速度。”Claude Code 选择了 Bun 作为运行时和打包器，这一决策深刻影响了整个项目的架构。本章将分析其构建系统的设计、依赖管理策略和发布流程。</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>一份源码要同时服务内部员工和外部用户——两套构建配置需要精确的代码裁剪</li><li>Bun 的编译时宏能力给了 Node.js 生态做不到的死代码消除方案</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>双构建：内部版带 VOICE_MODE、COORDINATOR，外部版通过 DCE 把这些代码连根拔了</li><li>字符串排除：excluded-strings.txt 确保内部特性名、UUID 不出现外部产物里</li><li>迁移系统：版本号门控 + 幂等迁移保证从老版本升级不会炸</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>源码 → Bun bundler → 单文件 cli.js + vendor 目录 → npm 发布</li><li>用户通过 npx @anthropic-ai/claude-code 使用，内置自动更新</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>feature() 在 bundle 时求值，假分支触发 tree-shake——同一份源码编出不同产物</li><li>迁移在 main.tsx 的 init 阶段跑，先同步迁核心配置再异步迁插件</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>feature() 通过 bun:module 的编译时宏实现，构建时被替换为布尔字面量</li><li>excluded-strings.txt + 构建后验证确保字符串不泄漏</li><li>migrations/ 下 11 个迁移文件组成模型重命名链</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：esbuild/rollup 构建，功能开关靠运行时配置不靠 DCE</li><li><strong>OpenClaw</strong>：功能模块靠插件系统动态加载</li><li><strong>Harness Agent</strong>：标准 Node.js 构建，环境变量 + 运行时配置开关</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>feature() DCE 零开销且内部代码物理不存在于外部构建</li><li>Bun 把 1884 个文件打成 ~13MB 单文件，部署简单</li><li>迁移系统幂等保证跨版本安全升级</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="bun-runtime">23.1 Bun Runtime</h2>
+<h3 id="为什么选择-bun">23.1.1 为什么选择 Bun</h3>
+<p>Claude Code 在构建和运行时都依赖 Bun。从源码中可以看到直接使用 Bun 特有的 API：<br><code>bun:bundle</code> 是 Bun 打包器的专有模块，<code>feature()</code> 函数在打包时被求值为字面量（<code>true</code> 或 <code>false</code>），实现编译时条件分支。这是 Node.js 生态中没有直接对应物的能力。<br>选择 Bun 的技术理由包括：</p>
+<ol>
+<li><strong>启动速度</strong> —— Bun 的 JavaScript 引擎（JavaScriptCore）启动速度快于 V82. <strong>内置打包器</strong> —— 无需 webpack/esbuild 等额外工具3. <strong>编译时宏</strong> —— <code>feature()</code> 实现了零运行时开销的特性开关4. <strong>TypeScript 原生支持</strong> —— 无需编译步骤即可运行 <code>.ts</code> 文件</li>
+</ol>
+<h3 id="兼容性层">23.1.2 兼容性层</h3>
+<p>尽管使用 Bun，Claude Code 仍保留了 Node.js 兼容性检查：<br>这说明 Claude Code 可以同时在 Bun 和 Node.js 上运行，但某些特性的可用性取决于具体的运行时版本。</p>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<ul>
+<li>Bun 作为 CLI 工具的运行时选择是典型的&quot;平台锁定换取性能&quot;——牺牲了 Node.js 的生态兼容性，换来了 3 倍以上的启动速度和编译时 DCE 能力。</li>
+<li>1884 个 TypeScript 文件 → ~13MB 单文件二进制——这个压缩比来自 Bun 的内置打包器 + tree-shaker + 编译器，一套工具链搞定构建全流程。</li>
+<li>feature() 编译时 DCE 是 Bun 对比 Node.js 的最大优势：不是&quot;运行时不加载&quot;，而是&quot;编译时就不存在&quot;。这在安全和性能上都是质的飞跃。</li>
+<li>绑 Bun 运行时的代价：纯 Node 环境跑不了，部分 Node API 行为差异需要 patch，调试工具链不成熟。这是一个&quot;权衡之后接受代价&quot;的决策。</li>
+</ul>
+</div><hr>
+<h2 id="bundle-策略">23.2 Bundle 策略</h2>
+<h3 id="双构建配置">23.2.1 双构建配置</h3>
+<p>Claude Code 有两种构建配置：</p>
+<h3 id="死代码消除dce">23.2.2 死代码消除（DCE）</h3>
+<p><code>feature()</code> 宏与 Bun 打包器的 DCE 配合，实现了精确的代码裁剪：<br>这种模式遍布整个代码库。在 REPL.tsx 中：</p>
+<h3 id="字符串排除">23.2.3 字符串排除</h3>
+<p>敏感字符串的保护是构建系统的重要职责。<code>excluded-strings.txt</code> 列出了不应出现在外部构建中的字符串：<br>构建后验证步骤会扫描产物，确保这些字符串不存在。</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<ul>
+<li>构建产物根据不同目标用户（ant/internal/external）做条件编译——同一份源码，多份产出。feature() 宏在这里起了&quot;编译时代码开关&quot;的作用。</li>
+<li>迁移系统（migration system）集成在构建流程中：版本升级时自动执行迁移逻辑，保证旧配置兼容新版本。</li>
+<li>Source Map 占产物 4.6 倍体积（68MB vs 13MB）——这是调试友好性和分发效率的冲突。Claude Code 选择保留 Source Map 支持线上问题排查。</li>
+<li>&quot;构建一次，到处部署&quot;的思路让测试和生产环境保持一致——不再出现&quot;我本地能跑&quot;的经典问题。</li>
+</ul>
+</div><hr>
+<h2 id="依赖管理">23.3 依赖管理</h2>
+<h3 id="依赖策略">23.3.1 依赖策略</h3>
+<p>从导入分析可以看到 Claude Code 的依赖策略：<br>关键决策：</p>
+<ol>
+<li><strong>lodash-es 逐函数导入</strong> —— 而非 <code>import _ from &#39;lodash&#39;</code>，确保 tree shaking 有效2. <strong>Ink 内部化</strong> —— 而非作为 npm 依赖，获得完全控制权3. <strong>Yoga WASM</strong> —— 通过 <code>native-ts/yoga-layout</code> 加载，而非 npm 的 yoga-layout4. <strong>Anthropic SDK</strong> —— 使用官方 SDK，但也有自定义 API 层</li>
+</ol>
+<h3 id="循环依赖管理">23.3.2 循环依赖管理</h3>
+<p>代码中有多处明确处理循环依赖的注释：<br>循环依赖管理策略：</p>
+<ol>
+<li><strong>内联常量</strong> —— 复制小的常量值并用测试保证一致性2. <strong>懒加载 require</strong> —— 在函数体内而非顶层导入3. <strong>类型独立文件</strong> —— 将类型定义放在独立文件（如 <code>AppStateStore.ts</code> vs <code>AppState.tsx</code>）</li>
+</ol>
+<h3 id="类型与运行时分离">23.3.3 类型与运行时分离</h3>
+<p><code>AppStateStore.ts</code> 是纯类型和逻辑文件（不依赖 React），<code>AppState.tsx</code> 包含 React 组件。将类型从 <code>.tsx</code> 迁移到 <code>.ts</code> 是一个进行中的重构，目标是让非 React 的 <code>.ts</code> 文件不需要引入 React 依赖。</p>
+<div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<p>依赖管理决定构建是否可重复——没有锁文件，两个月后的构建可能静默失败。</p>
+<ul>
+<li>Bun 的 bun.lock 锁文件锁定所有精确版本——比 semver ^1.2.3 更可靠。</li>
+<li>最小依赖原则——40+ 内置工具不依赖外部 npm 包，减少供应链攻击面。</li>
+<li>依赖树的可视化和审计工具帮助发现潜伏漏洞。</li>
+<li>monorepo 中多个项目共享依赖配置——公共的 TS 配置、ESLint、工具版本。</li>
+</ul>
+</div><hr>
+<h2 id="发布流程">23.4 发布流程</h2>
+<h3 id="版本管理">23.4.1 版本管理</h3>
+<p>从代码中的版本检查可以推断发布流程的严谨性：</p>
+<h3 id="构建验证">23.4.2 构建验证</h3>
+<h3 id="npm-发布产物分析">23.4.3 NPM 发布产物分析</h3>
+<p>Claude Code 的 NPM 包 <code>@anthropic-ai/claude-code</code> 的发布产物结构揭示了构建系统的最终输出：<br>几个关键观察：<br><strong>单文件打包</strong>：1884 个 TypeScript 源文件被打包为单个 <code>cli.js</code>（~13MB）。这意味着 Bun 的 bundler 进行了完整的 tree-shaking、DCE、模块拼接。<br><strong>Source Map 体积</strong>：<code>cli.js.map</code> 是 <code>cli.js</code> 的 4.6 倍大。这是因为 Source Map 保留了原始源码的完整映射，用于 <code>--inspect</code> 调试和错误堆栈的源码定位。<br><strong>vendor 目录</strong>：不可打包的资源（如 WASM 模块、native addon）通过 <code>vendor/</code> 目录分发，而非嵌入到 <code>cli.js</code> 中。</p>
+<h3 id="自动更新">23.4.4 自动更新</h3>
+<p>Claude Code 内置了自动更新机制，支持多种安装方式：<br>更新检测在后台异步执行，不阻塞主交互循环。当检测到新版本时，会在 REPL 的状态栏显示更新提示，用户可以选择立即更新或稍后处理。</p>
+<h3 id="迁移系统-跨版本数据兼容">23.4.5 迁移系统 —— 跨版本数据兼容</h3>
+<p>迁移系统是 Claude Code 版本升级的关键保障。<code>src/main.tsx</code> 中定义了迁移的核心机制：<br>迁移系统的设计要点：<br><strong>版本门控</strong>：<code>migrationVersion</code> 记录在全局配置中。只有当本地版本低于 <code>CURRENT_MIGRATION_VERSION</code> 时才执行迁移，避免每次启动重复运行 11 次 <code>saveGlobalConfig</code>。<br><strong>模型重命名链</strong>：多个迁移函数形成了一条模型名称的演进链：<br>这确保了无论用户从哪个版本升级，模型配置都能正确迁移到最新名称。<br><strong>同步 vs 异步</strong>：核心配置迁移是同步的（必须在 init 完成前生效），而插件迁移是异步的（<code>void migrateInstalledPlugins()</code>），避免阻塞启动。<br><strong>幂等性</strong>：每个迁移函数内部检查是否需要执行。例如 <code>migrateSonnet45ToSonnet46</code> 只有在发现旧模型名时才修改配置。这保证了迁移可以安全地重复运行。</p>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>发布流程是把源码变成用户手中可执行文件的全链路——不是&quot;构建&quot;，而是&quot;交付&quot;。</p>
+<ul>
+<li>多环境构建（ant/internal/external）需要不同的 feature flag 组合。</li>
+<li>迁移系统伴随发布流程自动执行——版本升级时自动迁移旧配置。</li>
+<li>发布版本号的语义化管理和变更日志自动生成。</li>
+<li>回滚策略：如果新版本出现问题，如何快速恢复到上一个稳定版本。</li>
+</ul>
+</div><hr>
+<h2 id="本章小结">本章小结</h2>
+<p>Claude Code 的构建系统体现了“不多不少，恰到好处“的工程哲学：</p>
+<ol>
+<li><p><strong>Bun 选型</strong>：编译时宏 <code>feature()</code> 实现了零运行时开销的多构建配置，一份代码服务内外部用户2. <strong>Bundle 策略</strong>：DCE + 字符串排除确保外部构建不泄漏内部功能3. <strong>依赖管理</strong>：lodash-es 逐函数导入、Ink 内部化、循环依赖的三种处理策略4. <strong>发布产物</strong>：单文件 <code>cli.js</code>（13MB）+ vendor 目录，Source Map 保留完整调试能力5. <strong>迁移系统</strong>：版本门控 + 幂等迁移 + 模型重命名链，确保无缝升级```mermaid<br>%%{init: {&quot;theme&quot;: &quot;base&quot;, &quot;themeVariables&quot;:{&quot;primaryColor&quot;:&quot;#3b82f6&quot;,&quot;primaryTextColor&quot;:&quot;#1e293b&quot;,&quot;primaryBorderColor&quot;:&quot;#60a5fa&quot;,&quot;lineColor&quot;:&quot;#94a3b8&quot;,&quot;secondaryColor&quot;:&quot;#f1f5f9&quot;,&quot;tertiaryColor&quot;:&quot;#ffffff&quot;,&quot;fontFamily&quot;:&quot;-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, &#39;PingFang SC&#39;, sans-serif&quot;}}}%%<br>graph LR<br> Source[源码<br/>1884 个 .ts/.tsx 文件]<br> Source --&gt; Internal[内部构建 ant]<br> Source --&gt; External[外部构建 external]</p>
+<p> Internal --&gt; |feature flags ON| InternalBundle[完整功能包<br/>VOICE_MODE, COORDINATOR,<br/>PROACTIVE, etc.]</p>
+<p> External --&gt; |feature flags OFF + DCE| ExternalBundle[精简包<br/>仅公开功能]</p>
+</li>
+</ol>
+<pre><code>```mermaid
+%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart LR
+    Build[构建] --&gt; TypeCheck[TypeScript 类型检查]
+    TypeCheck --&gt; DCEVerify[DCE 验证&lt;br/&gt;检查排除字符串]
+    DCEVerify --&gt; Tests[运行测试]
+    Tests --&gt; SizeCheck[包大小检查]
+    SizeCheck --&gt; Publish[发布]</code></pre><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TD
+    A[启动] --&gt; B{migrationVersion == 11?}
+    B -- 是 --&gt; C[跳过迁移]
+    B -- 否 --&gt; D[执行 11 个同步迁移]
+    D --&gt; D1[设置迁移]
+    D --&gt; D2[模型重命名链]
+    D --&gt; D3[权限迁移]
+    D1 & D2 & D3 --&gt; E[保存 migrationVersion = 11]
+    E --&gt; F[异步: 插件迁移]
+    C --&gt; G[继续启动]
+    F --&gt; G</div>
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-22-testing/" class="chapter-prev">← 第 22 章：测试策略</a>
+      <a href="/2026/05/21/claude-code-24-design-patterns/" class="chapter-next">第 24 章：设计模式提炼 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

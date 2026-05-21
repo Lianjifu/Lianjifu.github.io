@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 13 章：权限模型__DESCRIPTION__quot;信任，但要验证。——权限系统不是用来限制 AI 的，而是让 AI 在被信任的同时不超出边界。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在AI Agent 被赋予了直接操作操作系统的能力——权限系统就是__DESCRIPTION__quot;让 AI 放手干活__DESCRIPTION__quot;和__DESCRIPTION__quot;别让 AI 搞砸__DESCRIPTION__quot;之间的平衡木读文件、写文件、执行命令——每种操作的风险等级不同，需要不同的决">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 13 章：权限模型">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-13-permission-model/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 13 章：权限模型__DESCRIPTION__quot;信任，但要验证。——权限系统不是用来限制 AI 的，而是让 AI 在被信任的同时不超出边界。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在AI Agent 被赋予了直接操作操作系统的能力——权限系统就是__DESCRIPTION__quot;让 AI 放手干活__DESCRIPTION__quot;和__DESCRIPTION__quot;别让 AI 搞砸__DESCRIPTION__quot;之间的平衡木读文件、写文件、执行命令——每种操作的风险等级不同，需要不同的决">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-13-permission-model/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 13 章：权限模型 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-13-permission-model/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 13 章：权限模型
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 13 章：权限模型</h1>
+<blockquote>
+<p>&quot;信任，但要验证。——权限系统不是用来限制 AI 的，而是让 AI 在被信任的同时不超出边界。&quot;</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>AI Agent 被赋予了直接操作操作系统的能力——权限系统就是&quot;让 AI 放手干活&quot;和&quot;别让 AI 搞砸&quot;之间的平衡木</li><li>读文件、写文件、执行命令——每种操作的风险等级不同，需要不同的决策机制</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>六种权限模式覆盖从&quot;完全信任&quot;到&quot;完全锁定&quot;的连续光谱——用户按场景选</li><li>规则引擎支持精细到工具级别、路径级别的允许/拒绝/询问配置</li><li>推测分类器在用户还没看到对话框的时候就启动安全检查了——减少等待时间</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>位于 L1 基础设施层，是工具执行管线中的关键检查点</li><li>权限决策影响从工具调度到 UI 对话框显示再到结果返回的完整链路</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>default 模式：每个写操作都要用户点头</li><li>auto 模式：安全操作自动放行，有风险的才问人</li><li>plan 模式：只能读不能写</li><li>规则匹配优先顺序：deny &gt; allow &gt; ask，像防火墙的规则优先级</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>PermissionMode 枚举六种模式，每种定义符号、颜色和行为特征</li><li>permissionSetup.ts 初始化各工具的默认权限规则</li><li>classifyBashCommand 是个异步 ML 分类器，实时判断 Bash 命令安全级别</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：没有独立的权限系统——命令执行受限于 VS Code 扩展沙箱，不涉及交互式用户确认</li><li><strong>OpenClaw</strong>：通过 ACL 控制 Agent 间的通信权限，工具调用权限由 Agent 角色绑定</li><li><strong>Harness Agent</strong>：权限管理通过 IAM 角色和 Pipeline 的 Secret Management 实现</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>六层模式覆盖从完全锁定到完全信任的完整光谱，灵活度高</li><li>推测分类器并行启动，把安全检查的感知延迟降到最低</li><li>多层持久化允许企业策略和开发者自定义规则共存</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>Claude Code 的权限系统是整个产品安全架构的核心支柱。它在&quot;让 AI 自由完成任务&quot;和&quot;保护用户系统安全&quot;之间构建了一条精密的平衡线。本章将深入源码，逐层剖析这一权限模型的设计与实现。</p>
+<hr>
+<h2 id="六层权限模式">13.1 六层权限模式</h2>
+<p>权限模式（Permission Mode）定义了 Claude Code 在与工具交互时的基本安全姿态。源码中在 <code>src/types/permissions.ts</code> 明确定义了所有模式：</p>
+<pre><code class="language-typescript">// src/types/permissions.ts
+export const EXTERNAL_PERMISSION_MODES = [
+  'acceptEdits',
+  'bypassPermissions',
+  'default',
+  'dontAsk',
+  'plan',
+] as const
+
+export type InternalPermissionMode = ExternalPermissionMode | 'auto' | 'bubble'
+export type PermissionMode = InternalPermissionMode</code></pre><p>这段定义揭示了一个重要的架构决策：权限模式分为<strong>外部模式</strong>（面向用户的公开 API）和<strong>内部模式</strong>（包含 <code>auto</code> 和 <code>bubble</code> 等内部专用模式）。让我们逐一分析每种模式的语义。</p>
+<h3 id="default-模式">13.1.1 default 模式</h3>
+<p>这是系统的默认安全姿态。在此模式下，每个可能产生副作用的工具调用都需要用户明确授权。文件读取等只读操作可以自动通过，但写入、删除、执行命令等操作必须获得人类确认。</p>
+<h3 id="plan-模式">13.1.2 plan 模式</h3>
+<p>Plan 模式是一种受限的&quot;只规划不执行&quot;模式，Claude 只能提出行动计划，不能实际执行修改操作。在 <code>PermissionMode.ts</code> 中的配置如下：</p>
+<pre><code class="language-typescript">// src/utils/permissions/PermissionMode.ts
+plan: {
+  title: 'Plan Mode',
+  shortTitle: 'Plan',
+  symbol: PAUSE_ICON,
+  color: 'planMode',
+  external: 'plan',
+},</code></pre><p>使用暂停图标（<code>PAUSE_ICON</code>）作为视觉标识，直观表达其&quot;停下来思考&quot;的语义。</p>
+<h3 id="acceptedits-模式">13.1.3 acceptEdits 模式</h3>
+<p>这是一种中间信任级别。在工作目录内的文件编辑操作可以自动通过，但执行 shell 命令等高风险操作仍需用户确认。这是大多数开发者日常使用时的推荐模式——编辑代码无需反复确认，但执行命令仍然受控。</p>
+<h3 id="bypasspermissions-模式">13.1.4 bypassPermissions 模式</h3>
+<p>这是最宽松的模式，几乎所有操作都会自动批准。源码用红色（<code>error</code>）标注这一模式，暗示其危险性：</p>
+<pre><code class="language-typescript">bypassPermissions: {
+  title: 'Bypass Permissions',
+  shortTitle: 'Bypass',
+  symbol: '⏵⏵',
+  color: 'error',
+  external: 'bypassPermissions',
+},</code></pre><p>此模式还受到一个 killswitch 机制的约束（<code>bypassPermissionsKillswitch.ts</code>），可以在发现安全问题时远程禁用。</p>
+<h3 id="dontask-模式">13.1.5 dontAsk 模式</h3>
+<p>与 <code>bypassPermissions</code> 类似，但策略不同：当遇到需要确认的操作时，不是自动批准，而是<strong>自动拒绝</strong>。这在无人值守的自动化场景中很有用——宁可操作失败也不要执行未授权的操作。</p>
+<h3 id="auto-模式内部">13.1.6 auto 模式（内部）</h3>
+<p>这是最精密的模式，仅在内部构建中可用（通过 <code>feature(&#39;TRANSCRIPT_CLASSIFIER&#39;)</code> 门控）。它使用 AI 分类器来自动判断操作是否安全，无需人工干预。</p>
+<pre><code class="language-typescript">...(feature('TRANSCRIPT_CLASSIFIER')
+  ? {
+      auto: {
+        title: 'Auto mode',
+        shortTitle: 'Auto',
+        symbol: '⏵⏵',
+        color: 'warning' as ModeColorKey,
+        external: 'default' as ExternalPermissionMode,
+      },
+    }
+  : {}),</code></pre><p>注意 <code>external: &#39;default&#39;</code>——auto 模式在对外 API 中被映射为 <code>default</code>，外部用户无法直接感知到它的存在。</p>
+<h3 id="权限模式状态转换">权限模式状态转换</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+stateDiagram-v2
+    [*] --&gt; default: 启动默认
+    default --&gt; plan: 用户切换 / Shift+Tab
+    default --&gt; acceptEdits: 用户切换
+    default --&gt; auto: 内部启用分类器
+    plan --&gt; default: 退出计划模式
+    acceptEdits --&gt; default: 用户切换
+    acceptEdits --&gt; bypassPermissions: 用户提权
+    bypassPermissions --&gt; default: 用户降级
+    auto --&gt; default: 分类器不可用时回退
+    default --&gt; dontAsk: CI/CD 环境设定
+    dontAsk --&gt; default: 用户切换</div><div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<ul>
+<li>六层权限模式（default/accept/allow/plan/auto/bubble）覆盖了从&quot;完全锁定&quot;到&quot;完全信任&quot;的完整光谱——每一层都是安全与效率的不同权衡点。</li>
+<li>default 模式是&quot;所有操作都要问用户&quot;，这是最安全的也是最高干扰的——适合首次使用或敏感项目。</li>
+<li>auto 模式是&quot;安全操作自动放行，风险操作才问用户&quot;——这是安全与效率的最佳平衡点，也是大部分用户的实际选择。</li>
+<li>plan 模式（只读）是一个有趣的设计：当你只是想探索代码库而不做修改时，plan 模式自动拒绝所有写操作。这比让用户手动小心更可靠。</li>
+</ul>
+</div><hr>
+<h2 id="规则系统">13.2 规则系统</h2>
+<p>权限模式定义了全局策略，而规则系统提供了细粒度的工具级控制。规则系统的核心是一个 <strong>Allow / Deny / Ask 三元决策模型</strong>。</p>
+<h3 id="规则结构">13.2.1 规则结构</h3>
+<pre><code class="language-typescript">// src/types/permissions.ts
+export type PermissionBehavior = 'allow' | 'deny' | 'ask'
+
+export type PermissionRule = {
+  source: PermissionRuleSource
+  ruleBehavior: PermissionBehavior
+  ruleValue: PermissionRuleValue
+}
+
+export type PermissionRuleValue = {
+  toolName: string
+  ruleContent?: string
+}</code></pre><p>一条规则由三部分组成：<strong>来源</strong>（source）——规定了规则从哪里加载；<strong>行为</strong>（ruleBehavior）——Allow、Deny 或 Ask；<strong>值</strong>（ruleValue）——指定哪个工具、什么条件下触发。</p>
+<p><code>ruleContent</code> 是可选的，它允许对工具进行更精细的控制。例如 <code>Bash(npm test:*)</code> 表示仅对以 <code>npm test</code> 为前缀的 Bash 命令生效。</p>
+<h3 id="多源规则合并">13.2.2 多源规则合并</h3>
+<p>规则可以来自多个来源，按优先级从高到低排列：</p>
+<pre><code class="language-typescript">// src/utils/permissions/permissions.ts
+const PERMISSION_RULE_SOURCES = [
+  ...SETTING_SOURCES,    // userSettings, projectSettings, localSettings, flagSettings, policySettings
+  'cliArg',              // 命令行参数
+  'command',             // 运行时命令
+  'session',             // 会话级临时规则
+] as const satisfies readonly PermissionRuleSource[]</code></pre><p>每种来源的规则独立维护。获取 Allow 规则的实现如下：</p>
+<pre><code class="language-typescript">export function getAllowRules(context: ToolPermissionContext): PermissionRule[] {
+  return PERMISSION_RULE_SOURCES.flatMap(source =&gt;
+    (context.alwaysAllowRules[source] || []).map(ruleString =&gt; ({
+      source,
+      ruleBehavior: 'allow',
+      ruleValue: permissionRuleValueFromString(ruleString),
+    })),
+  )
+}</code></pre><p>所有来源的规则被 <code>flatMap</code> 扁平化为一个统一的列表。获取 Deny 和 Ask 规则的方式完全对称。</p>
+<h3 id="工具匹配逻辑">13.2.3 工具匹配逻辑</h3>
+<p>规则匹配分为两个层次——整体工具匹配和内容级匹配：</p>
+<pre><code class="language-typescript">function toolMatchesRule(
+  tool: Pick&lt;Tool, 'name' | 'mcpInfo'&gt;,
+  rule: PermissionRule,
+): boolean {
+  // 规则不含 ruleContent 时，匹配整个工具
+  if (rule.ruleValue.ruleContent !== undefined) {
+    return false
+  }
+  const nameForRuleMatch = getToolNameForPermissionCheck(tool)
+  if (rule.ruleValue.toolName === nameForRuleMatch) {
+    return true
+  }
+  // MCP 服务级权限：规则 "mcp__server1" 匹配 "mcp__server1__tool1"
+  const ruleInfo = mcpInfoFromString(rule.ruleValue.toolName)
+  const toolInfo = mcpInfoFromString(nameForRuleMatch)
+  return (
+    ruleInfo !== null &amp;&amp; toolInfo !== null &amp;&amp;
+    (ruleInfo.toolName === undefined || ruleInfo.toolName === '*') &amp;&amp;
+    ruleInfo.serverName === toolInfo.serverName
+  )
+}</code></pre><p>MCP 工具支持服务级别的权限控制——一条 <code>mcp__server1</code> 的规则可以匹配该服务器下的所有工具，实现批量授权。</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>规则系统是权限模型的&quot;立法机关&quot;——定义了在什么条件下允许、拒绝或询问。</p>
+<ul>
+<li>规则优先级 deny &gt; allow &gt; ask——明确的拒绝优先于明确的允许，减少歧义。</li>
+<li>匹配维度包括工具名称、文件路径、命令模式——从粗粒度到细粒度的配置。</li>
+<li>规则来源有 7 种，不同来源按优先级合并——用户设置覆盖项目设置覆盖全局设置。</li>
+<li>持久化确保用户配置重启后仍然有效——不是每次启动都要重新批准。</li>
+</ul>
+</div><hr>
+<h2 id="权限检查流水线">13.3 权限检查流水线</h2>
+<p>权限检查的核心入口是 <code>hasPermissionsToUseTool</code> 函数，它是整个权限系统的调度中心。</p>
+<pre><code class="language-typescript">// src/utils/permissions/permissions.ts
+export const hasPermissionsToUseTool: CanUseToolFn = async (
+  tool, input, context, assistantMessage, toolUseID,
+): Promise&lt;PermissionDecision&gt; =&gt; {
+  const result = await hasPermissionsToUseToolInner(tool, input, context)
+
+  // 成功的工具调用重置连续拒绝计数
+  if (result.behavior === 'allow') {
+    // ...重置 denial tracking
+    return result
+  }
+
+  // dontAsk 模式：将 ask 转换为 deny
+  if (result.behavior === 'ask') {
+    const appState = context.getAppState()
+    if (appState.toolPermissionContext.mode === 'dontAsk') {
+      return {
+        behavior: 'deny',
+        message: DONT_ASK_REJECT_MESSAGE(tool.name),
+      }
+    }
+    // auto 模式：使用分类器代替人工确认
+    // ...（详见 13.4 节）
+  }
+  return result
+}</code></pre><p>完整的权限检查流水线如下图所示：</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TD
+    A[工具调用请求] --&gt; B{hasPermissionsToUseToolInner}
+    B --&gt;|allow| C[重置 denial tracking]
+    C --&gt; D[返回 allow]
+    B --&gt;|deny| E[返回 deny]
+    B --&gt;|ask| F{检查权限模式}
+    F --&gt;|dontAsk| G[转换为 deny]
+    F --&gt;|auto| H{安全检查不可分类器审批?}
+    H --&gt;|是| I[保持 ask / deny]
+    H --&gt;|否| J{acceptEdits 快速路径?}
+    J --&gt;|通过| K[返回 allow]
+    J --&gt;|不通过| L{安全工具白名单?}
+    L --&gt;|匹配| M[返回 allow]
+    L --&gt;|不匹配| N[运行 auto 分类器]
+    N --&gt;|允许| O[返回 allow]
+    N --&gt;|拒绝| P{连续拒绝超限?}
+    P --&gt;|是| Q[回退到人工确认]
+    P --&gt;|否| R[返回 deny]
+    F --&gt;|default/acceptEdits| S{shouldAvoidPermissionPrompts?}
+    S --&gt;|是| T[运行 Hook]
+    T --&gt;|Hook 决策| U[返回 Hook 结果]
+    T --&gt;|无 Hook 决策| V[自动 deny]
+    S --&gt;|否| W[显示权限提示 UI]</div><p><code>hasPermissionsToUseToolInner</code> 的内部流程更加复杂，它按以下优先级依次检查：</p>
+<ol>
+<li><strong>Plan 模式检查</strong>：plan 模式下拒绝非只读工具</li>
+<li><strong>Deny 规则匹配</strong>：优先级最高，命中即拒绝</li>
+<li><strong>Allow 规则匹配</strong>：匹配到的 allow 规则可以直接放行</li>
+<li><strong>工具自身的 checkPermissions</strong>：每个工具实现自己的权限逻辑</li>
+<li><strong>bypassPermissions 模式</strong>：在安全检查通过后放行</li>
+<li><strong>默认 ask</strong>：以上都不命中，返回 ask 交给用户决定</li>
+</ol>
+<div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<ul>
+<li>权限检查流水线的设计类似 Web 框架的中间件——规则匹配 → 模式检查 → 分类器评估 → 用户确认，每层按需执行。</li>
+<li>推测分类器（speculative classifier）是最具创新性的设计：在用户提交操作的瞬间，分类器就已经开始异步评估了——人类的感知延迟被隐藏了。</li>
+<li>规则优先级 deny &gt; allow &gt; ask 像防火墙一样直观——明确的拒绝优先于明确的允许，减少了规则冲突时的歧义。</li>
+<li>&quot;六层模式 + 规则引擎 + 分类器辅助&quot;的组合让权限系统能应对从&quot;完全信任&quot;到&quot;CIA级别的安全要求&quot;的各种场景。</li>
+</ul>
+</div><hr>
+<h2 id="分类器辅助">13.4 分类器辅助</h2>
+<p>当权限检查返回 <code>ask</code> 且系统处于 <code>auto</code> 模式时，不是直接弹出对话框，而是启用 AI 分类器来自动决策。</p>
+<h3 id="bash_classifier-特性">13.4.1 BASH_CLASSIFIER 特性</h3>
+<p>Bash 命令分类器（<code>BASH_CLASSIFIER</code>）是一个专门针对 shell 命令的安全分析模块。其接口在 <code>bashClassifier.ts</code> 中定义（外部构建是 stub）：</p>
+<pre><code class="language-typescript">// src/utils/permissions/bashClassifier.ts (外部构建的 stub)
+export async function classifyBashCommand(
+  _command: string,
+  _cwd: string,
+  _descriptions: string[],
+  _behavior: ClassifierBehavior,
+  _signal: AbortSignal,
+  _isNonInteractiveSession: boolean,
+): Promise&lt;ClassifierResult&gt; {
+  return {
+    matches: false,
+    confidence: 'high',
+    reason: 'This feature is disabled',
+  }
+}</code></pre><p>分类器返回三个关键字段：<code>matches</code>（是否匹配规则描述）、<code>confidence</code>（置信度：high/medium/low）和 <code>reason</code>（人类可读的解释）。</p>
+<h3 id="speculativeclassifiercheck-竞赛设计">13.4.2 speculativeClassifierCheck 竞赛设计</h3>
+<p>在 <code>useCanUseTool.tsx</code> 中，当权限检查返回 <code>ask</code> 时，系统并行发起了分类器检查和用户确认对话：</p>
+<pre><code class="language-typescript">// src/hooks/useCanUseTool.tsx
+case "ask": {
+  if (appState.toolPermissionContext.awaitAutomatedChecksBeforeDialog) {
+    const coordinatorDecision = await handleCoordinatorPermission({
+      ctx,
+      ...(feature("BASH_CLASSIFIER") ? {
+        pendingClassifierCheck: result.pendingClassifierCheck
+      } : {}),
+      // ...
+    });
+    if (coordinatorDecision) {
+      resolve(coordinatorDecision);
+      return;
+    }
+  }
+  // 显示交互式权限对话框...
+  const swarmDecision = await handleSwarmWorkerPermission({
+    ctx, description,
+    ...(feature("BASH_CLASSIFIER") ? {
+      pendingClassifierCheck: result.pendingClassifierCheck
+    } : {}),
+    // ...
+  });</code></pre><p><code>pendingClassifierCheck</code> 是一个在 <code>bashPermissions.ts</code> 中预先启动的 Promise。它实现了一种&quot;投机性检查&quot;（speculative check）——在用户看到确认对话框之前，分类器可能已经完成了判断。如果分类器判定安全，用户甚至不会看到对话框；如果分类器判定不安全或超时，系统才回退到人工确认。</p>
+<p>这种竞赛设计（race）在 <code>consumeSpeculativeClassifierCheck</code> 和 <code>peekSpeculativeClassifierCheck</code> 中实现，确保分类器结果只被消费一次。</p>
+<h3 id="yolo-分类器auto-模式">13.4.3 YOLO 分类器（auto 模式）</h3>
+<p>auto 模式的核心是 <code>yoloClassifier.ts</code> 中的全局分类器。它不仅分析单条命令，还分析<strong>完整的对话上下文</strong>（transcript）来判断操作是否安全：</p>
+<pre><code class="language-typescript">// src/utils/permissions/yoloClassifier.ts
+classifierResult = await classifyYoloAction(
+  context.messages,     // 完整对话历史
+  action,               // 当前操作描述
+  context.options.tools, // 可用工具列表
+  appState.toolPermissionContext,
+  context.abortController.signal,
+)</code></pre><p>在调用分类器之前，系统会尝试多个快速路径来避免昂贵的 API 调用：</p>
+<pre><code class="language-typescript">// 快速路径 1：acceptEdits 检查
+if (result.behavior === 'ask' &amp;&amp; tool.name !== AGENT_TOOL_NAME) {
+  const acceptEditsResult = await tool.checkPermissions(parsedInput, {
+    ...context,
+    getAppState: () =&gt; ({
+      ...state,
+      toolPermissionContext: {
+        ...state.toolPermissionContext,
+        mode: 'acceptEdits' as const,
+      },
+    }),
+  })
+  if (acceptEditsResult.behavior === 'allow') {
+    // 跳过分类器，直接允许
+    return { behavior: 'allow', ... }
+  }
+}
+
+// 快速路径 2：安全工具白名单
+if (classifierDecisionModule!.isAutoModeAllowlistedTool(tool.name)) {
+  return { behavior: 'allow', ... }
+}</code></pre><p>安全工具白名单（<code>SAFE_YOLO_ALLOWLISTED_TOOLS</code>）在 <code>classifierDecision.ts</code> 中定义，包含了所有确认安全的只读工具：</p>
+<pre><code class="language-typescript">const SAFE_YOLO_ALLOWLISTED_TOOLS = new Set([
+  FILE_READ_TOOL_NAME,
+  GREP_TOOL_NAME, GLOB_TOOL_NAME, LSP_TOOL_NAME,
+  TODO_WRITE_TOOL_NAME,
+  ASK_USER_QUESTION_TOOL_NAME,
+  SLEEP_TOOL_NAME,
+  // ...
+])</code></pre><div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>推测分类器（Speculative Classifier）是最具创新性的设计——在用户操作前就预测权限决策。</p>
+<ul>
+<li>分类器在用户提交操作时就开始异步评估——不是等到需要弹窗才开始检查。</li>
+<li>分类器评估和用户操作同时进行——评估完成时用户可能还没看到弹窗，决策就&quot;凭空出现&quot;。</li>
+<li>分类器的准确率不是 100%——总会有误放（安全漏洞）或误拦（用户体验下降）。</li>
+<li>auto 模式依赖分类器的置信度——高置信度自动放行，低置信度回退到询问用户。</li>
+</ul>
+</div><hr>
+<h2 id="拒绝追踪">13.5 拒绝追踪</h2>
+<p>当 auto 模式分类器连续拒绝操作时，可能意味着分类器的判断与用户意图不一致。<code>denialTracking.ts</code> 实现了一个升级机制来处理这种情况：</p>
+<pre><code class="language-typescript">// src/utils/permissions/denialTracking.ts
+export type DenialTrackingState = {
+  consecutiveDenials: number
+  totalDenials: number
+}
+
+export const DENIAL_LIMITS = {
+  maxConsecutive: 3,
+  maxTotal: 20,
+} as const
+
+export function shouldFallbackToPrompting(state: DenialTrackingState): boolean {
+  return (
+    state.consecutiveDenials &gt;= DENIAL_LIMITS.maxConsecutive ||
+    state.totalDenials &gt;= DENIAL_LIMITS.maxTotal
+  )
+}</code></pre><p>设计精要在于两个独立的阈值：</p>
+<ul>
+<li><strong>连续拒绝阈值</strong>（3 次）：检测短期的分类器-用户不一致。连续 3 次拒绝后回退到人工确认，让用户有机会纠正。</li>
+<li><strong>总拒绝阈值</strong>（20 次）：检测长期的系统性问题。即使每次连续拒绝都被成功操作打断，积累到 20 次也会触发回退。</li>
+</ul>
+<p>状态管理函数是纯函数，返回新状态而非修改原状态：</p>
+<pre><code class="language-typescript">export function recordDenial(state: DenialTrackingState): DenialTrackingState {
+  return {
+    ...state,
+    consecutiveDenials: state.consecutiveDenials + 1,
+    totalDenials: state.totalDenials + 1,
+  }
+}
+
+export function recordSuccess(state: DenialTrackingState): DenialTrackingState {
+  if (state.consecutiveDenials === 0) return state // 无需变化
+  return { ...state, consecutiveDenials: 0 }
+}</code></pre><p><code>recordSuccess</code> 中的短路优化很精巧——如果连续拒绝计数已经是 0，直接返回原对象，避免无意义的对象创建。</p>
+<p>在 <code>permissions.ts</code> 中的使用方式：</p>
+<pre><code class="language-typescript">if (result.behavior === 'allow') {
+  const currentDenialState =
+    context.localDenialTracking ?? appState.denialTracking
+  if (appState.toolPermissionContext.mode === 'auto' &amp;&amp;
+      currentDenialState &amp;&amp; currentDenialState.consecutiveDenials &gt; 0) {
+    const newDenialState = recordSuccess(currentDenialState)
+    persistDenialState(context, newDenialState)
+  }
+  return result
+}</code></pre><p>注意 <code>context.localDenialTracking</code> 的优先级高于 <code>appState.denialTracking</code>——这是为异步子代理设计的。子代理的 <code>setAppState</code> 是 no-op，不能通过全局状态传递拒绝追踪信息，因此需要本地独立跟踪。</p>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>拒绝追踪（permission_denials）收集所有被拒绝的权限请求——不是记录&quot;谁做了什么&quot;，而是记录&quot;谁想做什么但被阻止了&quot;。</p>
+<ul>
+<li>permissionDenials 数组伴随整个查询周期——从第一次拒绝到最后一次，全部记录在案。</li>
+<li>拒绝追踪的用途：审计、调试、性能分析——知道哪些操作经常被拒绝可以帮助优化权限配置。</li>
+<li>拒绝信息在查询结束时随 result 消息一起返回——SDK 和 REPL 都能访问。</li>
+<li>对比传统权限系统的&quot;只记录通过不记录拒绝&quot;——拒绝记录比通过记录更有价值。</li>
+</ul>
+</div><hr>
+<h2 id="权限持久化">13.6 权限持久化</h2>
+<p>权限规则的持久化分为两个级别：会话级和全局级。</p>
+<h3 id="会话级权限">13.6.1 会话级权限</h3>
+<p>会话级权限存储在 <code>ToolPermissionContext</code> 的 <code>session</code> 来源中，随会话结束而消失。当用户在权限对话框中选择&quot;允许一次&quot;或&quot;拒绝一次&quot;时，产生的就是会话级规则。</p>
+<h3 id="全局级权限">13.6.2 全局级权限</h3>
+<p>全局级权限持久化到设置文件中，有多个目标位置：</p>
+<pre><code class="language-typescript">// src/types/permissions.ts
+export type PermissionUpdateDestination =
+  | 'userSettings'       // ~/.claude/settings.json
+  | 'projectSettings'    // .claude/settings.json
+  | 'localSettings'      // .claude/settings.local.json
+  | 'session'            // 内存中
+  | 'cliArg'             // CLI 参数</code></pre><p>持久化操作由 <code>PermissionUpdate.ts</code> 中的 <code>persistPermissionUpdates</code> 处理。一个典型的权限更新操作：</p>
+<pre><code class="language-typescript">// 用户点击"Always allow for this project"
+const update: PermissionUpdate = {
+  type: 'addRules',
+  rules: [{ toolName: 'Bash', ruleContent: 'npm test:*' }],
+  behavior: 'allow',
+  destination: 'localSettings',
+}</code></pre><p>这条规则会被写入项目本地的 <code>.claude/settings.local.json</code> 文件（不入 Git），允许在该项目中自动执行以 <code>npm test</code> 开头的命令。</p>
+<p>权限的加载在 <code>permissionsLoader.ts</code> 中实现，它从所有配置来源收集规则，合并到 <code>ToolPermissionContext</code> 对象中。加载顺序保证了优先级——策略设置（policySettings）优先于用户设置（userSettings），用户设置优先于项目设置（projectSettings）。</p>
+<p>这种分层持久化设计允许企业通过策略（policy）强制某些安全约束，同时让开发者在项目级别自定义便捷规则，实现了安全性与可用性的平衡。</p>
+<div class="thinking-note"><h3 id="思考笔记-6">思考笔记</h3>
+<p>权限持久化确保你的安全策略在重启后仍然存在——不是每次启动都要重新配置。</p>
+<ul>
+<li>持久化存储包括用户设置（全局）和项目设置（项目级）——不同范围的策略有不同的存储位置。</li>
+<li>规则按来源优先级合并——alwaysAllowRules &gt; alwaysDenyRules &gt; alwaysAskRules，防火墙式优先级。</li>
+<li>权限规则的 glob 模式支持文件路径级别的精细控制——不是&quot;允许 Read 工具&quot;而是&quot;允许 Read 工具读取 src/ 目录&quot;。</li>
+<li>持久化的挑战：规则数量增加后的性能、规则冲突时的解析策略、规则变更后的迁移。</li>
+</ul>
+</div><hr>
+
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-12-skill-system/" class="chapter-prev">← 第 12 章：Skill 系统</a>
+      <a href="/2026/05/21/claude-code-14-bash-security/" class="chapter-next">第 14 章：Bash 安全分析 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 7 章：工具架构__DESCRIPTION__quot;好的架构允许重大决策推迟到最后一刻。__DESCRIPTION__quot; —— Robert C. Martin思考维度内容引导思考 展开它为什么存在模型决定调工具的时候，控制权就从 LLM 侧转到宿主程序侧了——工具架构就是这个转折点的设计40+ 内置工具外加不限量的 MCP 工具，没有一个好架构根本管不过来它解决什么问题工具的完整生命周期：参数验证 → 权限检查 → 执行 → 结果处理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 7 章：工具架构">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-07-tool-architecture/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 7 章：工具架构__DESCRIPTION__quot;好的架构允许重大决策推迟到最后一刻。__DESCRIPTION__quot; —— Robert C. Martin思考维度内容引导思考 展开它为什么存在模型决定调工具的时候，控制权就从 LLM 侧转到宿主程序侧了——工具架构就是这个转折点的设计40+ 内置工具外加不限量的 MCP 工具，没有一个好架构根本管不过来它解决什么问题工具的完整生命周期：参数验证 → 权限检查 → 执行 → 结果处理">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-07-tool-architecture/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 7 章：工具架构 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-07-tool-architecture/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 7 章：工具架构
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 7 章：工具架构</h1>
+<blockquote>
+<p>&quot;好的架构允许重大决策推迟到最后一刻。&quot; —— Robert C. Martin</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>模型决定调工具的时候，控制权就从 LLM 侧转到宿主程序侧了——工具架构就是这个转折点的设计</li><li>40+ 内置工具外加不限量的 MCP 工具，没有一个好架构根本管不过来</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>工具的完整生命周期：参数验证 → 权限检查 → 执行 → 结果处理 → UI 渲染——全部统一抽象</li><li>安全默认：新工具自动继承保守配置——默认不可并发、默认有写操作</li><li>工具太多？ToolSearch 延迟加载 schema——用到了才加载，不浪费 prompt 空间</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>L3 Tool System——在查询引擎和外部能力之间做桥梁</li><li>每个工具通过 Tool 接口定义 30+ 方法</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>buildTool 工厂把开发者写的 ToolDef 和 TOOL_DEFAULTS 合并——忘了配的安全选项自动填上保守值</li><li>ToolUseContext 参数对象携带 40+ 字段的运行时信息——依赖注入不靠框架靠参数</li><li>getAllBaseTools 显式罗列所有工具，feature() 做条件编译</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>Tool 泛型三个参数（Input/Output/Progress）保证各方法间的类型一致</li><li>ToolUseContext 双通道设计——setAppState 隔离子 Agent，setAppStateForTasks 穿透到根 Store</li><li>assembleToolPool 按名称排序，内置工具在前保 API 缓存命中率</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：没有独立的工具注册系统——直接调 VS Code API</li><li><strong>OpenClaw</strong>：工具通过 Plugin/YAML 声明，没有 Tool 泛型约束</li><li><strong>Harness Agent</strong>：工具是 Pipeline 步骤，通过 Harness API 调云服务和 DevOps 工具</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>泛型接口保证方法签名间类型一致</li><li>buildTool 的 fail-closed 默认值——忘配安全选项也不会出漏洞</li><li>ToolSearch 延迟加载平衡了工具数量和 prompt 大小</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>本章将深入剖析工具系统的类型契约、工厂模式、依赖注入、注册发现和延迟加载五个层面，展示这套架构如何在保持极高可扩展性的同时实现&quot;失败关闭&quot;（fail-closed）的安全默认。</p>
+<p>Claude Code 的工具系统是整个交互循环中最关键的子系统。当模型决定调用一个工具时，控制权从 LLM 推理侧转移到宿主程序侧——文件被读写、命令被执行、网页被抓取。工具系统的设计直接决定了 Claude Code 的能力边界与安全底线。</p>
+<hr>
+<h2 id="tool-接口契约">7.1 Tool 接口契约</h2>
+<h3 id="接口全貌">7.1.1 接口全貌</h3>
+<p>Claude Code 的工具接口定义在 <code>src/Tool.ts</code> 中，是一个参数化的 TypeScript 泛型类型。该接口包含超过 30 个方法和属性，覆盖了工具生命周期的每一个阶段：输入验证、权限检查、执行、结果序列化和 UI 渲染。</p>
+<pre><code class="language-typescript">// src/Tool.ts（简化展示核心签名）
+export type Tool&lt;
+  Input extends AnyObject = AnyObject,
+  Output = unknown,
+  P extends ToolProgressData = ToolProgressData,
+&gt; = {
+  readonly name: string
+  aliases?: string[]
+  searchHint?: string
+  readonly inputSchema: Input
+  readonly inputJSONSchema?: ToolInputJSONSchema
+  outputSchema?: z.ZodType&lt;unknown&gt;
+  maxResultSizeChars: number
+  readonly shouldDefer?: boolean
+  readonly alwaysLoad?: boolean
+  readonly strict?: boolean
+  isMcp?: boolean
+  isLsp?: boolean
+  mcpInfo?: { serverName: string; toolName: string }
+
+  // 生命周期方法
+  call(args, context, canUseTool, parentMessage, onProgress?): Promise&lt;ToolResult&lt;Output&gt;&gt;
+  description(input, options): Promise&lt;string&gt;
+  prompt(options): Promise&lt;string&gt;
+  validateInput?(input, context): Promise&lt;ValidationResult&gt;
+  checkPermissions(input, context): Promise&lt;PermissionResult&gt;
+
+  // 分类属性
+  isConcurrencySafe(input): boolean
+  isEnabled(): boolean
+  isReadOnly(input): boolean
+  isDestructive?(input): boolean
+  interruptBehavior?(): 'cancel' | 'block'
+  isSearchOrReadCommand?(input): { isSearch: boolean; isRead: boolean; isList?: boolean }
+  isOpenWorld?(input): boolean
+  requiresUserInteraction?(): boolean
+
+  // 路径与权限
+  getPath?(input): string
+  preparePermissionMatcher?(input): Promise&lt;(pattern: string) =&gt; boolean&gt;
+  backfillObservableInput?(input: Record&lt;string, unknown&gt;): void
+
+  // UI 渲染（10+ 方法）
+  userFacingName(input): string
+  renderToolUseMessage(input, options): React.ReactNode
+  renderToolResultMessage?(content, progressMessages, options): React.ReactNode
+  renderToolUseProgressMessage?(progressMessages, options): React.ReactNode
+  // ... 更多渲染方法
+
+  // 序列化与分类器
+  toAutoClassifierInput(input): unknown
+  mapToolResultToToolResultBlockParam(content, toolUseID): ToolResultBlockParam
+  inputsEquivalent?(a, b): boolean
+}</code></pre><p>这个接口的设计哲学体现了几个核心原则：</p>
+<p><strong>原则一：输入驱动的属性推断。</strong> 注意 <code>isConcurrencySafe</code>、<code>isReadOnly</code>、<code>isDestructive</code> 等方法都接收 <code>input</code> 参数。这意味着同一个工具可以根据不同输入表现出不同的安全特征。例如，<code>BashTool</code> 执行 <code>ls</code> 时是只读且并发安全的，但执行 <code>rm -rf /</code> 时是破坏性的。</p>
+<p><strong>原则二：渲染与逻辑分离。</strong> 接口中 UI 渲染方法占了近半数，包括 <code>renderToolUseMessage</code>、<code>renderToolResultMessage</code>、<code>renderToolUseProgressMessage</code>、<code>renderToolUseRejectedMessage</code>、<code>renderToolUseErrorMessage</code> 和 <code>renderGroupedToolUse</code> 等。每个工具完全掌控自己在终端中的呈现方式，这与 React 的组件化思想一脉相承。</p>
+<p><strong>原则三：渐进式增强。</strong> 大量方法标记为可选（<code>?</code>），工具可以只实现核心方法，让框架提供合理默认值。</p>
+<h3 id="核心方法详解">7.1.2 核心方法详解</h3>
+<h4 id="call-工具执行入口">call —— 工具执行入口</h4>
+<pre><code class="language-typescript">call(
+  args: z.infer&lt;Input&gt;,
+  context: ToolUseContext,
+  canUseTool: CanUseToolFn,
+  parentMessage: AssistantMessage,
+  onProgress?: ToolCallProgress&lt;P&gt;,
+): Promise&lt;ToolResult&lt;Output&gt;&gt;</code></pre><p><code>call</code> 是工具的核心执行方法。注意其返回类型 <code>ToolResult&lt;Output&gt;</code>：</p>
+<pre><code class="language-typescript">export type ToolResult&lt;T&gt; = {
+  data: T
+  newMessages?: (UserMessage | AssistantMessage | AttachmentMessage | SystemMessage)[]
+  contextModifier?: (context: ToolUseContext) =&gt; ToolUseContext
+  mcpMeta?: { _meta?: Record&lt;string, unknown&gt;; structuredContent?: Record&lt;string, unknown&gt; }
+}</code></pre><p><code>ToolResult</code> 不仅包含工具输出数据，还可以携带新的消息（注入到对话历史中）和上下文修改器。这个 <code>contextModifier</code> 是一个精妙的设计——它允许非并发工具在执行后修改后续工具的执行环境。例如，一个切换目录的命令可以通过 <code>contextModifier</code> 更新后续工具看到的工作目录。</p>
+<h4 id="checkpermissions-权限闸门">checkPermissions —— 权限闸门</h4>
+<pre><code class="language-typescript">checkPermissions(
+  input: z.infer&lt;Input&gt;,
+  context: ToolUseContext,
+): Promise&lt;PermissionResult&gt;</code></pre><p>每个工具可以定义自己的权限检查逻辑。<code>PermissionResult</code> 的行为有三种：<code>allow</code>（允许执行）、<code>deny</code>（拒绝并告知原因）、<code>ask</code>（弹出交互式权限确认对话框）。这个方法只包含工具特有的逻辑，通用权限检查（如基于规则的匹配）在 <code>permissions.ts</code> 中处理。</p>
+<h4 id="isconcurrencysafe-并发安全标记">isConcurrencySafe —— 并发安全标记</h4>
+<pre><code class="language-typescript">isConcurrencySafe(input: z.infer&lt;Input&gt;): boolean</code></pre><p>这个方法的返回值直接控制 <code>StreamingToolExecutor</code> 的调度策略。返回 <code>true</code> 的工具可以与其他并发安全工具并行执行；返回 <code>false</code> 的工具会独占执行槽位。稍后在第 9 章将详细分析调度器的工作原理。</p>
+<h4 id="isdestructive-破坏性标记">isDestructive —— 破坏性标记</h4>
+<pre><code class="language-typescript">isDestructive?(input: z.infer&lt;Input&gt;): boolean</code></pre><p>注释说得很明确：<em>&quot;Only set when the tool performs irreversible operations (delete, overwrite, send).&quot;</em> 这个标记影响安全分类器的判断和 UI 的警告提示。</p>
+<h3 id="接口-uml-类图">7.1.3 接口 UML 类图</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+classDiagram
+    class Tool~Input, Output, P~ {
+        &lt;&lt;interface&gt;&gt;
+        +name: string
+        +aliases?: string[]
+        +searchHint?: string
+        +inputSchema: Input
+        +inputJSONSchema?: ToolInputJSONSchema
+        +outputSchema?: ZodType
+        +maxResultSizeChars: number
+        +shouldDefer?: boolean
+        +alwaysLoad?: boolean
+        +strict?: boolean
+        +isMcp?: boolean
+        +mcpInfo?: McpInfo
+        +call(args, context, canUseTool, parentMsg, onProgress?) ToolResult~Output~
+        +description(input, options) string
+        +prompt(options) string
+        +validateInput?(input, context) ValidationResult
+        +checkPermissions(input, context) PermissionResult
+        +isConcurrencySafe(input) boolean
+        +isEnabled() boolean
+        +isReadOnly(input) boolean
+        +isDestructive?(input) boolean
+        +interruptBehavior?() cancel|block
+        +isSearchOrReadCommand?(input) SearchReadResult
+        +getPath?(input) string
+        +preparePermissionMatcher?(input) MatcherFn
+        +backfillObservableInput?(input) void
+        +toAutoClassifierInput(input) unknown
+        +userFacingName(input) string
+        +mapToolResultToToolResultBlockParam(content, id) ToolResultBlockParam
+        +renderToolUseMessage(input, options) ReactNode
+        +renderToolResultMessage?(content, progress, options) ReactNode
+        +renderToolUseProgressMessage?(progress, options) ReactNode
+        +renderToolUseRejectedMessage?(input, options) ReactNode
+        +renderToolUseErrorMessage?(result, options) ReactNode
+        +renderGroupedToolUse?(toolUses, options) ReactNode
+    }
+
+    class ToolResult~T~ {
+        +data: T
+        +newMessages?: Message[]
+        +contextModifier?: ContextModifierFn
+        +mcpMeta?: McpMeta
+    }
+
+    class ToolDef~Input, Output, P~ {
+        &lt;&lt;type&gt;&gt;
+        Omit Tool without DefaultableKeys
+        + Partial DefaultableKeys
+    }
+
+    class BuiltTool~D~ {
+        &lt;&lt;type&gt;&gt;
+        Omit D without DefaultableKeys
+        + Required DefaultableKeys
+    }
+
+    Tool --&gt; ToolResult : returns
+    ToolDef --|&gt; Tool : buildTool fills defaults
+    BuiltTool --|&gt; Tool : concrete tool type</div><div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<p>Tool&lt;Input, Output, Progress&gt; 三参数泛型是 Claude Code 工具系统的&quot;类型契约&quot;——它把 40+ 工具的差异性全部收束到同一个接口中。</p>
+<ul>
+<li>三参数分别约束输入（Zod Schema 类型）、输出（工具返回类型）、进度（实时更新类型）——这是&quot;一个接口约束三个维度&quot;的泛型应用。</li>
+<li>方法签名间的类型一致性是最容易被忽视的价值——call() 返回 ToolResult<Output>，renderToolResultMessage() 接收 Output，编译器保证它们匹配。</li>
+<li>30+ 方法定义在 Tool 接口中不是&quot;臃肿&quot;，而是 Agent 运行时对工具能力的全部需求——每个方法对应工具与系统的一个交互触点。</li>
+<li>Tool 接口的设计原则是&quot;最小完备性&quot;——不多也不少，刚好覆盖所有工具需要的全部交互模式。</li>
+</ul>
+</div><hr>
+<h2 id="buildtool-工厂-失败关闭的默认值设计">7.2 buildTool 工厂 —— 失败关闭的默认值设计</h2>
+<h3 id="设计动机">7.2.1 设计动机</h3>
+<p>Claude Code 拥有 40+ 个内置工具，如果每个工具都必须实现 Tool 接口的全部 30+ 方法，代码将充斥着重复的样板。更危险的是，如果开发者忘记实现某个安全相关的方法，可能会留下安全漏洞。</p>
+<p><code>buildTool</code> 工厂函数的设计目标是：<strong>让安全默认值自动生效，让开发者显式选择放宽。</strong></p>
+<h3 id="tool_defaults-失败关闭的守卫">7.2.2 TOOL_DEFAULTS —— 失败关闭的守卫</h3>
+<pre><code class="language-typescript">// src/Tool.ts
+const TOOL_DEFAULTS = {
+  isEnabled: () =&gt; true,
+  isConcurrencySafe: (_input?: unknown) =&gt; false,    // 假定不安全
+  isReadOnly: (_input?: unknown) =&gt; false,            // 假定会写入
+  isDestructive: (_input?: unknown) =&gt; false,
+  checkPermissions: (input, _ctx?) =&gt;
+    Promise.resolve({ behavior: 'allow', updatedInput: input }),
+  toAutoClassifierInput: (_input?: unknown) =&gt; '',
+  userFacingName: (_input?: unknown) =&gt; '',
+}</code></pre><p>这段代码的关键设计决策值得逐一分析：</p>
+<table>
+<thead>
+<tr>
+<th>默认值</th>
+<th>值</th>
+<th>安全含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>isConcurrencySafe</code></td>
+<td><code>false</code></td>
+<td>新工具默认独占执行，不会与其他工具并发运行。这避免了潜在的竞态条件。</td>
+</tr>
+<tr>
+<td><code>isReadOnly</code></td>
+<td><code>false</code></td>
+<td>新工具默认被视为有写操作。这确保权限系统不会错误地跳过写入检查。</td>
+</tr>
+<tr>
+<td><code>isDestructive</code></td>
+<td><code>false</code></td>
+<td>这个看似违反&quot;失败关闭&quot;原则——新工具不会被标记为破坏性的。但这里的权衡是：将所有工具默认标记为破坏性会导致过多的用户确认弹窗，反而降低用户体验且造成&quot;告警疲劳&quot;。</td>
+</tr>
+<tr>
+<td><code>checkPermissions</code></td>
+<td><code>allow</code></td>
+<td>默认允许——工具级权限检查延迟到通用权限系统（<code>permissions.ts</code>）。这避免了工具漏实现 <code>checkPermissions</code> 就完全无法使用的问题。</td>
+</tr>
+<tr>
+<td><code>toAutoClassifierInput</code></td>
+<td><code>&#39;&#39;</code>（空字符串）</td>
+<td>空字符串意味着该工具从安全分类器的视角被跳过。源码注释明确指出：<em>&quot;skip classifier —— security-relevant tools must override&quot;</em>。</td>
+</tr>
+</tbody></table>
+<h3 id="buildtool-实现">7.2.3 buildTool 实现</h3>
+<pre><code class="language-typescript">// src/Tool.ts
+export function buildTool&lt;D extends AnyToolDef&gt;(def: D): BuiltTool&lt;D&gt; {
+  return {
+    ...TOOL_DEFAULTS,
+    userFacingName: () =&gt; def.name,
+    ...def,
+  } as BuiltTool&lt;D&gt;
+}</code></pre><p>实现极为简洁——利用 JavaScript 对象展开的后值覆盖特性，工具定义中显式提供的方法会覆盖默认值。类型系统通过 <code>BuiltTool&lt;D&gt;</code> 保证结果始终是一个完整的 <code>Tool</code>。</p>
+<h3 id="defaultabletoolkeys-可省略的方法集">7.2.4 DefaultableToolKeys —— 可省略的方法集</h3>
+<pre><code class="language-typescript">type DefaultableToolKeys =
+  | 'isEnabled'
+  | 'isConcurrencySafe'
+  | 'isReadOnly'
+  | 'isDestructive'
+  | 'checkPermissions'
+  | 'toAutoClassifierInput'
+  | 'userFacingName'</code></pre><p>只有这 7 个方法被列为可省略。其他方法（如 <code>call</code>、<code>inputSchema</code>、<code>prompt</code>）是每个工具必须实现的——编译器会强制要求。</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    A[开发者定义 ToolDef] --&gt;|省略 isConcurrencySafe| B[buildTool 工厂]
+    A --&gt;|省略 isReadOnly| B
+    A --&gt;|省略 checkPermissions| B
+    B --&gt;|注入 TOOL_DEFAULTS| C[完整的 Tool 对象]
+    C --&gt;|isConcurrencySafe = false| D[调度器独占执行]
+    C --&gt;|isReadOnly = false| E[权限系统检查写入]
+    C --&gt;|checkPermissions = allow| F[交由通用权限系统]
+
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style D fill:#fbb,stroke:#333
+    style E fill:#fbb,stroke:#333</div><div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>buildTool 的失败关闭（fail-closed）设计是安全工程中的经典模式——不是&quot;默认安全&quot;，而是&quot;默认最安全&quot;。</p>
+<ul>
+<li>TOOL_DEFAULTS 中 isConcurrencySafe 默认为 false（假设不安全）、isReadOnly 默认为 false（假设有写操作）——每个默认值都是从&quot;最保守的场景&quot;出发。</li>
+<li>ToolDef 将 7 个关键方法标记为可选，通过 Omit + Partial 类型体操实现——接口定义精准反映&quot;哪些可以缺省&quot;。</li>
+<li>buildTool() 的 spread 操作 <code>{...TOOL_DEFAULTS, ...def}</code> 保证了覆盖优先级：显式定义 &gt; 默认值。开发者忘记配的安全选项自动填上保守值。</li>
+<li>这种&quot;安全默认 + 显式覆盖&quot;的模式比抽象基类更灵活：工具可以只覆盖需要的部分，不需要的方法不会出现在实现中。</li>
+</ul>
+</div><hr>
+<h2 id="toolusecontext-依赖注入的核心载体">7.3 ToolUseContext —— 依赖注入的核心载体</h2>
+<h3 id="context-的角色">7.3.1 Context 的角色</h3>
+<p>在传统的面向对象设计中，工具可能是一个类实例，通过构造器注入依赖。Claude Code 选择了函数式的方式——每个工具的 <code>call</code> 方法接收一个 <code>ToolUseContext</code> 对象，其中包含了工具执行所需的全部上下文。</p>
+<p><code>ToolUseContext</code> 定义在 <code>src/Tool.ts</code> 中，是一个拥有 40+ 字段的大型结构体。这看似违反了&quot;接口隔离原则&quot;，但在 AI 编码工具的特殊场景下，这种设计有其合理性：工具需要的上下文是动态变化的（每次 API 调用可能有不同的配置），且工具之间共享大量上下文（如 MCP 客户端、权限配置、消息历史）。</p>
+<h3 id="context-的核心字段分组">7.3.2 Context 的核心字段分组</h3>
+<p>将 40+ 个字段按功能分组，可以看到清晰的层次结构：</p>
+<p><strong>配置层（options）：</strong></p>
+<pre><code class="language-typescript">options: {
+  commands: Command[]           // 可用斜杠命令
+  debug: boolean                // 调试模式
+  mainLoopModel: string         // 当前模型名称
+  tools: Tools                  // 可用工具列表
+  verbose: boolean              // 详细输出
+  thinkingConfig: ThinkingConfig // 思考配置
+  mcpClients: MCPServerConnection[] // MCP 服务器连接
+  mcpResources: Record&lt;string, ServerResource[]&gt;
+  isNonInteractiveSession: boolean  // 非交互模式（SDK/CI）
+  agentDefinitions: AgentDefinitionsResult
+  maxBudgetUsd?: number         // 成本预算上限
+  customSystemPrompt?: string   // 自定义系统提示
+  appendSystemPrompt?: string   // 追加系统提示
+  refreshTools?: () =&gt; Tools    // 动态刷新工具列表
+}</code></pre><p><strong>状态管理层：</strong></p>
+<pre><code class="language-typescript">abortController: AbortController           // 取消信号
+readFileState: FileStateCache              // 文件读取缓存
+getAppState(): AppState                     // 获取全局状态
+setAppState(f: (prev) =&gt; AppState): void   // 更新全局状态
+setAppStateForTasks?: (f) =&gt; void          // 任务级状态更新（穿透子代理）
+messages: Message[]                         // 对话消息历史</code></pre><p><strong>UI 交互层：</strong></p>
+<pre><code class="language-typescript">setToolJSX?: SetToolJSXFn           // 自定义 JSX 渲染
+addNotification?: (notif) =&gt; void    // 推送通知
+appendSystemMessage?: (msg) =&gt; void  // 追加系统消息
+sendOSNotification?: (opts) =&gt; void  // 系统级通知
+setInProgressToolUseIDs: (f) =&gt; void // 标记进行中的工具
+setHasInterruptibleToolInProgress?: (v) =&gt; void
+setStreamMode?: (mode) =&gt; void       // 设置 spinner 模式
+openMessageSelector?: () =&gt; void     // 打开消息选择器</code></pre><p><strong>跟踪与遥测层：</strong></p>
+<pre><code class="language-typescript">setResponseLength: (f) =&gt; void      // 响应长度统计
+pushApiMetricsEntry?: (ttftMs) =&gt; void // API 指标
+updateFileHistoryState: (updater) =&gt; void
+updateAttributionState: (updater) =&gt; void
+queryTracking?: QueryChainTracking   // 查询链跟踪
+toolDecisions?: Map&lt;string, {...}&gt;   // 工具决策记录</code></pre><p><strong>子代理相关：</strong></p>
+<pre><code class="language-typescript">agentId?: AgentId            // 子代理 ID
+agentType?: string           // 子代理类型
+requireCanUseTool?: boolean  // 强制权限检查（推测执行用）
+renderedSystemPrompt?: SystemPrompt // 父代理冻结的系统提示
+localDenialTracking?: DenialTrackingState // 本地拒绝追踪</code></pre><p><strong>内容管理层：</strong></p>
+<pre><code class="language-typescript">contentReplacementState?: ContentReplacementState  // 工具结果替换预算
+fileReadingLimits?: { maxTokens?; maxSizeBytes? }  // 文件读取限制
+globLimits?: { maxResults? }                        // Glob 结果限制</code></pre><h3 id="setappstate-与-setappstatefortasks-的分裂">7.3.3 setAppState 与 setAppStateForTasks 的分裂</h3>
+<p><code>ToolUseContext</code> 中有一个耐人寻味的设计——两个状态更新函数：</p>
+<pre><code class="language-typescript">setAppState(f: (prev: AppState) =&gt; AppState): void
+setAppStateForTasks?: (f: (prev: AppState) =&gt; AppState) =&gt; void</code></pre><p>注释解释了原因：</p>
+<blockquote>
+<p><em>&quot;Always-shared setAppState for session-scoped infrastructure (background tasks, session hooks). Unlike setAppState, which is no-op for async agents (see createSubagentContext), this always reaches the root store so agents at any nesting depth can register/clean up infrastructure that outlives a single turn.&quot;</em></p>
+</blockquote>
+<p>这是因为 Claude Code 支持多层嵌套的子代理（Agent 调用 Agent），每一层子代理有自己的 <code>ToolUseContext</code>。对于普通的状态更新，子代理的修改不应该泄漏到父代理；但对于全局基础设施（如后台任务注册），子代理必须能够穿透到根存储。这种双通道设计精确地解决了这个矛盾。</p>
+<h3 id="context-传递的数据流">7.3.4 Context 传递的数据流</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+sequenceDiagram
+    participant REPL as REPL.tsx
+    participant Query as query.ts
+    participant STE as StreamingToolExecutor
+    participant TE as toolExecution.ts
+    participant Tool as 具体工具
+
+    REPL-&gt;&gt;Query: 创建初始 ToolUseContext
+    Note right of REPL: options, abortController, messages, setAppState...
+    Query-&gt;&gt;STE: new StreamingToolExecutor(tools, canUseTool, context)
+    STE-&gt;&gt;STE: addTool(block, assistantMessage)
+    STE-&gt;&gt;TE: runToolUse(block, assistantMessage, canUseTool, context)
+    TE-&gt;&gt;TE: 校验输入(zod safeParse)
+    TE-&gt;&gt;TE: runPreToolUseHooks
+    TE-&gt;&gt;TE: resolveHookPermissionDecision
+    TE-&gt;&gt;Tool: tool.call(input, context, canUseTool, msg, onProgress)
+    Tool--&gt;&gt;TE: ToolResult { data, newMessages?, contextModifier? }
+    TE-&gt;&gt;TE: runPostToolUseHooks
+    TE-&gt;&gt;TE: processToolResultBlock(截断/持久化)
+    TE--&gt;&gt;STE: yield MessageUpdate
+    STE-&gt;&gt;STE: 应用 contextModifier
+    STE--&gt;&gt;Query: yield 结果消息</div><div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<p>ToolUseContext 是依赖注入在 Claude Code 中的具体实践——不依赖 DI 框架，靠一个 40+ 字段的参数对象传递所有运行时上下文。</p>
+<ul>
+<li>双通道设计（setAppState 隔离子 Agent / setAppStateForTasks 穿透到根 Store）解决了嵌套 Agent 场景下&quot;哪些共享、哪些隔离&quot;的问题。</li>
+<li>ToolUseContext 的 40+ 字段涵盖了一个工具执行所需的全部信息：权限上下文、会话状态、配置选项、回调函数——工具不需要从全局状态中获取任何东西。</li>
+<li>这种&quot;显式传递&quot;虽然参数对象会膨胀，但好处是所有依赖都是透明的——看函数签名就知道这个工具有什么能力。</li>
+<li>对比依赖注入框架：没有装饰器、没有容器、没有生命周期管理——只有从一个上下文对象中按需取用。&quot;恰好够用&quot;本身就是一种架构决策。</li>
+</ul>
+</div><hr>
+<h2 id="工具注册与发现-getallbasetools-函数的工具组装">7.4 工具注册与发现 —— getAllBaseTools 函数的工具组装</h2>
+<h3 id="工具注册表">7.4.1 工具注册表</h3>
+<p>Claude Code 没有使用装饰器模式或服务定位器模式来注册工具，而是采用了最直接的方式——在 <code>src/tools.ts</code> 中用一个函数显式列出所有工具：</p>
+<pre><code class="language-typescript">// src/tools.ts
+export function getAllBaseTools(): Tools {
+  return [
+    AgentTool,
+    TaskOutputTool,
+    BashTool,
+    ...(hasEmbeddedSearchTools() ? [] : [GlobTool, GrepTool]),
+    ExitPlanModeV2Tool,
+    FileReadTool,
+    FileEditTool,
+    FileWriteTool,
+    NotebookEditTool,
+    WebFetchTool,
+    TodoWriteTool,
+    WebSearchTool,
+    TaskStopTool,
+    AskUserQuestionTool,
+    SkillTool,
+    EnterPlanModeTool,
+    ...(isTodoV2Enabled() ? [TaskCreateTool, TaskGetTool, TaskUpdateTool, TaskListTool] : []),
+    ...(isWorktreeModeEnabled() ? [EnterWorktreeTool, ExitWorktreeTool] : []),
+    ...(isToolSearchEnabledOptimistic() ? [ToolSearchTool] : []),
+    // ... 更多条件工具
+  ]
+}</code></pre><p>这种设计有几个重要特点：</p>
+<p><strong>条件编译（Dead Code Elimination）。</strong> 许多工具使用 <code>feature()</code> 标记进行条件加载：</p>
+<pre><code class="language-typescript">const REPLTool = process.env.USER_TYPE === 'ant'
+  ? require('./tools/REPLTool/REPLTool.js').REPLTool
+  : null
+
+const SleepTool = feature('PROACTIVE') || feature('KAIROS')
+  ? require('./tools/SleepTool/SleepTool.js').SleepTool
+  : null</code></pre><p>Bun 的打包器会在编译时对 <code>feature()</code> 调用求值，从而将未启用的工具完全从产物中删除。这不仅减少了包大小，还保证了未启用的功能不会泄漏任何代码路径。</p>
+<p><strong>嵌入式搜索工具的去重。</strong> 当内部构建（ant-native）内嵌了 bfs/ugrep 时，GlobTool 和 GrepTool 会被跳过：</p>
+<pre><code class="language-typescript">...(hasEmbeddedSearchTools() ? [] : [GlobTool, GrepTool]),</code></pre><p>这是因为内嵌的搜索工具已经被别名到 shell 中的 <code>find</code> 和 <code>grep</code> 命令，GlobTool/GrepTool 就变得多余了。</p>
+<h3 id="工具池组装">7.4.2 工具池组装</h3>
+<p><code>getAllBaseTools</code> 只是原始工具列表。实际交给模型使用的工具列表还要经过多层过滤：</p>
+<pre><code class="language-typescript">export function assembleToolPool(
+  permissionContext: ToolPermissionContext,
+  mcpTools: Tools,
+): Tools {
+  const builtInTools = getTools(permissionContext)         // 过滤后的内置工具
+  const allowedMcpTools = filterToolsByDenyRules(mcpTools, permissionContext)  // 过滤后的 MCP 工具
+
+  // 按名称排序以保证 prompt-cache 稳定性
+  const byName = (a: Tool, b: Tool) =&gt; a.name.localeCompare(b.name)
+  return uniqBy(
+    [...builtInTools].sort(byName).concat(allowedMcpTools.sort(byName)),
+    'name',
+  )
+}</code></pre><p>注意这里的缓存稳定性设计：内置工具和 MCP 工具分别排序后拼接，内置工具作为前缀。源码注释解释了原因：</p>
+<blockquote>
+<p><em>&quot;The server&#39;s claude_code_system_cache_policy places a global cache breakpoint after the last prefix-matched built-in tool; a flat sort would interleave MCP tools into built-ins and invalidate all downstream cache keys whenever an MCP tool sorts between existing built-ins.&quot;</em></p>
+</blockquote>
+<p>这意味着 Anthropic 的 API 服务器会在系统提示中内置工具列表之后设置缓存断点。如果 MCP 工具穿插到内置工具之间，就会破坏这个缓存，导致每次 API 调用都需要重新处理整个工具列表。</p>
+<h3 id="过滤层次">7.4.3 过滤层次</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    A[getAllBaseTools
+40+ 工具] --&gt;|feature 条件编译| B[条件工具过滤]
+    B --&gt;|isEnabled 检查| C[启用的工具]
+    C --&gt;|filterToolsByDenyRules| D[去除拒绝规则匹配的工具]
+    D --&gt;|REPL 模式过滤| E[隐藏 REPL 包装的原语工具]
+    E --&gt;|SIMPLE 模式过滤| F[仅保留 Bash/Read/Edit]
+    F --&gt;|assembleToolPool| G[合并 MCP 工具]
+    G --&gt;|uniqBy name| H[最终工具集]
+    H --&gt;|按名称排序| I[发送到 API]</div><div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>工具注册与发现是 Agent 系统的&quot;能力目录&quot;——决定 Agent 能看到哪些工具、看不到哪些工具。</p>
+<ul>
+<li>getAllBaseTools 通过 feature() 条件编译动态组装工具列表——内置工具不走注册，而是显式罗列。这比自动扫描更可控，但维护成本也更高。</li>
+<li>工具按名称排序保证 API 调用的一致性——同名工具在不同调用中总是以相同顺序出现，方便 prompt cache 命中。</li>
+<li>ToolSearch 的延迟加载是一个被低估的优化：不是所有工具都需要出现在初始 prompt 中，用户在需要时通过搜索找到工具，然后 lazy-load 其 schema。</li>
+<li>assembleToolPool 中的重复工具去重（uniqBy name）是 MCP 时代的必需品——本地工具、插件工具、MCP 工具可能同名，谁优先级更高由组装顺序决定。</li>
+</ul>
+</div><hr>
+<h2 id="延迟工具加载-toolsearchtool-如何减少初始-prompt-大小">7.5 延迟工具加载 —— ToolSearchTool 如何减少初始 prompt 大小</h2>
+<h3 id="问题背景">7.5.1 问题背景</h3>
+<p>Claude Code 支持大量工具——内置工具加上用户配置的 MCP 工具，总数很容易超过 50 个。每个工具的完整 JSON Schema 定义都要包含在系统提示中，这会消耗大量的上下文窗口空间。更关键的是，这些 token 会计入每次 API 调用的成本。</p>
+<h3 id="延迟加载机制">7.5.2 延迟加载机制</h3>
+<p>ToolSearchTool 实现了一个&quot;按需加载&quot;机制：</p>
+<ol>
+<li><strong>初始加载时</strong>，被标记为 <code>shouldDefer: true</code> 的工具只发送名称，不发送完整 schema</li>
+<li><strong>模型需要时</strong>，调用 <code>ToolSearch</code> 工具搜索并获取完整 schema</li>
+<li><strong>后续调用</strong>，已加载的工具 schema 对模型可见，可直接调用</li>
+</ol>
+<pre><code class="language-typescript">// src/tools/ToolSearchTool/prompt.ts
+export function isDeferredTool(tool: Tool): boolean {
+  // alwaysLoad 优先级最高——永不延迟
+  if (tool.alwaysLoad) return false
+  // MCP 工具始终延迟（工作流特定）
+  if (tool.isMcp) return true
+  // 工具自声明延迟
+  return tool.shouldDefer === true
+}</code></pre><p><code>ToolSearchTool</code> 支持三种查询模式：</p>
+<pre><code class="language-typescript">const inputSchema = z.object({
+  query: z.string().describe(
+    'Query to find deferred tools. Use "select:&lt;tool_name&gt;" for direct selection, ' +
+    'or keywords to search.'
+  ),
+  max_results: z.number().optional().default(5),
+})</code></pre><ul>
+<li><strong>精确选择</strong>：<code>&quot;select:Read,Edit,Grep&quot;</code> —— 直接按名称获取</li>
+<li><strong>关键词搜索</strong>：<code>&quot;notebook jupyter&quot;</code> —— 模糊匹配</li>
+<li><strong>名称约束搜索</strong>：<code>&quot;+slack send&quot;</code> —— 要求名称包含 &quot;slack&quot;，按其余词排名</li>
+</ul>
+<h3 id="schema-缺失检测">7.5.3 Schema 缺失检测</h3>
+<p>当模型尝试调用一个未加载 schema 的延迟工具时，输入参数往往会格式错误（因为模型没有看到参数定义）。<code>toolExecution.ts</code> 中有专门的检测逻辑：</p>
+<pre><code class="language-typescript">// src/services/tools/toolExecution.ts
+export function buildSchemaNotSentHint(
+  tool: Tool,
+  messages: Message[],
+  tools: readonly { name: string }[],
+): string | null {
+  if (!isToolSearchEnabledOptimistic()) return null
+  if (!isToolSearchToolAvailable(tools)) return null
+  if (!isDeferredTool(tool)) return null
+  const discovered = extractDiscoveredToolNames(messages)
+  if (discovered.has(tool.name)) return null
+  return (
+    `This tool's schema was not sent to the API... ` +
+    `Load the tool first: call ${TOOL_SEARCH_TOOL_NAME} with query "select:${tool.name}"`
+  )
+}</code></pre><p>这段代码会追加到 Zod 验证错误信息之后，引导模型先调用 ToolSearch 加载 schema 再重试。</p>
+<h3 id="缓存与性能">7.5.4 缓存与性能</h3>
+<p>ToolSearchTool 使用 memoized 的工具描述缓存，并在延迟工具集变化时失效：</p>
+<pre><code class="language-typescript">const getToolDescriptionMemoized = memoize(
+  async (toolName: string, tools: Tools): Promise&lt;string&gt; =&gt; {
+    const tool = findToolByName(tools, toolName)
+    if (!tool) return ''
+    return tool.prompt({ /* 最小化参数 */ })
+  },
+  (toolName: string) =&gt; toolName,
+)
+
+function maybeInvalidateCache(deferredTools: Tools): void {
+  const currentKey = getDeferredToolsCacheKey(deferredTools)
+  if (cachedDeferredToolNames !== currentKey) {
+    getToolDescriptionMemoized.cache.clear?.()
+    cachedDeferredToolNames = currentKey
+  }
+}</code></pre><h3 id="延迟加载的工具分布">7.5.5 延迟加载的工具分布</h3>
+<p>在当前代码库中，以下工具被标记为 <code>shouldDefer: true</code>：</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>延迟原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>WebFetchTool</td>
+<td>非核心操作，使用频率低</td>
+</tr>
+<tr>
+<td>TaskCreateTool</td>
+<td>仅在 TodoV2 启用时有效</td>
+</tr>
+<tr>
+<td>TaskGetTool</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>TaskUpdateTool</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>TaskListTool</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>所有 MCP 工具</td>
+<td>工作流特定，数量不可控</td>
+</tr>
+</tbody></table>
+<p>而以下工具通过 <code>alwaysLoad: true</code> 确保从不延迟（即使启用了 ToolSearch）：</p>
+<ul>
+<li>MCP 工具可通过 <code>_meta[&#39;anthropic/alwaysLoad&#39;]</code> 声明自己不应被延迟</li>
+</ul>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph LR
+    subgraph 初始加载
+        A[BashTool
+完整 schema]
+        B[FileReadTool
+完整 schema]
+        C[FileEditTool
+完整 schema]
+        D[GlobTool
+完整 schema]
+        E[GrepTool
+完整 schema]
+        F[ToolSearchTool
+完整 schema]
+    end
+
+    subgraph 延迟加载
+        G[WebFetchTool
+仅名称]
+        H[TaskCreateTool
+仅名称]
+        I[MCP工具1
+仅名称]
+        J[MCP工具2
+仅名称]
+    end
+
+    F --&gt;|select:WebFetchTool| G
+    F --&gt;|keyword search| H
+    F --&gt;|select:mcp__...| I
+
+    style F fill:#ff9,stroke:#333,stroke-width:2px
+    style G fill:#ddd,stroke:#999
+    style H fill:#ddd,stroke:#999
+    style I fill:#ddd,stroke:#999
+    style J fill:#ddd,stroke:#999</div><div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>ToolSearchTool 展示了延迟初始化在工具系统中的应用——不是所有工具都需要出现在初始 prompt 中。</p>
+<ul>
+<li>40+ 内置工具的 schema 全部注入初始 prompt 会大幅增加 token——延迟加载让不常用的工具不被加载。</li>
+<li>工具发现不再是&quot;所有工具立即可用&quot;，而是&quot;搜索 → 找到 → 加载 → 可用&quot;的四步流程。</li>
+<li>这类似于 IDE 的自动补全——不会把所有可能的补全项都加载到内存。</li>
+<li>延迟加载的一个副作用：对不熟悉的用户来说，不知道有什么工具可用。</li>
+</ul>
+</div><hr>
+<h2 id="本章小结">本章小结</h2>
+<p>Claude Code 的工具架构通过以下设计决策构建了一个安全、可扩展、高性能的工具系统：</p>
+<ol>
+<li><strong>泛型接口 + 输入驱动属性</strong> —— 同一工具根据不同输入表现不同的安全特征</li>
+<li><strong>buildTool 工厂 + 失败关闭默认值</strong> —— 新工具自动获得保守的安全配置</li>
+<li><strong>ToolUseContext 依赖注入</strong> —— 40+ 字段的上下文对象承载了工具执行的全部环境</li>
+<li><strong>显式注册 + 条件编译</strong> —— 工具列表在编译时确定，死代码被完全消除</li>
+<li><strong>ToolSearch 延迟加载</strong> —— 按需加载 schema，在工具数量与 prompt 大小之间取得平衡</li>
+</ol>
+<p>下一章将深入到具体工具的实现中，分析 BashTool 如何安全地执行 shell 命令、FileEditTool 如何保证编辑的原子性、以及 GrepTool 如何集成 Ripgrep 提供高速搜索。</p>
+
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-06-streaming/" class="chapter-prev">← 第 6 章：流式处理</a>
+      <a href="/2026/05/21/claude-code-08-builtin-tools/" class="chapter-next">第 8 章：内置工具深度解析 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

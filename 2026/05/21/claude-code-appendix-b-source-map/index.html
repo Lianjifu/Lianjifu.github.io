@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="附录 B：源码导航思考维度内容引导思考 展开它为什么存在1800 个 TypeScript 文件找起来像大海捞针——功能分类索引比文件名排序管用多了帮读者按功能区域定位关键文件，而不是盲目 grep它解决什么问题Claude Code 的目录按功能域组织但不扁平——部分工具散落在 tools/、services/tools/、utils/ 里读完了某一章可以秒定位到实现文件——不用在 1800 个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="附录 B：源码导航">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-appendix-b-source-map/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="附录 B：源码导航思考维度内容引导思考 展开它为什么存在1800 个 TypeScript 文件找起来像大海捞针——功能分类索引比文件名排序管用多了帮读者按功能区域定位关键文件，而不是盲目 grep它解决什么问题Claude Code 的目录按功能域组织但不扁平——部分工具散落在 tools/、services/tools/、utils/ 里读完了某一章可以秒定位到实现文件——不用在 1800 个">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-appendix-b-source-map/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>附录 B：源码导航 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-appendix-b-source-map/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          附录 B：源码导航
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>附录 B：源码导航</h1>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>1800 个 TypeScript 文件找起来像大海捞针——功能分类索引比文件名排序管用多了</li><li>帮读者按功能区域定位关键文件，而不是盲目 grep</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>Claude Code 的目录按功能域组织但不扁平——部分工具散落在 tools/、services/tools/、utils/ 里</li><li>读完了某一章可以秒定位到实现文件——不用在 1800 个文件里翻</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>作为附录不参与主线：但看完每一章都可能需要回来查文件路径</li><li>9 个分类覆盖全书 25 章涉及的源码区域</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>每个条目包含文件路径、大小估计、职责描述和相关章节</li><li>按功能模块分组：入口与启动 → 核心引擎 → 工具系统 → Agent → 权限 → MCP → 状态 → UI → 基础设施</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>纯 Markdown 表格，路径相对于 src/</li><li>行数标记&quot;大小估计&quot;而非精确行数——因为 DCE 后产物大小和源码行数不是一回事</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>React 官方文档</strong>：用目录树文本图，强调目录结构而非功能索引</li><li><strong>Monorepo 工具（Nx）</strong>：通过依赖图可视化，和本书的功能分类互补</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>功能分类索引比目录树更贴近读者需求</li><li>80+ 条记录标注大小和职责，方便评估代码量</li></ul></li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>Claude Code 的目录结构按功能域组织但不扁平——部分工具分散在 <code>tools/</code>、<code>services/tools/</code>、<code>utils/</code> 等目录</li><li>读者读完某一章后可以快速定位到对应的实现文件</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>作为附录不参与主线叙事</li><li>9 个分类模块覆盖了全书 25 章涉及的所有源码区域</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>每个文件条目包含路径、大小估计、职责说明和相关章节</li><li>按功能模块分组：入口点与启动 → 核心引擎 → 工具系统 → Agent 系统 → 权限安全 → MCP → 状态管理 → UI → 工程基础设施</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>纯 Markdown 表格，路径相对于 src/ 目录</li><li>大小估计以源码行数计，标注&quot;实际产物体积因 DCE 和 minification 缩小&quot;</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>传统源码文档（如 React、Vue）</strong>：通常使用目录树文本图或源码层级遍历，强调目录结构而非功能索引</li><li><strong>Monorepo 工具（Nx、Turborepo）</strong>：通过依赖图可视化项目结构，与本章的分类索引互补</li></ul></td>
+</tr>
+<tr>
+<td><strong>优缺点是什么</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>功能分类索引比目录树更贴近读者的阅读需求</li><li>80+ 条记录覆盖源码主体，标注大小和职责方便评估代码量</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>本附录提供 Claude Code 源码库的功能分类索引，帮助读者快速定位关键源码文件。所有路径相对于 <code>src/</code> 目录。源码总量约 1800 个 TypeScript/TSX 文件，合计约 49 万行代码。</p>
+<hr>
+<h2 id="入口点与启动">1. 入口点与启动</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>大小估计</th>
+<th>职责</th>
+<th>相关章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>entrypoints/cli.tsx</code></td>
+<td>~300 行</td>
+<td>CLI 入口点，处理 <code>--version</code> 快速路径，委托启动流程给 <code>main.tsx</code></td>
+<td>Ch2 启动流程</td>
+</tr>
+<tr>
+<td><code>main.tsx</code></td>
+<td>~4700 行</td>
+<td>主启动编排，Commander.js 命令注册，init 流程，迁移系统调度，是整个应用最大的单文件之一</td>
+<td>Ch2 启动流程, Ch23 构建系统</td>
+</tr>
+<tr>
+<td><code>entrypoints/init.ts</code></td>
+<td>~340 行</td>
+<td>初始化逻辑：身份认证、设置加载、性能 profiling 初始化</td>
+<td>Ch2 启动流程</td>
+</tr>
+<tr>
+<td><code>entrypoints/sdk/</code></td>
+<td>目录</td>
+<td>SDK 入口和对外暴露的类型定义，供 Agent SDK 集成方使用</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>entrypoints/mcp.ts</code></td>
+<td>~200 行</td>
+<td>MCP 服务器模式入口，将 Claude Code 自身作为 MCP Server 暴露</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>entrypoints/agentSdkTypes.ts</code></td>
+<td>~200 行</td>
+<td>Agent SDK 的公共类型定义，包括 <code>SDKMessage</code>、<code>SDKStatus</code> 等外部投影类型</td>
+<td>Ch1 全景概览</td>
+</tr>
+<tr>
+<td><code>setup.ts</code></td>
+<td>~480 行</td>
+<td>环境检测与初始设置，包括终端能力检测、默认配置写入</td>
+<td>Ch2 启动流程</td>
+</tr>
+<tr>
+<td><code>bootstrap/state.ts</code></td>
+<td>~1760 行</td>
+<td>全局 bootstrap 状态管理，包含会话 ID 生成、全局计数器、成本追踪初始化</td>
+<td>Ch2 启动流程, Ch21 性能优化</td>
+</tr>
+<tr>
+<td><code>migrations/</code></td>
+<td>11 个文件</td>
+<td>配置迁移脚本集合，处理模型重命名链（如 <code>sonnet45 → sonnet46</code>）、设置格式升级等向后兼容逻辑</td>
+<td><a href="/2026/05/21/claude-code-23-build-system/">Ch23 构建系统</a></td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<p>入口点和启动流程是理解系统的&quot;门&quot;——所有功能都从这里开始。</p>
+<ul>
+<li>cli.tsx 是二进制实际入口，main.tsx 是逻辑入口——路径分流保证快速响应。</li>
+<li>init() 被 memoize 保证全局只执行一次。</li>
+<li>feature() 编译时 DCE 让不同构建产物体积差异巨大。</li>
+<li>启动时间线精确到每毫秒——profileCheckpoint 提供了测量基础。</li>
+</ul>
+</div><hr>
+<h2 id="核心引擎">2. 核心引擎</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>大小估计</th>
+<th>职责</th>
+<th>相关章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>QueryEngine.ts</code></td>
+<td>~1300 行</td>
+<td>查询引擎类，一个对话对应一个实例，封装 <code>submitMessage</code> 入口、消息流管理、上下文压缩调度和 Agent SDK 适配</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>query.ts</code></td>
+<td>~1730 行</td>
+<td>查询循环核心状态机（<code>queryLoop</code>），驱动 API 请求 → 流式响应 → 工具执行 → 终止判断的迭代过程</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>query/tokenBudget.ts</code></td>
+<td>~90 行</td>
+<td>Token 预算追踪器（<code>BudgetTracker</code>），监控输入/输出 token 用量并判断是否触发压缩</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>query/stopHooks.ts</code></td>
+<td>~50 行</td>
+<td>Turn 终止逻辑，判断当前轮次是否应该结束（<code>Terminal</code>）还是继续（<code>Continue</code>）</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>query/deps.ts</code></td>
+<td>~50 行</td>
+<td>查询依赖注入接口定义</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>query/config.ts</code></td>
+<td>~50 行</td>
+<td>查询循环的配置参数定义</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>utils/messages.ts</code></td>
+<td>~5500 行</td>
+<td>消息核心工具库：<code>createUserMessage</code> 等工厂函数、<code>normalizeMessagesForAPI</code> 多阶段转换、消息合并与过滤逻辑</td>
+<td>Ch5 消息系统</td>
+</tr>
+<tr>
+<td><code>cost-tracker.ts</code></td>
+<td>~320 行</td>
+<td>API 调用成本追踪，提供 <code>getModelUsage</code>、<code>getTotalAPIDuration</code>、<code>getTotalCost</code> 等聚合函数</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>services/api/claude.ts</code></td>
+<td>~3400 行</td>
+<td>Anthropic API 客户端核心，封装流式请求、重试逻辑、用量累计和错误处理</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>services/api/errors.ts</code></td>
+<td>~200 行</td>
+<td>API 错误分类与处理，区分可重试和不可重试错误，处理 prompt 过长等特殊情况</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>services/api/withRetry.ts</code></td>
+<td>~200 行</td>
+<td>通用重试机制，支持指数退避和 fallback 触发</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>utils/conversationRecovery.ts</code></td>
+<td>~300 行</td>
+<td>会话恢复逻辑，支持 <code>--resume</code> 从中断处恢复对话</td>
+<td><a href="/2026/05/21/claude-code-18-conversation/">Ch18 会话管理</a></td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>QueryEngine 是系统的心脏——所有对话都通过它流转。</p>
+<ul>
+<li>submitMessage 是唯一入口——SDK 和 REPL 共用同一抽象。</li>
+<li>mutableMessages 贯穿生命周期，状态在多次调用间保持。</li>
+<li>查询循环是 while(true) + break 条件——状态机驱动而非异常驱动。</li>
+<li>错误恢复链（413 → collapse → compact → fallback）覆盖极端场景。</li>
+</ul>
+</div><hr>
+<h2 id="工具系统">3. 工具系统</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>大小估计</th>
+<th>职责</th>
+<th>相关章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Tool.ts</code></td>
+<td>~790 行</td>
+<td>Tool 接口定义（30+ 方法）、<code>ToolUseContext</code> 类型、<code>buildTool</code> 工厂函数、<code>TOOL_DEFAULTS</code> 默认值</td>
+<td>Ch7 工具架构</td>
+</tr>
+<tr>
+<td><code>tools.ts</code></td>
+<td>~390 行</td>
+<td>工具注册表，<code>getAllBaseTools</code> 收集所有内置工具、条件加载 ant-only 工具和 feature-gated 工具</td>
+<td>Ch7 工具架构</td>
+</tr>
+<tr>
+<td><code>tools/BashTool/</code></td>
+<td>18 个文件</td>
+<td>Bash 工具完整实现：命令执行（<code>BashTool.tsx</code>，~1140 行）、安全分类（<code>bashSecurity.ts</code>）、权限检查（<code>bashPermissions.ts</code>）、路径验证、sed 验证、只读模式强制、破坏性命令警告等</td>
+<td>Ch8 内置工具, Ch14 Bash 安全</td>
+</tr>
+<tr>
+<td><code>tools/FileReadTool/</code></td>
+<td>~1180 行</td>
+<td>文件读取工具，支持文本文件、图片、PDF、Jupyter Notebook 等多种格式</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/FileEditTool/</code></td>
+<td>~630 行</td>
+<td>文件编辑工具，基于唯一性字符串匹配的精确替换机制，支持并发编辑检测</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/FileWriteTool/</code></td>
+<td>~500 行</td>
+<td>文件写入工具，整文件覆盖写入</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/GlobTool/</code></td>
+<td>~400 行</td>
+<td>文件名模式搜索工具，底层集成 Ripgrep</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/GrepTool/</code></td>
+<td>~580 行</td>
+<td>文件内容搜索工具，底层集成 Ripgrep，支持正则、上下文行、多行匹配</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/WebFetchTool/</code></td>
+<td>~320 行</td>
+<td>URL 内容抓取工具，HTML 转 Markdown 处理</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/WebSearchTool/</code></td>
+<td>~440 行</td>
+<td>网络搜索工具</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/NotebookEditTool/</code></td>
+<td>~300 行</td>
+<td>Jupyter Notebook 单元格编辑工具</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/ToolSearchTool/</code></td>
+<td>~470 行</td>
+<td>延迟工具加载的核心，按需搜索和加载工具 schema 以减少初始 prompt 大小</td>
+<td>Ch7 工具架构</td>
+</tr>
+<tr>
+<td><code>tools/MCPTool/</code></td>
+<td>~80 行</td>
+<td>MCP 工具代理，将 MCP Server 暴露的工具包装为本地 Tool 接口</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>tools/AskUserQuestionTool/</code></td>
+<td>~200 行</td>
+<td>交互式用户提问工具，允许 Claude 主动向用户征求输入</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/TaskCreateTool/</code></td>
+<td>~300 行</td>
+<td>后台任务创建工具</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>tools/REPLTool/</code></td>
+<td>~500 行</td>
+<td>交互式代码执行工具（ant-only），支持 JavaScript/Python 等语言的 REPL</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>services/tools/StreamingToolExecutor.ts</code></td>
+<td>~530 行</td>
+<td>流式并发调度器，管理工具的四态生命周期（queued → executing → completed → yielded）</td>
+<td>Ch9 工具执行</td>
+</tr>
+<tr>
+<td><code>services/tools/toolExecution.ts</code></td>
+<td>~1750 行</td>
+<td>工具执行管线核心，<code>runToolUse</code> 入口、schema 验证、结果处理、<code>buildSchemaNotSentHint</code> 延迟加载提示</td>
+<td>Ch9 工具执行</td>
+</tr>
+<tr>
+<td><code>services/tools/toolHooks.ts</code></td>
+<td>~650 行</td>
+<td>Pre/Post 工具钩子执行引擎，处理 <code>PreToolUse</code> 和 <code>PostToolUse</code> 事件的钩子注册与调度</td>
+<td>Ch9 工具执行</td>
+</tr>
+<tr>
+<td><code>services/tools/toolOrchestration.ts</code></td>
+<td>~190 行</td>
+<td>工具编排层，协调多工具并发执行和结果聚合</td>
+<td>Ch9 工具执行</td>
+</tr>
+<tr>
+<td><code>tools/shared/spawnMultiAgent.ts</code></td>
+<td>~1090 行</td>
+<td>多 Agent 并行派生的共享实现，被 AgentTool 和 TaskTool 复用</td>
+<td><a href="/2026/05/21/claude-code-11-subagent/">Ch11 子代理</a></td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<p>工具系统是 Claude Code 的能力边界——40+ 内置工具通过统一接口集成。</p>
+<ul>
+<li>Tool&lt;Input, Output, Progress&gt; 三参数泛型约束输入、输出、进度。</li>
+<li>buildTool 工厂 + TOOL_DEFAULTS 实现 fail-closed 安全默认。</li>
+<li>并发调度器（StreamingToolExecutor）管理工具的并行执行和结果保序。</li>
+<li>三层防线（单次截断 + 磁盘持久化 + 全局预算）防止工具输出撑爆上下文。</li>
+</ul>
+</div><hr>
+<h2 id="agent-系统">4. Agent 系统</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>大小估计</th>
+<th>职责</th>
+<th>相关章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>tools/AgentTool/AgentTool.tsx</code></td>
+<td>~1400 行</td>
+<td>Agent 工具主入口，处理 Agent 定义解析、工具过滤、消息构建和 UI 渲染</td>
+<td><a href="/2026/05/21/claude-code-10-agent-model/">Ch10 Agent 模型</a></td>
+</tr>
+<tr>
+<td><code>tools/AgentTool/loadAgentsDir.ts</code></td>
+<td>~760 行</td>
+<td>Agent 定义加载器，从 <code>.claude/agents/</code> 目录解析 Markdown frontmatter 并转换为 <code>AgentDefinition</code> 类型</td>
+<td><a href="/2026/05/21/claude-code-10-agent-model/">Ch10 Agent 模型</a></td>
+</tr>
+<tr>
+<td><code>tools/AgentTool/builtInAgents.ts</code></td>
+<td>~200 行</td>
+<td>内置 Agent 注册中心（<code>getBuiltInAgents</code>），汇总 Explore、Plan、Verification 等预定义 Agent</td>
+<td><a href="/2026/05/21/claude-code-10-agent-model/">Ch10 Agent 模型</a></td>
+</tr>
+<tr>
+<td><code>tools/AgentTool/built-in/</code></td>
+<td>目录</td>
+<td>内置 Agent 定义目录：<code>exploreAgent.ts</code>（只读探索）、<code>planAgent.ts</code>（规划）、<code>verificationAgent.ts</code>（对抗验证）、<code>generalPurposeAgent.ts</code>（通用）、<code>claudeCodeGuideAgent.ts</code>（动态指南）</td>
+<td><a href="/2026/05/21/claude-code-10-agent-model/">Ch10 Agent 模型</a></td>
+</tr>
+<tr>
+<td><code>tools/AgentTool/agentToolUtils.ts</code></td>
+<td>~300 行</td>
+<td>Agent 工具辅助函数：<code>resolveAgentTools</code>（工具解析）、<code>filterToolsForAgent</code>（工具过滤）</td>
+<td><a href="/2026/05/21/claude-code-10-agent-model/">Ch10 Agent 模型</a></td>
+</tr>
+<tr>
+<td><code>tools/AgentTool/forkSubagent.ts</code></td>
+<td>~210 行</td>
+<td>Fork 机制实现，<code>buildForkedMessages</code> 构建子 Agent 的初始消息，克隆父 Agent 上下文并共享 prompt cache</td>
+<td><a href="/2026/05/21/claude-code-11-subagent/">Ch11 子代理</a></td>
+</tr>
+<tr>
+<td><code>tools/AgentTool/runAgent.ts</code></td>
+<td>~970 行</td>
+<td>Agent 运行时核心，<code>runAgent</code> 函数启动查询循环、<code>initializeAgentMcpServers</code> 初始化 Agent 专属的 MCP 连接</td>
+<td><a href="/2026/05/21/claude-code-11-subagent/">Ch11 子代理</a></td>
+</tr>
+<tr>
+<td><code>tools/AgentTool/resumeAgent.ts</code></td>
+<td>~270 行</td>
+<td>Agent 恢复机制，从 sidechain transcript 重建中断的 Agent 执行状态</td>
+<td><a href="/2026/05/21/claude-code-11-subagent/">Ch11 子代理</a></td>
+</tr>
+<tr>
+<td><code>tools/AgentTool/agentMemory.ts</code></td>
+<td>~200 行</td>
+<td>Agent 记忆系统，三级范围（session/project/global）的记忆读写</td>
+<td><a href="/2026/05/21/claude-code-11-subagent/">Ch11 子代理</a></td>
+</tr>
+<tr>
+<td><code>tools/AgentTool/prompt.ts</code></td>
+<td>~300 行</td>
+<td>Agent 系统提示词构建，根据 Agent 类型和配置动态组装 system prompt</td>
+<td><a href="/2026/05/21/claude-code-10-agent-model/">Ch10 Agent 模型</a></td>
+</tr>
+<tr>
+<td><code>coordinator/coordinatorMode.ts</code></td>
+<td>~370 行</td>
+<td>协调者模式实现，支持一个主 Agent 分配任务给多个子 Agent 并行执行</td>
+<td><a href="/2026/05/21/claude-code-11-subagent/">Ch11 子代理</a></td>
+</tr>
+<tr>
+<td><code>tools/SkillTool/SkillTool.ts</code></td>
+<td>~1110 行</td>
+<td>Skill 执行引擎，<code>executeForkedSkill</code> 将 Skill 定义转化为 Agent 调用</td>
+<td><a href="/2026/05/21/claude-code-12-skill-system/">Ch12 技能系统</a></td>
+</tr>
+<tr>
+<td><code>skills/bundledSkills.ts</code></td>
+<td>~220 行</td>
+<td>内置 Skill 注册表，列举所有随 Claude Code 分发的预置技能</td>
+<td><a href="/2026/05/21/claude-code-12-skill-system/">Ch12 技能系统</a></td>
+</tr>
+<tr>
+<td><code>skills/loadSkillsDir.ts</code></td>
+<td>~1090 行</td>
+<td>文件系统 Skill 发现器，扫描 <code>.claude/skills/</code> 目录并解析 Markdown frontmatter 定义</td>
+<td><a href="/2026/05/21/claude-code-12-skill-system/">Ch12 技能系统</a></td>
+</tr>
+<tr>
+<td><code>skills/mcpSkillBuilders.ts</code></td>
+<td>~200 行</td>
+<td>将 MCP 提供的 prompt template 转换为 Skill 定义的适配层</td>
+<td><a href="/2026/05/21/claude-code-12-skill-system/">Ch12 技能系统</a></td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>Agent 系统是 Claude Code 的&quot;决策层&quot;——决定什么时候调什么工具。</p>
+<ul>
+<li>Agent 是&quot;带提示词的执行单元&quot;——Markdown frontmatter 定义，运行时加载。</li>
+<li>Fork/Resume 是子 Agent 的核心原语——复制上下文、隔离执行、合并结果。</li>
+<li>Skill 系统通过 Command 抽象统一了内置命令、用户 Skills 和插件。</li>
+<li>六层 Agent 优先级覆盖链实现从全局到局部的策略控制。</li>
+</ul>
+</div><hr>
+<h2 id="权限与安全">5. 权限与安全</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>大小估计</th>
+<th>职责</th>
+<th>相关章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>types/permissions.ts</code></td>
+<td>~440 行</td>
+<td>权限类型定义核心：<code>PermissionMode</code>（多种模式枚举）、<code>PermissionRule</code>、<code>PermissionResult</code> 等基础类型</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/permissions.ts</code></td>
+<td>~500 行</td>
+<td>权限检查入口：<code>hasPermissionsToUseTool</code>、权限规则匹配引擎</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/PermissionMode.ts</code></td>
+<td>~200 行</td>
+<td>权限模式配置（每种模式的符号、颜色、行为定义）</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/PermissionResult.ts</code></td>
+<td>~100 行</td>
+<td>权限结果类型（allow/deny/ask）的构造和判断辅助函数</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/permissionSetup.ts</code></td>
+<td>~1530 行</td>
+<td>权限系统初始化，配置各工具的默认权限规则和 bypass 模式设置</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/permissionsLoader.ts</code></td>
+<td>~300 行</td>
+<td>从 settings.json 加载和解析用户自定义权限规则</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/permissionRuleParser.ts</code></td>
+<td>~200 行</td>
+<td>权限规则的 glob/正则匹配解析器</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/bashClassifier.ts</code></td>
+<td>~500 行</td>
+<td>Bash 命令自动分类器，判断命令是读取、修改还是危险操作</td>
+<td><a href="/2026/05/21/claude-code-14-bash-security/">Ch14 Bash 安全</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/yoloClassifier.ts</code></td>
+<td>~400 行</td>
+<td>Auto 模式（&quot;YOLO&quot;模式）自动审批分类器，判断哪些操作可以自动批准</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/denialTracking.ts</code></td>
+<td>~50 行</td>
+<td>拒绝计数器，追踪连续拒绝次数并触发升级机制</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>utils/permissions/dangerousPatterns.ts</code></td>
+<td>~300 行</td>
+<td>危险命令模式库，定义需要特别警告的 shell 命令模式</td>
+<td><a href="/2026/05/21/claude-code-14-bash-security/">Ch14 Bash 安全</a></td>
+</tr>
+<tr>
+<td><code>tools/BashTool/bashSecurity.ts</code></td>
+<td>~500 行</td>
+<td>Bash 命令安全深度分析引擎</td>
+<td><a href="/2026/05/21/claude-code-14-bash-security/">Ch14 Bash 安全</a></td>
+</tr>
+<tr>
+<td><code>tools/BashTool/readOnlyValidation.ts</code></td>
+<td>~400 行</td>
+<td>只读模式强制执行器，在 Plan 模式下阻止所有写入操作</td>
+<td><a href="/2026/05/21/claude-code-14-bash-security/">Ch14 Bash 安全</a></td>
+</tr>
+<tr>
+<td><code>tools/BashTool/sedValidation.ts</code></td>
+<td>~300 行</td>
+<td>sed 命令专项安全验证器</td>
+<td><a href="/2026/05/21/claude-code-14-bash-security/">Ch14 Bash 安全</a></td>
+</tr>
+<tr>
+<td><code>tools/BashTool/pathValidation.ts</code></td>
+<td>~300 行</td>
+<td>路径边界校验器，确保命令不超出允许的目录范围</td>
+<td><a href="/2026/05/21/claude-code-14-bash-security/">Ch14 Bash 安全</a></td>
+</tr>
+<tr>
+<td><code>hooks/useCanUseTool.tsx</code></td>
+<td>~200 行</td>
+<td>权限检查 React hook，<code>CanUseToolFn</code> 的实际实现，串联所有权限检查逻辑</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>权限和安全是生产级 Agent 系统的基石——不是&quot;加个认证&quot;，而是&quot;层层防御&quot;。</p>
+<ul>
+<li>六层权限模式覆盖从完全锁定到完全信任的完整光谱。</li>
+<li>Bash 安全的 18 个文件、23 个安全检查器实现了纵深防御。</li>
+<li>规则优先级 deny &gt; allow &gt; ask——防火墙式的规则引擎。</li>
+<li>推测分类器通过并行安全检查和用户操作来隐藏验证延迟。</li>
+</ul>
+</div><hr>
+<h2 id="mcp-协议">6. MCP 协议</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>大小估计</th>
+<th>职责</th>
+<th>相关章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>services/mcp/client.ts</code></td>
+<td>~3350 行</td>
+<td>MCP 客户端核心实现，连接管理、工具发现、资源读取、prompt template 获取、采样请求处理</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/config.ts</code></td>
+<td>~500 行</td>
+<td>MCP 配置管理，多源合并（全局配置、项目配置、settings.json），支持环境变量展开</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/types.ts</code></td>
+<td>~300 行</td>
+<td>MCP 类型定义：<code>MCPServerConnection</code>（连接对象）、<code>ServerResource</code>（资源）、<code>MCPToolConfig</code>（工具配置）</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/auth.ts</code></td>
+<td>~2470 行</td>
+<td>MCP OAuth 认证核心，<code>ClaudeAuthProvider</code> 实现完整的 OAuth 2.0 + PKCE 授权码流程</td>
+<td><a href="/2026/05/21/claude-code-16-mcp-auth/">Ch16 MCP 认证</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/xaa.ts</code></td>
+<td>~510 行</td>
+<td>XAA 跨账户访问实现，基于 RFC 8693 Token Exchange + RFC 7523 JWT Bearer 的企业级认证</td>
+<td><a href="/2026/05/21/claude-code-16-mcp-auth/">Ch16 MCP 认证</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/xaaIdpLogin.ts</code></td>
+<td>~200 行</td>
+<td>XAA 身份提供商（IdP）登录集成</td>
+<td><a href="/2026/05/21/claude-code-16-mcp-auth/">Ch16 MCP 认证</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/elicitationHandler.ts</code></td>
+<td>~310 行</td>
+<td>MCP Elicitation 处理器，处理 Server 向 Client 主动请求额外输入信息的交互流程</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/channelPermissions.ts</code></td>
+<td>~200 行</td>
+<td>MCP 通道权限控制，管理不同 MCP Server 的信任级别和工具调用权限</td>
+<td><a href="/2026/05/21/claude-code-16-mcp-auth/">Ch16 MCP 认证</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/normalization.ts</code></td>
+<td>~150 行</td>
+<td>MCP 工具名称标准化，处理命名冲突和工具名映射</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/InProcessTransport.ts</code></td>
+<td>~100 行</td>
+<td>进程内 MCP 传输实现，用于将内置功能包装为 MCP Server 接口</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/SdkControlTransport.ts</code></td>
+<td>~100 行</td>
+<td>SDK 控制传输层，通过 Agent SDK 暴露的 MCP 消息通道</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/MCPConnectionManager.tsx</code></td>
+<td>~70 行</td>
+<td>MCP 连接生命周期管理的 React 组件包装</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>services/mcp/useManageMCPConnections.ts</code></td>
+<td>~300 行</td>
+<td>MCP 连接生命周期管理的 React hook，处理连接建立、重连和清理</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记-6">思考笔记</h3>
+<p>MCP 协议是 Claude Code 的&quot;USB 接口&quot;——外部工具通过标准协议接入。</p>
+<ul>
+<li>七种传输层覆盖本地 stdio 到远程 SSE/WebSocket 的完整谱系。</li>
+<li>client.ts 三千多行实现完整的 MCP 客户端——连接管理、工具发现、资源订阅。</li>
+<li>OAuth + PKCE 是 CLI 环境下 MCP 认证的标准方案。</li>
+<li>XAA（跨账户访问）通过三段交换链实现一次登录多地访问。</li>
+</ul>
+</div><hr>
+<h2 id="状态管理">7. 状态管理</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>大小估计</th>
+<th>职责</th>
+<th>相关章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>state/AppState.tsx</code></td>
+<td>~200 行</td>
+<td>React Context Provider，通过 <code>AppStateProvider</code> 向组件树注入全局状态，集成 React Compiler</td>
+<td><a href="/2026/05/21/claude-code-17-state-management/">Ch17 状态管理</a></td>
+</tr>
+<tr>
+<td><code>state/AppStateStore.ts</code></td>
+<td>~570 行</td>
+<td>状态存储定义核心，<code>AppState</code> 类型声明、<code>getDefaultAppState</code> 初始值工厂、<code>SpeculationState</code> 推测执行状态</td>
+<td><a href="/2026/05/21/claude-code-17-state-management/">Ch17 状态管理</a></td>
+</tr>
+<tr>
+<td><code>state/store.ts</code></td>
+<td>~34 行</td>
+<td>Zustand-like 的 <code>createStore</code> 工厂函数，支持 <code>useSyncExternalStore</code> 订阅模式</td>
+<td><a href="/2026/05/21/claude-code-17-state-management/">Ch17 状态管理</a></td>
+</tr>
+<tr>
+<td><code>state/selectors.ts</code></td>
+<td>~100 行</td>
+<td>状态选择器函数，从 <code>AppState</code> 中高效提取派生数据</td>
+<td><a href="/2026/05/21/claude-code-17-state-management/">Ch17 状态管理</a></td>
+</tr>
+<tr>
+<td><code>state/onChangeAppState.ts</code></td>
+<td>~100 行</td>
+<td>状态变更监听器，处理状态变化时的副作用（如 UI 更新通知）</td>
+<td><a href="/2026/05/21/claude-code-17-state-management/">Ch17 状态管理</a></td>
+</tr>
+<tr>
+<td><code>services/compact/compact.ts</code></td>
+<td>~1710 行</td>
+<td>会话压缩核心引擎，<code>buildPostCompactMessages</code> 构建压缩后的消息列表，支持多种压缩策略</td>
+<td><a href="/2026/05/21/claude-code-18-conversation/">Ch18 会话管理</a></td>
+</tr>
+<tr>
+<td><code>services/compact/autoCompact.ts</code></td>
+<td>~350 行</td>
+<td>自动压缩触发器，判断 token 用量阈值并触发压缩</td>
+<td><a href="/2026/05/21/claude-code-18-conversation/">Ch18 会话管理</a></td>
+</tr>
+<tr>
+<td><code>services/compact/microCompact.ts</code></td>
+<td>~530 行</td>
+<td>微压缩策略，使用快速模型对单条过长工具结果进行局部摘要</td>
+<td><a href="/2026/05/21/claude-code-18-conversation/">Ch18 会话管理</a></td>
+</tr>
+<tr>
+<td><code>services/compact/sessionMemoryCompact.ts</code></td>
+<td>~300 行</td>
+<td>会话记忆压缩，从 Compaction 中提取跨会话有价值的关键信息</td>
+<td><a href="/2026/05/21/claude-code-18-conversation/">Ch18 会话管理</a></td>
+</tr>
+<tr>
+<td><code>services/compact/prompt.ts</code></td>
+<td>~200 行</td>
+<td>Compaction 提示词模板，指导 Claude 如何生成对话摘要</td>
+<td><a href="/2026/05/21/claude-code-18-conversation/">Ch18 会话管理</a></td>
+</tr>
+<tr>
+<td><code>services/compact/grouping.ts</code></td>
+<td>~200 行</td>
+<td>消息分组逻辑，将相关消息组合为可压缩的单元</td>
+<td><a href="/2026/05/21/claude-code-18-conversation/">Ch18 会话管理</a></td>
+</tr>
+<tr>
+<td><code>utils/sessionStorage.ts</code></td>
+<td>~500 行</td>
+<td>Transcript 录制器（<code>recordTranscript</code>），JSONL 格式增量写入会话消息到磁盘</td>
+<td>Ch5 消息系统, Ch18 会话管理</td>
+</tr>
+<tr>
+<td><code>history.ts</code></td>
+<td>~460 行</td>
+<td>会话历史管理，列举、加载和搜索历史对话</td>
+<td><a href="/2026/05/21/claude-code-18-conversation/">Ch18 会话管理</a></td>
+</tr>
+<tr>
+<td><code>utils/fileStateCache.ts</code></td>
+<td>~140 行</td>
+<td>文件状态缓存，LRU 策略缓存文件内容，<code>cloneFileStateCache</code> 支持 Agent fork 时的缓存克隆</td>
+<td>Ch9 工具执行</td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记-7">思考笔记</h3>
+<p>Store 模式 + React Compiler 的组合让 Claude Code 的状态管理轻量而高效。</p>
+<ul>
+<li>34 行 createStore 实现 Zustand 风格——Set 做监听器，Object.is 对比。</li>
+<li>useSyncExternalStore 桥接 Store 和 React 渲染——并发模式安全。</li>
+<li>AppState 450+ 行类型定义——所有全局状态的契约。</li>
+<li>React Compiler 自动 memoization——不用手写 useMemo。</li>
+</ul>
+</div><hr>
+<h2 id="ui-组件">8. UI 组件</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>大小估计</th>
+<th>职责</th>
+<th>相关章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>components/App.tsx</code></td>
+<td>~55 行</td>
+<td>根应用组件，组装 Provider 树并渲染主界面</td>
+<td><a href="/2026/05/21/claude-code-19-ink-react/">Ch19 Ink React</a></td>
+</tr>
+<tr>
+<td><code>components/Messages.tsx</code></td>
+<td>~300 行</td>
+<td>消息列表组件，渲染对话中的所有消息</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/Message.tsx</code></td>
+<td>~400 行</td>
+<td>单条消息渲染组件，根据消息类型分发到对应的子组件</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/MessageRow.tsx</code></td>
+<td>~300 行</td>
+<td>消息行布局组件，处理消息的缩进、图标和时间戳</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/PromptInput/</code></td>
+<td>目录</td>
+<td>用户输入组件群，处理多行输入、自动补全、附件拖拽等交互</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/messages/</code></td>
+<td>目录</td>
+<td>消息类型渲染组件群，为不同消息类型（工具结果、错误、Markdown 等）提供专门的渲染逻辑</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/permissions/</code></td>
+<td>目录</td>
+<td>权限对话框组件群，渲染工具执行确认、权限模式选择等交互界面</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型, Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/diff/</code></td>
+<td>目录</td>
+<td>Diff 显示组件，文件编辑工具的结果可视化</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/StructuredDiff.tsx</code></td>
+<td>~300 行</td>
+<td>结构化 Diff 渲染，语法高亮的行级差异展示</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/Markdown.tsx</code></td>
+<td>~200 行</td>
+<td>Markdown 渲染组件，将 Markdown 文本渲染为终端格式化输出</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/StatusLine.tsx</code></td>
+<td>~200 行</td>
+<td>状态栏组件，显示当前模型、token 用量、权限模式等运行时信息</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/mcp/</code></td>
+<td>目录</td>
+<td>MCP 相关 UI 组件，包括 Server 审批对话框、连接状态显示等</td>
+<td><a href="/2026/05/21/claude-code-15-mcp-protocol/">Ch15 MCP 协议</a></td>
+</tr>
+<tr>
+<td><code>components/Settings/</code></td>
+<td>目录</td>
+<td>设置界面组件，交互式配置管理</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>components/agents/</code></td>
+<td>14 个文件</td>
+<td>Agent 管理界面：Agent 列表、编辑器、创建向导、工具/模型选择器等</td>
+<td><a href="/2026/05/21/claude-code-10-agent-model/">Ch10 Agent 模型</a></td>
+</tr>
+<tr>
+<td><code>ink/</code></td>
+<td>50+ 模块</td>
+<td>Ink 框架深度定制 fork：React 终端渲染器核心，包含 reconciler、renderer、DOM 抽象、焦点管理、搜索高亮、虚拟滚动等</td>
+<td><a href="/2026/05/21/claude-code-19-ink-react/">Ch19 Ink React</a></td>
+</tr>
+<tr>
+<td><code>ink/ink.tsx</code></td>
+<td>~1720 行</td>
+<td>Ink 框架主入口，React 组件到终端字符矩阵的渲染管线</td>
+<td><a href="/2026/05/21/claude-code-19-ink-react/">Ch19 Ink React</a></td>
+</tr>
+<tr>
+<td><code>ink/reconciler.ts</code></td>
+<td>~510 行</td>
+<td>终端专用 React 协调器（reconciler），处理虚拟 DOM 差异比较</td>
+<td><a href="/2026/05/21/claude-code-19-ink-react/">Ch19 Ink React</a></td>
+</tr>
+<tr>
+<td><code>ink/renderer.ts</code></td>
+<td>~180 行</td>
+<td>终端渲染器，将协调器输出的变更应用到终端屏幕</td>
+<td><a href="/2026/05/21/claude-code-19-ink-react/">Ch19 Ink React</a></td>
+</tr>
+<tr>
+<td><code>ink/dom.ts</code></td>
+<td>~300 行</td>
+<td>终端 DOM 抽象层，模拟浏览器 DOM 接口供 React 使用</td>
+<td><a href="/2026/05/21/claude-code-19-ink-react/">Ch19 Ink React</a></td>
+</tr>
+<tr>
+<td><code>ink/focus.ts</code></td>
+<td>~200 行</td>
+<td>终端焦点管理系统</td>
+<td><a href="/2026/05/21/claude-code-19-ink-react/">Ch19 Ink React</a></td>
+</tr>
+<tr>
+<td><code>ink/output.ts</code></td>
+<td>~200 行</td>
+<td>终端输出缓冲和优化</td>
+<td><a href="/2026/05/21/claude-code-19-ink-react/">Ch19 Ink React</a></td>
+</tr>
+<tr>
+<td><code>native-ts/</code></td>
+<td>目录</td>
+<td>原生 TypeScript 模块，包含 Yoga WASM 布局引擎绑定</td>
+<td><a href="/2026/05/21/claude-code-19-ink-react/">Ch19 Ink React</a></td>
+</tr>
+<tr>
+<td><code>hooks/useGlobalKeybindings.tsx</code></td>
+<td>~300 行</td>
+<td>全局快捷键绑定 hook，处理 Ctrl+C、Ctrl+D、搜索等系统级按键</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>keybindings/</code></td>
+<td>14 个文件</td>
+<td>快捷键系统：schema 定义、用户自定义绑定加载、冲突检测、chord 组合键支持</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记-8">思考笔记</h3>
+<p>React + Ink 让 340+ 组件在终端中运行——终端不再是 UI 的荒漠。</p>
+<ul>
+<li>Ink 通过 Yoga + WASM 实现 Flexbox 布局——终端中的 CSS。</li>
+<li>差异化输出（diff output）计算帧间差异，只输出变化——减少终端 I/O。</li>
+<li>REPL 5000 行是&quot;万法归宗&quot;的入口——所有子系统的输出汇集于此。</li>
+<li>Vim 模式状态机提供媲美编辑器的键盘交互体验。</li>
+</ul>
+</div><hr>
+<h2 id="工程基础设施">9. 工程基础设施</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>大小估计</th>
+<th>职责</th>
+<th>相关章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>utils/config.ts</code></td>
+<td>~1820 行</td>
+<td>全局配置管理核心，<code>getGlobalConfig</code> 入口、配置文件读写、多层配置合并（全局/项目/环境）</td>
+<td><a href="/2026/05/21/claude-code-23-build-system/">Ch23 构建系统</a></td>
+</tr>
+<tr>
+<td><code>utils/claudemd.ts</code></td>
+<td>~1480 行</td>
+<td>CLAUDE.md 文件加载与解析，支持层级式加载（全局 → 项目 → 子目录）、外部 include、安全检查</td>
+<td>Ch2 启动流程</td>
+</tr>
+<tr>
+<td><code>services/analytics/growthbook.ts</code></td>
+<td>~1160 行</td>
+<td>GrowthBook 特性开关集成，远程配置拉取、实验分组、事件追踪</td>
+<td>Ch2 启动流程</td>
+</tr>
+<tr>
+<td><code>services/analytics/</code></td>
+<td>目录</td>
+<td>遥测分析服务集合，事件日志、使用统计、实验数据上报</td>
+<td><a href="/2026/05/21/claude-code-23-build-system/">Ch23 构建系统</a></td>
+</tr>
+<tr>
+<td><code>utils/lazySchema.ts</code></td>
+<td>~8 行</td>
+<td>Zod schema 延迟构造包装器，一行代码打破模块循环依赖</td>
+<td>Ch3 类型系统</td>
+</tr>
+<tr>
+<td><code>schemas/hooks.ts</code></td>
+<td>~200 行</td>
+<td>Hook 配置的 Zod 验证 schema，定义 settings.json 中 hooks 字段的合法结构</td>
+<td>Ch9 工具执行</td>
+</tr>
+<tr>
+<td><code>utils/hooks/</code></td>
+<td>17 个文件</td>
+<td>异步 Hook 注册与执行基础设施：<code>AsyncHookRegistry</code>（注册中心）、<code>hookHelpers</code>（辅助函数）、<code>hooksConfigManager</code>（配置管理）、各类 Hook 执行器</td>
+<td>Ch9 工具执行</td>
+</tr>
+<tr>
+<td><code>utils/hooks/hookHelpers.ts</code></td>
+<td>~300 行</td>
+<td>Hook 执行辅助函数，处理 Hook 脚本的调用、超时和错误处理</td>
+<td>Ch9 工具执行</td>
+</tr>
+<tr>
+<td><code>services/lsp/</code></td>
+<td>7 个文件</td>
+<td>LSP（Language Server Protocol）集成：<code>LSPClient</code>（客户端）、<code>LSPServerManager</code>（服务器管理）、<code>LSPDiagnosticRegistry</code>（诊断注册）</td>
+<td>Ch8 内置工具</td>
+</tr>
+<tr>
+<td><code>services/oauth/</code></td>
+<td>5 个文件</td>
+<td>OAuth 2.0 认证流程实现：<code>auth-code-listener</code>（授权码监听）、<code>crypto</code>（PKCE 计算）、<code>getOauthProfile</code>（用户信息获取）</td>
+<td><a href="/2026/05/21/claude-code-16-mcp-auth/">Ch16 MCP 认证</a></td>
+</tr>
+<tr>
+<td><code>services/plugins/</code></td>
+<td>3 个文件</td>
+<td>插件系统：<code>PluginInstallationManager</code>（安装管理）、<code>pluginOperations</code>（操作接口）、<code>pluginCliCommands</code>（CLI 命令）</td>
+<td><a href="/2026/05/21/claude-code-12-skill-system/">Ch12 技能系统</a></td>
+</tr>
+<tr>
+<td><code>plugins/builtinPlugins.ts</code></td>
+<td>~100 行</td>
+<td>内置插件注册表</td>
+<td><a href="/2026/05/21/claude-code-12-skill-system/">Ch12 技能系统</a></td>
+</tr>
+<tr>
+<td><code>types/ids.ts</code></td>
+<td>~44 行</td>
+<td>品牌类型 ID 定义，<code>SessionId</code>、<code>AgentId</code> 等强类型标识符</td>
+<td>Ch3 类型系统</td>
+</tr>
+<tr>
+<td><code>types/permissions.ts</code></td>
+<td>~440 行</td>
+<td>权限相关类型的集中定义，<code>AdditionalWorkingDirectory</code>、<code>PermissionMode</code> 枚举等</td>
+<td><a href="/2026/05/21/claude-code-13-permission-model/">Ch13 权限模型</a></td>
+</tr>
+<tr>
+<td><code>types/hooks.ts</code></td>
+<td>~100 行</td>
+<td>Hook 事件类型定义</td>
+<td>Ch9 工具执行</td>
+</tr>
+<tr>
+<td><code>utils/envUtils.ts</code></td>
+<td>~100 行</td>
+<td>环境变量工具函数，<code>isBareMode</code>、<code>isEnvTruthy</code> 等判断辅助</td>
+<td>Ch2 启动流程</td>
+</tr>
+<tr>
+<td><code>utils/cwd.ts</code></td>
+<td>~100 行</td>
+<td>工作目录管理，<code>getCwd</code> 获取当前工作目录</td>
+<td>Ch2 启动流程</td>
+</tr>
+<tr>
+<td><code>utils/abortController.ts</code></td>
+<td>~50 行</td>
+<td>增强版 AbortController 封装，支持超时和级联取消</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>utils/systemPrompt.ts</code></td>
+<td>~120 行</td>
+<td>系统提示词构建辅助函数，<code>asSystemPrompt</code> 类型标记</td>
+<td>Ch4 查询引擎</td>
+</tr>
+<tr>
+<td><code>commands.ts</code></td>
+<td>~750 行</td>
+<td>斜杠命令注册中心，定义 <code>/help</code>、<code>/clear</code>、<code>/model</code> 等内置命令</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>bridge/</code></td>
+<td>15 个文件</td>
+<td>IDE 桥接通信层：<code>bridgeApi</code>（HTTP API）、<code>replBridgeTransport</code>（传输层）、<code>sessionRunner</code>（远程会话运行）、<code>bridgePermissionCallbacks</code>（权限回调）</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>voice/</code></td>
+<td>目录</td>
+<td>语音交互模块（ant-only），语音输入转文字和语音输出</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>vim/</code></td>
+<td>5 个文件</td>
+<td>Vim 模式支持：<code>motions</code>（光标移动）、<code>operators</code>（操作符）、<code>textObjects</code>（文本对象）、<code>transitions</code>（模式转换）</td>
+<td><a href="/2026/05/21/claude-code-20-repl/">Ch20 REPL</a></td>
+</tr>
+<tr>
+<td><code>context/</code></td>
+<td>9 个文件</td>
+<td>React Context 定义：<code>mailbox</code>（消息邮箱）、<code>notifications</code>（通知）、<code>modalContext</code>（模态框）、<code>voice</code>（语音）等全局上下文</td>
+<td><a href="/2026/05/21/claude-code-17-state-management/">Ch17 状态管理</a></td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p><strong>提示</strong>：源码文件路径和行数可能随版本更新而变化。本索引基于 Claude Code 的当前源码编写，大小估计以源码行数计。实际打包产物的体积会因 DCE 和 minification 而显著缩小。</p>
+</blockquote>
+<div class="thinking-note"><h3 id="思考笔记-9">思考笔记</h3>
+<p>构建系统、测试策略、性能优化——这些&quot;看不见&quot;的工程实践决定了系统的可维护性。</p>
+<ul>
+<li>Bun 的 feature() DCE 实现编译时多态——安全 + 性能双赢。</li>
+<li>三层测试策略覆盖确定性到非确定性的完整测试需求。</li>
+<li>profileCheckpoint + Statsig 实现数据驱动的性能优化。</li>
+<li>渐进式复杂（Gradual Complexity）是贯穿整个系统的工程哲学。</li>
+</ul>
+</div><hr>
+
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-appendix-a-glossary/" class="chapter-prev">← 附录 A：术语表</a>
+      
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

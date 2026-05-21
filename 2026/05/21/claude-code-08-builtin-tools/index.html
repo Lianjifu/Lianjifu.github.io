@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 8 章：内置工具深度解析__DESCRIPTION__quot;工具既是手的延伸，也是心智的延伸。__DESCRIPTION__quot; —— Marshall McLuhan思考维度内容引导思考 展开它为什么存在看来看去，Claude Code 能干的事全靠这些工具撑着。你点一下鼠标、敲几个字，背后就是某个工具在工作每个工具都在安全、性能和体验之间走钢丝——少一个都不行，所有工具合起来才是一个完整的开发助手它解决什么问题Shell 命令是双刃剑">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 8 章：内置工具深度解析">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-08-builtin-tools/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 8 章：内置工具深度解析__DESCRIPTION__quot;工具既是手的延伸，也是心智的延伸。__DESCRIPTION__quot; —— Marshall McLuhan思考维度内容引导思考 展开它为什么存在看来看去，Claude Code 能干的事全靠这些工具撑着。你点一下鼠标、敲几个字，背后就是某个工具在工作每个工具都在安全、性能和体验之间走钢丝——少一个都不行，所有工具合起来才是一个完整的开发助手它解决什么问题Shell 命令是双刃剑">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-08-builtin-tools/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 8 章：内置工具深度解析 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-08-builtin-tools/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 8 章：内置工具深度解析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 8 章：内置工具深度解析</h1>
+<blockquote>
+<p>&quot;工具既是手的延伸，也是心智的延伸。&quot; —— Marshall McLuhan</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>看来看去，Claude Code 能干的事全靠这些工具撑着。你点一下鼠标、敲几个字，背后就是某个工具在工作</li><li>每个工具都在安全、性能和体验之间走钢丝——少一个都不行，所有工具合起来才是一个完整的开发助手</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>Shell 命令是双刃剑——你要让 AI 干活，但怎么保证它不把系统拆了？BashTool 的 18 个文件就是来干这个的</li><li>文件操作看着简单，但写代码的人最怕大段重写。精确替换才是正道，Edit 工具的 old_string 唯一性校验就是这个思路</li><li>代码库大了以后搜索速度就是命门，Ripgrep 加持的 GrepTool 效率是真的可以</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>src/tools/ 下面每个子目录就是一个工具，统一在 tools.ts 注册——有了点插件市场的味道</li><li>buildTool 这个工厂函数有意思，默认失败关闭（fail-closed），忘了配安全选项也不会出漏洞</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>BashTool 先给命令分个类——是搜索、读取、写入还是破坏性操作，分类不同待遇不同</li><li>FileEdit 要求 old_string 必须唯一匹配，逼你写得更精确而不是模糊替换</li><li>WebFetch 抓了网页先让小模型过一遍，提炼你要的东西再塞回上下文——不浪费宝贵的 token</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>BashTool 的 18 个文件各管一摊，从执行到安全到 sed 校验，层层把关</li><li>Read 的 maxResultSizeChars: Infinity 是我觉得最巧妙的——反正结果不入磁盘，不怕读到死循环</li><li>WebSearchTool 不是直接联网搜的，而是又调了一次 API 让模型帮你搜——工具套工具，套娃式实现</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：没有独立的工具系统，直接撸 VS Code 扩展 API。轻是轻，但能干的事就限制在编辑器范围内了</li><li><strong>OpenClaw</strong>：工具简化为 read/execute/search/edit 五类，安全顾虑少了，但能力边界也小了</li><li><strong>Harness Agent</strong>：工具面向 CI/CD 场景——部署、构建、测试，不需要操心本地文件读写权限</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>BashTool 的 18 个文件层层防御，安全设计确实是行业标杆级别的</li><li>三剑客各管一摊：Read 防死循环、Edit 精确替换、Write 打完整 diff，分工清晰</li><li>lazySchema 延迟构建 schema，不用这个工具就不加载它的 schema，启动性能好</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>如果说 Tool 接口定义了工具的骨骼，那么具体的工具实现就是肌肉与血液。Claude Code 内置了超过 40 个工具，涵盖了 shell 执行、文件操作、代码搜索、网络访问和任务管理等核心能力。本章将选取最具代表性的工具进行深度剖析，揭示它们在安全性、性能和用户体验方面的精巧设计。</p>
+<hr>
+<h2 id="bashtool-最复杂的单一工具">8.1 BashTool —— 最复杂的单一工具</h2>
+<h3 id="复杂度概览">8.1.1 复杂度概览</h3>
+<p>BashTool 是 Claude Code 中最复杂的单一工具。其实现涉及 18 个文件，从 <code>BashTool.tsx</code> 主文件到 <code>bashPermissions.ts</code>、<code>bashSecurity.ts</code>、<code>commandSemantics.ts</code>、<code>sedEditParser.ts</code>、<code>shouldUseSandbox.ts</code> 等辅助模块。这种复杂度源于 shell 命令执行在安全领域的特殊地位——它是所有工具中攻击面最大的。</p>
+<pre><code>src/tools/BashTool/
+├── BashTool.tsx              # 主实现（schema 定义、call 方法、UI 渲染）
+├── bashPermissions.ts        # 权限检查：命令解析、规则匹配、分类器
+├── bashSecurity.ts           # 安全检查：命令安全性评估
+├── commandSemantics.ts       # 命令语义解释（退出码含义）
+├── sedEditParser.ts          # sed 命令特殊处理（作为文件编辑）
+├── readOnlyValidation.ts     # 只读约束检查
+├── modeValidation.ts         # 模式验证
+├── pathValidation.ts         # 路径安全检查
+├── sedValidation.ts          # sed 命令验证
+├── shouldUseSandbox.ts       # 沙箱判断逻辑
+├── bashCommandHelpers.ts     # 复合命令辅助函数
+├── destructiveCommandWarning.ts # 破坏性命令警告
+├── prompt.ts                 # 系统提示生成
+├── toolName.ts               # 工具名称常量
+├── commentLabel.ts           # 注释标签
+├── utils.ts                  # 通用工具函数
+├── UI.tsx                    # React UI 组件
+└── BashToolResultMessage.tsx # 结果展示组件</code></pre><h3 id="输入-schema">8.1.2 输入 Schema</h3>
+<p>BashTool 的输入 schema 经过精心设计，包含多个字段：</p>
+<pre><code class="language-typescript">// src/tools/BashTool/BashTool.tsx
+const fullInputSchema = lazySchema(() =&gt; z.strictObject({
+  command: z.string().describe('The command to execute'),
+  timeout: semanticNumber(z.number().optional()).describe(
+    `Optional timeout in milliseconds (max ${getMaxTimeoutMs()})`
+  ),
+  description: z.string().optional().describe(
+    'Clear, concise description of what this command does in active voice...'
+  ),
+  run_in_background: semanticBoolean(z.boolean().optional()).describe(
+    'Set to true to run this command in the background.'
+  ),
+  dangerouslyDisableSandbox: semanticBoolean(z.boolean().optional()).describe(
+    'Set this to true to dangerously override sandbox mode...'
+  ),
+  _simulatedSedEdit: z.object({
+    filePath: z.string(),
+    newContent: z.string()
+  }).optional().describe('Internal: pre-computed sed edit result from preview')
+}))</code></pre><p>几个值得关注的设计点：</p>
+<p><strong><code>semanticNumber</code> / <code>semanticBoolean</code> 包装器。</strong> 这些函数处理模型生成的&quot;语义化&quot;值——模型有时会把布尔值作为字符串 <code>&quot;true&quot;</code> 发送，或者把数字作为字符串 <code>&quot;42&quot;</code> 发送。这些包装器能容错地解析这些情况。</p>
+<p><strong><code>_simulatedSedEdit</code> 的隐藏与防注入。</strong> 该字段是内部使用的，在发送给模型的 schema 中被显式移除：</p>
+<pre><code class="language-typescript">const inputSchema = lazySchema(() =&gt;
+  fullInputSchema().omit({ _simulatedSedEdit: true, /* ... */ })
+)</code></pre><p>同时，<code>toolExecution.ts</code> 中还有一道防线，如果模型试图在输入中注入这个字段，会被强制剥离：</p>
+<pre><code class="language-typescript">// src/services/tools/toolExecution.ts
+if (tool.name === BASH_TOOL_NAME &amp;&amp; processedInput &amp;&amp;
+    typeof processedInput === 'object' &amp;&amp; '_simulatedSedEdit' in processedInput) {
+  const { _simulatedSedEdit: _, ...rest } = processedInput
+  processedInput = rest
+}</code></pre><p>这是一个经典的纵深防御——即使 schema 验证被绕过，运行时也会拦截。</p>
+<h3 id="并发安全性与只读判断">8.1.3 并发安全性与只读判断</h3>
+<p>BashTool 的 <code>isConcurrencySafe</code> 直接委托给 <code>isReadOnly</code>：</p>
+<pre><code class="language-typescript">isConcurrencySafe(input) {
+  return this.isReadOnly?.(input) ?? false
+},
+isReadOnly(input) {
+  const compoundCommandHasCd = commandHasAnyCd(input.command)
+  const result = checkReadOnlyConstraints(input, compoundCommandHasCd)
+  return result.behavior === 'allow'
+},</code></pre><p>这意味着只有确认为只读的命令才会被标记为并发安全。<code>checkReadOnlyConstraints</code> 会解析命令的 AST，检查是否包含任何写操作。</p>
+<h3 id="命令语义分类">8.1.4 命令语义分类</h3>
+<p>BashTool 能够识别命令类型来优化 UI 呈现：</p>
+<pre><code class="language-typescript">// 搜索命令 -- 在 UI 中折叠显示
+const BASH_SEARCH_COMMANDS = new Set([
+  'find', 'grep', 'rg', 'ag', 'ack', 'locate', 'which', 'whereis'
+])
+
+// 读取命令 -- 在 UI 中折叠显示
+const BASH_READ_COMMANDS = new Set([
+  'cat', 'head', 'tail', 'less', 'more',
+  'wc', 'stat', 'file', 'strings',
+  'jq', 'awk', 'cut', 'sort', 'uniq', 'tr'
+])
+
+// 目录列表命令
+const BASH_LIST_COMMANDS = new Set(['ls', 'tree', 'du'])
+
+// 语义中立命令 -- 不改变管道的读/搜索性质
+const BASH_SEMANTIC_NEUTRAL_COMMANDS = new Set([
+  'echo', 'printf', 'true', 'false', ':'
+])
+
+// 静默命令 -- 成功时无输出，显示 "Done" 而非 "(No output)"
+const BASH_SILENT_COMMANDS = new Set([
+  'mv', 'cp', 'rm', 'mkdir', 'rmdir', 'chmod', 'chown',
+  'chgrp', 'touch', 'ln', 'cd', 'export', 'unset', 'wait'
+])</code></pre><p><code>isSearchOrReadBashCommand</code> 的分析逻辑对复合命令有特殊处理——对于管道（<code>|</code>）和链式命令（<code>&amp;&amp;</code>、<code>;</code>），所有部分都必须是搜索/读取命令，整个命令才被视为搜索/读取操作。语义中立命令被跳过，不影响判定：</p>
+<pre><code class="language-typescript">export function isSearchOrReadBashCommand(command: string) {
+  const partsWithOperators = splitCommandWithOperators(command)
+  let hasSearch = false, hasRead = false, hasList = false
+  for (const part of partsWithOperators) {
+    // 跳过操作符和重定向目标
+    if (['||', '&amp;&amp;', '|', ';'].includes(part)) continue
+    const baseCommand = part.trim().split(/\s+/)[0]
+    // 语义中立命令不影响判断
+    if (BASH_SEMANTIC_NEUTRAL_COMMANDS.has(baseCommand)) continue
+    // 任何非搜索/读取命令都会使整个命令不可折叠
+    if (!BASH_SEARCH_COMMANDS.has(baseCommand) &amp;&amp;
+        !BASH_READ_COMMANDS.has(baseCommand) &amp;&amp;
+        !BASH_LIST_COMMANDS.has(baseCommand)) {
+      return { isSearch: false, isRead: false, isList: false }
+    }
+    // ... 累积标记
+  }
+}</code></pre><h3 id="权限检查的多层防线">8.1.5 权限检查的多层防线</h3>
+<p>BashTool 的权限检查通过 <code>bashToolHasPermission</code> 函数实现，是整个系统中最复杂的权限检查流程。它包括：</p>
+<ol>
+<li><strong>模式检查</strong>（<code>checkPermissionMode</code>）-- 检查当前是否在 plan 模式等特殊模式下</li>
+<li><strong>路径约束检查</strong>（<code>checkPathConstraints</code>）-- 确保命令不会操作受限路径</li>
+<li><strong>沙箱判断</strong>（<code>shouldUseSandbox</code>）-- 决定是否在沙箱中执行</li>
+<li><strong>规则匹配</strong> —— 与 <code>allow</code>/<code>deny</code>/<code>ask</code> 规则列表匹配</li>
+<li><strong>安全分类器</strong>（<code>classifyBashCommand</code>）-- 异步 ML 分类器判断命令安全性</li>
+<li><strong>sed 特殊处理</strong>（<code>checkSedConstraints</code>）-- sed in-place 编辑的特殊权限路径</li>
+</ol>
+<p>权限检查还有一个性能优化——推测性分类器预启动：</p>
+<pre><code class="language-typescript">// src/services/tools/toolExecution.ts
+if (tool.name === BASH_TOOL_NAME &amp;&amp; parsedInput.data &amp;&amp; 'command' in parsedInput.data) {
+  startSpeculativeClassifierCheck(
+    parsedInput.data.command,
+    appState.toolPermissionContext,
+    toolUseContext.abortController.signal,
+    toolUseContext.options.isNonInteractiveSession,
+  )
+}</code></pre><p>这段代码在输入验证通过后立即启动分类器检查，而不等到权限检查阶段。这样分类器可以与 pre-tool hooks 并行运行，减少用户等待时间。</p>
+<h3 id="安全校验流程">8.1.6 安全校验流程</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TD
+    A[模型调用 BashTool] --&gt; B[输入验证 Zod safeParse]
+    B --&gt;|失败| Z[返回错误]
+    B --&gt;|成功| C[剥离 _simulatedSedEdit]
+    C --&gt; D[推测性启动分类器]
+    C --&gt; E[Pre-tool hooks]
+    D --&gt; F{并行等待}
+    E --&gt; F
+    F --&gt; G[checkPermissionMode]
+    G --&gt; H[checkPathConstraints]
+    H --&gt; I[规则匹配 allow/deny/ask]
+    I --&gt;|allow 规则匹配| J[允许执行]
+    I --&gt;|deny 规则匹配| Z
+    I --&gt;|ask 或无匹配| K[分类器结果]
+    K --&gt;|allow| J
+    K --&gt;|deny| Z
+    K --&gt;|ask| L[弹出权限对话框]
+    L --&gt;|用户允许| J
+    L --&gt;|用户拒绝| Z
+    J --&gt; M{shouldUseSandbox?}
+    M --&gt;|是| N[沙箱执行]
+    M --&gt;|否| O[直接执行]
+    N --&gt; P[exec 命令]
+    O --&gt; P
+    P --&gt; Q[Post-tool hooks]
+    Q --&gt; R[返回结果]</div><div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<ul>
+<li>BashTool 是 Claude Code 中最复杂也是最危险的单一工具。18 个文件、多层验证流水线——不是过度设计，而是必须。</li>
+<li>把 50+ 子命令分类到 CommandConfig 的方式值得借鉴：每个命令的授权级别、并发安全性、读写属性都在配置中声明。</li>
+<li>&quot;纵深防御&quot;（Defense in Depth）在这里体现得最充分——不是做一次安全检查，而是 tokenizer → parser → validator → sandbox 层层过滤。</li>
+<li>有意思的设计：BashTool 不是直接执行字符串命令，而是先走一个完整的解析器（parser），生成 AST，再基于 AST 做安全检查。</li>
+</ul>
+</div><hr>
+<h2 id="文件操作三剑客-filereadtool-fileedittool-filewritetool">8.2 文件操作三剑客 —— FileReadTool / FileEditTool / FileWriteTool</h2>
+<h3 id="filereadtool-智能文件读取">8.2.1 FileReadTool —— 智能文件读取</h3>
+<p>FileReadTool 不是一个简单的 <code>cat</code> 包装。它支持读取普通文本文件、图片（作为视觉内容返回）、PDF（按页提取）、Jupyter Notebook（解析所有 cell）等多种格式。</p>
+<pre><code class="language-typescript">// src/tools/FileReadTool/FileReadTool.ts（关键属性）
+export const FileReadTool = buildTool({
+  name: FILE_READ_TOOL_NAME,
+  maxResultSizeChars: Infinity,  // 注意：Infinity！
+  isConcurrencySafe() { return true },
+  isReadOnly() { return true },
+  // ...
+})</code></pre><p><code>maxResultSizeChars: Infinity</code> 是一个关键设计——FileReadTool 的输出永远不会被持久化到磁盘。源码注释解释道：</p>
+<blockquote>
+<p><em>&quot;Set to Infinity for tools whose output must never be persisted (e.g. Read, where persisting creates a circular Read -&gt; file -&gt; Read loop and the tool already self-bounds via its own limits).&quot;</em></p>
+</blockquote>
+<p>如果将读取结果保存到临时文件，模型可能会再次用 Read 读取那个临时文件，形成无限循环。</p>
+<p>FileReadTool 还有一个安全特性——阻止读取危险的设备文件：</p>
+<pre><code class="language-typescript">const BLOCKED_DEVICE_PATHS = new Set([
+  '/dev/zero',    // 无限输出，永远不会 EOF
+  '/dev/random', '/dev/urandom',  // 同上
+  '/dev/stdin', '/dev/fd/0',      // 阻塞等待输入
+  // ...
+])</code></pre><h3 id="fileedittool-精确字符串替换">8.2.2 FileEditTool —— 精确字符串替换</h3>
+<p>FileEditTool 的核心理念是&quot;精确替换&quot;而非&quot;全文重写&quot;——通过 <code>old_string</code> 和 <code>new_string</code> 实现对文件的最小化修改：</p>
+<pre><code class="language-typescript">// src/tools/FileEditTool/types.ts
+const inputSchema = lazySchema(() =&gt; z.strictObject({
+  file_path: z.string().describe('The absolute path to the file to modify'),
+  old_string: z.string().describe('The text to replace'),
+  new_string: z.string().describe('The text to replace it with'),
+  replace_all: z.boolean().default(false).describe(
+    'Replace all occurrences of old_string'
+  ),
+}))</code></pre><p>FileEditTool 的几个关键设计：</p>
+<p><strong>唯一性校验。</strong> 当 <code>replace_all</code> 为 <code>false</code> 时，<code>old_string</code> 必须在文件中唯一出现。如果有多个匹配，工具会报错要求提供更多上下文来消除歧义。</p>
+<p><strong>并发修改检测。</strong> 利用 <code>readFileState</code>（FileStateCache）跟踪文件的最后读取时间戳。如果文件在上次读取后被外部修改，编辑会被拒绝：</p>
+<pre><code class="language-typescript">// 常量定义
+export const FILE_UNEXPECTEDLY_MODIFIED_ERROR =
+  'File was unexpectedly modified since last read'</code></pre><p><strong>文件大小上限。</strong> 设置了 1 GiB 的硬限制，防止处理超大文件导致 OOM：</p>
+<pre><code class="language-typescript">const MAX_EDIT_FILE_SIZE = 1024 * 1024 * 1024 // 1 GiB (stat bytes)</code></pre><p><strong>权限检查。</strong> 通过 <code>checkWritePermissionForTool</code> 验证文件路径是否在允许写入的范围内：</p>
+<pre><code class="language-typescript">async checkPermissions(input, context) {
+  const appState = context.getAppState()
+  return checkWritePermissionForTool(
+    FileEditTool, input, appState.toolPermissionContext,
+  )
+},</code></pre><p><strong>路径回填。</strong> <code>backfillObservableInput</code> 方法将相对路径或 <code>~</code> 开头的路径展开为绝对路径，确保 hook 的 allowlist 不会被绕过：</p>
+<pre><code class="language-typescript">backfillObservableInput(input) {
+  if (typeof input.file_path === 'string') {
+    input.file_path = expandPath(input.file_path)
+  }
+},</code></pre><h3 id="filewritetool-全文件创建覆写">8.2.3 FileWriteTool —— 全文件创建/覆写</h3>
+<p>FileWriteTool 用于创建新文件或完全覆写已有文件，其 schema 更为简洁：</p>
+<pre><code class="language-typescript">const inputSchema = lazySchema(() =&gt; z.strictObject({
+  file_path: z.string().describe(
+    'The absolute path to the file to write (must be absolute, not relative)'
+  ),
+  content: z.string().describe('The content to write to the file'),
+}))</code></pre><p>FileWriteTool 的输出 schema 包含丰富的变更信息，方便 UI 展示差异：</p>
+<pre><code class="language-typescript">const outputSchema = lazySchema(() =&gt; z.object({
+  type: z.enum(['create', 'update']),  // 创建还是更新
+  filePath: z.string(),
+  content: z.string(),
+  structuredPatch: z.array(hunkSchema()),  // diff patch
+  originalFile: z.string().optional(),      // 原文件内容（如有）
+}))</code></pre><h3 id="三剑客的设计对比">8.2.4 三剑客的设计对比</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph LR
+    subgraph 文件操作工具
+        R[FileReadTool]
+        E[FileEditTool]
+        W[FileWriteTool]
+    end
+
+    R --&gt;|"maxResultSizeChars: Infinity
+isConcurrencySafe: true
+isReadOnly: true"| RR[读取文件]
+    E --&gt;|"maxResultSizeChars: 100K
+isConcurrencySafe: false
+isReadOnly: false
+strict: true"| EE[精确替换]
+    W --&gt;|"maxResultSizeChars: 100K
+isConcurrencySafe: false
+isReadOnly: false"| WW[完全覆写]
+
+    RR --&gt;|支持格式| F1[文本 / 图片 / PDF / Notebook]
+    EE --&gt;|保护机制| F2[唯一性校验 / 并发检测 / 大小限制]
+    WW --&gt;|输出信息| F3[类型 / diff patch / 原文件]</div><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>FileReadTool</th>
+<th>FileEditTool</th>
+<th>FileWriteTool</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>并发安全</td>
+<td>是</td>
+<td>否</td>
+<td>否</td>
+</tr>
+<tr>
+<td>只读</td>
+<td>是</td>
+<td>否</td>
+<td>否</td>
+</tr>
+<tr>
+<td>maxResultSizeChars</td>
+<td>Infinity</td>
+<td>100,000</td>
+<td>100,000</td>
+</tr>
+<tr>
+<td>strict 模式</td>
+<td>否</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>格式支持</td>
+<td>文本/图片/PDF/Notebook</td>
+<td>纯文本</td>
+<td>纯文本</td>
+</tr>
+<tr>
+<td>权限检查</td>
+<td>读取权限</td>
+<td>写入权限</td>
+<td>写入权限</td>
+</tr>
+<tr>
+<td>shouldDefer</td>
+<td>否</td>
+<td>否</td>
+<td>否</td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<ul>
+<li>FileRead、FileEdit、FileWrite 三个工具的职责划分非常清晰：Read 负责读取（带 offset/limit），Edit 负责精确替换（search/replace 语义），Write 负责全量写入。</li>
+<li>FileEditTool 的 search/replace 模式是 Claude Code 最具辨识度的设计之一——不是传统的&quot;打开文件改第几行&quot;，而是&quot;找到这段内容替换成那段内容&quot;。这更符合 LLM 的认知模式。</li>
+<li>所有文件工具在写操作前都会走路径安全校验——不是等到 writeFile 才报错，而是调用前就验证路径合法。</li>
+<li>大文件读取有自动截断机制（max_length 参数），防止工具输出撑爆上下文。</li>
+</ul>
+</div><hr>
+<h2 id="globtoolgreptool-ripgrep-集成">8.3 GlobTool/GrepTool —— Ripgrep 集成</h2>
+<h3 id="globtool-快速文件名搜索">8.3.1 GlobTool —— 快速文件名搜索</h3>
+<p>GlobTool 通过内部的 <code>glob</code> 工具函数执行文件名模式匹配。它的设计注重简洁：</p>
+<pre><code class="language-typescript">// src/tools/GlobTool/GlobTool.ts
+export const GlobTool = buildTool({
+  name: GLOB_TOOL_NAME,
+  searchHint: 'find files by name pattern or wildcard',
+  maxResultSizeChars: 100_000,
+  isConcurrencySafe() { return true },
+  isReadOnly() { return true },
+  isSearchOrReadCommand() { return { isSearch: true, isRead: false } },
+  // ...
+})</code></pre><p>GlobTool 和 GrepTool 都是并发安全且只读的——它们可以与其他搜索工具并行执行。</p>
+<p>输入 schema 只有两个字段：</p>
+<pre><code class="language-typescript">const inputSchema = lazySchema(() =&gt; z.strictObject({
+  pattern: z.string().describe('The glob pattern to match files against'),
+  path: z.string().optional().describe('The directory to search in.'),
+}))</code></pre><p>值得注意的是，当内部构建嵌入了搜索工具时，GlobTool 会被完全移除：</p>
+<pre><code class="language-typescript">// src/tools.ts
+...(hasEmbeddedSearchTools() ? [] : [GlobTool, GrepTool]),</code></pre><h3 id="greptool-ripgrep-的深度集成">8.3.2 GrepTool —— Ripgrep 的深度集成</h3>
+<p>GrepTool 是 Claude Code 搜索能力的核心。它基于 Ripgrep（rg）实现，提供了远超 grep 的搜索体验。</p>
+<p><strong>丰富的输入参数。</strong> GrepTool 的 schema 几乎是 ripgrep 常用参数的一对一映射：</p>
+<pre><code class="language-typescript">const inputSchema = lazySchema(() =&gt; z.strictObject({
+  pattern: z.string(),      // 正则表达式模式
+  path: z.string().optional(),
+  glob: z.string().optional(),  // 文件过滤 glob
+  output_mode: z.enum(['content', 'files_with_matches', 'count']).optional(),
+  '-B': semanticNumber(z.number().optional()),  // 前文行数
+  '-A': semanticNumber(z.number().optional()),  // 后文行数
+  '-C': semanticNumber(z.number().optional()),  // 上下文行数
+  context: semanticNumber(z.number().optional()),
+  '-n': semanticBoolean(z.boolean().optional()),  // 行号
+  '-i': semanticBoolean(z.boolean().optional()),  // 忽略大小写
+  type: z.string().optional(),     // 文件类型过滤
+  head_limit: semanticNumber(z.number().optional()),  // 结果行数限制
+  offset: semanticNumber(z.number().optional()),       // 偏移量
+  multiline: semanticBoolean(z.boolean().optional()),  // 多行模式
+}))</code></pre><p><strong>默认结果限制。</strong> 为防止上下文膨胀，GrepTool 默认只返回前 250 条结果：</p>
+<pre><code class="language-typescript">const DEFAULT_HEAD_LIMIT = 250</code></pre><p>模型可以通过传 <code>head_limit: 0</code> 来获取无限结果，但这在源码注释中被标记为&quot;谨慎使用&quot;。</p>
+<p><strong>VCS 目录自动排除。</strong> 搜索时自动排除版本控制目录：</p>
+<pre><code class="language-typescript">const VCS_DIRECTORIES_TO_EXCLUDE = ['.git', '.svn', '.hg', '.bzr', '.jj', '.sl']</code></pre><p><strong>分页支持。</strong> 通过 <code>offset</code> 和 <code>head_limit</code> 的组合，GrepTool 支持结果分页：</p>
+<pre><code class="language-typescript">function applyHeadLimit&lt;T&gt;(items: T[], limit: number | undefined, offset: number = 0) {
+  if (limit === 0) return { items: items.slice(offset), appliedLimit: undefined }
+  const effectiveLimit = limit ?? DEFAULT_HEAD_LIMIT
+  const sliced = items.slice(offset, offset + effectiveLimit)
+  const wasTruncated = items.length - offset &gt; effectiveLimit
+  return { items: sliced, appliedLimit: wasTruncated ? effectiveLimit : undefined }
+}</code></pre><p><strong>GrepTool 与 BashTool grep 的关系。</strong> 有趣的是，模型可以通过 BashTool 执行 <code>grep</code> 或 <code>rg</code> 命令，也可以使用 GrepTool。系统提示中明确引导模型使用 GrepTool 而非 BashTool 中的 grep。GrepTool 的优势在于：结构化的输出（文件名列表、匹配计数等）、内置的结果限制和分页、以及正确的权限检查。</p>
+<h3 id="搜索工具的设计模式">8.3.3 搜索工具的设计模式</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+sequenceDiagram
+    participant Model as 模型
+    participant Grep as GrepTool
+    participant RG as Ripgrep (rg)
+    participant FS as 文件系统
+
+    Model-&gt;&gt;Grep: { pattern: "TODO", path: "src/", type: "ts" }
+    Grep-&gt;&gt;Grep: validateInput（路径存在性检查）
+    Grep-&gt;&gt;Grep: checkPermissions（读取权限）
+    Grep-&gt;&gt;RG: 构建 rg 命令参数
+    Note right of Grep: --type ts --glob, 排除 .git 等目录
+    RG-&gt;&gt;FS: 遍历文件系统
+    FS--&gt;&gt;RG: 匹配结果
+    RG--&gt;&gt;Grep: 原始输出
+    Grep-&gt;&gt;Grep: applyHeadLimit(results, 250, 0)
+    Grep--&gt;&gt;Model: { numFiles: 12, filenames: [...], content: "..." }</div><div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<ul>
+<li>Glob 和 Grep 都基于 ripgrep 引擎——速度快、跨平台、忽略 .gitignore 文件。这是工具实现中&quot;选对底层引擎&quot;的典型案例。</li>
+<li>GrepTool 的结果自动做了上下文行展（context_lines），让模型不只能看到匹配行，还能看到前后的背景代码。</li>
+<li>搜索类工具被标记为 isConcurrencySafe（并发安全），因为多个搜索之间没有副作用，可以同时并行跑。</li>
+<li>ripgrep 的 --json 输出模式让解析变得精确而简单——这比解析纯文本输出优雅得多。</li>
+</ul>
+</div><hr>
+<h2 id="webfetchtool-websearchtool-网络工具">8.4 WebFetchTool / WebSearchTool —— 网络工具</h2>
+<h3 id="webfetchtool-url-内容抓取">8.4.1 WebFetchTool —— URL 内容抓取</h3>
+<p>WebFetchTool 从指定 URL 抓取内容，将 HTML 转为 Markdown，然后用一个小模型对内容进行总结：</p>
+<pre><code class="language-typescript">export const WebFetchTool = buildTool({
+  name: WEB_FETCH_TOOL_NAME,
+  searchHint: 'fetch and extract content from a URL',
+  maxResultSizeChars: 100_000,
+  shouldDefer: true,           // 延迟加载
+  isConcurrencySafe() { return true },
+  isReadOnly() { return true },
+  // ...
+})</code></pre><p>WebFetchTool 被标记为 <code>shouldDefer: true</code>——它不是核心的编码工具，大多数对话不需要它，所以延迟加载以节省 prompt 空间。</p>
+<p><strong>输入 schema。</strong> 只有两个必填字段：</p>
+<pre><code class="language-typescript">const inputSchema = lazySchema(() =&gt; z.strictObject({
+  url: z.string().url().describe('The URL to fetch content from'),
+  prompt: z.string().describe('The prompt to run on the fetched content'),
+}))</code></pre><p><code>prompt</code> 字段是一个巧妙设计——模型不是简单地抓取网页然后塞入上下文，而是告诉 WebFetchTool &quot;要从页面提取什么信息&quot;。内部使用一个较小的模型处理大量网页内容并提取相关部分，避免了将整个页面内容放入主对话的上下文窗口。</p>
+<p><strong>权限模型。</strong> WebFetchTool 的权限基于域名而非完整 URL：</p>
+<pre><code class="language-typescript">function webFetchToolInputToPermissionRuleContent(input: { [k: string]: unknown }): string {
+  try {
+    const { url } = parsedInput.data
+    const hostname = new URL(url).hostname
+    return `domain:${hostname}`
+  } catch {
+    return `input:${input.toString()}`
+  }
+}</code></pre><p>这意味着用户可以授权 &quot;允许访问 github.com&quot; 而不需要逐一授权每个 URL。</p>
+<p><strong>预批准主机。</strong> 某些安全的主机（如文档网站）被预先批准，无需用户确认：</p>
+<pre><code class="language-typescript">// 通过 isPreapprovedHost 和 isPreapprovedUrl 函数检查</code></pre><h3 id="websearchtool-基于-api-的网络搜索">8.4.2 WebSearchTool —— 基于 API 的网络搜索</h3>
+<p>WebSearchTool 的实现方式与其他工具截然不同——它不是在本地执行搜索，而是利用 Anthropic API 的内置 web_search 工具：</p>
+<pre><code class="language-typescript">function makeToolSchema(input: Input): BetaWebSearchTool20250305 {
+  return {
+    type: 'web_search_20250305',
+    name: 'web_search',
+    allowed_domains: input.allowed_domains,
+    blocked_domains: input.blocked_domains,
+    max_uses: 8,  // 硬编码最多 8 次搜索
+  }
+}</code></pre><p>WebSearchTool 实际上是一个 &quot;工具中的工具&quot;——它通过 <code>queryModelWithStreaming</code> 发起一次新的 API 调用，在该调用中配置了 <code>web_search</code> 工具。API 侧的模型执行搜索，然后 Claude Code 将搜索结果格式化返回给主对话。</p>
+<pre><code class="language-typescript">const outputSchema = lazySchema(() =&gt; z.object({
+  query: z.string(),
+  results: z.array(z.union([searchResultSchema(), z.string()])),
+  durationSeconds: z.number(),
+}))</code></pre><p>结果是 <code>SearchResult | string</code> 的混合数组——搜索结果和模型生成的文本评论交替出现。</p>
+<h3 id="网络工具对比">8.4.3 网络工具对比</h3>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>WebFetchTool</th>
+<th>WebSearchTool</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>功能</td>
+<td>抓取单个 URL 内容</td>
+<td>网络搜索</td>
+</tr>
+<tr>
+<td>实现方式</td>
+<td>直接 HTTP 请求</td>
+<td>嵌套 API 调用</td>
+</tr>
+<tr>
+<td>内容处理</td>
+<td>HTML -&gt; Markdown -&gt; 小模型总结</td>
+<td>API 侧 web_search 工具</td>
+</tr>
+<tr>
+<td>权限粒度</td>
+<td>域名级别</td>
+<td>通用（域名过滤在参数中）</td>
+</tr>
+<tr>
+<td>shouldDefer</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>max_uses</td>
+<td>N/A</td>
+<td>8 次搜索/调用</td>
+</tr>
+</tbody></table>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>WebFetch/WebSearch 这对网络工具展示了 Agent 工具设计中&quot;能力边界&quot;的设定——模型不能直接访问网络，但可以通过工具间接实现。</p>
+<ul>
+<li>WebFetchTool 获取 URL 内容并转为 markdown——这比返回原始 HTML 更节省 token，模型只需要阅读纯文本内容。</li>
+<li>WebSearchTool 把搜索能力封装为工具——模型通过它执行搜索并获取结果摘要。搜索次数限制（max_uses=8）防止无限搜索耗尽预算。</li>
+<li>域名级别权限控制是网络工具特有的安全需求——不是&quot;能否网络访问&quot;的二元开关，而是&quot;能访问哪些域名&quot;的细粒度规则。</li>
+<li>对比本地工具（文件读写、命令执行），网络工具的安全模型更接近浏览器——同源策略、请求来源标识、内容安全策略。</li>
+</ul>
+</div><hr>
+<h2 id="tasktools-任务管理系统">8.5 TaskTools —— 任务管理系统</h2>
+<h3 id="设计背景">8.5.1 设计背景</h3>
+<p>Task 工具族（TaskCreate、TaskGet、TaskUpdate、TaskList）是 Claude Code 的任务管理系统 v2（TodoV2），用于替代旧的 TodoWriteTool。它们在 <code>isTodoV2Enabled()</code> 为 true 时才可用。</p>
+<h3 id="taskcreatetool">8.5.2 TaskCreateTool</h3>
+<pre><code class="language-typescript">// src/tools/TaskCreateTool/TaskCreateTool.ts
+export const TaskCreateTool = buildTool({
+  name: TASK_CREATE_TOOL_NAME,
+  searchHint: 'create a task in the task list',
+  maxResultSizeChars: 100_000,
+  shouldDefer: true,
+  isEnabled() { return isTodoV2Enabled() },
+  isConcurrencySafe() { return true },
+  // ...
+  async call({ subject, description, activeForm, metadata }, context) {
+    const taskListId = await getTaskListId(context)
+    const task = await createTask(taskListId, {
+      subject,
+      description,
+      activeForm,
+      metadata,
+      agentName: getAgentName(context),
+      teamName: getTeamName(context),
+    })
+    // 执行 task-created hooks
+    await executeTaskCreatedHooks(/* ... */)
+    return { data: { task: { id: task.id, subject: task.subject } } }
+  }
+})</code></pre><p>TaskCreateTool 的输入 schema：</p>
+<pre><code class="language-typescript">const inputSchema = lazySchema(() =&gt; z.strictObject({
+  subject: z.string().describe('A brief title for the task'),
+  description: z.string().describe('What needs to be done'),
+  activeForm: z.string().optional().describe(
+    'Present continuous form shown in spinner when in_progress (e.g., "Running tests")'
+  ),
+  metadata: z.record(z.string(), z.unknown()).optional().describe(
+    'Arbitrary metadata to attach to the task'
+  ),
+}))</code></pre><p><strong><code>activeForm</code> 字段</strong> 是一个 UX 优化——当任务处于进行中状态时，spinner 会显示这个描述（如 &quot;Running tests&quot;），而非通用的 &quot;Working...&quot;。</p>
+<h3 id="task-工具族的设计模式">8.5.3 Task 工具族的设计模式</h3>
+<p>Task 工具族共享几个设计特征：</p>
+<ol>
+<li><strong>全部 <code>shouldDefer: true</code></strong> —— 任务管理不是每次对话都需要的</li>
+<li><strong>全部 <code>isConcurrencySafe: true</code></strong> —— 任务操作是独立的，可以并行</li>
+<li><strong>条件启用</strong> —— 通过 <code>isEnabled()</code> 检查功能标记</li>
+<li><strong>与 hooks 集成</strong> —— TaskCreate 执行后触发 task-created hooks</li>
+</ol>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    subgraph Task 工具族
+        TC[TaskCreateTool
+创建任务]
+        TG[TaskGetTool
+获取任务详情]
+        TU[TaskUpdateTool
+更新任务状态]
+        TL[TaskListTool
+列出所有任务]
+    end
+
+    TC --&gt;|创建| DB[(任务存储)]
+    TG --&gt;|读取| DB
+    TU --&gt;|更新| DB
+    TL --&gt;|查询| DB
+
+    TC --&gt;|触发| H[task-created hooks]
+    TU --&gt;|触发| H2[task-updated hooks]
+
+    subgraph 任务生命周期
+        S1[created] --&gt; S2[in_progress]
+        S2 --&gt; S3[completed]
+        S2 --&gt; S4[failed]
+        S2 --&gt; S5[cancelled]
+    end</div><h3 id="共同的工具模式">8.5.4 共同的工具模式</h3>
+<p>回顾本章分析的所有工具，可以提炼出几个共同的设计模式：</p>
+<p><strong>模式一：lazySchema。</strong> 所有工具都使用 <code>lazySchema</code> 延迟构建 Zod schema，避免模块加载时的开销：</p>
+<pre><code class="language-typescript">const inputSchema = lazySchema(() =&gt; z.strictObject({ /* ... */ }))</code></pre><p><strong>模式二：buildTool 工厂。</strong> 每个工具都通过 <code>buildTool</code> 构建，享受失败关闭的默认值。</p>
+<p><strong>模式三：分离的 UI。</strong> 工具的业务逻辑和 UI 渲染分布在不同文件中（如 <code>GrepTool.ts</code> 和 <code>UI.tsx</code>），但通过 Tool 接口统一暴露。</p>
+<p><strong>模式四：权限委托。</strong> 文件工具委托给 <code>checkReadPermissionForTool</code> / <code>checkWritePermissionForTool</code>，BashTool 有独立的权限链，网络工具基于域名。</p>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>TaskTools（TaskCreate/TaskStop/TaskStatus）展示了 Agent 系统一个独特的能力——Agent 可以创建和管理子任务，形成任务树。</p>
+<ul>
+<li>TaskCreate 让 Agent 拥有了&quot;创建其他 Agent&quot;的能力——不是直接调工具，而是创建一个新的后台 Agent 来执行任务。这是递归式任务分解在实际工程中的体现。</li>
+<li>后台任务有独立的生命周期：创建 → 执行 → 状态查询 → 结果收集。Agent 不需要等待任务完成，可以继续处理其他事情。</li>
+<li>lazySchema 延迟初始化在 TaskTools 的 inputSchema 中被广泛使用——不是所有任务都有相同的输入结构，schema 是动态生成的。</li>
+<li>四个实现模式贯穿所有内置工具：lazySchema（延迟加载）、buildTool 工厂（安全默认）、分离 UI（关注点分离）、权限委托（安全下沉）——这是 40+ 工具的共同架构基因。</li>
+</ul>
+</div><hr>
+<h2 id="本章小结">本章小结</h2>
+<p>本章深入分析了 Claude Code 最核心的内置工具：</p>
+<ol>
+<li><strong>BashTool</strong> 是最复杂的工具，18 个文件、多层安全防线、命令语义分类、推测性分类器等设计使其在提供强大 shell 能力的同时保持安全</li>
+<li><strong>FileRead/Edit/Write</strong> 三剑客各司其职，Read 以 Infinity 的 maxResultSizeChars 避免循环读取，Edit 通过精确替换最小化修改，Write 提供完整的 diff 信息</li>
+<li><strong>Glob/Grep</strong> 工具与 Ripgrep 深度集成，提供结构化输出、分页、结果限制等高级功能</li>
+<li><strong>WebFetch/WebSearch</strong> 分别通过 HTTP 抓取和嵌套 API 调用提供网络能力</li>
+<li><strong>Task 工具族</strong> 展示了条件启用、延迟加载、hooks 集成等模式</li>
+</ol>
+<p>下一章将分析这些工具如何在 StreamingToolExecutor 中被调度执行，以及工具结果如何被截断和持久化。</p>
+
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-07-tool-architecture/" class="chapter-prev">← 第 7 章：工具架构</a>
+      <a href="/2026/05/21/claude-code-09-tool-execution/" class="chapter-next">第 9 章：工具执行管线 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

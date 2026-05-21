@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 4 章：查询引擎__DESCRIPTION__quot;一个优秀的引擎设计，不在于它能跑多快，而在于它在出错时仍能保持可控。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在查询引擎就是整个系统的心脏——每次敲回车到 AI 回复，都经过它SDK 和 REPL 共用同一个抽象——不用维护两套代码它解决什么问题聊了好几轮了状态不能丢——mutableMessages 跨多次 submitMessage 保持模型说__DESCRIPTION__quot;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 4 章：查询引擎">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-04-query-engine/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 4 章：查询引擎__DESCRIPTION__quot;一个优秀的引擎设计，不在于它能跑多快，而在于它在出错时仍能保持可控。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在查询引擎就是整个系统的心脏——每次敲回车到 AI 回复，都经过它SDK 和 REPL 共用同一个抽象——不用维护两套代码它解决什么问题聊了好几轮了状态不能丢——mutableMessages 跨多次 submitMessage 保持模型说__DESCRIPTION__quot;">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-04-query-engine/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 4 章：查询引擎 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-04-query-engine/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 4 章：查询引擎
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 4 章：查询引擎</h1>
+<blockquote>
+<p>&quot;一个优秀的引擎设计，不在于它能跑多快，而在于它在出错时仍能保持可控。&quot;</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>查询引擎就是整个系统的心脏——每次敲回车到 AI 回复，都经过它</li><li>SDK 和 REPL 共用同一个抽象——不用维护两套代码</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>聊了好几轮了状态不能丢——mutableMessages 跨多次 submitMessage 保持</li><li>模型说&quot;我要调个工具&quot;——引擎自动执行并把结果喂回去，用户不用管</li><li>模型输出被截断了？上下文超长了？模型挂了？——引擎自己会恢复，不用重来</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>L4 层——工作在 CLI/UI 和 Tool 系统之间，承上启下</li><li>一个实例绑一个完整对话——聊多久状态都还在</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>submitMessage 是个 AsyncGenerator——调用方可以一条一条消费流式产出</li><li>queryLoop 是个无限循环状态机，每轮都判断是结束（Terminal）还是继续（Continue）</li><li>BudgetTracker 盯着 token 用量——快超了就自动停或者塞一条&quot;差不多了&quot;的消息</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>Config 对象注入 20+ 依赖项——配置对象模式比构造函数参数列表好用</li><li>State.transition 记住上次为啥继续——智能决策，同样的失败不重蹈覆辙</li><li>withhold 模式扣住错误消息不发给 SDK——恢复成功了就假装没发生过</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：没有独立的查询引擎——AI 请求直接走 VS Code 消息通道</li><li><strong>OpenClaw</strong>：查询循环简化版，不支持 max_output_tokens 恢复和 token 预算</li><li><strong>Harness Agent</strong>：查询引擎嵌在流水线框架里，任务级重试有但缺少 Generator 模式</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>AsyncGenerator 天然背压 + 惰性计算</li><li>错误恢复链（413 → collapse → compact → fallback）覆盖极端场景</li><li>withhold 模式不让 SDK 消费者看到虚假错误</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>查询引擎（Query Engine）是 Claude Code 整个交互循环的心脏。无论用户是通过命令行 REPL 输入一条提示，还是通过 SDK 以编程方式发送消息，最终都会汇入同一条河流——<code>QueryEngine.submitMessage()</code> 方法。本章将深入剖析这一核心组件的设计哲学、状态管理与错误恢复机制。</p>
+<hr>
+<h2 id="queryengine-类">4.1 QueryEngine 类</h2>
+<h3 id="设计目标与职责划分">设计目标与职责划分</h3>
+<p><code>QueryEngine</code> 的文件头注释道出了它的设计意图：</p>
+<pre><code class="language-typescript">/**
+ * QueryEngine owns the query lifecycle and session state for a conversation.
+ * It extracts the core logic from ask() into a standalone class that can be
+ * used by both the headless/SDK path and (in a future phase) the REPL.
+ *
+ * One QueryEngine per conversation. Each submitMessage() call starts a new
+ * turn within the same conversation. State (messages, file cache, usage, etc.)
+ * persists across turns.
+ */
+export class QueryEngine {</code></pre><p>这段注释揭示了三个关键设计决策：</p>
+<ol>
+<li><strong>一个对话一个实例</strong>：每个 <code>QueryEngine</code> 实例绑定一个完整的对话会话，状态在多轮交互之间持久化。</li>
+<li><strong>从 ask() 提取</strong>：它是从早期的 <code>ask()</code> 函数中重构而来，将会话状态从函数闭包提升为类字段。</li>
+<li><strong>统一抽象</strong>：SDK 和 REPL 共享同一个引擎，消除了两套代码路径的维护负担。</li>
+</ol>
+<h3 id="核心字段">核心字段</h3>
+<pre><code class="language-typescript">export class QueryEngine {
+  private config: QueryEngineConfig
+  private mutableMessages: Message[]
+  private abortController: AbortController
+  private permissionDenials: SDKPermissionDenial[]
+  private totalUsage: NonNullableUsage
+  private hasHandledOrphanedPermission = false
+  private readFileState: FileStateCache
+  private discoveredSkillNames = new Set&lt;string&gt;()
+  private loadedNestedMemoryPaths = new Set&lt;string&gt;()</code></pre><p>让我们逐一分析这些字段的设计考量：</p>
+<p><strong><code>mutableMessages: Message[]</code></strong> 是整个对话的消息历史，它贯穿多次 <code>submitMessage()</code> 调用。注意这里使用了 <code>mutable</code> 前缀——这是有意为之的命名。在函数式风格占主导的代码库中，显式标记可变状态是一种防御性编程实践。每次用户输入处理完成后，新消息通过 <code>push()</code> 追加：</p>
+<pre><code class="language-typescript">this.mutableMessages.push(...messagesFromUserInput)</code></pre><p><strong><code>readFileState: FileStateCache</code></strong> 缓存了已读取文件的状态，用于避免重复读取和检测文件变更。在多轮工具调用中，同一文件可能被多次引用——缓存避免了不必要的磁盘 I/O。</p>
+<p><strong><code>totalUsage: NonNullableUsage</code></strong> 追踪整个会话的 API 使用量（input tokens、output tokens、缓存命中等）。初始化为 <code>EMPTY_USAGE</code>，在每次 API 调用后累加。</p>
+<p><strong><code>permissionDenials: SDKPermissionDenial[]</code></strong> 记录被拒绝的工具使用请求。这不仅用于 SDK 消费者的状态报告，也是安全审计的关键数据源。</p>
+<p><strong><code>discoveredSkillNames</code></strong> 跟踪当前 turn 中发现的技能名称，用于分析反馈。注意注释中强调它在每次 <code>submitMessage</code> 开头清空：</p>
+<pre><code class="language-typescript">// Turn-scoped skill discovery tracking. Must persist across the two
+// processUserInputContext rebuilds inside submitMessage, but is cleared
+// at the start of each submitMessage to avoid unbounded growth across
+// many turns in SDK mode.
+private discoveredSkillNames = new Set&lt;string&gt;()</code></pre><h3 id="配置对象">配置对象</h3>
+<p><code>QueryEngineConfig</code> 类型是一个庞大的配置结构，将引擎初始化所需的一切依赖注入其中：</p>
+<pre><code class="language-typescript">export type QueryEngineConfig = {
+  cwd: string
+  tools: Tools
+  commands: Command[]
+  mcpClients: MCPServerConnection[]
+  agents: AgentDefinition[]
+  canUseTool: CanUseToolFn
+  getAppState: () =&gt; AppState
+  setAppState: (f: (prev: AppState) =&gt; AppState) =&gt; void
+  initialMessages?: Message[]
+  readFileCache: FileStateCache
+  customSystemPrompt?: string
+  appendSystemPrompt?: string
+  maxTurns?: number
+  maxBudgetUsd?: number
+  taskBudget?: { total: number }
+  jsonSchema?: Record&lt;string, unknown&gt;
+  // ...
+}</code></pre><p>这种&quot;配置对象&quot;模式（有别于构造函数参数列表）有两个好处：第一，可选参数不需要固定位置；第二，新增配置项不会破坏现有调用方。</p>
+<p>值得特别关注的是 <code>snipReplay</code> 回调：</p>
+<pre><code class="language-typescript">snipReplay?: (
+  yieldedSystemMsg: Message,
+  store: Message[],
+) =&gt; { messages: Message[]; executed: boolean } | undefined</code></pre><p>注释解释了为什么将这个功能注入而非硬编码——<code>feature(&#39;HISTORY_SNIP&#39;)</code> 是编译时条件，在 bun test 环境下返回 false，如果在 QueryEngine 内直接引用被 tree-shake 掉的模块字符串，测试会中断。这是一个典型的&quot;依赖倒置解决编译约束&quot;案例。</p>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<p>QueryEngine 是 Claude Code 的&quot;会话容器&quot;——它不关心你传什么消息进来，只管维护会话生命周期。</p>
+<ul>
+<li>AsyncGenerator 的惰性求值是最优雅的设计选择——调用方逐条消费，引擎逐条产出，天然背压。</li>
+<li>mutableMessages 贯穿整个生命周期，每次 submitMessage 都基于前一次的状态——这意味着 QueryEngine 实例天然支持多轮对话。</li>
+<li>依赖倒置（injectHistorySnipTools）解决编译约束的设计说明：feature() DCE 不只是性能优化，还会影响模块的可测试性。</li>
+<li>&quot;生命周期容器&quot;的抽象让 SDK 和 REPL 共享同一个 QueryEngine——不是两套代码，是一个接口两个消费者。</li>
+</ul>
+</div><hr>
+<h2 id="submitmessage-流程">4.2 submitMessage 流程</h2>
+<p><code>submitMessage</code> 是 QueryEngine 的唯一公共方法——或者更准确地说，是唯一的公共 <strong>AsyncGenerator</strong>。这个选择意味着调用方不是获得一个 Promise，而是获得一个可以逐步消费的异步流。</p>
+<h3 id="完整生命周期">完整生命周期</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+sequenceDiagram
+    participant Caller as SDK/REPL 调用方
+    participant QE as QueryEngine
+    participant PUI as processUserInput
+    participant TS as Transcript
+    participant Q as query()
+    participant API as Claude API
+
+    Caller-&gt;&gt;QE: submitMessage(prompt)
+    QE-&gt;&gt;QE: discoveredSkillNames.clear()
+    QE-&gt;&gt;QE: setCwd(cwd)
+    QE-&gt;&gt;QE: fetchSystemPromptParts()
+    QE-&gt;&gt;QE: 构造 systemPrompt
+
+    alt 有 orphanedPermission
+        QE-&gt;&gt;QE: handleOrphanedPermission()
+    end
+
+    QE-&gt;&gt;PUI: processUserInput(prompt)
+    PUI--&gt;&gt;QE: { messages, shouldQuery, allowedTools }
+    QE-&gt;&gt;QE: mutableMessages.push(...messages)
+
+    alt persistSession
+        QE-&gt;&gt;TS: recordTranscript(messages)
+    end
+
+    QE-&gt;&gt;Caller: yield buildSystemInitMessage(...)
+
+    alt !shouldQuery (本地命令)
+        QE-&gt;&gt;Caller: yield 命令输出
+        QE-&gt;&gt;Caller: yield { type: 'result', subtype: 'success' }
+        Note over QE: 提前返回
+    end
+
+    QE-&gt;&gt;Q: query({ messages, systemPrompt, ... })
+    loop 消息流
+        Q-&gt;&gt;API: callModel(streaming)
+        API--&gt;&gt;Q: yield assistant messages
+        Q-&gt;&gt;Q: 执行工具调用
+        Q--&gt;&gt;QE: yield message
+        QE-&gt;&gt;QE: mutableMessages.push(message)
+        QE-&gt;&gt;TS: recordTranscript(messages)
+        QE-&gt;&gt;Caller: yield normalizeMessage(message)
+    end
+
+    Q--&gt;&gt;QE: return Terminal
+    QE-&gt;&gt;Caller: yield { type: 'result' }</div><h3 id="阶段一上下文构建">阶段一：上下文构建</h3>
+<p><code>submitMessage</code> 的前半段是一个精心编排的上下文构建过程：</p>
+<pre><code class="language-typescript">const {
+  defaultSystemPrompt,
+  userContext: baseUserContext,
+  systemContext,
+} = await fetchSystemPromptParts({
+  tools,
+  mainLoopModel: initialMainLoopModel,
+  additionalWorkingDirectories: Array.from(
+    initialAppState.toolPermissionContext.additionalWorkingDirectories.keys(),
+  ),
+  mcpClients,
+  customSystemPrompt: customPrompt,
+})</code></pre><p>系统提示由多个层次组成：默认系统提示、可选的自定义提示、内存机制提示和追加提示。它们通过 <code>asSystemPrompt()</code> 组合为最终的系统提示数组。</p>
+<h3 id="阶段二用户输入处理">阶段二：用户输入处理</h3>
+<pre><code class="language-typescript">const {
+  messages: messagesFromUserInput,
+  shouldQuery,
+  allowedTools,
+  model: modelFromUserInput,
+  resultText,
+} = await processUserInput({
+  input: prompt,
+  mode: 'prompt',
+  // ...
+})</code></pre><p><code>processUserInput</code> 负责将原始输入（可能是纯文本、斜杠命令或 ContentBlock 数组）转换为消息列表。如果是本地命令（如 <code>/compact</code>），<code>shouldQuery</code> 为 false，引擎不会调用 API。</p>
+<h3 id="阶段三transcript-预写">阶段三：Transcript 预写</h3>
+<p>在进入查询循环之前，引擎将用户消息写入 transcript：</p>
+<pre><code class="language-typescript">if (persistSession &amp;&amp; messagesFromUserInput.length &gt; 0) {
+  const transcriptPromise = recordTranscript(messages)
+  if (isBareMode()) {
+    void transcriptPromise  // fire-and-forget
+  } else {
+    await transcriptPromise
+  }
+}</code></pre><p>这里有一个精妙的区分：在 <code>bare</code> 模式（脚本化调用）下不等待写入完成，因为这类场景不需要 <code>--resume</code> 能力。注释中甚至量化了性能影响：&quot;~4ms on SSD, ~30ms under disk contention&quot;。</p>
+<h3 id="阶段四查询循环">阶段四：查询循环</h3>
+<p>最终，引擎进入查询主循环：</p>
+<pre><code class="language-typescript">for await (const message of query({
+  messages,
+  systemPrompt,
+  userContext,
+  systemContext,
+  canUseTool: wrappedCanUseTool,
+  toolUseContext: processUserInputContext,
+  fallbackModel,
+  querySource: 'sdk',
+  maxTurns,
+  taskBudget,
+})) {
+  // 处理每个 yielded message...
+}</code></pre><p><code>query()</code> 函数本身也是一个 AsyncGenerator——引擎在外层消费它的产出，同时向上层调用方再次 yield。这形成了一个 <strong>Generator 管道</strong>（我们将在第 6 章详细讨论）。</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>submitMessage 的异步 Generator 管道是整本书最核心的&quot;数据高速公路&quot;——所有消息、工具结果、流式文本都在这条管道里流动。</p>
+<ul>
+<li>外层 Engine 管理状态，内层 query() 管理循环——职责分离清晰，Engine 不用关心循环细节。</li>
+<li>管道是单向的：Engine → query() → API → 工具执行 → 回到 query() → Engine。每一步都是 yield，天然背压。</li>
+<li>状态机（4.3 节）追踪 queryStatus（Running/Terminal/Error），每次循环迭代检查 status——不是 try/catch 驱动，而是状态驱动。</li>
+<li>while(true) 循环 + break 条件（无 tool_use 或 Terminal 状态）——这是最直接但也最清晰的事件循环实现。</li>
+</ul>
+</div><hr>
+<h2 id="状态机模型">4.3 状态机模型</h2>
+<p><code>query.ts</code> 中的 <code>queryLoop</code> 函数是一个显式的无限循环状态机。它的设计理念是：每次循环迭代要么以 <code>return</code> 终止（Terminal），要么以 <code>continue</code> 转向下一轮（Continue）。</p>
+<h3 id="状态定义">状态定义</h3>
+<pre><code class="language-typescript">type State = {
+  messages: Message[]
+  toolUseContext: ToolUseContext
+  autoCompactTracking: AutoCompactTrackingState | undefined
+  maxOutputTokensRecoveryCount: number
+  hasAttemptedReactiveCompact: boolean
+  maxOutputTokensOverride: number | undefined
+  pendingToolUseSummary: Promise&lt;ToolUseSummaryMessage | null&gt; | undefined
+  stopHookActive: boolean | undefined
+  turnCount: number
+  transition: Continue | undefined
+}</code></pre><p><code>State</code> 是 queryLoop 的全部可变状态。每次 <code>continue</code> 都通过构建一个新的 <code>State</code> 对象来执行状态转换：</p>
+<pre><code class="language-typescript">const next: State = {
+  messages: [...messagesForQuery, ...assistantMessages, ...toolResults],
+  toolUseContext: toolUseContextWithQueryTracking,
+  // ...
+  transition: { reason: 'next_turn' },
+}
+state = next</code></pre><h3 id="状态转换图">状态转换图</h3>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+stateDiagram-v2
+    [*] --&gt; LoopEntry: 进入 while(true)
+
+    LoopEntry --&gt; Preprocess: snip / microcompact / collapse / autocompact
+    Preprocess --&gt; APICall: callModel (streaming)
+
+    APICall --&gt; StreamingFallback: FallbackTriggeredError
+    StreamingFallback --&gt; APICall: 切换模型重试
+
+    APICall --&gt; StreamComplete: 流式接收完成
+
+    StreamComplete --&gt; AbortedStreaming: signal.aborted
+    AbortedStreaming --&gt; [*]: return 'aborted_streaming'
+
+    StreamComplete --&gt; CheckFollowUp: needsFollowUp?
+
+    CheckFollowUp --&gt; NoFollowUp: 无工具调用
+    CheckFollowUp --&gt; ToolExecution: 有工具调用
+
+    NoFollowUp --&gt; CollapseDrainRetry: 413 + 有可清除的 collapse
+    CollapseDrainRetry --&gt; LoopEntry: continue
+
+    NoFollowUp --&gt; ReactiveCompactRetry: 413 + reactive compact 成功
+    ReactiveCompactRetry --&gt; LoopEntry: continue
+
+    NoFollowUp --&gt; MaxOutputEscalate: max_output + 可升级到 64k
+    MaxOutputEscalate --&gt; LoopEntry: continue
+
+    NoFollowUp --&gt; MaxOutputRecovery: max_output + 恢复次数 &lt; 3
+    MaxOutputRecovery --&gt; LoopEntry: continue
+
+    NoFollowUp --&gt; StopHookBlocking: stop hook 返回阻塞错误
+    StopHookBlocking --&gt; LoopEntry: continue
+
+    NoFollowUp --&gt; TokenBudgetContinuation: token 预算未满
+    TokenBudgetContinuation --&gt; LoopEntry: continue
+
+    NoFollowUp --&gt; Completed: 正常完成
+    Completed --&gt; [*]: return 'completed'
+
+    ToolExecution --&gt; AbortedTools: signal.aborted
+    AbortedTools --&gt; [*]: return 'aborted_tools'
+
+    ToolExecution --&gt; HookStopped: hook 阻止继续
+    HookStopped --&gt; [*]: return 'hook_stopped'
+
+    ToolExecution --&gt; MaxTurns: turnCount &gt; maxTurns
+    MaxTurns --&gt; [*]: return 'max_turns'
+
+    ToolExecution --&gt; NextTurn: 正常递归
+    NextTurn --&gt; LoopEntry: continue</div><h3 id="terminal-与-continue-的类型约束">Terminal 与 Continue 的类型约束</h3>
+<p>从源码中提取的所有终止原因（Terminal reasons）：</p>
+<table>
+<thead>
+<tr>
+<th>reason</th>
+<th>触发条件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>completed</code></td>
+<td>模型正常完成回复（无工具调用）</td>
+</tr>
+<tr>
+<td><code>blocking_limit</code></td>
+<td>token 数超过硬性限制</td>
+</tr>
+<tr>
+<td><code>aborted_streaming</code></td>
+<td>用户中断（流式阶段）</td>
+</tr>
+<tr>
+<td><code>aborted_tools</code></td>
+<td>用户中断（工具执行阶段）</td>
+</tr>
+<tr>
+<td><code>prompt_too_long</code></td>
+<td>413 错误且无法恢复</td>
+</tr>
+<tr>
+<td><code>image_error</code></td>
+<td>图片/PDF 过大且无法恢复</td>
+</tr>
+<tr>
+<td><code>model_error</code></td>
+<td>API 抛出非预期异常</td>
+</tr>
+<tr>
+<td><code>stop_hook_prevented</code></td>
+<td>stop hook 明确阻止</td>
+</tr>
+<tr>
+<td><code>hook_stopped</code></td>
+<td>工具执行期间 hook 阻止</td>
+</tr>
+<tr>
+<td><code>max_turns</code></td>
+<td>达到最大轮次限制</td>
+</tr>
+</tbody></table>
+<p>Continue 转换原因：</p>
+<table>
+<thead>
+<tr>
+<th>reason</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>next_turn</code></td>
+<td>正常的工具调用后递归</td>
+</tr>
+<tr>
+<td><code>collapse_drain_retry</code></td>
+<td>清除 context collapse 后重试</td>
+</tr>
+<tr>
+<td><code>reactive_compact_retry</code></td>
+<td>reactive compact 后重试</td>
+</tr>
+<tr>
+<td><code>max_output_tokens_escalate</code></td>
+<td>从 8k 升级到 64k 重试</td>
+</tr>
+<tr>
+<td><code>max_output_tokens_recovery</code></td>
+<td>注入恢复消息后继续</td>
+</tr>
+<tr>
+<td><code>stop_hook_blocking</code></td>
+<td>stop hook 错误后重试</td>
+</tr>
+<tr>
+<td><code>token_budget_continuation</code></td>
+<td>token 预算内继续</td>
+</tr>
+</tbody></table>
+<p><code>transition</code> 字段记录了上一次迭代的 Continue 原因，让下一次迭代能根据历史做出不同决策——例如，<code>collapse_drain_retry</code> 只尝试一次，如果重试后仍然 413，则退回到 reactive compact。</p>
+<div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<p>Token 预算是查询引擎的&quot;燃油表&quot;——它决定了一次查询还能跑多远，以及什么时候该减速或停车。</p>
+<ul>
+<li>27K/5K 的双阈值设计区分了&quot;需要行动&quot;和&quot;必须行动&quot;——不是等到油箱空了才找加油站。</li>
+<li>BudgetTracker 在每次 API 调用前检查 token——这是一种预检（pre-flight check）而非事后补救。</li>
+<li>collapse 策略不是简单的删消息，而是用摘要替换——这是一个&quot;信息密度 vs 长度&quot;的权衡决策。</li>
+<li>wait_for_budget_tokens 模式是&quot;暂停而非报错&quot;——引擎知道恢复后重试能成功，所以不需要用户参与。</li>
+</ul>
+</div><hr>
+<h2 id="token-预算">4.4 Token 预算</h2>
+<h3 id="budgettracker-机制">BudgetTracker 机制</h3>
+<p><code>src/query/tokenBudget.ts</code> 实现了一个轻量级的 token 预算追踪器：</p>
+<pre><code class="language-typescript">export type BudgetTracker = {
+  continuationCount: number
+  lastDeltaTokens: number
+  lastGlobalTurnTokens: number
+  startedAt: number
+}
+
+export function createBudgetTracker(): BudgetTracker {
+  return {
+    continuationCount: 0,
+    lastDeltaTokens: 0,
+    lastGlobalTurnTokens: 0,
+    startedAt: Date.now(),
+  }
+}</code></pre><p>预算检查在模型完成回复（无工具调用）时触发：</p>
+<pre><code class="language-typescript">export function checkTokenBudget(
+  tracker: BudgetTracker,
+  agentId: string | undefined,
+  budget: number | null,
+  globalTurnTokens: number,
+): TokenBudgetDecision {
+  if (agentId || budget === null || budget &lt;= 0) {
+    return { action: 'stop', completionEvent: null }
+  }
+
+  const turnTokens = globalTurnTokens
+  const pct = Math.round((turnTokens / budget) * 100)
+  const deltaSinceLastCheck = globalTurnTokens - tracker.lastGlobalTurnTokens
+
+  const isDiminishing =
+    tracker.continuationCount &gt;= 3 &amp;&amp;
+    deltaSinceLastCheck &lt; DIMINISHING_THRESHOLD &amp;&amp;
+    tracker.lastDeltaTokens &lt; DIMINISHING_THRESHOLD
+
+  if (!isDiminishing &amp;&amp; turnTokens &lt; budget * COMPLETION_THRESHOLD) {
+    // 继续
+    tracker.continuationCount++
+    return { action: 'continue', nudgeMessage: ... }
+  }
+  // 停止
+}</code></pre><p>这个算法有三个关键阈值：</p>
+<ul>
+<li><strong><code>COMPLETION_THRESHOLD = 0.9</code></strong>：当已使用 token 达到预算的 90% 时停止。</li>
+<li><strong><code>DIMINISHING_THRESHOLD = 500</code></strong>：如果连续两次迭代的增量都小于 500 token，判定为&quot;收益递减&quot;。</li>
+<li><strong>连续检查次数 &gt;= 3</strong>：收益递减判定需要至少 3 次 continuation 历史。</li>
+</ul>
+<h3 id="子代理排除">子代理排除</h3>
+<p>注意第一个条件：<code>if (agentId || ...)</code>——子代理（subagent）不参与 token 预算。这是因为子代理有自己独立的生命周期，由父级的 <code>maxTurns</code> 控制。</p>
+<h3 id="与-task_budget-的区别">与 task_budget 的区别</h3>
+<p>源码中有两种不同的&quot;预算&quot;概念：</p>
+<ol>
+<li><strong>tokenBudget</strong>：客户端侧的输出 token 追踪，通过 <code>checkTokenBudget</code> 在 queryLoop 内决策是否继续。</li>
+<li><strong>taskBudget</strong>：API 服务端的 <code>output_config.task_budget</code>，通过请求参数传递给服务端。跨越 compaction 边界时需要计算 <code>remaining</code>。</li>
+</ol>
+<pre><code class="language-typescript">// task_budget.remaining tracking across compaction boundaries.
+// While context is uncompacted the server sees the full history
+// and handles the countdown from {total} itself. After a compact,
+// the server sees only the summary and would under-count spend.
+let taskBudgetRemaining: number | undefined = undefined</code></pre><div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>Token 预算是查询引擎的&quot;油箱表&quot;——决定一次查询还能跑多远。</p>
+<ul>
+<li>27K/5K 双阈值是&quot;预警 + 告警&quot;模式，不是等到油箱空了才找加油站。</li>
+<li>BudgetTracker 在每次 API 调用前检查——预检而非事后补救。</li>
+<li>collapse 策略用摘要替换历史——&quot;用计算成本换 token 空间&quot;的权衡。</li>
+<li>wait_for_budget_tokens 是&quot;暂停而非报错&quot;——引擎知道重试后能成功。</li>
+</ul>
+</div><hr>
+<h2 id="错误恢复">4.5 错误恢复</h2>
+<p>Claude Code 的查询引擎实现了多层错误恢复策略，每一层都有明确的职责边界。</p>
+<h3 id="max_output_tokens-恢复">max_output_tokens 恢复</h3>
+<p>当模型输出被截断（<code>apiError === &#39;max_output_tokens&#39;</code>），引擎执行两阶段恢复：</p>
+<p><strong>阶段一：升级输出限制</strong></p>
+<p>如果当前使用的是默认的 8k 限制，且功能开关允许，引擎将 <code>maxOutputTokensOverride</code> 设置为 <code>ESCALATED_MAX_TOKENS</code>（64k）并重试同一请求：</p>
+<pre><code class="language-typescript">if (capEnabled &amp;&amp; maxOutputTokensOverride === undefined) {
+  const next: State = {
+    // ...
+    maxOutputTokensOverride: ESCALATED_MAX_TOKENS,
+    transition: { reason: 'max_output_tokens_escalate' },
+  }
+  state = next
+  continue
+}</code></pre><p><strong>阶段二：多轮恢复</strong></p>
+<p>如果升级后仍然截断，引擎注入一条特殊的 meta 消息，引导模型继续输出：</p>
+<pre><code class="language-typescript">if (maxOutputTokensRecoveryCount &lt; MAX_OUTPUT_TOKENS_RECOVERY_LIMIT) {
+  const recoveryMessage = createUserMessage({
+    content:
+      `Output token limit hit. Resume directly — no apology, no recap. ` +
+      `Pick up mid-thought if that is where the cut happened. ` +
+      `Break remaining work into smaller pieces.`,
+    isMeta: true,
+  })
+  // ...
+}</code></pre><p><code>MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3</code> 意味着最多重试 3 次。消息中的措辞是经过精心设计的——&quot;no apology, no recap&quot; 防止模型浪费 token 重复已说过的内容。</p>
+<h3 id="prompt-too-long-恢复链">Prompt-too-long 恢复链</h3>
+<p>当上下文超出模型窗口限制（HTTP 413），恢复链按优先级执行：</p>
+<ol>
+<li><strong>Context Collapse 清除</strong>（最轻量）：清除暂存的 collapse 操作，释放上下文空间。</li>
+<li><strong>Reactive Compact</strong>（全量压缩）：如果 collapse 不够，执行完整的上下文压缩。</li>
+<li><strong>错误表面化</strong>：如果压缩后仍然超限，向用户展示错误。</li>
+</ol>
+<pre><code class="language-typescript">if (isWithheld413) {
+  // 第一步：drain collapses
+  if (state.transition?.reason !== 'collapse_drain_retry') {
+    const drained = contextCollapse.recoverFromOverflow(...)
+    if (drained.committed &gt; 0) {
+      state = { ..., transition: { reason: 'collapse_drain_retry' } }
+      continue
+    }
+  }
+}
+// 第二步：reactive compact
+if ((isWithheld413 || isWithheldMedia) &amp;&amp; reactiveCompact) {
+  const compacted = await reactiveCompact.tryReactiveCompact({
+    hasAttempted: hasAttemptedReactiveCompact,
+    // ...
+  })
+}</code></pre><h3 id="模型降级回退">模型降级回退</h3>
+<p>当主模型不可用时，引擎自动切换到备用模型：</p>
+<pre><code class="language-typescript">try {
+  for await (const message of deps.callModel({...})) {
+    // ...
+  }
+} catch (innerError) {
+  if (innerError instanceof FallbackTriggeredError &amp;&amp; fallbackModel) {
+    currentModel = fallbackModel
+    attemptWithFallback = true
+    // 清理并重试
+  }
+}</code></pre><p>降级过程中有一个关键细节——thinking 签名是模型绑定的：</p>
+<pre><code class="language-typescript">// Thinking signatures are model-bound: replaying a protected-thinking
+// block (e.g. capybara) to an unprotected fallback (e.g. opus) 400s.
+if (process.env.USER_TYPE === 'ant') {
+  messagesForQuery = stripSignatureBlocks(messagesForQuery)
+}</code></pre><h3 id="错误消息的quot扣留quot机制">错误消息的&quot;扣留&quot;机制</h3>
+<p>查询引擎使用一种&quot;扣留&quot;（withhold）模式处理可恢复的错误：</p>
+<pre><code class="language-typescript">let withheld = false
+if (reactiveCompact?.isWithheldPromptTooLong(message)) {
+  withheld = true
+}
+if (isWithheldMaxOutputTokens(message)) {
+  withheld = true
+}
+if (!withheld) {
+  yield yieldMessage
+}</code></pre><p>被扣留的消息不会立即 yield 给调用方。只有当所有恢复手段用尽后，才将错误消息表面化。这防止了 SDK 消费者在恢复成功时收到虚假的错误信号。</p>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>错误恢复链是查询引擎的&quot;逃生路线&quot;——每一步失败都自动触发下一步。</p>
+<ul>
+<li>恢复链（413 → collapse → compact → fallback）有明确的优先级——先做最简单的（413 重试），不行再走重量级方案（compact）。</li>
+<li>withhold 模式让可恢复的错误对消费者透明——SDK 方不需要知道 engine 内部出了什么问题，只需要等到最终结果。</li>
+<li>fallback 模型触发时自动清理 thinking 签名——这是&quot;主模型不行就用备胎&quot;的保险策略。</li>
+<li>所有恢复手段用尽后，被扣留的错误消息才被释放——消费者要么看到成功要么看到最终失败，没有中间状态。</li>
+</ul>
+</div><hr>
+<h2 id="sdk-vs-repl">4.6 SDK vs REPL</h2>
+<p>QueryEngine 通过构造函数参数的差异化实现了 SDK 和 REPL 两种模式的统一：</p>
+<h3 id="sdk-模式">SDK 模式</h3>
+<p>在 SDK 模式下，<code>QueryEngine</code> 是完全无头的（headless）：</p>
+<pre><code class="language-typescript">processUserInputContext = {
+  // ...
+  options: {
+    debug: false,          // 不输出调试信息到 stdout
+    isNonInteractiveSession: true,  // 标记为非交互
+  },
+  setInProgressToolUseIDs: () =&gt; {},   // 不需要 UI 更新
+  setResponseLength: () =&gt; {},          // 不需要实时长度显示
+}</code></pre><p>SDK 调用方通过 <code>for await...of</code> 消费 <code>submitMessage</code> 的产出，每个 <code>SDKMessage</code> 都是自包含的——包括类型标签、session ID 和所有必要的元数据。</p>
+<h3 id="repl-模式">REPL 模式</h3>
+<p>REPL 模式下，消息同时流向两个目标：</p>
+<ol>
+<li><strong>UI 渲染</strong>：通过 React/Ink 组件实时渲染到终端。</li>
+<li><strong>状态持久化</strong>：通过 <code>recordTranscript</code> 写入 JSONL 文件。</li>
+</ol>
+<p>关键区别在于 snip 处理：</p>
+<pre><code class="language-typescript">/**
+ * SDK-only: the REPL keeps full history for UI scrollback and
+ * projects on demand via projectSnippedView; QueryEngine truncates
+ * here to bound memory in long headless sessions (no UI to preserve).
+ */
+snipReplay?: (
+  yieldedSystemMsg: Message,
+  store: Message[],
+) =&gt; { messages: Message[]; executed: boolean } | undefined</code></pre><p>REPL 保留完整历史用于滚动回看，snip 只是一个&quot;视图投影&quot;；而 SDK 模式下，snip 会实际截断 <code>mutableMessages</code> 数组以控制内存。</p>
+<h3 id="权限追踪包装">权限追踪包装</h3>
+<p>两种模式共享同一个权限包装器：</p>
+<pre><code class="language-typescript">const wrappedCanUseTool: CanUseToolFn = async (
+  tool, input, toolUseContext, assistantMessage, toolUseID, forceDecision,
+) =&gt; {
+  const result = await canUseTool(...)
+  if (result.behavior !== 'allow') {
+    this.permissionDenials.push({
+      tool_name: sdkCompatToolName(tool.name),
+      tool_use_id: toolUseID,
+      tool_input: input,
+    })
+  }
+  return result
+}</code></pre><p>被拒绝的权限请求被收集到 <code>permissionDenials</code> 数组中，最终包含在 <code>result</code> 消息的 <code>permission_denials</code> 字段中返回给 SDK 调用方。REPL 模式下，这些信息同样可用于权限审计和调试。</p>
+<h3 id="统一的生命周期信号">统一的生命周期信号</h3>
+<p>无论哪种模式，查询结束时都会 yield 一个统一的结果消息：</p>
+<pre><code class="language-typescript">yield {
+  type: 'result',
+  subtype: 'success',
+  is_error: false,
+  duration_ms: Date.now() - startTime,
+  duration_api_ms: getTotalAPIDuration(),
+  num_turns: messages.length - 1,
+  result: resultText ?? '',
+  total_cost_usd: getTotalCost(),
+  usage: this.totalUsage,
+  modelUsage: getModelUsage(),
+  permission_denials: this.permissionDenials,
+  fast_mode_state: getFastModeState(mainLoopModel, initialAppState.fastMode),
+  // ...
+}</code></pre><p>这个 <code>result</code> 消息是查询引擎的&quot;最终裁决&quot;——它汇总了整个查询轮次的耗时、成本、token 使用量和权限事件，为上层（无论是 SDK 的 JSON 输出还是 REPL 的状态栏更新）提供了完整的查询报告。</p>
+<div class="thinking-note"><h3 id="思考笔记-6">思考笔记</h3>
+<p>错误恢复链和 SDK/REPL 双模设计展示了 QueryEngine 作为&quot;会话容器&quot;的完整能力——不只要跑通正常流程，更要优雅处理各种异常。</p>
+<ul>
+<li>错误恢复链（413 → collapse → compact → fallback）是一条有优先级的&quot;逃生路线&quot;——每一步失败都自动触发下一步，不需要用户介入。</li>
+<li>withhold 模式是最体贴的设计：可恢复的错误不告诉消费者，等恢复成功了静默跳过——SDK 开发者不需要为引擎的内部问题写处理逻辑。</li>
+<li>SDK vs REPL 的差异本质上是对&quot;消息流向&quot;的不同需求——REPL 要渲染到终端还要保留回看，SDK 只关心最终结果和最小内存占用。</li>
+<li>result 消息作为统一生命周期信号，包含 duration、cost、usage、permission_denials——这是引擎对一次查询的&quot;完整审计报告&quot;。</li>
+</ul>
+</div>
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-03-type-system/" class="chapter-prev">← 第 3 章：类型系统设计</a>
+      <a href="/2026/05/21/claude-code-05-message-system/" class="chapter-next">第 5 章：消息系统 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

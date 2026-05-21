@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 18 章：会话管理与压缩“大型语言模型的上下文窗口是有限的，但用户的工作流是无限的。如何在有限中容纳无限，是 Agent 工程的核心挑战。”当一个开发者与 Claude Code 持续工作数小时，对话历史可能积累到数十万 Token。一旦超出模型的上下文窗口限制，对话将无法继续。Claude Code 通过一套精密的会话压缩体系解决这一问题 —— 自动检测阈值、智能裁剪历史、保留关键上下文，并">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 18 章：会话管理与压缩">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-18-conversation/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 18 章：会话管理与压缩“大型语言模型的上下文窗口是有限的，但用户的工作流是无限的。如何在有限中容纳无限，是 Agent 工程的核心挑战。”当一个开发者与 Claude Code 持续工作数小时，对话历史可能积累到数十万 Token。一旦超出模型的上下文窗口限制，对话将无法继续。Claude Code 通过一套精密的会话压缩体系解决这一问题 —— 自动检测阈值、智能裁剪历史、保留关键上下文，并">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-18-conversation/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 18 章：会话管理与压缩 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-18-conversation/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 18 章：会话管理与压缩
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 18 章：会话管理与压缩</h1>
+<blockquote>
+<p>“大型语言模型的上下文窗口是有限的，但用户的工作流是无限的。如何在有限中容纳无限，是 Agent 工程的核心挑战。”当一个开发者与 Claude Code 持续工作数小时，对话历史可能积累到数十万 Token。一旦超出模型的上下文窗口限制，对话将无法继续。Claude Code 通过一套精密的会话压缩体系解决这一问题 —— 自动检测阈值、智能裁剪历史、保留关键上下文，并在需要时恢复先前的会话。本章将深入这一机制的每个层面。</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>模型上下文窗口就 200K，但用户干起活来可能是一整天的对话——怎么在有限里装无限，这章就是答案</li><li>既要不丢关键上下文又要自动压缩，还得支持断了续上——一个都不能少</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>对话超限了自动压缩历史释放 token 空间——不用用户手动点&quot;清除历史&quot;</li><li>写到一半电脑崩了、终端关了，--resume 能续上完整会话状态</li><li>断路器限制最多重试 3 次压缩——之前有个用户压了 3272 次都没成功，浪费了 250K API 调用/天</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>嵌入在主循环层，每个轮次跑完检查要不要压缩</li><li>Transcript 文件是会话的持久化存储——支持恢复和事后审计</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>JSONL 一行一条消息追加写文件，每条消息带 parentUuid 形成链式结构</li><li>token 超了先走 MicroCompact（只替换旧工具输出摘要），不行再走全量压缩（Fork 一个 Agent 做总结）</li><li>中断恢复通过五层过滤管道识别中断类型，然后注入&quot;请继续&quot;提示</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>阈值公式：有效窗口 = 上下文窗口 - 输出预留 - 安全缓冲</li><li>MicroCompact 按时间裁剪旧工具输出，被清掉的内容用特殊标记占位</li><li>断路器限 3 次连续失败就停手——BQ 数据证明这消除了每天十万级别的浪费调用</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：会话存 IDE 本地存储，用户手动点 Clear History——没有自动压缩</li><li><strong>OpenClaw</strong>：纯 JSON 日志，超了窗口直接丢掉最旧消息，不支持中断恢复</li><li><strong>Harness Agent</strong>：数据库持久化，支持滑动窗口裁剪和 LLM 摘要压缩</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>JSONL 崩溃安全天然支持分支会话</li><li>MicroCompact + 全量压缩双策略保证成功率</li><li>PTL 降级给极端情况留了逃生通道</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="会话持久化-transcript-机制">18.1 会话持久化 —— Transcript 机制</h2>
+<h3 id="jsonl-日志格式">18.1.1 JSONL 日志格式</h3>
+<p>Claude Code 将每条消息以 JSON Lines 格式追加写入磁盘文件，即所谓的 Transcript 文件。这是一种只追加的日志结构：<br>每条消息是一行 JSON，包含消息内容、UUID、时间戳和父消息引用。这种格式有几个重要的工程优势：</p>
+<ol>
+<li><strong>崩溃安全</strong>：只追加写入，即使进程崩溃也不会损坏已有数据2. <strong>链式结构</strong>：<code>parentUuid</code> 字段形成消息链，支持分支会话3. <strong>增量写入</strong>：无需重写整个文件</li>
+</ol>
+<h3 id="会话链重建">18.1.2 会话链重建</h3>
+<p>从 JSONL 文件恢复消息时，系统需要重建消息链。<code>loadMessagesFromJsonlPath</code> 实现了这一逻辑：<br><code>leafUuids</code> 是所有没有被其他消息引用为 parent 的 UUID 集合 —— 即链的末端。系统选择最新的非侧链叶节点作为起点，向上回溯重建主会话链。</p>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<ul>
+<li>JSONL（JSON Lines）格式是对话日志的天然选择：每行一条独立 JSON，追加写不涉及文件重写，崩溃安全。</li>
+<li>JSONL vs SQLite 的选择反映了&quot;简单优先&quot;的哲学——不需要数据库引擎，不依赖外部库，一个文件就能搞定持久化。</li>
+<li>预写（pre-write）transcript 在消息产生前就写入磁盘——这是&quot;先记日志再执行&quot;的防御性编程模式，确保即使后面崩溃也有记录。</li>
+<li>fire-and-forget 的异步录制和预写模式看似矛盾，实则是两个不同场景：预写保底，异步补全。</li>
+</ul>
+</div><hr>
+<h2 id="自动压缩-token-触发的历史裁剪">18.2 自动压缩 —— Token 触发的历史裁剪</h2>
+<h3 id="阈值计算">18.2.1 阈值计算</h3>
+<p>自动压缩的核心是阈值检测。当对话的 Token 数量逼近上下文窗口限制时，系统自动触发压缩：<br>对于一个 200K 上下文窗口的模型，计算过程如下：</p>
+<h3 id="压缩决策流程">18.2.2 压缩决策流程</h3>
+<p><code>shouldAutoCompact</code> 函数实现了复杂的决策逻辑，包含多个递归守卫和实验性特性开关：</p>
+<h3 id="断路器模式">18.2.3 断路器模式</h3>
+<p>一个精巧的工程细节是连续失败的断路器：<br>注释中引用了真实的数据 —— “BQ 2026-03-10: 1,279 sessions had 50+ consecutive failures (up to 3,272)”，说明在没有断路器之前，某些会话在上下文不可恢复时会无限重试压缩，浪费约 250K API 调用/天。断路器限制为 3 次后，这些浪费被消除。</p>
+<h3 id="压缩执行">18.2.4 压缩执行</h3>
+<p>实际的压缩过程分为两个策略，按优先级尝试：</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<ul>
+<li>上下文窗口不是无限制的——自动压缩机制是 LLM 应用中必不可少的能力，否则长对话会因 token 超限而强制中断。</li>
+<li>MicroCompact + 全量压缩双策略是&quot;快失败 + 慢成功&quot;的组合：MicroCompact 快速释放空间尝试解决，不行再走全量压缩的重型方案。</li>
+<li>压缩本身也要消耗 API token——这是一个&quot;用 token 换 token&quot;的权衡：花一些 token 压缩历史，换来更大的可用窗口。</li>
+<li>摘要压缩不可避免会丢失细节——这是所有 AI Agent 系统在上下文管理中面临的根本矛盾：信息完整性和 token 经济性不可兼得。</li>
+</ul>
+</div><hr>
+<h2 id="snip-压缩-history_snip-特性">18.3 Snip 压缩 —— HISTORY_SNIP 特性</h2>
+<h3 id="microcompact-机制">18.3.1 MicroCompact 机制</h3>
+<p>在触发全量压缩之前，Claude Code 先尝试一种更轻量的压缩方式 —— MicroCompact（微压缩），又称 Snip：<br>MicroCompact 的核心思想是：许多工具调用的原始输出（文件内容、命令输出、搜索结果）占据大量 Token，但在后续对话中已不再需要。系统可以将这些输出替换为简短的摘要标记，释放 Token 空间而不丢失关键语义。</p>
+<h3 id="时间维度的压缩策略">18.3.2 时间维度的压缩策略</h3>
+<p>MicroCompact 采用基于时间的配置：<br>越老的工具输出越可能被压缩。<code>TIME_BASED_MC_CLEARED_MESSAGE</code> 标记（<code>&#39;[Old tool result content cleared]&#39;</code>）替换被清除的内容，让模型知道该位置曾有内容但已被清理。</p>
+<h3 id="缓存微压缩">18.3.3 缓存微压缩</h3>
+<p>对于内部使用的 <code>CACHED_MICROCOMPACT</code> 特性，系统维护了一个更精细的状态：<br>这些模块通过 <code>feature()</code> 宏进行条件加载 —— 在外部构建中，整个模块会被死代码消除，避免未使用的代码进入产品包。</p>
+<div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<p>HISTORY_SNIP 是&quot;有损压缩&quot;在对话历史中的应用——移除冗余以换取更大的可用窗口。</p>
+<ul>
+<li>Snip 不是简单丢弃消息，而是智能选择&quot;什么可以安全移除&quot;。</li>
+<li>被 snipped 的消息可以通过 --resume 恢复——transcript 中保留了完整记录。</li>
+<li>压缩边界标记告诉系统&quot;从这里开始压缩&quot;——只压缩最旧的部分。</li>
+<li>目标不是&quot;最小化 token&quot;，而是&quot;在预算内最大化信息密度&quot;。</li>
+</ul>
+</div><hr>
+<h2 id="压缩边界-compact_boundary-标记">18.4 压缩边界 —— compact_boundary 标记</h2>
+<h3 id="compactboundary-消息">18.4.1 CompactBoundary 消息</h3>
+<p>压缩的结果需要在消息流中标记一个清晰的边界。<code>SystemCompactBoundaryMessage</code> 类型承担了这一职责：</p>
+<h3 id="消息分组-api-轮次边界">18.4.2 消息分组 —— API 轮次边界</h3>
+<p>压缩前需要将消息按 API 轮次分组，确保在安全的边界处切割：<br>分组以“新的 assistant 响应开始“为边界。同一个 API 响应中的多个消息（如流式传输的多个内容块）通过 <code>message.id</code> 识别 —— 它们共享同一个 ID，因此会被归入同一组。</p>
+<h3 id="压缩摘要生成">18.4.3 压缩摘要生成</h3>
+<p>压缩的核心是通过一个分叉的 Agent 生成对话摘要。摘要 Prompt 要求模型产出结构化的九段式总结：<br>摘要使用 <code>&lt;analysis&gt;</code> 和 <code>&lt;summary&gt;</code> XML 标签包裹。<code>&lt;analysis&gt;</code> 是模型的“草稿本“，最终会被 <code>formatCompactSummary()</code> 剥离 —— 它的存在是为了提升摘要质量（让模型先思考再总结），但不占用后续对话的 Token。</p>
+<h3 id="ptl-重试机制">18.4.4 PTL 重试机制</h3>
+<p>当压缩请求本身超出上下文窗口时（压缩需要发送全部消息给模型），系统有一个降级策略：<br>这是一个“有损但解除阻塞“的逃生通道 —— 当用户在极端情况下被卡住时，丢弃最老的上下文比完全无法继续要好。</p>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>compact_boundary 标记是压缩算法的&quot;路标&quot;——记录哪些消息被摘要化了、摘要从哪开始。</p>
+<ul>
+<li>微压缩边界（microcompact_boundary）和全量压缩边界（compact_boundary）区分了压缩深度。</li>
+<li>压缩边界的定位决定了后续查询的上下文起点——边界之前是摘要，之后是完整消息。</li>
+<li>多次压缩会形成多级压缩边界——最近的边界对应最近的压缩。</li>
+<li>压缩边界的维护是&quot;增量的&quot;——不需要每次压缩都重建整个历史。</li>
+</ul>
+</div><hr>
+<h2 id="会话恢复-resume-实现">18.5 会话恢复 —— –resume 实现</h2>
+<h3 id="恢复入口">18.5.1 恢复入口</h3>
+<p><code>loadConversationForResume</code> 是会话恢复的统一入口，支持多种来源：</p>
+<h3 id="反序列化与中断检测">18.5.2 反序列化与中断检测</h3>
+<p>恢复过程中最复杂的部分是检测会话是否在中途被中断：</p>
+<h3 id="终端工具结果检测">18.5.3 终端工具结果检测</h3>
+<p>一个微妙的边界情况处理 —— 当最后一条消息是 <code>tool_result</code> 时，需要判断这是否是正常的轮次结束（如 Brief 模式下 SendUserMessage 是最后一步），还是真正的中断：</p>
+<h3 id="技能状态恢复">18.5.4 技能状态恢复</h3>
+<p>压缩后，之前通过 <code>/skill</code> 加载的技能内容会丢失。恢复时需要从消息中重建技能状态：</p>
+<h3 id="session-memory-压缩">18.5.5 Session Memory 压缩</h3>
+<p>Session Memory 是一种实验性的增量压缩策略。与传统的全量压缩不同，它在会话进行过程中持续维护一个“会话记忆“摘要：<br>当 Session Memory 压缩可用时，它优先于传统压缩执行。优势在于摘要是增量维护的，无需每次重新总结整个对话。</p>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>--resume 是 Claude Code 最强大的&quot;断点续传&quot;功能——上次聊到一半，今天继续。</p>
+<ul>
+<li>Resume 的核心是 transcript 中记录的完整消息历史——每条消息的 UUID 和父链保证了恢复的确定性。</li>
+<li>入口点存档记录了从对话开始到当前消息的完整路径——恢复时从入口点开始重放。</li>
+<li>恢复时会跳过已经被压缩的消息——用摘要替换完整的压缩内容。</li>
+<li>恢复的挑战：如果代码库在这期间发生了变化，恢复后的上下文可能已过时。</li>
+</ul>
+</div><hr>
+<h2 id="压缩后的上下文重建">18.6 压缩后的上下文重建</h2>
+<h3 id="post-compact-消息构建">18.6.1 Post-Compact 消息构建</h3>
+<p>压缩完成后，需要构建新的消息列表：<br>顺序至关重要：boundary 标记在最前（标明这是一个压缩恢复点），摘要紧随其后（提供上下文），保留的消息原样保持，最后是重新注入的附件（MCP 指令、技能列表等）。</p>
+<h3 id="摘要格式化">18.6.2 摘要格式化</h3>
+<p>原始摘要包含 <code>&lt;analysis&gt;</code> 和 <code>&lt;summary&gt;</code> 标签。在发送给用户之前，<code>formatCompactSummary</code> 会清理格式：</p>
+<div class="thinking-note"><h3 id="思考笔记-6">思考笔记</h3>
+<p>压缩后的上下文重建是 Resume 流程中反向操作的教科书案例——把压缩的消息还原为可用的上下文。</p>
+<ul>
+<li>重建不是简单地把压缩摘要展开，而是基于摘要 + 剩余完整消息重新构建推理上下文。</li>
+<li>摘要丢失的细节不可恢复——这是有损压缩的本质：压缩后的上下文永远不如原始上下文完整。</li>
+<li>重建策略在不同章节之间自适应——代码分析场景需要更多上下文，简单问答场景需要更少。</li>
+<li>重建后的上下文可能触发新的压缩——如果重建后 token 仍然超限，循环压缩机制再次启动。</li>
+</ul>
+</div><hr>
+<h2 id="本章小结">本章小结</h2>
+<p>会话管理与压缩是 Claude Code 最体现“工程深度“的模块之一。从 JSONL 链式日志结构保证崩溃安全，到基于 Token 阈值的自动压缩触发，从按 API 轮次的安全分组到 PTL 降级重试，从中断检测的五层过滤管道到技能状态的跨压缩恢复 —— 每一个细节都在解决真实的用户痛点。<br>断路器模式的引入尤其值得品味。一行 <code>if (consecutiveFailures &gt;= 3)</code> 的简单检查，基于 BQ 数据中 1,279 个异常会话的观察，消除了每天 250K 次浪费的 API 调用。这就是数据驱动工程的典范。<br>下一章我们将进入 Claude Code 的界面层 —— 看它如何在终端中运行一个完整的 React 应用。</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart LR
+    subgraph "JSONL 文件中的消息"
+        M1["msg-1&lt;br/&gt;parentUuid: null"] --&gt; M2["msg-2&lt;br/&gt;parentUuid: msg-1"]
+        M2 --&gt; M3["msg-3&lt;br/&gt;parentUuid: msg-2"]
+        M3 --&gt; M4["msg-4&lt;br/&gt;parentUuid: msg-3"]
+        M3 --&gt; S1["sidechain-1&lt;br/&gt;parentUuid: msg-3"]
+        M4 --&gt; M5["msg-5 leaf&lt;br/&gt;parentUuid: msg-4"]
+    end
+
+    subgraph "重建的链"
+        C1["msg-1"] --&gt; C2["msg-2"] --&gt; C3["msg-3"] --&gt; C4["msg-4"] --&gt; C5["msg-5"]
+    end</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph LR
+    A[上下文窗口&lt;br/&gt;200,000 tokens] --&gt; B[减去输出预留&lt;br/&gt;-20,000]
+    B --&gt; C[有效窗口&lt;br/&gt;180,000]
+    C --&gt; D[减去缓冲区&lt;br/&gt;-13,000]
+    D --&gt; E[自动压缩阈值&lt;br/&gt;167,000 tokens]</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TD
+    Start[Token 超过阈值] --&gt; SM{Session Memory&lt;br/&gt;压缩可用?}
+    SM --&gt;|是| SMCompact[Session Memory 压缩&lt;br/&gt;基于增量摘要]
+    SM --&gt;|否| Legacy[传统全量压缩&lt;br/&gt;Fork Agent 生成摘要]
+    SMCompact --&gt;|成功| Done[压缩完成]
+    SMCompact --&gt;|失败| Legacy
+    Legacy --&gt;|成功| Done
+    Legacy --&gt;|失败| Retry{重试次数 &lt; 3?}
+    Retry --&gt;|是| Legacy
+    Retry --&gt;|否| CircuitBreak[断路器触发&lt;br/&gt;停止尝试]</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    subgraph "Group 1 (API Round 1)"
+        U1[User: "读取 main.ts"]
+        A1[Assistant id=abc: tool_use Read]
+        R1[User: tool_result]
+        A2[Assistant id=abc: "文件内容是..."]
+    end
+
+    subgraph "Group 2 (API Round 2)"
+        U2[User: "修改第 10 行"]
+        A3[Assistant id=def: tool_use Edit]
+        R2[User: tool_result]
+        A4[Assistant id=def: "已修改"]
+    end</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TD
+    Raw[原始 JSONL 消息] --&gt; Migrate[迁移旧版附件]
+    Migrate --&gt; FilterTU[过滤未解决 tool_use]
+    FilterTU --&gt; FilterThink[过滤孤立 thinking]
+    FilterThink --&gt; FilterWS[过滤空白 assistant]
+    FilterWS --&gt; Detect{检测中断类型}
+
+    Detect --&gt;|最后是 user 消息| IP[interrupted_prompt&lt;br/&gt;用户输入未被响应]
+    Detect --&gt;|最后是 tool_result| IT[interrupted_turn&lt;br/&gt;工具执行后中断]
+    Detect --&gt;|最后是 assistant| None[无中断&lt;br/&gt;正常结束]
+
+    IT --&gt; Synthetic[注入 'Continue from where you left off.']
+    IP --&gt; Ready[准备恢复]
+    None --&gt; Ready
+    Synthetic --&gt; Ready</div>
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-17-state-management/" class="chapter-prev">← 第 17 章：状态管理</a>
+      <a href="/2026/05/21/claude-code-19-ink-react/" class="chapter-next">第 19 章：React + Ink 终端 UI →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

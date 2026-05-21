@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 3 章 类型系统设计__DESCRIPTION__quot;类型不是约束，而是思维的外化。一个好的类型系统设计，就是一份自我验证的架构文档。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在1900+ 文件的大型项目，类型系统不只是用来做编译检查的——它是架构级别的约束传播机制把运行时报错提前到编译阶段发现，在模块边界强制契约——比代码 Review 靠谱多了它解决什么问题循环依赖是所有大型 TS 项目的噩梦——纯类型文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 3 章 类型系统设计">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-03-type-system/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 3 章 类型系统设计__DESCRIPTION__quot;类型不是约束，而是思维的外化。一个好的类型系统设计，就是一份自我验证的架构文档。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在1900+ 文件的大型项目，类型系统不只是用来做编译检查的——它是架构级别的约束传播机制把运行时报错提前到编译阶段发现，在模块边界强制契约——比代码 Review 靠谱多了它解决什么问题循环依赖是所有大型 TS 项目的噩梦——纯类型文">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-03-type-system/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 3 章：类型系统设计 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-03-type-system/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 3 章：类型系统设计
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 3 章：类型系统设计</h1>
+<blockquote>
+<p>&quot;类型不是约束，而是思维的外化。一个好的类型系统设计，就是一份自我验证的架构文档。&quot;</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>1900+ 文件的大型项目，类型系统不只是用来做编译检查的——它是架构级别的约束传播机制</li><li>把运行时报错提前到编译阶段发现，在模块边界强制契约——比代码 Review 靠谱多了</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>循环依赖是所有大型 TS 项目的噩梦——纯类型文件（types/ 目录）把运行时依赖彻底解了</li><li>SessionId 和 AgentId 都是字符串，传错了编译器不会报错——Branded Types 让编译器帮你抓这种 bug</li><li>TS 的类型在编译后全没了——Zod 在运行时接班做验证</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>types/ 是纯类型层，没有运行时代码——谁都能安全引进，不会引起循环</li><li>一个 Zod Schema 搞定三件事：API 契约、运行时验证、类型推断——一个真相来源</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>Branded Types 通过交叉类型在编译期区分不同 ID 类型</li><li>DeepImmutable 递归冻结权限上下文等安全关键数据结构</li><li>Zod 的 <code>z.infer&lt;T&gt;</code> 让 schema 和类型共享同一真相来源</li><li>tool 泛型通过条件类型区分&quot;属性存在但可选&quot;和&quot;属性存在且必填&quot;</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>types/ids.ts 里定义 brand 和窄化函数——asSessionId 是断言式，toAgentId 是安全式，区分得很清楚</li><li>types/permissions.ts 里的纯类型定义被十几个模块 import 但不会循环——因为没运行时代码</li><li>BuiltTool<D> 的类型体操模拟了 spread 操作的类型映射——运行时一行代码，类型系统里写了十几行</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：直接用 VS Code 插件的类型系统——官方给你啥就是啥，没有品牌类型</li><li><strong>OpenClaw</strong>：普通 TypeScript 类型，不上 Zod 运行时验证</li><li><strong>Harness Agent</strong>：企业项目类型体系完整，也会用 Zod/io-ts 做运行时验证</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>纯类型文件优雅破解循环依赖——不加构建步骤</li><li>一个 Zod schema 养三份工——API 契约、运行时验证、类型推断</li><li>ID 混用这种运行时 bug 被提到编译期，开发期就逮住了</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<p>Claude Code 是一个深度依赖 TypeScript 类型系统的项目。其类型设计不仅仅是为了编译时检查，更是一种<strong>架构级别的约束传播机制</strong>：通过类型定义来强制执行模块边界、打破循环依赖、保证 API 契约，以及在 Agent 系统中实现类型安全的消息传递。本章将从三个维度剖析这套类型系统的设计思想。</p>
+<hr>
+<h2 id="typescript-严格模式的工程价值">3.1 TypeScript 严格模式的工程价值</h2>
+<p>在一个拥有 1900 多个文件的代码库中，TypeScript 严格模式不是可选的锦上添花，而是工程必需品。Claude Code 对类型严格性的要求体现在多个层面。</p>
+<h3 id="品牌类型branded-types">品牌类型（Branded Types）</h3>
+<p><code>src/types/ids.ts</code> 展示了一种高级的类型安全技巧 —— 品牌类型：</p>
+<pre><code class="language-typescript">// src/types/ids.ts
+export type SessionId = string &amp; { readonly __brand: 'SessionId' }
+export type AgentId = string &amp; { readonly __brand: 'AgentId' }</code></pre><p><code>SessionId</code> 和 <code>AgentId</code> 在运行时都是普通的 <code>string</code>，但在编译时它们是不可互换的：</p>
+<pre><code class="language-typescript">function processSession(id: SessionId): void { /* ... */ }
+function processAgent(id: AgentId): void { /* ... */ }
+
+const sessionId: SessionId = asSessionId('abc-123')
+const agentId: AgentId = asAgentId('a-deadbeef01234567')
+
+processSession(sessionId)  // 编译通过
+processSession(agentId)    // 编译错误：AgentId 不能赋值给 SessionId</code></pre><p>这种设计消除了一类常见的 bug：在 Agent 系统中，Session ID 和 Agent ID 都是字符串，容易在参数传递中混淆。品牌类型将这种运行时 bug 提升为编译时错误。</p>
+<p>创建品牌类型的函数提供了窄化入口：</p>
+<pre><code class="language-typescript">export function asSessionId(id: string): SessionId {
+  return id as SessionId
+}
+
+export function asAgentId(id: string): AgentId {
+  return id as AgentId
+}</code></pre><p>注意 <code>toAgentId()</code> 函数还包含运行时验证：</p>
+<pre><code class="language-typescript">const AGENT_ID_PATTERN = /^a(?:.+-)?[0-9a-f]{16}$/
+
+export function toAgentId(s: string): AgentId | null {
+  return AGENT_ID_PATTERN.test(s) ? (s as AgentId) : null
+}</code></pre><p><code>toAgentId</code> 和 <code>asAgentId</code> 的区别在于：前者是<strong>安全的窄化</strong>（返回 <code>null</code> 表示无效输入），后者是<strong>断言式窄化</strong>（调用者保证输入合法）。在 Claude Code 的使用中，<code>toAgentId</code> 用于解析外部输入（如 URL 参数），<code>asAgentId</code> 用于内部已知合法的场景。</p>
+<h3 id="deepimmutable-类型">DeepImmutable 类型</h3>
+<p><code>ToolPermissionContext</code> 被 <code>DeepImmutable</code> 包装，确保权限上下文在传递过程中不会被意外修改：</p>
+<pre><code class="language-typescript">// src/Tool.ts
+export type ToolPermissionContext = DeepImmutable&lt;{
+  mode: PermissionMode
+  additionalWorkingDirectories: Map&lt;string, AdditionalWorkingDirectory&gt;
+  alwaysAllowRules: ToolPermissionRulesBySource
+  alwaysDenyRules: ToolPermissionRulesBySource
+  alwaysAskRules: ToolPermissionRulesBySource
+  isBypassPermissionsModeAvailable: boolean
+  // ...
+}&gt;</code></pre><p><code>DeepImmutable</code> 递归地将所有属性标记为 <code>readonly</code>，将 <code>Map</code> 转为 <code>ReadonlyMap</code>，将数组转为 <code>readonly</code> 数组。这保证了权限上下文在工具执行的整个生命周期中是不可变的 —— 任何试图修改它的代码都会导致编译错误。</p>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<p>品牌类型和 DeepImmutable 是编译时安全的&quot;双保险&quot;——前者防止程序员犯错，后者防止程序员不小心。</p>
+<ul>
+<li>SessionId 和 AgentId 都是 string，品牌类型让编译器帮你区分它们——运行时零成本，编译期捕获混乱。</li>
+<li>toAgentId 运行时验证 + asAgentId 断言式转换——两者并存说明了一个道理：外部输入要验证，内部传递靠类型。</li>
+<li>DeepImmutable 递归冻结权限上下文——不是担心开发人员故意改，而是防止大型代码库中有人在角落不小心改了一个字段。</li>
+<li>这种&quot;使不合法状态不可表示&quot;的理念是类型系统设计的高级境界——不是加更多检查，而是让错误在类型层面就不可能。</li>
+</ul>
+</div><hr>
+<h2 id="循环依赖破解纯类型文件的架构模式">3.2 循环依赖破解：纯类型文件的架构模式</h2>
+<p>循环依赖是大型 TypeScript 项目中最常见的架构退化信号。Claude Code 采用了一种系统性的解决方案：<strong>将共享类型提取到纯类型文件中</strong>。</p>
+<h3 id="问题根源">问题根源</h3>
+<p>考虑以下依赖场景：</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph LR
+    A["Tool.ts&lt;br/&gt;(定义 Tool 接口)"] --&gt;|"import"| B["permissions.ts&lt;br/&gt;(定义权限检查)"]
+    B --&gt;|"import"| C["Tool.ts 中的 ToolPermissionContext"]
+
+    style A fill:#fecaca,stroke:#ef4444
+    style B fill:#fecaca,stroke:#ef4444</div><p><code>Tool.ts</code> 需要引用权限类型，权限模块也需要引用工具类型。在运行时，这种循环会导致模块初始化时某些导出为 <code>undefined</code>。</p>
+<h3 id="解决方案types-目录">解决方案：types/ 目录</h3>
+<p><code>src/types/</code> 目录中的文件遵循严格的规则：<strong>只包含类型定义和编译时常量，没有运行时依赖</strong>。</p>
+<pre><code class="language-typescript">// src/types/permissions.ts 文件头注释
+/**
+ * Pure permission type definitions extracted to break import cycles.
+ *
+ * This file contains only type definitions and constants with no
+ * runtime dependencies.
+ * Implementation files remain in src/utils/permissions/ but can now
+ * import from here to avoid circular dependencies.
+ */</code></pre><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    subgraph "types/ — 纯类型层（无运行时代码）"
+        TP["types/permissions.ts&lt;br/&gt;PermissionMode, PermissionResult, ..."]
+        TH["types/hooks.ts&lt;br/&gt;HookEvent, HookResult, ..."]
+        TI["types/ids.ts&lt;br/&gt;SessionId, AgentId"]
+        TC["types/command.ts&lt;br/&gt;Command, PromptCommand, ..."]
+    end
+
+    subgraph "实现层"
+        Tool["Tool.ts"] --&gt;|"import type"| TP
+        Tool --&gt;|"import type"| TH
+        Perm["utils/permissions/"] --&gt;|"import type"| TP
+        Hook["utils/hooks/"] --&gt;|"import type"| TH
+        Main["main.tsx"] --&gt;|"import type"| TC
+        QE["QueryEngine.ts"] --&gt;|"import type"| TI
+    end
+
+    style TP fill:#eff6ff,stroke:#2563eb
+    style TH fill:#eff6ff,stroke:#2563eb
+    style TI fill:#eff6ff,stroke:#2563eb
+    style TC fill:#eff6ff,stroke:#2563eb</div><p>在 <code>Tool.ts</code> 中可以看到这种模式的具体应用：</p>
+<pre><code class="language-typescript">// src/Tool.ts
+// 从集中位置导入权限类型以打破导入循环
+import type {
+  AdditionalWorkingDirectory,
+  PermissionMode,
+  PermissionResult,
+} from './types/permissions.js'
+
+// 从集中位置导入工具进度类型以打破导入循环
+import type {
+  AgentToolProgress,
+  BashProgress,
+  MCPProgress,
+  REPLToolProgress,
+  SkillToolProgress,
+  TaskOutputProgress,
+  ToolProgressData,
+  WebSearchProgress,
+} from './types/tools.js'</code></pre><p>注释明确标注了 &quot;to break import cycles&quot;。同时，为了向后兼容，这些类型被重新导出：</p>
+<pre><code class="language-typescript">// 为了向后兼容，重新导出进度类型
+export type {
+  AgentToolProgress,
+  BashProgress,
+  MCPProgress,
+  REPLToolProgress,
+  SkillToolProgress,
+  TaskOutputProgress,
+  WebSearchProgress,
+}</code></pre><p>这意味着现有的消费者代码不需要修改导入路径 —— 它们仍然可以从 <code>Tool.ts</code> 导入这些类型，但 <code>Tool.ts</code> 自身的依赖链不再形成循环。</p>
+<h3 id="typespermissionsts-的完整剖析">types/permissions.ts 的完整剖析</h3>
+<p><code>src/types/permissions.ts</code> 是这种模式的范例。它定义了完整的权限类型层次结构：</p>
+<pre><code class="language-typescript">// 权限模式 — 判别联合
+export type ExternalPermissionMode = (typeof EXTERNAL_PERMISSION_MODES)[number]
+export type InternalPermissionMode = ExternalPermissionMode | 'auto' | 'bubble'
+export type PermissionMode = InternalPermissionMode
+
+// 权限行为 — 三值枚举
+export type PermissionBehavior = 'allow' | 'deny' | 'ask'
+
+// 权限规则 — 来源标签
+export type PermissionRuleSource =
+  | 'userSettings'
+  | 'projectSettings'
+  | 'localSettings'
+  | 'flagSettings'
+  | 'policySettings'
+  | 'cliArg'
+  | 'command'
+  | 'session'
+
+// 权限决策 — 判别联合
+export type PermissionDecision&lt;Input&gt; =
+  | PermissionAllowDecision&lt;Input&gt;
+  | PermissionAskDecision&lt;Input&gt;
+  | PermissionDenyDecision</code></pre><p>注意 <code>PermissionMode</code> 的定义方式：外部可见的模式（<code>ExternalPermissionMode</code>）是内部模式（<code>InternalPermissionMode</code>）的子集。<code>&#39;auto&#39;</code> 和 <code>&#39;bubble&#39;</code> 模式只在内部使用。通过 <code>feature()</code> 编译时开关，<code>&#39;auto&#39;</code> 模式甚至可以从运行时验证集合中完全移除：</p>
+<pre><code class="language-typescript">export const INTERNAL_PERMISSION_MODES = [
+  ...EXTERNAL_PERMISSION_MODES,
+  ...(feature('TRANSCRIPT_CLASSIFIER')
+    ? (['auto'] as const)
+    : ([] as const)),
+] as const satisfies readonly PermissionMode[]</code></pre><p>这是一个精妙的设计：类型系统中 <code>&#39;auto&#39;</code> 始终存在（因为 <code>InternalPermissionMode</code> 包含它），但运行时验证集合可以根据 feature flag 排除它。<code>satisfies</code> 关键字确保了数组内容与类型定义的一致性。</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>types/ 纯类型目录是循环依赖的&quot;外科手术刀&quot;——不改变模块依赖关系，只切断回环的那条边。</p>
+<ul>
+<li>纯类型文件没有运行时代码，可以被任何模块安全 import——这是破解循环依赖最简单也最优雅的方案。</li>
+<li><code>&lt;strong&gt;import type&lt;/strong&gt;</code> 加上 types/ 目录，一个加在导入侧一个加在组织侧——双重保障。</li>
+<li>向后兼容的重新导出说明了另一个道理：架构重构要考虑现有消费者，不要让他们为你的重构买单。</li>
+<li>PermissionMode 通过 feature() 条件编译控制运行时验证集合，但类型层面始终保留 &#39;auto&#39;——这是一种&quot;编译时剪枝+运行时缩小&quot;的精细控制。</li>
+</ul>
+</div><hr>
+<h2 id="zod-schema运行时类型验证">3.3 Zod Schema：运行时类型验证</h2>
+<p>TypeScript 的类型在编译后完全消失。对于需要处理外部输入的系统来说，仅靠编译时类型检查是不够的。Claude Code 使用 Zod v4 实现运行时类型验证，特别是在以下场景中：</p>
+<h3 id="工具输入验证">工具输入验证</h3>
+<p>每个工具的 <code>inputSchema</code> 是一个 Zod schema：</p>
+<pre><code class="language-typescript">// 概念性示例：FileRead 工具的输入 schema
+const inputSchema = z.object({
+  file_path: z.string().describe("The absolute path to the file to read"),
+  offset: z.number().optional().describe("Line number to start reading from"),
+  limit: z.number().optional().describe("Number of lines to read"),
+})</code></pre><p>这个 schema 同时服务三个目的：</p>
+<ol>
+<li><strong>API 契约</strong>：自动生成 JSON Schema，发送给 Anthropic API 的 <code>tools</code> 参数</li>
+<li><strong>运行时验证</strong>：验证模型返回的工具调用参数是否合法</li>
+<li><strong>类型推断</strong>：通过 <code>z.infer&lt;typeof inputSchema&gt;</code> 自动推断 TypeScript 类型</li>
+</ol>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph LR
+    ZS["Zod Schema&lt;br/&gt;z.object({...})"]
+    ZS --&gt;|"z.infer&lt;&gt;"| TS["TypeScript 类型&lt;br/&gt;{file_path: string, ...}"]
+    ZS --&gt;|"toJsonSchema()"| JS["JSON Schema&lt;br/&gt;{type: 'object', ...}"]
+    ZS --&gt;|"schema.parse()"| RV["运行时验证&lt;br/&gt;✓/✗"]
+
+    style ZS fill:#fef9c3,stroke:#eab308</div><h3 id="hook-响应验证">Hook 响应验证</h3>
+<p><code>src/types/hooks.ts</code> 中定义了 Hook 系统的响应 schema：</p>
+<pre><code class="language-typescript">// src/types/hooks.ts
+export const syncHookResponseSchema = lazySchema(() =&gt;
+  z.object({
+    continue: z.boolean()
+      .describe('Whether Claude should continue after hook (default: true)')
+      .optional(),
+    suppressOutput: z.boolean()
+      .describe('Hide stdout from transcript (default: false)')
+      .optional(),
+    stopReason: z.string()
+      .describe('Message shown when continue is false')
+      .optional(),
+    decision: z.enum(['approve', 'block']).optional(),
+    reason: z.string()
+      .describe('Explanation for the decision')
+      .optional(),
+    hookSpecificOutput: z.union([
+      z.object({
+        hookEventName: z.literal('PreToolUse'),
+        permissionDecision: permissionBehaviorSchema().optional(),
+        updatedInput: z.record(z.string(), z.unknown()).optional(),
+        additionalContext: z.string().optional(),
+      }),
+      z.object({
+        hookEventName: z.literal('PostToolUse'),
+        additionalContext: z.string().optional(),
+        updatedMCPToolOutput: z.unknown().optional(),
+      }),
+      // ... 更多 hook 事件类型
+    ]).optional(),
+  }),
+)</code></pre><p>注意 <code>lazySchema()</code> 包装器。这是一种延迟初始化模式 —— Zod schema 的创建有非零成本（需要分配验证器对象），通过 lazy 包装可以推迟到首次使用时才初始化。</p>
+<h3 id="编译时类型一致性断言">编译时类型一致性断言</h3>
+<p>在 <code>hooks.ts</code> 的末尾有一段引人注目的代码：</p>
+<pre><code class="language-typescript">// src/types/hooks.ts
+import type { IsEqual } from 'type-fest'
+type Assert&lt;T extends true&gt; = T
+type _assertSDKTypesMatch = Assert&lt;
+  IsEqual&lt;SchemaHookJSONOutput, HookJSONOutput&gt;
+&gt;</code></pre><p>这是一个<strong>编译时断言</strong>，确保 Zod schema 推断出的类型（<code>SchemaHookJSONOutput</code>）与 SDK 中手动定义的类型（<code>HookJSONOutput</code>）完全一致。如果两者不匹配，编译会失败。</p>
+<p>这种模式解决了一个常见问题：当 Zod schema 和手动类型定义同时存在时，它们可能因为独立修改而产生不一致。编译时断言充当了两个类型定义之间的&quot;契约验证器&quot;。</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    SDK["SDK 手动定义&lt;br/&gt;HookJSONOutput"] --&gt;|"必须匹配"| Check["编译时断言&lt;br/&gt;Assert&lt;IsEqual&lt;A, B&gt;&gt;"]
+    Zod["Zod Schema 推断&lt;br/&gt;SchemaHookJSONOutput"] --&gt;|"必须匹配"| Check
+    Check --&gt;|"一致"| OK["编译通过"]
+    Check --&gt;|"不一致"| Fail["编译错误"]
+
+    style Check fill:#fffbeb,stroke:#d97706</div><div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<p>TypeScript 的类型在编译后消失——Zod 在运行时接过了验证的责任。</p>
+<ul>
+<li>一个 Zod Schema 养三份工（API 契约、运行时验证、类型推断）——&quot;一个真相来源&quot;的设计原则。</li>
+<li>lazySchema 延迟初始化说明 Schema 创建成本虽小，但 40+ 工具累加起来不可忽视。</li>
+<li>编译时断言（Assert&lt;IsEqual&lt;A, B&gt;&gt;）确保手动类型和 Zod 类型永远一致。</li>
+<li>工具输入验证不是&quot;要不要检查&quot;，而是&quot;在哪一层检查&quot;——Zod 在边界层而非逻辑层做验证。</li>
+</ul>
+</div><hr>
+<h2 id="泛型工具类型toolltinput-output-progressgt">3.4 泛型工具类型：Tool&lt;Input, Output, Progress&gt;</h2>
+<p><code>Tool</code> 类型是 Claude Code 类型系统的核心。它是一个三参数泛型类型，将输入验证、输出类型和进度报告统一在一个接口中：</p>
+<pre><code class="language-typescript">// src/Tool.ts
+export type Tool&lt;
+  Input extends AnyObject = AnyObject,
+  Output = unknown,
+  P extends ToolProgressData = ToolProgressData,
+&gt; = {
+  readonly name: string
+  readonly inputSchema: Input
+
+  call(
+    args: z.infer&lt;Input&gt;,
+    context: ToolUseContext,
+    canUseTool: CanUseToolFn,
+    parentMessage: AssistantMessage,
+    onProgress?: ToolCallProgress&lt;P&gt;,
+  ): Promise&lt;ToolResult&lt;Output&gt;&gt;
+
+  description(
+    input: z.infer&lt;Input&gt;,
+    options: { /* ... */ },
+  ): Promise&lt;string&gt;
+
+  renderToolResultMessage?(
+    content: Output,
+    progressMessagesForMessage: ProgressMessage&lt;P&gt;[],
+    options: { /* ... */ },
+  ): React.ReactNode
+
+  // ... 30+ 方法定义
+}</code></pre><p>三个类型参数的含义：</p>
+<ul>
+<li><strong><code>Input extends AnyObject</code></strong>：工具输入的 Zod schema 类型。通过 <code>z.infer&lt;Input&gt;</code> 自动推断为 TypeScript 类型</li>
+<li><strong><code>Output</code></strong>：工具执行结果的类型。不同工具有不同的输出结构</li>
+<li><strong><code>P extends ToolProgressData</code></strong>：进度报告的类型。不同工具报告不同的进度信息</li>
+</ul>
+<p>这种泛型设计确保了<strong>方法签名之间的类型一致性</strong>。例如，<code>call()</code> 方法返回 <code>ToolResult&lt;Output&gt;</code>，而 <code>renderToolResultMessage()</code> 接收 <code>Output</code> 类型的 <code>content</code> 参数 —— 编译器确保了产生结果和渲染结果使用相同的类型。</p>
+<h3 id="buildtool-与-tooldef">buildTool 与 ToolDef</h3>
+<p>为了简化工具定义，Claude Code 引入了 <code>buildTool()</code> 工厂函数和 <code>ToolDef</code> 类型：</p>
+<pre><code class="language-typescript">// src/Tool.ts
+type DefaultableToolKeys =
+  | 'isEnabled'
+  | 'isConcurrencySafe'
+  | 'isReadOnly'
+  | 'isDestructive'
+  | 'checkPermissions'
+  | 'toAutoClassifierInput'
+  | 'userFacingName'
+
+export type ToolDef&lt;Input, Output, P&gt; =
+  Omit&lt;Tool&lt;Input, Output, P&gt;, DefaultableToolKeys&gt; &amp;
+  Partial&lt;Pick&lt;Tool&lt;Input, Output, P&gt;, DefaultableToolKeys&gt;&gt;</code></pre><p><code>ToolDef</code> 将 <code>Tool</code> 接口中的 7 个方法标记为可选。<code>buildTool()</code> 函数填充默认值：</p>
+<pre><code class="language-typescript">const TOOL_DEFAULTS = {
+  isEnabled: () =&gt; true,
+  isConcurrencySafe: (_input?: unknown) =&gt; false,  // 假设不安全
+  isReadOnly: (_input?: unknown) =&gt; false,           // 假设有写操作
+  isDestructive: (_input?: unknown) =&gt; false,
+  checkPermissions: (input, _ctx?) =&gt;
+    Promise.resolve({ behavior: 'allow', updatedInput: input }),
+  toAutoClassifierInput: (_input?: unknown) =&gt; '',
+  userFacingName: (_input?: unknown) =&gt; '',
+}
+
+export function buildTool&lt;D extends AnyToolDef&gt;(def: D): BuiltTool&lt;D&gt; {
+  return {
+    ...TOOL_DEFAULTS,
+    userFacingName: () =&gt; def.name,
+    ...def,
+  } as BuiltTool&lt;D&gt;
+}</code></pre><p>注意默认值的<strong>安全倾向</strong>设计：</p>
+<ul>
+<li><code>isConcurrencySafe</code> 默认 <code>false</code>：假设工具不能并发执行（保守策略）</li>
+<li><code>isReadOnly</code> 默认 <code>false</code>：假设工具有写操作（需要权限检查）</li>
+<li><code>checkPermissions</code> 默认 <code>allow</code>：将权限决策交给通用权限系统</li>
+</ul>
+<p>这种&quot;安全默认&quot;（fail-closed）的设计原则意味着：忘记实现某个方法不会导致安全漏洞，只会导致功能受限。</p>
+<h3 id="builttool-的类型级别-spread">BuiltTool 的类型级别 spread</h3>
+<p><code>BuiltTool&lt;D&gt;</code> 的类型定义模拟了运行时的 <code>{ ...TOOL_DEFAULTS, ...def }</code> 操作：</p>
+<pre><code class="language-typescript">type BuiltTool&lt;D&gt; = Omit&lt;D, DefaultableToolKeys&gt; &amp; {
+  [K in DefaultableToolKeys]-?: K extends keyof D
+    ? undefined extends D[K]
+      ? ToolDefaults[K]     // D 中可选 → 使用默认值类型
+      : D[K]                 // D 中必填 → 使用 D 的类型
+    : ToolDefaults[K]        // D 中不存在 → 使用默认值类型
+}</code></pre><p>这段类型体操的核心是条件类型 <code>undefined extends D[K]</code> —— 它区分了&quot;属性存在但可选&quot;和&quot;属性存在且必填&quot;。这确保了当工具定义覆盖了某个默认方法时，返回类型精确反映覆盖后的签名。</p>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>Zod Schema 和泛型 Tool 类型是运行时与编译时的两次&quot;类型验证&quot;——一个在运行前，一个在运行时。</p>
+<ul>
+<li>一个 Zod Schema 同时养三份工（API 契约、运行时验证、类型推断）——这不是巧合，是刻意设计的&quot;一个真相来源&quot;。</li>
+<li>lazySchema 延迟初始化说明了一个微妙但重要的事：Schema 的创建成本不是零，在大规模工具系统里会积少成多。</li>
+<li>buildTool 的 fail-closed 安全默认——&quot;假设不可并发、假设有写操作&quot;——体现的是一种防御性设计哲学。</li>
+<li>BuiltTool 的类型体操 <code>&lt;undefined extends D[K] ? ToolDefaults[K] : D[K]&gt;</code> 模拟了运行时 spread 的逻辑——类型系统不是万能的，但类型体操可以逼近。</li>
+</ul>
+</div><hr>
+<h2 id="判别联合类型">3.5 判别联合类型</h2>
+<p>Claude Code 的消息系统和权限系统大量使用判别联合（Discriminated Union），通过 <code>type</code> 字段区分不同的消息/决策变体。</p>
+<h3 id="权限决策系统">权限决策系统</h3>
+<p><code>PermissionResult</code> 是一个经典的判别联合：</p>
+<pre><code class="language-typescript">// src/types/permissions.ts
+export type PermissionResult&lt;Input&gt; =
+  | PermissionAllowDecision&lt;Input&gt;
+  | PermissionAskDecision&lt;Input&gt;
+  | PermissionDenyDecision
+  | { behavior: 'passthrough'; message: string; /* ... */ }</code></pre><p>每个变体通过 <code>behavior</code> 字段判别：</p>
+<pre><code class="language-typescript">export type PermissionAllowDecision&lt;Input&gt; = {
+  behavior: 'allow'
+  updatedInput?: Input       // 可能修改后的输入
+  userModified?: boolean     // 用户是否手动修改
+  acceptFeedback?: string    // 用户接受时的反馈
+  contentBlocks?: ContentBlockParam[]
+}
+
+export type PermissionAskDecision&lt;Input&gt; = {
+  behavior: 'ask'
+  message: string            // 询问用户的消息
+  suggestions?: PermissionUpdate[]  // 建议的权限更新
+  pendingClassifierCheck?: PendingClassifierCheck  // 异步分类器检查
+}
+
+export type PermissionDenyDecision = {
+  behavior: 'deny'
+  message: string            // 拒绝原因
+  decisionReason: PermissionDecisionReason  // 必填：必须说明原因
+}</code></pre><p>注意类型设计中的<strong>不对称性</strong>：</p>
+<ul>
+<li><code>allow</code> 的 <code>decisionReason</code> 是可选的（允许不需要解释）</li>
+<li><code>deny</code> 的 <code>decisionReason</code> 是<strong>必填的</strong>（拒绝必须给出原因）</li>
+<li><code>ask</code> 可以携带 <code>suggestions</code>（建议用户如何修改权限规则）</li>
+</ul>
+<p>消费代码中的 narrowing：</p>
+<pre><code class="language-typescript">const result = await checkPermissions(input, context)
+
+switch (result.behavior) {
+  case 'allow':
+    // TypeScript 知道 result 是 PermissionAllowDecision
+    const finalInput = result.updatedInput ?? input
+    break
+  case 'ask':
+    // TypeScript 知道 result 是 PermissionAskDecision
+    showPrompt(result.message, result.suggestions)
+    break
+  case 'deny':
+    // TypeScript 知道 result 是 PermissionDenyDecision
+    logDenial(result.decisionReason)  // decisionReason 保证存在
+    break
+}</code></pre><h3 id="permissiondecisionreason-的深层判别">PermissionDecisionReason 的深层判别</h3>
+<p>权限决策的原因本身也是一个判别联合，使用 <code>type</code> 字段：</p>
+<pre><code class="language-typescript">export type PermissionDecisionReason =
+  | { type: 'rule'; rule: PermissionRule }
+  | { type: 'mode'; mode: PermissionMode }
+  | { type: 'subcommandResults'; reasons: Map&lt;string, PermissionResult&gt; }
+  | { type: 'hook'; hookName: string; hookSource?: string; reason?: string }
+  | { type: 'asyncAgent'; reason: string }
+  | { type: 'sandboxOverride'; reason: 'excludedCommand' | 'dangerouslyDisableSandbox' }
+  | { type: 'classifier'; classifier: string; reason: string }
+  | { type: 'workingDir'; reason: string }
+  | { type: 'safetyCheck'; reason: string; classifierApprovable: boolean }
+  | { type: 'other'; reason: string }</code></pre><p>这个类型精确表达了&quot;一个权限决策可能由 10 种不同的原因产生&quot;。<code>subcommandResults</code> 变体甚至包含了一个递归的 <code>PermissionResult</code> Map，用于表示 Bash 命令中子命令的权限结果组合。</p>
+<p><code>safetyCheck</code> 变体中的 <code>classifierApprovable</code> 布尔字段是一个精细的安全决策标记：</p>
+<pre><code class="language-typescript">{
+  type: 'safetyCheck'
+  reason: string
+  // 当为 true 时，auto 模式允许分类器评估而非强制弹窗
+  // 对于敏感文件路径（.claude/, .git/, shell configs）为 true
+  // 对于 Windows 路径绕过和跨机器 bridge 消息为 false
+  classifierApprovable: boolean
+}</code></pre><h3 id="工具搜索与读取操作的类型判别">工具搜索与读取操作的类型判别</h3>
+<p><code>Tool</code> 接口中的 <code>isSearchOrReadCommand</code> 方法返回一个结构化的操作分类：</p>
+<pre><code class="language-typescript">isSearchOrReadCommand?(input: z.infer&lt;Input&gt;): {
+  isSearch: boolean    // grep, find, glob 模式
+  isRead: boolean      // cat, head, tail, 文件读取
+  isList?: boolean     // ls, tree, du
+}</code></pre><p>这个返回类型不是布尔值，而是一个三维的操作分类。UI 层使用它来决定是否将连续的搜索/读取操作折叠为紧凑显示。<code>isList</code> 标记为可选是因为它是后加的 —— <code>isSearch</code> 和 <code>isRead</code> 在初始设计中就存在。</p>
+<h3 id="command-类型的联合设计">Command 类型的联合设计</h3>
+<p><code>src/types/command.ts</code> 中的 <code>Command</code> 类型展示了另一种判别联合模式 —— <strong>基类 + 变体联合</strong>：</p>
+<pre><code class="language-typescript">export type Command = CommandBase &amp;
+  (PromptCommand | LocalCommand | LocalJSXCommand)</code></pre><p><code>CommandBase</code> 定义了所有命令共享的属性（name, description, isEnabled 等），而联合部分通过 <code>type</code> 字段区分三种执行模式：</p>
+<pre><code class="language-typescript">type PromptCommand = {
+  type: 'prompt'             // 发送给模型执行
+  progressMessage: string
+  getPromptForCommand(args: string, context: ToolUseContext):
+    Promise&lt;ContentBlockParam[]&gt;
+}
+
+type LocalCommand = {
+  type: 'local'              // 本地执行（无 UI）
+  supportsNonInteractive: boolean
+  load: () =&gt; Promise&lt;LocalCommandModule&gt;
+}
+
+type LocalJSXCommand = {
+  type: 'local-jsx'          // 本地执行（有 UI）
+  load: () =&gt; Promise&lt;LocalJSXCommandModule&gt;
+}</code></pre><p><code>PromptCommand</code> 是斜杠命令（如技能和插件）的类型：它们被转换为 prompt 发送给模型。<code>LocalCommand</code> 和 <code>LocalJSXCommand</code> 是本地执行的命令：前者是纯逻辑命令，后者需要渲染 React 组件。</p>
+<p>注意 <code>load()</code> 方法的延迟加载设计：命令的实现代码只在用户实际调用时才加载，避免了注册数十个命令带来的启动开销。</p>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>判别联合让不合法状态在类型层面就不可表示——这是类型系统设计的高级境界。</p>
+<ul>
+<li>PermissionResult 的 behavior 字段作为判别器，每个分支都是独立类型——编译器强制穷举处理。</li>
+<li>deny 的 decisionReason 必填、allow 的可选——&quot;拒绝必须有理由&quot;的语义通过类型强制执行。</li>
+<li>10 种 PermissionDecisionReason 变体覆盖了从规则匹配到安全检测的所有场景。</li>
+<li>类型定义比实现代码更容易膨胀——因为它承载了整个系统的&quot;数据契约&quot;。</li>
+</ul>
+</div><hr>
+<h2 id="类型系统作为架构文档">3.6 类型系统作为架构文档</h2>
+<p>回顾本章讨论的类型设计，可以提炼出几条贯穿整个代码库的设计原则：</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    P1["原则 1：类型即文档&lt;br/&gt;品牌类型标注语义意图"] --&gt; Practice["实践"]
+    P2["原则 2：类型即契约&lt;br/&gt;Zod + 编译时断言保证一致性"] --&gt; Practice
+    P3["原则 3：类型即边界&lt;br/&gt;纯类型文件打破循环依赖"] --&gt; Practice
+    P4["原则 4：类型即安全&lt;br/&gt;判别联合强制穷举处理"] --&gt; Practice
+    P5["原则 5：类型即默认&lt;br/&gt;buildTool 的安全默认值"] --&gt; Practice
+
+    Practice --&gt; Code["1900 文件的&lt;br/&gt;类型安全代码库"]</div><p><strong>1. 使不合法状态不可表示</strong>（Make illegal states unrepresentable）。<code>SessionId</code> 和 <code>AgentId</code> 的品牌类型使得混淆两者在编译时就会被捕获。<code>PermissionDenyDecision</code> 的必填 <code>decisionReason</code> 使得&quot;无理由拒绝&quot;在类型层面不可能。</p>
+<p><strong>2. 用编译时断言桥接两个类型世界</strong>。当 Zod schema 和 SDK 类型并存时，<code>Assert&lt;IsEqual&lt;A, B&gt;&gt;</code> 确保它们永远一致。</p>
+<p><strong>3. 将运行时验证与静态类型统一</strong>。Zod 的 <code>z.infer&lt;T&gt;</code> 让 schema 和类型共享同一个真相来源，避免了手动维护两份定义的同步问题。</p>
+<p><strong>4. 通过纯类型文件实现架构解耦</strong>。<code>types/</code> 目录不包含运行时代码，这使得它可以被任何模块安全导入，而不会引入运行时依赖。</p>
+<p><strong>5. 安全默认与显式覆盖</strong>。<code>buildTool()</code> 的默认值选择了保守的安全策略（不可并发、非只读、交由通用权限系统），工具实现者必须显式声明更宽松的行为。</p>
+<div class="thinking-note"><h3 id="思考笔记-6">思考笔记</h3>
+<p>判别联合和编译时断言是 TypeScript 类型系统中最强大的两个模式——一个做穷举检查，一个做契约验证。</p>
+<ul>
+<li>PermissionResult 判别联合通过 behavior 字段区分 allow/ask/deny/passthrough——每个分支都是独立的类型，消费方必须穷举处理。</li>
+<li>deny 的 decisionReason 必填、allow 的可选——这不是随意设计，而是传递了&quot;拒绝必须有理由&quot;的语义。</li>
+<li>Assert&lt;IsEqual&lt;A, B&gt;&gt; 编译时断言是两套类型定义之间的&quot;诚信检测器&quot;——Zod schema 和手动类型分开维护时，确保它们不会脱节。</li>
+<li>34 行的 createStore（第 17 章）和 10 种 PermissionDecisionReason 变体的对比说明了同一件事：类型定义比实现代码更容易膨胀——因为它承载了整个系统的&quot;数据契约&quot;。</li>
+</ul>
+</div><hr>
+<h2 id="本章小结">本章小结</h2>
+<p>Claude Code 的类型系统不是简单的&quot;给 JavaScript 加类型注解&quot;。它是一个精心设计的、多层次的类型架构：</p>
+<ol>
+<li><strong>底层</strong>：品牌类型和 DeepImmutable 提供编译时安全保障</li>
+<li><strong>中层</strong>：纯类型文件和重新导出解决循环依赖和模块边界问题</li>
+<li><strong>上层</strong>：Zod schema 和判别联合实现运行时验证和穷举性检查</li>
+<li><strong>工具层</strong>：泛型 Tool 接口和 buildTool 工厂函数统一了 40+ 工具的类型契约</li>
+</ol>
+<p>这套类型系统的设计使得一个 1900 文件的代码库能够在快速迭代中保持结构完整性 —— 类型检查器充当了永不休息的架构审查员。</p>
+
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-02-bootstrap/" class="chapter-prev">← 第 2 章：启动流程</a>
+      <a href="/2026/05/21/claude-code-04-query-engine/" class="chapter-next">第 4 章：查询引擎 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>

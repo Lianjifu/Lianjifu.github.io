@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<link rel="stylesheet" href="/css/2026.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="第 17 章：状态管理“状态是程序的记忆，而如何组织这份记忆，决定了整个系统的可维护性。”Claude Code 的状态管理体系是一套精心设计的响应式架构。它没有依赖 Redux 等重量级框架，而是从零构建了一个轻量级的 Zustand 风格 Store，配合 React 18 的 useSyncExternalStore 实现精准的响应式订阅。本章将深入剖析这一架构的每个层面。思考维度内容引导思">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第 17 章：状态管理">
+<meta property="og:url" content="http://lianjifu.cn/2026/05/21/claude-code-17-state-management/index.html">
+<meta property="og:site_name" content="LianJiFu'blogs">
+<meta property="og:description" content="第 17 章：状态管理“状态是程序的记忆，而如何组织这份记忆，决定了整个系统的可维护性。”Claude Code 的状态管理体系是一套精心设计的响应式架构。它没有依赖 Redux 等重量级框架，而是从零构建了一个轻量级的 Zustand 风格 Store，配合 React 18 的 useSyncExternalStore 实现精准的响应式订阅。本章将深入剖析这一架构的每个层面。思考维度内容引导思">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+<meta property="article:published_time" content="2026-05-21T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:00:00.000Z">
+<meta property="article:author" content="JiFuLian">
+<meta property="article:tag" content="claude-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+<link rel="canonical" href="http://lianjifu.cn/2026/05/21/claude-code-17-state-management/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>第 17 章：状态管理 | LianJiFu'blogs</title>
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">LianJiFu'blogs</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Deeply loves the life</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+
+
+
+
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/claude-code-17-state-management/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="JiFuLian">
+      <meta itemprop="description" content="Record my study and life">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LianJiFu'blogs">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          第 17 章：状态管理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+
+              <time title="创建时间：2026-05-21 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished" datetime="2026-05-21T18:00:00+08:00">2026-05-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E7%B1%BB/" itemprop="url" rel="index"><span itemprop="name">Claude Code</span></a>
+                </span>
+            </span>
+
+          <br>
+
+        </div>
+      </header>
+
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+        <h1>第 17 章：状态管理</h1>
+<blockquote>
+<p>“状态是程序的记忆，而如何组织这份记忆，决定了整个系统的可维护性。”Claude Code 的状态管理体系是一套精心设计的响应式架构。它没有依赖 Redux 等重量级框架，而是从零构建了一个轻量级的 Zustand 风格 Store，配合 React 18 的 <code>useSyncExternalStore</code> 实现精准的响应式订阅。本章将深入剖析这一架构的每个层面。</p>
+</blockquote>
+<table class="guide-card collapsed">
+<thead>
+<tr>
+<th>思考维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="guide-card-header"><td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td></tr><tr>
+<td><strong>它为什么存在</strong></td>
+<td><ul><li>大型 React 应用需要统一管状态，但不想用 Redux 那一套重型框架</li><li>34 行代码实现一个够用的 Store——极简主义的典范</li></ul></td>
+</tr>
+<tr>
+<td><strong>它解决什么问题</strong></td>
+<td><ul><li>全局 UI 状态、会话配置、Agent 状态、权限上下文——这些都要统一管理而不是散落在各处</li><li>文件的读取缓存得有尺寸限制——100 个文件上限、25MB 大小上限，还得 LRU 驱逐</li><li>状态变了要触发副作用（通知远程、写磁盘），又不能把副作用逻辑散到各个 setState 调用中</li></ul></td>
+</tr>
+<tr>
+<td><strong>它在系统中的位置</strong></td>
+<td><ul><li>Store 在应用内核层，所有组件和工具通过它读写状态</li><li>onChangeAppState 作为统一出口连持久化和远程通知，是状态变更的咽喉要道</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何工作</strong></td>
+<td><ul><li>34 行 createStore 实现 Zustand 风格——函数式更新 + Object.is 比较 + Set 做监听器</li><li>useSyncExternalStore 桥接 Store 和 React 渲染循环——React 18 的官方推荐做法</li><li>React Compiler 自动给所有组件加 _c() memoization，开发者不用手写 useMemo</li></ul></td>
+</tr>
+<tr>
+<td><strong>它如何实现</strong></td>
+<td><ul><li>state/store.ts 里 Set 管监听器，onChange 回调在每次状态变化后被调用</li><li>AppState 用 DeepImmutable 包起来——谁也别想偷改状态</li><li>FileStateCache 用 lru-cache 库做双维度限制——超过 100 条或超过 25MB 就驱逐</li></ul></td>
+</tr>
+<tr>
+<td><strong>不同平台如何做</strong></td>
+<td><ul><li><strong>Cursor Agent</strong>：用 VS Code ExtensionContext.workspaceState 持久化，没有自己写 Store</li><li><strong>OpenClaw</strong>：没有统一全局 Store，各组件自己 useState/useReducer 管本地状态</li><li><strong>Harness Agent</strong>：React Redux + Toolkit，immer 中间件处理不可变更新</li></ul></td>
+</tr>
+<tr>
+<td><strong>优势是什么？</strong></td>
+<td><ul><li><strong>优势</strong><ul><li>34 行核心实现极轻量，零外部依赖</li><li>onChangeAppState 集中式副作用消除分散通知的 bug</li><li>React Compiler 自动 memoization 免去手动优化负担</li></ul></li></ul></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="react-store-模式-createstore-工厂">17.1 React Store 模式 —— createStore 工厂</h2>
+<h3 id="核心实现">17.1.1 核心实现</h3>
+<p>Claude Code 的状态管理基石位于 <code>src/state/store.ts</code>，这是一个仅 34 行的微型 Store 实现。其简洁程度令人惊叹，却蕴含了响应式系统的全部本质：<br>这段代码看似简单，但每一行都经过深思熟虑。让我们逐一分析其设计决策。</p>
+<h3 id="设计决策解析">17.1.2 设计决策解析</h3>
+<p><strong>函数式更新器模式</strong>。<code>setState</code> 接受一个 <code>(prev: T) =&gt; T</code> 函数而非直接的新状态值。这是一个关键的设计选择 —— 它保证了并发更新的正确性。当多个组件同时修改状态时，每个更新器都基于最新的 <code>prev</code> 进行计算，避免了“丢失更新“问题。这与 React 自身的 <code>useState(prev =&gt; ...)</code> 模式完全一致。<br><strong>Object.is 相等性检查</strong>。在更新状态前，Store 使用 <code>Object.is(next, prev)</code> 进行严格相等性检查。如果更新器返回了完全相同的引用，则跳过通知。这是一个重要的性能优化 —— 避免不必要的重渲染。<code>Object.is</code> 而非 <code>===</code> 是因为前者能正确处理 <code>NaN</code> 和 <code>+0/-0</code> 的边界情况。<br><strong>Set 作为监听器容器</strong>。使用 <code>Set&lt;Listener&gt;</code> 而非数组，保证了同一个监听器不会被注册两次，且删除操作是 O(1) 的。返回取消订阅函数是标准的 teardown 模式，与 React 的 <code>useEffect</code> 清理函数无缝配合。<br><strong>onChange 回调</strong>。除了通知 React 组件的 listener 之外，Store 还支持一个全局的 <code>onChange</code> 回调。这是一个关键的扩展点 —— Claude Code 利用它实现了副作用系统，当状态变化时自动同步到磁盘、通知远程会话等。</p>
+<h3 id="与-zustand-的对比">17.1.3 与 Zustand 的对比</h3>
+<p>Claude Code 的 Store 可以被看作 Zustand 的极简子集。Zustand 提供了中间件系统（immer、devtools、persist），而 Claude Code 通过 <code>onChange</code> 回调和外部函数实现了等效功能，但没有引入任何额外的抽象层。这种“恰到好处“的设计哲学贯穿整个项目。</p>
+<div class="thinking-note"><h3 id="思考笔记">思考笔记</h3>
+<ul>
+<li>34 行实现一个 Zustand 风格的 Store——这不是炫技，而是&quot;框架越小，理解越深&quot;的工程哲学体现。</li>
+<li>Set 作为监听器容器是最简洁的选择：add/delete 天然支持去重，迭代顺序与插入顺序一致——比数组去重后 push 更干净。</li>
+<li>Object.is 对比（而非 ===）处理了边界情况：NaN !== NaN，Object.is(NaN, NaN) 是 true。这不是过度设计，是&quot;不想因为 NaN 导致无限渲染&quot;。</li>
+<li>不用 Redux 的原因不是&quot;Redux 不好&quot;，而是&quot;我们不需要&quot;——34 行就能满足需求时，引入一个框架就是过度工程。</li>
+</ul>
+</div><hr>
+<h2 id="appstate-全局状态字段分析">17.2 AppState —— 全局状态字段分析</h2>
+<h3 id="状态结构概览">17.2.1 状态结构概览</h3>
+<p><code>AppState</code> 是 Claude Code 的全局状态类型，定义在 <code>src/state/AppStateStore.ts</code> 中。它是一个庞大而有组织的类型，包含了应用运行所需的全部状态：</p>
+<h3 id="状态分域">17.2.2 状态分域</h3>
+<p>AppState 的字段可以按职责划分为以下几个域：<br><strong>UI 状态域</strong>。控制终端界面的显示。<code>expandedView</code> 决定任务面板是否展开，<code>footerSelection</code> 追踪底部栏的焦点位置，<code>activeOverlays</code> 记录当前打开的对话框（用于 Escape 键协调）。<br><strong>会话配置域</strong>。<code>mainLoopModel</code> 存储当前使用的模型，支持会话级别和全局级别两个层次的设置。<code>toolPermissionContext</code> 是权限系统的核心，包含当前权限模式（default/plan/auto 等）和所有已授权的工具规则。<br><strong>Agent 状态域</strong>。<code>tasks</code> 是一个以 taskId 为键的字典，存储所有后台任务（子 Agent、远程 Agent 等）的状态。<code>agentNameRegistry</code> 将人类可读的名称映射到 AgentId，用于 <code>SendMessage</code> 工具的名称路由。<br><strong>推测执行状态域</strong>。这是 Claude Code 最前沿的特性之一 —— 在用户输入时预测可能的操作并提前执行。<code>speculation</code> 字段追踪推测执行的完整生命周期。</p>
+<h3 id="deepimmutable-与可变区域">17.2.3 DeepImmutable 与可变区域</h3>
+<p>注意 AppState 类型的特殊结构：主体被 <code>DeepImmutable&lt;...&gt;</code> 包裹，但通过交叉类型 <code>&amp; { ... }</code> 排除了部分字段。这是因为某些字段（如 <code>tasks</code>、<code>agentNameRegistry</code>）包含函数类型或 <code>Map</code>/<code>Set</code>，无法被 TypeScript 的 <code>Readonly</code> 完全冻结。</p>
+<h3 id="默认状态工厂">17.2.4 默认状态工厂</h3>
+<p><code>getDefaultAppState()</code> 函数构建完整的默认状态。值得注意的是它的懒加载策略 —— 使用 <code>require()</code> 而非顶层 <code>import</code> 来避免循环依赖：</p>
+<div class="thinking-note"><h3 id="思考笔记-2">思考笔记</h3>
+<p>AppState 是所有需要跨组件共享的状态的集中地——450+ 行类型定义的全局状态契约。</p>
+<ul>
+<li>DeepImmutable 包裹确保状态不被意外修改——所有变更必须通过 setAppState。</li>
+<li>从几十行到 450+ 行的膨胀反映了系统复杂度的自然增长。</li>
+<li>onChangeAppState 作为状态变更的统一出口——所有副作用集中在一处触发。</li>
+<li>全局状态管理是&quot;方便&quot;和&quot;可控&quot;之间的持续博弈。</li>
+</ul>
+</div><hr>
+<h2 id="usesyncexternalstore-响应式订阅机制">17.3 useSyncExternalStore —— 响应式订阅机制</h2>
+<h3 id="hook-实现">17.3.1 Hook 实现</h3>
+<p><code>useAppState</code> 是连接 Store 与 React 组件的桥梁，基于 React 18 的 <code>useSyncExternalStore</code>：</p>
+<h3 id="选择器优化模式">17.3.2 选择器优化模式</h3>
+<p>文档注释中明确了使用规范：<br>这里的关键洞察是：每次调用 <code>useAppState</code> 都独立订阅 Store。当 Store 更新时，每个订阅会独立运行选择器并比较结果。如果选择器每次返回新对象（如 <code>s =&gt; ({ a: s.a, b: s.b })</code>），则 <code>Object.is</code> 永远返回 <code>false</code>，导致无限重渲染。</p>
+<h3 id="context-注入">17.3.3 Context 注入</h3>
+<p>Store 通过 React Context 注入组件树：<br>注意 <code>HasAppStateContext</code> 的嵌套保护 —— 如果检测到已有 Provider，则抛出错误，防止状态树分裂。</p>
+<div class="thinking-note"><h3 id="思考笔记-3">思考笔记</h3>
+<ul>
+<li>useSyncExternalStore 是 React 18 专门为外部 Store 设计的 hook——它解决了 React 并发模式下外部状态同步的 tearing 问题。</li>
+<li>使用这个 hook 替代手动 subscribe 的好处：React 可以安全地在并发渲染中暂停和恢复，不会因为外部状态在两次渲染间变化而导致 UI 不一致。</li>
+<li>Claude Code 的选择验证了一个趋势：React 生态正在从&quot;管理一切状态&quot;走向&quot;只管理 UI 状态，外部状态交给专门的 Store&quot;——useSyncExternalStore 就是桥梁。</li>
+<li>React Compiler 的自动 _c() memoization 是另一个效率提升——开发者不需要手动写 useMemo 来避免重渲染，编译器自动做了。</li>
+</ul>
+</div><hr>
+<h2 id="react-compiler-_c-自动-memoization">17.4 React Compiler —— _c() 自动 Memoization</h2>
+<h3 id="编译器输出分析">17.4.1 编译器输出分析</h3>
+<p>Claude Code 使用了 React Compiler（前身 React Forget），从编译后的 <code>AppState.tsx</code> 可以清楚地看到其输出特征：</p>
+<h3 id="_c-的工作机制">17.4.2 _c() 的工作机制</h3>
+<p><code>_c(n)</code> 函数来自 <code>react/compiler-runtime</code>，它在组件 Fiber 上分配一个固定大小的缓存数组。每次渲染时，编译器生成的代码会逐个检查依赖项是否变化，只在变化时重新计算。这等效于手动编写的 <code>useMemo</code>，但有以下优势：<br>在整个 Claude Code 代码库中，几乎所有 <code>.tsx</code> 组件都经过 React Compiler 处理，包括 5000 行的 REPL 主组件。这意味着开发者无需手动优化 <code>useMemo</code>/<code>useCallback</code>，编译器自动完成。</p>
+<div class="thinking-note"><h3 id="思考笔记-4">思考笔记</h3>
+<p>React Compiler 自动为所有组件添加 _c() memoization——开发者不需要手动写 useMemo。</p>
+<ul>
+<li>自动 memoization 减少了手动优化的工作量——不用每次写组件都考虑&quot;要不要加 useMemo&quot;。</li>
+<li>_c() 缓存的是组件的输出——输入不变时跳过重新渲染。</li>
+<li>React Compiler 的&quot;自动&quot;特性意味着开发者不需要在&quot;需要 memo 的地方&quot;和&quot;不需要 memo 的地方&quot;做区分。</li>
+<li>自动 memo 不是银弹——复杂状态依赖的场景下，手动 useMemo 可能更精确。</li>
+</ul>
+</div><hr>
+<h2 id="文件状态缓存-filestatecache-lru-策略">17.5 文件状态缓存 —— FileStateCache LRU 策略</h2>
+<h3 id="缓存实现">17.5.1 缓存实现</h3>
+<p><code>FileStateCache</code> 是 Claude Code 用于追踪已读取文件内容的缓存系统，定义在 <code>src/utils/fileStateCache.ts</code>：</p>
+<h3 id="双维度驱逐策略">17.5.2 双维度驱逐策略</h3>
+<p>FileStateCache 采用了双维度的 LRU 驱逐策略：</p>
+<ol>
+<li><strong>条目数上限</strong> (<code>max: 100</code>)：最多缓存 100 个文件的状态2. <strong>总大小上限</strong> (<code>maxSize: 25MB</code>)：缓存内容的总字节数不超过 25MB<code>sizeCalculation</code> 回调使用 <code>Buffer.byteLength(value.content)</code> 计算每个条目的实际内存占用。<code>Math.max(1, ...)</code> 确保空文件也占据至少 1 字节的配额，避免除零错误。</li>
+</ol>
+<h3 id="路径归一化">17.5.3 路径归一化</h3>
+<p>所有缓存操作都通过 <code>normalize(key)</code> 对路径进行归一化。这解决了一个微妙但重要的问题 —— 相同文件可能通过不同路径被引用：</p>
+<h3 id="ispartialview-标记">17.5.4 isPartialView 标记</h3>
+<p><code>isPartialView</code> 字段标记了“部分视图“条目 —— 当文件通过自动注入（如 CLAUDE.md）进入缓存，且注入内容经过处理（去除 HTML 注释、截断等）时设置为 <code>true</code>。此时 Edit/Write 工具必须要求先执行显式的 Read 操作，确保模型看到完整内容后再进行修改。</p>
+<h3 id="缓存合并">17.5.5 缓存合并</h3>
+<p><code>mergeFileStateCaches</code> 实现了基于时间戳的缓存合并，用于会话恢复场景：<br>当用户通过 <code>--resume</code> 恢复会话时，需要合并恢复的缓存与当前的缓存。时间戳比较确保了“新的数据胜出“，这在文件可能在会话之间被外部修改时至关重要。</p>
+<div class="thinking-note"><h3 id="思考笔记-5">思考笔记</h3>
+<p>FileStateCache 使用 LRU 策略管理文件状态——100 个文件上限 + 25MB 大小上限。</p>
+<ul>
+<li>LRU（最近最少使用）策略假设最近用过的文件最可能再次被用到——在 IDE 类场景中成立。</li>
+<li>双维度限制（数量 + 大小）防止单一维度失控——100 个小文件或几个大文件都不能撑爆缓存。</li>
+<li>缓存驱逐时的回调通知——被驱逐的文件状态可以持久化到磁盘，避免丢失。</li>
+<li>文件状态缓存的 hit/miss 率是衡量缓存效率的关键指标——miss 率高说明缓存策略需要调整。</li>
+</ul>
+</div><hr>
+<h2 id="状态变更副作用-onchangeappstate">17.6 状态变更副作用 —— onChangeAppState</h2>
+<h3 id="集中式副作用处理">17.6.1 集中式副作用处理</h3>
+<p><code>src/state/onChangeAppState.ts</code> 实现了状态变更的副作用系统。它作为 <code>createStore</code> 的 <code>onChange</code> 回调注入，在每次状态变化时被调用：</p>
+<h3 id="单一咽喉点模式">17.6.2 “单一咽喉点“模式</h3>
+<p>代码注释中对权限模式同步的说明尤为精彩。之前，权限模式变更通过 8 个以上的分散路径发生（Shift+Tab 循环、ExitPlanMode 对话框、<code>/plan</code> 命令、rewind 等），但只有 2 个路径正确通知了 CCR（Claude Code Remote）。将同步逻辑移到 <code>onChangeAppState</code> 后，任何修改权限模式的 <code>setState</code> 调用都会自动触发通知，零代码改动：</p>
+<div class="thinking-note"><h3 id="思考笔记-6">思考笔记</h3>
+<p>onChangeAppState 是状态变更后的&quot;副作用调度器&quot;——状态变了之后自动触发的一系列操作。</p>
+<ul>
+<li>副作用包括：持久化到磁盘、通知远程监听器、更新 UI、触发 hook。</li>
+<li>集中式副作用管理 vs 分散在各处——前者容易维护但可能单点瓶颈，后者灵活但容易遗漏。</li>
+<li>副作用是异步的——不阻塞状态变更本身，但保证最终会被执行。</li>
+<li>副作用中的错误处理：一个副作用的失败不应该影响其他副作用的执行。</li>
+</ul>
+</div><hr>
+<h2 id="selectors-派生状态">17.7 Selectors —— 派生状态</h2>
+<h3 id="纯函数选择器">17.7.1 纯函数选择器</h3>
+<p><code>src/state/selectors.ts</code> 定义了从 AppState 派生计算状态的纯函数：<br>选择器使用 <code>Pick&lt;AppState, ...&gt;</code> 精确声明所需字段，这既是文档也是接口契约 —— 调用者只需提供必要的状态切片，测试时无需构造完整的 AppState。</p>
+<div class="thinking-note"><h3 id="思考笔记-7">思考笔记</h3>
+<p>Selectors 是派生状态的工厂——不从全局 Store 直接读原始数据，而是通过 Selector 计算需要的值。</p>
+<ul>
+<li>Selector 缓存计算结果——只有依赖的原始状态变化时才重新计算。</li>
+<li>Selector 的组合能力——多个 Selector 可以组合成更复杂的派生状态。</li>
+<li>Selector 和 React 组件的连接通过 useSyncExternalStore——组件订阅 Selector 而非直接订阅 Store。</li>
+<li>这种模式类似 Redux 的 Reselect——不是巧合，而是&quot;派生状态需要缓存&quot;的必然选择。</li>
+</ul>
+</div><hr>
+<h2 id="本章小结">本章小结</h2>
+<p>Claude Code 的状态管理体系展示了一种“极简主义工程“的典范。34 行的 <code>createStore</code> 替代了 Redux 的数千行代码，<code>onChangeAppState</code> 用简单的 diff 比较实现了分散在多处的副作用统一管理，<code>FileStateCache</code> 的双维度 LRU 策略在内存效率和功能正确性之间取得了精妙的平衡。<br>React Compiler 的引入更是将“手动优化“这一开发者心智负担完全自动化。当一个 5000 行的 REPL 组件都无需手写 <code>useMemo</code> 时，我们看到了编译器辅助开发的未来。<br>下一章我们将探讨会话管理与压缩 —— 当对话历史超出上下文窗口时，Claude Code 如何优雅地处理这一根本性挑战。</p>
+<div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph LR
+    subgraph "Zustand"
+        Z1[createStore] --&gt; Z2[immer middleware]
+        Z2 --&gt; Z3[devtools middleware]
+        Z3 --&gt; Z4[persist middleware]
+    end
+    subgraph "Claude Code Store"
+        C1[createStore] --&gt; C2[onChange callback]
+        C2 --&gt; C3[onChangeAppState]
+        C3 --&gt; C4[saveGlobalConfig / notify]
+    end</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TB
+    AppState --&gt; UI[UI 状态]
+    AppState --&gt; Session[会话状态]
+    AppState --&gt; Tools[工具状态]
+    AppState --&gt; Agent[Agent 状态]
+    AppState --&gt; Bridge[Bridge 状态]
+    AppState --&gt; Speculation[推测执行状态]
+
+    UI --&gt; |verbose, expandedView| UIFields[显示控制]
+    UI --&gt; |footerSelection, activeOverlays| UIInteraction[交互状态]
+
+    Session --&gt; |mainLoopModel, thinkingEnabled| SessionConfig[会话配置]
+    Session --&gt; |toolPermissionContext| Permissions[权限上下文]
+
+    Tools --&gt; |mcp.clients, mcp.tools| MCPState[MCP 状态]
+    Tools --&gt; |plugins.enabled| PluginState[插件状态]
+
+    Agent --&gt; |tasks, agentNameRegistry| AgentState[子 Agent 注册表]
+    Agent --&gt; |teamContext| TeamState[团队状态]
+
+    Bridge --&gt; |replBridgeEnabled, replBridgeConnected| BridgeConn[连接状态]</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+sequenceDiagram
+    participant Store
+    participant useAppState
+    participant Component
+
+    Store-&gt;&gt;Store: setState(updater)
+    Store-&gt;&gt;useAppState: notify listener
+    useAppState-&gt;&gt;Store: getSnapshot()
+    useAppState-&gt;&gt;useAppState: selector(state)
+    useAppState-&gt;&gt;useAppState: Object.is(prev, next)?
+    alt 值未变化
+        useAppState--&gt;&gt;Component: 不重渲染
+    else 值已变化
+        useAppState-&gt;&gt;Component: 触发重渲染
+    end</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph TD
+    subgraph "手动 useMemo"
+        M1[开发者判断依赖] --&gt; M2[可能遗漏依赖]
+        M2 --&gt; M3[陈旧闭包 Bug]
+    end
+    subgraph "React Compiler _c()"
+        C1[编译器分析数据流] --&gt; C2[自动追踪所有依赖]
+        C2 --&gt; C3[保证正确性]
+        C3 --&gt; C4[零运行时开销]
+    end</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+graph LR
+    subgraph "FileStateCache"
+        LRU[LRU Cache&lt;br/&gt;max=100 entries&lt;br/&gt;maxSize=25MB]
+        LRU --&gt; E1[file_a.ts&lt;br/&gt;3KB, t=100]
+        LRU --&gt; E2[file_b.py&lt;br/&gt;15KB, t=95]
+        LRU --&gt; E3[file_c.md&lt;br/&gt;1KB, t=80]
+        LRU --&gt; E4[...&lt;br/&gt;更多条目]
+    end
+
+    New[新文件读取] --&gt;|超出限制| LRU
+    LRU --&gt;|驱逐最久未用| Evict[释放内存]</div><div class="mermaid">%%{init: {"theme": "base", "themeVariables":{"primaryColor":"#3b82f6","primaryTextColor":"#1e293b","primaryBorderColor":"#60a5fa","lineColor":"#94a3b8","secondaryColor":"#f1f5f9","tertiaryColor":"#ffffff","fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif"}}}%%
+flowchart TB
+    subgraph "旧架构（分散通知）"
+        P1["Shift+Tab"] --&gt; |"手动通知"| CCR1["CCR"]
+        P2["ExitPlanMode"] --&gt; |"忘记通知"| CCR1
+        P3["/plan 命令"] --&gt; |"手动通知"| CCR1
+        P4["rewind"] --&gt; |"忘记通知"| CCR1
+        P5["Bridge"] --&gt; |"忘记通知"| CCR1
+    end
+
+    subgraph "新架构（集中通知）"
+        Q1["Shift+Tab"] --&gt; QS["Store"]
+        Q2["ExitPlanMode"] --&gt; QS
+        Q3["/plan 命令"] --&gt; QS
+        Q4["rewind"] --&gt; QS
+        Q5["Bridge"] --&gt; QS
+        QS --&gt; |"onChangeAppState"| CCR2["CCR / SDK"]
+    end</div>
+
+    </div>
+
+  
+    <div class="chapter-nav">
+      <a href="/2026/05/21/claude-code-16-mcp-auth/" class="chapter-prev">← 第 16 章：MCP 认证体系</a>
+      <a href="/2026/05/21/claude-code-18-conversation/" class="chapter-next">第 18 章：会话管理与压缩 →</a>
+    </div>
+</article>
+
+
+
+
+          </div>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+
+
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="JiFuLian"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">JiFuLian</p>
+  <div class="site-description" itemprop="description">Record my study and life</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+
+          <span class="site-state-item-count" id="site-state-posts">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/lian-ji-fu" title="zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;lian-ji-fu" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>zhihu</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/u011597049" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;u011597049" rel="noopener" target="_blank"><i class="fab fa-telegram fa-fw"></i>CSDN</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+<div class="copyright">
+
+  &copy; 2014 –
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JiFuLian</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">432k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">480 分钟</span>
+</div>
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+-->
+ <div class="powered-by">
+  <i class="fa fa-user-md"></i>
+  <span id="busuanzi_container_site_uv">
+    本站总访客数:<span id="busuanzi_value_site_uv"></span>&nbsp;&nbsp;|
+  </span>
+  <span id="busuanzi_container_site_pv">
+      &nbsp;本站总访问量<span id="busuanzi_value_site_pv"></span>次
+  </span>
+  </div>
+  </div>
+
+   <script>
+      var now = new Date();
+      function createtime() {
+          var grt= new Date("02/28/2021 12:00:00");
+          now.setTime(now.getTime()+250);
+          days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+          hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+          if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+          mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+          seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+          snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+      }
+  setInterval("createtime()",250);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+<script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/2026.js"></script>
+
+<script async src="/lib/mermaid.min.js"></script>
+</body>
+</html>
