@@ -266,11 +266,19 @@
         flowchart: { curve: 'basis', padding: 15, nodeSpacing: 50, rankSpacing: 80 },
         maxTextSize: 50000,
       });
-      mermaid.run({ querySelector: '.mermaid' }).then(function() {
-        mermaidDivs.forEach(wrapZoomable);
+      // Pass DOM nodes directly for reliable v10 compatibility
+      var nodes = Array.from(mermaidDivs).filter(function(d) {
+        return !d.hasAttribute('data-processed');
       });
+      if (nodes.length > 0) {
+        mermaid.run({ nodes: nodes }).then(function() {
+          mermaidDivs.forEach(wrapZoomable);
+        }).catch(function(e) {
+          console.error('Mermaid render error:', e);
+        });
+      }
     } catch(e) {
-      console.error('Mermaid error:', e);
+      console.error('Mermaid init error:', e);
     }
   }
 
