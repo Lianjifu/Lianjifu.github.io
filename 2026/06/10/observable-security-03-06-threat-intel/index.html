@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="03 06 threat intel<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-03-06-threat-intel/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-03-06-threat-intel/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>威胁情报体系 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-03-06-threat-intel/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          威胁情报体系
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>06. 威胁情报体系</h1>
+<blockquote>
+<p>智能安全事件可观测性 · 威胁情报参考</p>
+</blockquote>
+<hr>
+<h2 id="一威胁情报概述">一、威胁情报概述</h2>
+<h3 id="定义与价值">1.1 定义与价值</h3>
+<p><strong>威胁情报（Threat Intelligence）：</strong></p>
+<blockquote>
+<p>通过收集、分析、转化有关安全威胁的信息，形成用于决策的知识。</p>
+</blockquote>
+<p><strong>情报价值链：</strong></p>
+<div class="mermaid">graph LR
+    D[数据 Data] --> I[信息 Information] --> K[知识 Knowledge] --> W[智慧 Wisdom]
+    
+    style D fill:#e3f2fd,stroke:#1565c0
+    style I fill:#e8f5e9,stroke:#2e7d32
+    style K fill:#fff3e0,stroke:#e65100
+    style W fill:#fce4ec,stroke:#c62828</div><p><strong>威胁情报价值：</strong></p>
+<table>
+<thead>
+<tr>
+<th>价值维度</th>
+<th>说明</th>
+<th>业务影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>预防</strong></td>
+<td>提前发现威胁</td>
+<td>减少损失</td>
+</tr>
+<tr>
+<td><strong>检测</strong></td>
+<td>加速威胁发现</td>
+<td>缩短 MTTD</td>
+</tr>
+<tr>
+<td><strong>响应</strong></td>
+<td>提升响应效率</td>
+<td>缩短 MTTR</td>
+</tr>
+<tr>
+<td><strong>决策</strong></td>
+<td>支持风险管理</td>
+<td>优化投入</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="情报层次模型">1.2 情报层次模型</h3>
+<p><strong>金字塔模型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>名称</th>
+<th>内容</th>
+<th>适用对象</th>
+<th>更新频率</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>L5</strong></td>
+<td>战略情报</td>
+<td>威胁趋势、风险地图</td>
+<td>CISO/管理层</td>
+<td>季度/年</td>
+<td>年度威胁报告</td>
+</tr>
+<tr>
+<td><strong>L4</strong></td>
+<td>运营情报</td>
+<td>攻击者动机、能力、攻击路径</td>
+<td>安全运营团队</td>
+<td>周/月</td>
+<td>APT组织分析</td>
+</tr>
+<tr>
+<td><strong>L3</strong></td>
+<td>战术情报</td>
+<td>攻击战术、技术、规则</td>
+<td>SOC分析师</td>
+<td>日/周</td>
+<td>ATT&amp;CK 技术</td>
+</tr>
+<tr>
+<td><strong>L2</strong></td>
+<td>技术情报</td>
+<td>IOC、TTP、病毒特征</td>
+<td>设备/系统</td>
+<td>分钟级</td>
+<td>IP/域名哈希</td>
+</tr>
+<tr>
+<td><strong>L1</strong></td>
+<td>原子情报</td>
+<td>原始 IOC</td>
+<td>自动化系统</td>
+<td>实时</td>
+<td>单一 IOC</td>
+</tr>
+</tbody></table>
+<p><strong>层次关系图：</strong></p>
+<pre><code>                    ┌─────────────┐
+                   │  战略情报   │  ← 年/季度
+                    │  Strategic  │
+                   └──────┬──────┘
+                          │
+                    ┌─────┴─────┐
+                   │  运营情报   │  ← 周/月
+                    │ Operational│
+                   └──────┬──────┘
+                          │
+                    ┌─────┴─────┐
+                   │  战术情报   │  ← 日/周
+                    │  Tactical │
+                   └──────┬──────┘
+                          │
+                    ┌─────┴─────┐
+                   │  技术情报   │  ← 实时
+                    │  Technical │
+                   └─────────────┘</code></pre><hr>
+<h2 id="二威胁情报来源">二、威胁情报来源</h2>
+<h3 id="开源情报-osint">2.1 开源情报 (OSINT)</h3>
+<p><strong>主要来源：</strong></p>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>类型</th>
+<th>覆盖范围</th>
+<th>更新频率</th>
+<th>URL</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>AlienVault OTX</strong></td>
+<td>社区情报</td>
+<td>全球</td>
+<td>实时</td>
+<td><a href="https://otx.alienvault.com">https://otx.alienvault.com</a></td>
+</tr>
+<tr>
+<td><strong>MISP</strong></td>
+<td>开源 TIP</td>
+<td>多行业</td>
+<td>实时</td>
+<td><a href="https://www.misp-project.org">https://www.misp-project.org</a></td>
+</tr>
+<tr>
+<td><strong>VirusTotal</strong></td>
+<td>文件/URL分析</td>
+<td>全球</td>
+<td>实时</td>
+<td><a href="https://www.virustotal.com">https://www.virustotal.com</a></td>
+</tr>
+<tr>
+<td><strong>ThreatFox</strong></td>
+<td>恶意软件 IOC</td>
+<td>malware</td>
+<td>实时</td>
+<td><a href="https://threatfox.abuse.ch">https://threatfox.abuse.ch</a></td>
+</tr>
+<tr>
+<td><strong>AbuseIPDB</strong></td>
+<td>恶意IP</td>
+<td>全球</td>
+<td>实时</td>
+<td><a href="https://www.abuseipdb.com">https://www.abuseipdb.com</a></td>
+</tr>
+<tr>
+<td><strong>Google Safe Browsing</strong></td>
+<td>恶意URL</td>
+<td>全球</td>
+<td>实时</td>
+<td><a href="https://safebrowsing.google.com">https://safebrowsing.google.com</a></td>
+</tr>
+<tr>
+<td><strong>Emerging Threats</strong></td>
+<td>规则/IOC</td>
+<td>网络</td>
+<td>分钟级</td>
+<td><a href="https://rules.emergingthreats.net">https://rules.emergingthreats.net</a></td>
+</tr>
+<tr>
+<td><strong>Proofpoint ET</strong></td>
+<td>规则/IOC</td>
+<td>网络</td>
+<td>分钟级</td>
+<td>商业产品</td>
+</tr>
+</tbody></table>
+<p><strong>OSINT 采集方法：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+<th>自动化程度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>API 订阅</strong></td>
+<td>自动拉取</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>RSS 订阅</strong></td>
+<td>定期拉取</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>社区贡献</strong></td>
+<td>手动提交</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>爬虫采集</strong></td>
+<td>自动爬取</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<h3 id="商业情报源">2.2 商业情报源</h3>
+<table>
+<thead>
+<tr>
+<th>厂商</th>
+<th>情报类型</th>
+<th>特色</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Recorded Future</strong></td>
+<td>全品类</td>
+<td>AI 驱动、实时关联</td>
+<td>企业安全运营</td>
+</tr>
+<tr>
+<td><strong>Mandiant</strong></td>
+<td>APT 组织</td>
+<td>人工分析、源头追溯</td>
+<td>高级威胁</td>
+</tr>
+<tr>
+<td><strong>CrowdStrike</strong></td>
+<td>端点+情报</td>
+<td>覆盖广、更新快</td>
+<td>综合安全</td>
+</tr>
+<tr>
+<td><strong>IBM X-Force</strong></td>
+<td>综合威胁</td>
+<td>漏洞+攻击地图</td>
+<td>企业安全</td>
+</tr>
+<tr>
+<td><strong>Symantec (Broadcom)</strong></td>
+<td>综合威胁</td>
+<td>全球最大网络</td>
+<td>企业安全</td>
+</tr>
+<tr>
+<td><strong>Team Cymru</strong></td>
+<td>网络流量</td>
+<td>真实流量情报</td>
+<td>网络安全</td>
+</tr>
+<tr>
+<td><strong>DomainTools</strong></td>
+<td>域名情报</td>
+<td>DNS 历史、注册信息</td>
+<td>调查溯源</td>
+</tr>
+<tr>
+<td><strong>RiskIQ</strong></td>
+<td>数字资产</td>
+<td>外部攻击面</td>
+<td>资产发现</td>
+</tr>
+</tbody></table>
+<h3 id="内部情报来源">2.3 内部情报来源</h3>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>数据类型</th>
+<th>采集方法</th>
+<th>价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>安全设备日志</strong></td>
+<td>攻击尝试、恶意行为</td>
+<td>SIEM/FW/IDS</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>沙箱检测</strong></td>
+<td>malware 行为特征</td>
+<td>沙箱平台</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>蜜罐/暗探</strong></td>
+<td>新攻击手法</td>
+<td>部署诱饵</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>渗透测试</strong></td>
+<td>弱点利用</td>
+<td>红队评估</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>威胁狩猎</strong></td>
+<td>隐藏威胁</td>
+<td>主动发现</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>安全事件</strong></td>
+<td>真实攻击数据</td>
+<td>事件响应</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="三威胁情报标准化">三、威胁情报标准化</h2>
+<h3 id="stix-21-对象模型">3.1 STIX 2.1 对象模型</h3>
+<p><strong>核心对象类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>对象</th>
+<th>说明</th>
+<th>属性</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Attack Pattern</strong></td>
+<td>攻击模式</td>
+<td>name, description, kill_chain_phases</td>
+<td>鱼叉钓鱼</td>
+</tr>
+<tr>
+<td><strong>Campaign</strong></td>
+<td>攻击活动</td>
+<td>name, objective, aliases</td>
+<td>APT28 针对金融</td>
+</tr>
+<tr>
+<td><strong>Course of Action</strong></td>
+<td>防护建议</td>
+<td>name, description</td>
+<td>禁用宏</td>
+</tr>
+<tr>
+<td><strong>Identity</strong></td>
+<td>身份</td>
+<td>name, identity_class, sectors</td>
+<td>某APT组织</td>
+</tr>
+<tr>
+<td><strong>Indicator</strong></td>
+<td>攻击指标</td>
+<td>pattern, pattern_type, valid_from</td>
+<td>恶意 IP</td>
+</tr>
+<tr>
+<td><strong>Intrusion Set</strong></td>
+<td>入侵集</td>
+<td>name, description, aliases</td>
+<td>APT41</td>
+</tr>
+<tr>
+<td><strong>Malware</strong></td>
+<td>恶意软件</td>
+<td>name, malware_types, kill_chain_phases</td>
+<td>勒索软件X</td>
+</tr>
+<tr>
+<td><strong>Marking Definition</strong></td>
+<td>标记定义</td>
+<td>definition_type, definition</td>
+<td>TLP:RED</td>
+</tr>
+<tr>
+<td><strong>Relationship</strong></td>
+<td>关系</td>
+<td>source_ref, target_ref, relationship_type</td>
+<td>使用</td>
+</tr>
+<tr>
+<td><strong>Report</strong></td>
+<td>报告</td>
+<td>name, published, objects</td>
+<td>月度威胁报告</td>
+</tr>
+<tr>
+<td><strong>Threat Actor</strong></td>
+<td>威胁组织</td>
+<td>name, description, roles</td>
+<td>APT28</td>
+</tr>
+<tr>
+<td><strong>Tool</strong></td>
+<td>攻击工具</td>
+<td>name, tool_types, kill_chain_phases</td>
+<td>Cobalt Strike</td>
+</tr>
+<tr>
+<td><strong>Vulnerability</strong></td>
+<td>漏洞</td>
+<td>name, description, external_references</td>
+<td>CVE-2024-1234</td>
+</tr>
+</tbody></table>
+<p><strong>STIX 关系类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>关系</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>uses</td>
+<td>攻击者使用工具/技术</td>
+<td>APT28 使用 Cobalt Strike</td>
+</tr>
+<tr>
+<td>targets</td>
+<td>攻击者针对目标</td>
+<td>APT28 针对政府机构</td>
+</tr>
+<tr>
+<td>exploits</td>
+<td>利用漏洞</td>
+<td>利用 CVE-2024-1234</td>
+</tr>
+<tr>
+<td>delivers</td>
+<td>投递恶意代码</td>
+<td>钓鱼邮件投递木马</td>
+</tr>
+<tr>
+<td>has</td>
+<td>组织拥有能力</td>
+<td>APT41 拥有供应链攻击能力</td>
+</tr>
+</tbody></table>
+<h3 id="taxii-传输协议">3.2 TAXII 传输协议</h3>
+<p><strong>TAXII 服务类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>服务</th>
+<th>说明</th>
+<th>适用场景</th>
+<th>协议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Discovery</strong></td>
+<td>服务发现</td>
+<td>客户端查询服务器能力</td>
+<td>HTTPS REST</td>
+</tr>
+<tr>
+<td><strong>Collection</strong></td>
+<td>轮询收集</td>
+<td>定期拉取情报</td>
+<td>HTTPS REST</td>
+</tr>
+<tr>
+<td><strong>Channel</strong></td>
+<td>订阅推送</td>
+<td>实时推送情报</td>
+<td>STOMP/WebSocket</td>
+</tr>
+</tbody></table>
+<p><strong>TAXII 客户端配置示例：</strong></p>
+<pre><code class="language-yaml">taxii:
+  server: https://limo.anomali.com/api/v1/taxii
+  collection: 93
+  auth:
+    username: guest
+    password: guest
+  poll:
+    interval: 300  # 5分钟
+    begin_timestamp: last</code></pre><h3 id="情报格式转换">3.3 情报格式转换</h3>
+<pre><code>原始情报 ──▶ 解析 ──▶ 标准化 ──▶ 关联 ──▶ 分发
+   │           │           │           │        │
+   ▼           ▼           ▼           ▼        ▼
+ CSV/JSON    JSON        STIX       ATT&amp;CK   SIEM/EDR
+ 白名单      字段提取     格式       映射     规则</code></pre><hr>
+<h2 id="四attampck-与情报映射">四、ATT&amp;CK 与情报映射</h2>
+<h3 id="attampck-战术情报覆盖">4.1 ATT&amp;CK 战术情报覆盖</h3>
+<table>
+<thead>
+<tr>
+<th>战术</th>
+<th>技术数</th>
+<th>情报应用</th>
+<th>检测优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Reconnaissance</strong></td>
+<td>12</td>
+<td>侦察活动检测</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Resource Development</strong></td>
+<td>8</td>
+<td>攻击资源识别</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Initial Access</strong></td>
+<td>16</td>
+<td>入口点防护</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Execution</strong></td>
+<td>16</td>
+<td>恶意代码检测</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Persistence</strong></td>
+<td>20</td>
+<td>后门检测</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Privilege Escalation</strong></td>
+<td>18</td>
+<td>提权检测</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Defense Evasion</strong></td>
+<td>39</td>
+<td>规避检测</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Credential Access</strong></td>
+<td>17</td>
+<td>凭据窃取检测</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Discovery</strong></td>
+<td>21</td>
+<td>内部侦察检测</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Lateral Movement</strong></td>
+<td>11</td>
+<td>横向移动检测</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Collection</strong></td>
+<td>17</td>
+<td>数据收集检测</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Command and Control</strong></td>
+<td>18</td>
+<td>C2 通信检测</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Exfiltration</strong></td>
+<td>10</td>
+<td>数据外传检测</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Impact</strong></td>
+<td>16</td>
+<td>勒索加密检测</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<h3 id="apt-组织-ttp-画像">4.2 APT 组织 TTP 画像</h3>
+<p><strong>常见 APT 组织情报：</strong></p>
+<table>
+<thead>
+<tr>
+<th>组织</th>
+<th>来源</th>
+<th>攻击目标</th>
+<th>常用战术</th>
+<th>工具</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>APT41</strong></td>
+<td>中国</td>
+<td>科技、游戏、医疗</td>
+<td>初始访问、横向移动</td>
+<td>Cobalt Strike, PlugX</td>
+</tr>
+<tr>
+<td><strong>APT28 (Fancy Bear)</strong></td>
+<td>俄罗斯</td>
+<td>政府、军队</td>
+<td>鱼叉钓鱼、漏洞利用</td>
+<td>Sofacy, XAgent</td>
+</tr>
+<tr>
+<td><strong>APT29 (Cozy Bear)</strong></td>
+<td>俄罗斯</td>
+<td>政府、医疗</td>
+<td>供应链攻击</td>
+<td>MiniDuke, Nobelium</td>
+</tr>
+<tr>
+<td><strong>Lazarus</strong></td>
+<td>朝鲜</td>
+<td>金融、加密货币</td>
+<td>钓鱼、供应链</td>
+<td>HOPLIGHT, BADPATCH</td>
+</tr>
+<tr>
+<td><strong>FIN7</strong></td>
+<td>金融犯罪</td>
+<td>零售、餐饮</td>
+<td>钓鱼、恶意软件</td>
+<td>Carbanak, RESIDE</td>
+</tr>
+<tr>
+<td><strong>REvil (Sodinokibi)</strong></td>
+<td>俄罗斯</td>
+<td>多行业</td>
+<td>勒索攻击</td>
+<td>REvil ransomware</td>
+</tr>
+<tr>
+<td><strong>LockBit</strong></td>
+<td>俄罗斯</td>
+<td>多行业</td>
+<td>勒索攻击</td>
+<td>LockBit ransomware</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="五威胁情报平台-tip">五、威胁情报平台 (TIP)</h2>
+<h3 id="tip-核心功能架构">5.1 TIP 核心功能架构</h3>
+<div class="mermaid">graph TB
+    subgraph 情报输入
+        I1[OSINT]
+        I2[商业情报]
+        I3[内部情报]
+        I4[共享情报]
+    end
+    
+    subgraph TIP 核心
+        P1[数据标准化]
+        P2[去重归一]
+        P3[置信评分]
+        P4[ATT&CK映射]
+        P5[上下文富化]
+    end
+    
+    subgraph 情报存储
+        S1[IOC 数据库]
+        S2[TTP 库]
+        S3[APT 画像]
+        S4[上下文库]
+    end
+    
+    subgraph 情报分发
+        D1[SIEM]
+        D2[EDR]
+        D3[防火墙]
+        D4[SOAR]
+        D5[威胁狩猎]
+    end
+    
+    I1 --> P1
+    I2 --> P1
+    I3 --> P1
+    I4 --> P1
+    
+    P1 --> P2 --> P3 --> P4 --> P5
+    
+    P5 --> S1
+    P5 --> S2
+    P5 --> S3
+    P5 --> S4
+    
+    S1 --> D1
+    S1 --> D2
+    S1 --> D3
+    S1 --> D4
+    S2 --> D5
+    S3 --> D5</div><h3 id="开源-tip-平台">5.2 开源 TIP 平台</h3>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>特点</th>
+<th>部署方式</th>
+<th>集成</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MISP</strong></td>
+<td>最流行、功能全</td>
+<td>Docker/VM</td>
+<td>STIX/TAXII</td>
+</tr>
+<tr>
+<td><strong>OpenCTI</strong></td>
+<td>现代、AI 驱动</td>
+<td>Docker</td>
+<td>GraphQL API</td>
+</tr>
+<tr>
+<td><strong>TheHive</strong></td>
+<td>事件管理强</td>
+<td>Docker/VM</td>
+<td>Cortex 分析</td>
+</tr>
+<tr>
+<td><strong>Yeti</strong></td>
+<td>地图化展示</td>
+<td>Docker</td>
+<td>插件扩展</td>
+</tr>
+</tbody></table>
+<h3 id="aisoc-威胁情报集成">5.3 AISOC 威胁情报集成</h3>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+<th>技术</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>多源融合</strong></td>
+<td>OSINT + 商业 + 内部</td>
+<td>API 采集、标准化</td>
+</tr>
+<tr>
+<td><strong>实时更新</strong></td>
+<td>分钟级 IOC 更新</td>
+<td>TAXII 订阅、API</td>
+</tr>
+<tr>
+<td><strong>ATT&amp;CK 映射</strong></td>
+<td>自动关联 ATT&amp;CK 技术</td>
+<td>规则引擎</td>
+</tr>
+<tr>
+<td><strong>上下文富化</strong></td>
+<td>关联资产、漏洞、业务</td>
+<td>知识图谱</td>
+</tr>
+<tr>
+<td><strong>自动分发</strong></td>
+<td>SIEM/EDR/FW 自动化</td>
+<td>STIX/TAXII</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="六情报驱动安全运营">六、情报驱动安全运营</h2>
+<h3 id="情报闭环流程">6.1 情报闭环流程</h3>
+<div class="mermaid">graph LR
+    subgraph 情报生产
+        P1[开源情报]
+        P2[商业情报]
+        P3[内部情报]
+        P4[共享情报]
+    end
+    
+    subgraph 情报处理
+        Q1[收集]
+        Q2[验证]
+        Q3[富化]
+        Q4[分类]
+    end
+    
+    subgraph 情报消费
+        C1[规则创建]
+        C2[告警富化]
+        C3[狩猎]
+        C4[响应]
+    end
+    
+    subgraph 效果反馈
+        F1[检测日志]
+        F2[响应记录]
+        F3[质量评估]
+    end
+    
+    P1 --> Q1
+    P2 --> Q1
+    P3 --> Q1
+    P4 --> Q1
+    
+    Q1 --> Q2 --> Q3 --> Q4
+    
+    Q4 --> C1
+    Q4 --> C2
+    Q4 --> C3
+    Q4 --> C4
+    
+    C1 --> F1
+    C2 --> F1
+    C3 --> F1
+    C4 --> F2
+    
+    F1 --> F3
+    F2 --> F3
+    F3 --> Q1</div><h3 id="情报质量评估">6.2 情报质量评估</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>计算方法</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>准确性</strong></td>
+<td>IOC 真实度</td>
+<td>验证样本 / 总样本</td>
+<td>&gt; 90%</td>
+</tr>
+<tr>
+<td><strong>完整性</strong></td>
+<td>上下文丰富度</td>
+<td>关联属性数 / 最大属性数</td>
+<td>&gt; 70%</td>
+</tr>
+<tr>
+<td><strong>时效性</strong></td>
+<td>更新速度</td>
+<td>披露到入库时间</td>
+<td>&lt; 15 分钟</td>
+</tr>
+<tr>
+<td><strong>相关性</strong></td>
+<td>与自身相关度</td>
+<td>命中目标数 / 总目标数</td>
+<td>&gt; 30%</td>
+</tr>
+<tr>
+<td><strong>可用性</strong></td>
+<td>机器可读度</td>
+<td>结构化 IOC / 总 IOC</td>
+<td>&gt; 95%</td>
+</tr>
+</tbody></table>
+<h3 id="威胁狩猎情报应用">6.3 威胁狩猎情报应用</h3>
+<p><strong>狩猎流程：</strong></p>
+<pre><code>假设生成 ──▶ 战术选择 ──▶ 数据收集 ──▶ 分析检测 ──▶ 响应处置
+    │                                            │
+    └────────────────────────────────────────────┘
+                    经验反馈</code></pre><p><strong>基于情报的狩猎场景：</strong></p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>情报来源</th>
+<th>狩猎方法</th>
+<th>检测目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>C2 检测</strong></td>
+<td>恶意域名情报</td>
+<td>DNS 查询分析</td>
+<td>DNS Tunnel</td>
+</tr>
+<tr>
+<td><strong>横向移动</strong></td>
+<td>攻击技术情报</td>
+<td>RDP/SMB 分析</td>
+<td>Pass-the-Hash</td>
+</tr>
+<tr>
+<td><strong>权限提升</strong></td>
+<td>ATT&amp;CK 技术</td>
+<td>进程行为分析</td>
+<td>Token 操纵</td>
+</tr>
+<tr>
+<td><strong>数据外传</strong></td>
+<td>C2 IP 情报</td>
+<td>NetFlow 分析</td>
+<td>大量外传</td>
+</tr>
+<tr>
+<td><strong>持久化</strong></td>
+<td>后门特征情报</td>
+<td>计划任务分析</td>
+<td>新建任务</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="七情报共享机制">七、情报共享机制</h2>
+<h3 id="共享协议">7.1 共享协议</h3>
+<table>
+<thead>
+<tr>
+<th>协议</th>
+<th>说明</th>
+<th>应用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>STIX/TAXII</strong></td>
+<td>标准格式和协议</td>
+<td>行业标准</td>
+</tr>
+<tr>
+<td><strong>MISP 格式</strong></td>
+<td>MISP 专用格式</td>
+<td>MISP 社区</td>
+</tr>
+<tr>
+<td><strong>CyBox</strong></td>
+<td>网络安全信息对象</td>
+<td>技术情报</td>
+</tr>
+<tr>
+<td><strong>MAEC</strong></td>
+<td>恶意代码属性</td>
+<td>malware 分析</td>
+</tr>
+<tr>
+<td><strong>OVAL</strong></td>
+<td>漏洞检查语言</td>
+<td>漏洞评估</td>
+</tr>
+</tbody></table>
+<h3 id="共享组织">7.2 共享组织</h3>
+<table>
+<thead>
+<tr>
+<th>组织</th>
+<th>说明</th>
+<th>加入方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ISAC</strong></td>
+<td>信息共享与分析中心</td>
+<td>行业会员</td>
+</tr>
+<tr>
+<td><strong>MISP</strong></td>
+<td>恶意软件信息共享平台</td>
+<td>注册参与</td>
+</tr>
+<tr>
+<td><strong>VirusTotal</strong></td>
+<td>样本分析社区</td>
+<td>公开分享</td>
+</tr>
+<tr>
+<td><strong>AlienVault OTX</strong></td>
+<td>开放威胁交换</td>
+<td>注册参与</td>
+</tr>
+<tr>
+<td><strong>ThreatConnect</strong></td>
+<td>威胁情报社区</td>
+<td>商业平台</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="八参考链接">八、参考链接</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MITRE ATT&amp;CK</td>
+<td><a href="https://attack.mitre.org/">https://attack.mitre.org/</a></td>
+</tr>
+<tr>
+<td>STIX 2.1 规范</td>
+<td><a href="https://stix.readthedocs.io/">https://stix.readthedocs.io/</a></td>
+</tr>
+<tr>
+<td>TAXII 2.1 规范</td>
+<td><a href="https://taxii.readthedocs.io/">https://taxii.readthedocs.io/</a></td>
+</tr>
+<tr>
+<td>MISP 项目</td>
+<td><a href="https://www.misp-project.org/">https://www.misp-project.org/</a></td>
+</tr>
+<tr>
+<td>AlienVault OTX</td>
+<td><a href="https://otx.alienvault.com/">https://otx.alienvault.com/</a></td>
+</tr>
+<tr>
+<td>Recorded Future</td>
+<td><a href="https://www.recordedfuture.com/">https://www.recordedfuture.com/</a></td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Last updated: 2026-06-02</em></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

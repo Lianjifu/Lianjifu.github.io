@@ -8,7 +8,7 @@
   });
 })();
 
-// Table of Contents generator - hierarchical numbering
+// Table of Contents generator - hierarchical with scroll spy & progress
 (function() {
   var tocWrap = document.querySelector('.post-toc-wrap');
   var article = document.querySelector('.post-body');
@@ -17,22 +17,56 @@
   var headings = article.querySelectorAll('h2, h3, h4');
   if (headings.length === 0) return;
 
-  // Build hierarchical TOC: walk headings and nest by level
+  var tocItems = [];
+
+  // Collect heading data
+  headings.forEach(function(h) {
+    if (!h.id) return;
+    var level = parseInt(h.tagName[1]);
+    var text = h.textContent.trim();
+    tocItems.push({ level: level, id: h.id, text: text, el: h });
+  });
+
+  // Assign sequential section numbers (e.g. 1, 1.1, 1.1.1)
+  var counters = [0, 0, 0, 0];
+  tocItems.forEach(function(item) {
+    var idx = item.level - 2;
+    counters[idx]++;
+    for (var k = idx + 1; k < counters.length; k++) counters[k] = 0;
+    var parts = [];
+    for (var k = 0; k <= idx; k++) {
+      if (counters[k] > 0) parts.push(counters[k]);
+    }
+    item.num = parts.join('.');
+  });
+
+  // Progress bar element
+  var progressBar = document.createElement('div');
+  progressBar.className = 'toc-progress';
+  tocWrap.parentNode.insertBefore(progressBar, tocWrap);
+
+  // Build hierarchical HTML
   function renderTOC(items, minLevel) {
     var html = '';
     var i = 0;
     while (i < items.length) {
       var item = items[i];
-      if (item.level <= minLevel) {
-        break; // return control to parent
+      if (item.level <= minLevel) break;
+
+      var hasChildren = false;
+      var j = i + 1;
+      while (j < items.length && items[j].level > item.level) {
+        hasChildren = true;
+        j++;
       }
-      html += '<li class="nav-item nav-level-' + item.level + '">' +
+
+      html += '<li class="nav-item nav-level-' + item.level + (hasChildren ? ' has-child' : '') + '">' +
         '<a class="nav-link" href="#' + item.id + '">' +
+        '<span class="toc-num">' + item.num + '</span>' +
         '<span class="nav-text">' + item.text + '</span></a>';
 
-      // Collect children (next headings at deeper level)
       var children = [];
-      var j = i + 1;
+      j = i + 1;
       while (j < items.length && items[j].level > item.level) {
         children.push(items[j]);
         j++;
@@ -47,20 +81,167 @@
     return html;
   }
 
-  // Convert NodeList to array and filter
-  var items = [];
-  headings.forEach(function(h) {
-    if (!h.id) return;
-    items.push({
-      level: parseInt(h.tagName[1]),
-      id: h.id,
-      text: h.textContent.trim()
+  var tocHtml = '<ol class="nav">' + renderTOC(tocItems, 1) + '</ol>';
+  tocWrap.innerHTML = '<div class="post-toc motion-element">' + tocHtml + '</div>';
+
+  var tocLinks = tocWrap.querySelectorAll('.nav-link');
+  var headingEls = tocItems.map(function(item) { return item.el; });
+  var tocAnchors = tocWrap.querySelectorAll('.nav-item');
+  var ticking = false;
+  var lastActiveIdx = -1;
+
+  // Scroll spy: highlight active heading
+  function updateActiveTOC() {
+    if (headingEls.length === 0) return;
+
+    var offset = 120;
+    var activeIdx = -1;
+
+    for (var i = headingEls.length - 1; i >= 0; i--) {
+      var rect = headingEls[i].getBoundingClientRect();
+      if (rect.top <= offset) {
+        activeIdx = i;
+        break;
+      }
+    }
+
+    // Only update if changed
+    if (activeIdx === lastActiveIdx) return;
+    lastActiveIdx = activeIdx;
+
+    tocAnchors.forEach(function(li, idx) {
+      li.classList.toggle('active', idx === activeIdx);
+    });
+
+    // Progress bar: article body total scrollable height
+    var articleEl = article;
+    var scrollTop = window.scrollY || document.documentElement.scrollTop;
+    var docHeight = Math.max(
+      articleEl.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight
+    ) - window.innerHeight;
+    var pct = docHeight > 0 ? Math.min(scrollTop / docHeight * 100, 100) : 0;
+    progressBar.style.width = pct + '%';
+
+    // Gently scroll sidebar to keep active item visible (only once per change)
+    if (activeIdx >= 0 && tocAnchors[activeIdx]) {
+      var parent = tocAnchors[activeIdx].closest('.post-toc-wrap');
+      if (parent) {
+        var itemTop = tocAnchors[activeIdx].offsetTop;
+        var parentScroll = parent.scrollTop;
+        var parentHeight = parent.clientHeight;
+        if (itemTop < parentScroll || itemTop > parentScroll + parentHeight - 60) {
+          tocAnchors[activeIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  }
+
+  // Throttled scroll handler
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      window.requestAnimationFrame(function() {
+        updateActiveTOC();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // Smooth scroll to heading on click
+  tocLinks.forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var href = link.getAttribute('href');
+      if (href && href.charAt(0) === '#') {
+        e.preventDefault();
+        var target = document.getElementById(href.substring(1));
+        if (target) {
+          var top = target.getBoundingClientRect().top + window.scrollY - 80;
+          window.scrollTo({ top: top, behavior: 'smooth' });
+        }
+      }
     });
   });
 
-  var html = '<ol class="nav">' + renderTOC(items, 1) + '</ol>';
+  // Initial update
+  setTimeout(updateActiveTOC, 300);
+})();
 
-  tocWrap.innerHTML = '<div class="post-toc motion-element">' + html + '</div>';
+// Mobile floating TOC button
+(function() {
+  var wrap = document.querySelector('.post-toc-wrap');
+  if (!wrap) return;
+
+  var btn = document.createElement('button');
+  btn.className = 'mobile-toc-toggle';
+  btn.setAttribute('aria-label', '文章目录');
+  btn.innerHTML = '<i class="fa fa-list"></i>';
+
+  var overlay = document.createElement('div');
+  overlay.className = 'mobile-toc-overlay';
+
+  var panel = document.createElement('div');
+  panel.className = 'mobile-toc-panel';
+
+  var handle = document.createElement('div');
+  handle.className = 'mobile-toc-handle';
+  handle.innerHTML = '<strong><i class="fa fa-list"></i> 文章目录</strong><button class="mobile-toc-close" aria-label="关闭"><i class="fa fa-times"></i></button>';
+
+  var body = document.createElement('div');
+  body.className = 'mobile-toc-body';
+
+  // Clone the sidebar TOC into mobile panel
+  var toc = wrap.querySelector('.post-toc');
+  if (toc) body.appendChild(toc.cloneNode(true));
+
+  panel.appendChild(handle);
+  panel.appendChild(body);
+  overlay.appendChild(panel);
+  document.body.appendChild(btn);
+  document.body.appendChild(overlay);
+
+  // Toggle overlay
+  btn.addEventListener('click', function() {
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  });
+
+  function closeMobileTOC() {
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeMobileTOC();
+  });
+
+  handle.querySelector('.mobile-toc-close').addEventListener('click', closeMobileTOC);
+
+  // Sync mobile TOC active state with desktop
+  var desktopObserver = new MutationObserver(function() {
+    var activeDesktop = wrap.querySelector('.nav-item.active');
+    var mobileItems = body.querySelectorAll('.nav-item');
+    var found = false;
+    mobileItems.forEach(function(item) {
+      var id = item.querySelector('.nav-link')?.getAttribute('href');
+      if (id && activeDesktop) {
+        var adId = activeDesktop.querySelector('.nav-link')?.getAttribute('href');
+        item.classList.toggle('active', adId === id);
+        if (adId === id) found = true;
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  });
+  desktopObserver.observe(wrap, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+  // Click on mobile TOC items closes panel
+  body.querySelectorAll('.nav-link').forEach(function(link) {
+    link.addEventListener('click', function() {
+      setTimeout(closeMobileTOC, 200);
+    });
+  });
 })();
 
 // Mermaid: wait for async-loaded library, then render

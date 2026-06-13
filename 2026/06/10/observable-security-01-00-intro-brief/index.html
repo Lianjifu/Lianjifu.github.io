@@ -1,0 +1,4108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-01-00-intro-brief/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-01-00-intro-brief/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>业务 00 · 安全业务架构 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-01-00-intro-brief/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          业务 00 · 安全业务架构
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>业务 00 · 安全业务架构</h1>
+<blockquote>
+<p>智能安全事件可观测性 · 以 AI Agent 为核心，驱动安全运营从&quot;事件响应&quot;迈向&quot;认知决策&quot;的范式升级</p>
+</blockquote>
+<hr>
+<h2 id="产品概述">01. 产品概述</h2>
+<h3 id="背景与问题定义">01.1 背景与问题定义</h3>
+<h4 id="安全运营的挑战">安全运营的挑战</h4>
+<div style="display:flex;justify-content:center"><div class="mermaid">graph LR
+    subgraph 传统SOC痛点
+        A1["告警疲劳"]
+        A2["专家稀缺"]
+        A3["响应滞后"]
+        A4["知识流失"]
+    end
+    
+    A1 -->|70%+误报率| B["人力瓶颈"]
+    A2 -->|培养周期3-5年| B
+    A3 -->|攻击窗口期长| B
+    A4 -->|经验随人离职| B
+    
+    style B fill:#ffcdd2,stroke:#c62828</div></div><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>数据</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>告警疲劳</strong></td>
+<td>70%+ 的告警是误报</td>
+<td>安全分析师疲于应对，真实威胁被淹没</td>
+</tr>
+<tr>
+<td><strong>专家稀缺</strong></td>
+<td>高级分析师培养周期 3-5 年</td>
+<td>人力成本高，扩展性差</td>
+</tr>
+<tr>
+<td><strong>响应滞后</strong></td>
+<td>人工分析平均耗时 30min+</td>
+<td>攻击窗口期长，损失扩大</td>
+</tr>
+<tr>
+<td><strong>知识流失</strong></td>
+<td>经验依赖个人</td>
+<td>离职即流失，能力无法传承</td>
+</tr>
+</tbody></table>
+<h4 id="ai-带来的范式机遇">AI 带来的范式机遇</h4>
+<table>
+<thead>
+<tr>
+<th>传统方式</th>
+<th>AI 时代</th>
+<th>价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>人看告警</td>
+<td>AI 理解攻击</td>
+<td>告警不再是终点，而是决策起点</td>
+</tr>
+<tr>
+<td>人做分析</td>
+<td>AI 推理链路</td>
+<td>从&quot;看到什么&quot;到&quot;理解为什么&quot;</td>
+</tr>
+<tr>
+<td>人写报告</td>
+<td>AI 生成报告</td>
+<td>自动化、可复用</td>
+</tr>
+<tr>
+<td>人做响应</td>
+<td>Agent 自动执行</td>
+<td>秒级响应，无需等待</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>核心命题：</strong> 当大模型具备安全知识理解能力，当 Agent 能够自主执行安全任务，安全运营的主体从&quot;人&quot;变为&quot;AI Agent&quot;——这即是 AISOC。</p>
+</blockquote>
+<h3 id="产品定位aisoc-aisop">01.2 产品定位（AISOC / AISOP）</h3>
+<div class="mermaid">graph TB
+    subgraph AISOC战略定位
+        A["AISOC\nAI Security Operations Center\nAI 原生安全运营中心"]
+    end
+    
+    subgraph AISOP工程实现
+        B["AISOP\nAI Security Operations Platform\n智能安全运营平台"]
+    end
+    
+    subgraph 六大核心能力
+        C1["感知\nPerception"]
+        C2["认知\nCognition"]
+        C3["推理\nReasoning"]
+        C4["决策\nDecision"]
+        C5["执行\nAction"]
+        C6["学习\nLearning"]
+    end
+    
+    A -->|工程落地| B
+    B --> C1
+    B --> C2
+    B --> C3
+    B --> C4
+    B --> C5
+    B --> C6
+    
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style B fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px</div><h4 id="aisoc-与-aisop-定义">AISOC 与 AISOP 定义</h4>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>全称</th>
+<th>角色</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>AISOC</strong></td>
+<td>AI Security Operations Center</td>
+<td>战略定位</td>
+<td>AI 原生安全运营中心，代表安全运营的未来形态</td>
+</tr>
+<tr>
+<td><strong>AISOP</strong></td>
+<td>AI Security Operations Platform</td>
+<td>工程实现</td>
+<td>AISOC 的技术载体，理念落地的具体平台</td>
+</tr>
+</tbody></table>
+<h4 id="产品定位">产品定位</h4>
+<blockquote>
+<p><strong>AISOC</strong> 是一种以 <strong>AI Agent</strong> 为核心执行单元、以 <strong>安全认知网络</strong> 为核心大脑、以 <strong>自动化响应</strong> 为核心行动能力、以 <strong>持续进化</strong> 为核心目标的<strong>下一代 AI 原生安全运营中心</strong>。</p>
+</blockquote>
+<h4 id="核心转变">核心转变</h4>
+<div class="mermaid">graph TB
+    subgraph 传统SOC["传统 SOC - 事件驱动"]
+        A1["人看告警"]
+        A2["人做分析"]
+        A3["人写报告"]
+        A4["人做响应"]
+    end
+    
+    subgraph AISOC["AISOC - 认知驱动"]
+        B1["AI 理解攻击"]
+        B2["Agent 推理链路"]
+        B3["AI 自动生成报告"]
+        B4["Agent 自动执行"]
+    end
+    
+    A1 --> B1
+    A2 --> B2
+    A3 --> B3
+    A4 --> B4
+    
+    style 传统SOC fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style AISOC fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A1 fill:#fff,stroke:#c62828
+    style A2 fill:#fff,stroke:#c62828
+    style A3 fill:#fff,stroke:#c62828
+    style A4 fill:#fff,stroke:#c62828
+    style B1 fill:#fff,stroke:#1565c0
+    style B2 fill:#fff,stroke:#1565c0
+    style B3 fill:#fff,stroke:#1565c0
+    style B4 fill:#fff,stroke:#1565c0</div><h4 id="aisoc-vs-传统-soc-7维对比">AISOC vs 传统 SOC 7维对比</h4>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>传统 SOC</th>
+<th>AISOC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>执行主体</strong></td>
+<td>安全分析师</td>
+<td>AI Agent</td>
+</tr>
+<tr>
+<td><strong>工作模式</strong></td>
+<td>告警 → 分析 → 处置</td>
+<td>感知 → 认知 → 推理 → 决策 → 执行 → 学习</td>
+</tr>
+<tr>
+<td><strong>驱动方式</strong></td>
+<td>告警驱动</td>
+<td>认知驱动</td>
+</tr>
+<tr>
+<td><strong>运营方式</strong></td>
+<td>规则运营</td>
+<td>智能运营</td>
+</tr>
+<tr>
+<td><strong>响应方式</strong></td>
+<td>人工处置</td>
+<td>Agent 协同处置</td>
+</tr>
+<tr>
+<td><strong>学习方式</strong></td>
+<td>人工积累</td>
+<td>自动化知识沉淀</td>
+</tr>
+<tr>
+<td><strong>扩展方式</strong></td>
+<td>增加人力</td>
+<td>增加 Agent 能力</td>
+</tr>
+</tbody></table>
+<h3 id="核心目标与边界">01.3 核心目标与边界</h3>
+<p>AISOP 的核心目标是实现<strong>十步安全运营闭环</strong>：</p>
+<div class="mermaid">graph LR
+    subgraph 数据层
+        A1[安全数据融合]
+    end
+    
+    subgraph 感知层
+        A2[安全事件感知]
+    end
+    
+    subgraph 认知层
+        A3[安全知识网络]
+        A4[安全事件研判]
+    end
+    
+    subgraph 推理层
+        A5[攻击溯源分析]
+        A6[安全影响评估]
+    end
+    
+    subgraph 执行层
+        A7[安全响应处置]
+    end
+    
+    subgraph 报告层
+        A8[安全态势报告]
+        A9[安全知识沉淀]
+        A10[安全智能助手]
+    end
+    
+    A1 --> A2 --> A3 --> A4
+    A4 --> A5 --> A6 --> A7
+    A7 --> A8 --> A9 --> A10
+    A9 --> A3
+    A10 -.->|统一入口| A1
+    
+    style A1 fill:#e1f5ff,stroke:#01579b
+    style A2 fill:#e1f5ff,stroke:#01579b
+    style A3 fill:#fff3e0,stroke:#e65100
+    style A4 fill:#fff3e0,stroke:#e65100
+    style A5 fill:#f3e5f5,stroke:#7b1fa2
+    style A6 fill:#f3e5f5,stroke:#7b1fa2
+    style A7 fill:#ffebee,stroke:#c62828
+    style A8 fill:#e8f5e9,stroke:#2e7d32
+    style A9 fill:#e8f5e9,stroke:#2e7d32
+    style A10 fill:#fff9c4,stroke:#f57f17,stroke-width:3px</div><h4 id="十步闭环与核心能力映射">十步闭环与核心能力映射</h4>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>核心目标</th>
+<th>输入</th>
+<th>输出</th>
+<th>关键技术</th>
+<th>AISOC能力</th>
+<th>Agent类型</th>
+<th>指标目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Step 1 安全数据融合</strong></td>
+<td>全域安全数据接入、标准化与统一语义化</td>
+<td>原始日志/流量/告警/API数据</td>
+<td>标准化安全事件流（Event Stream）</td>
+<td>OTEL/Kafka/Flink/Schema Mapping</td>
+<td>感知基础层</td>
+<td>感知 Agent</td>
+<td>MTTD &lt; 1min</td>
+</tr>
+<tr>
+<td><strong>Step 2 安全事件感知</strong></td>
+<td>降噪、归并、异常检测</td>
+<td>事件流（Event Stream）</td>
+<td>结构化异常事件（Normalized Event）</td>
+<td>时序异常检测/ML降噪/事件聚类</td>
+<td>感知</td>
+<td>感知 Agent</td>
+<td>误报率 &lt; 10%</td>
+</tr>
+<tr>
+<td><strong>Step 3 安全知识网络</strong></td>
+<td>构建统一安全认知图谱</td>
+<td>异常事件 + 历史知识库</td>
+<td>安全知识图谱（Entity-Relation Graph）</td>
+<td>KG构建/NLP实体抽取/Graph Embedding</td>
+<td>学习</td>
+<td>学习 Agent</td>
+<td>TTL &lt; 1min</td>
+</tr>
+<tr>
+<td><strong>Step 4 安全事件研判</strong></td>
+<td>事件语义理解与攻击归类</td>
+<td>异常事件 + 知识图谱</td>
+<td>攻击上下文（Attack Context）+置信度</td>
+<td>LLM推理/RAG/攻击画像建模</td>
+<td>认知</td>
+<td>认知 Agent</td>
+<td>MTTI &lt; 5min</td>
+</tr>
+<tr>
+<td><strong>Step 5 攻击溯源分析</strong></td>
+<td>攻击链重建与来源追踪</td>
+<td>攻击上下文 + 图谱</td>
+<td>攻击链路（Kill Chain Graph）</td>
+<td>因果推理/GNN/图路径搜索</td>
+<td>推理</td>
+<td>推理 Agent</td>
+<td>溯源成功率 &gt; 90%</td>
+</tr>
+<tr>
+<td><strong>Step 6 安全影响评估</strong></td>
+<td>风险传播与资产影响量化</td>
+<td>攻击链 + 资产拓扑</td>
+<td>风险传播图 + 损失评估报告</td>
+<td>资产建模/风险传播模型/脆弱性分析</td>
+<td>推理</td>
+<td>推理 Agent</td>
+<td>MTTR &lt; 10min</td>
+</tr>
+<tr>
+<td><strong>Step 7 安全响应处置</strong></td>
+<td>自动化策略决策与执行</td>
+<td>风险报告 + 策略库</td>
+<td>执行结果 + 操作审计日志</td>
+<td>SOAR编排/Policy Engine/API自动化</td>
+<td>决策+执行</td>
+<td>执行 Agent</td>
+<td>MTTR &lt; 10min</td>
+</tr>
+<tr>
+<td><strong>Step 8 安全态势报告</strong></td>
+<td>全局态势可视化与解释</td>
+<td>执行结果 + 攻击链 + KPI</td>
+<td>安全态势报告（Report Object）</td>
+<td>报告生成/LLM总结/可视化建模</td>
+<td>认知</td>
+<td>认知 Agent</td>
+<td>MTTC &lt; 30min</td>
+</tr>
+<tr>
+<td><strong>Step 9 安全知识沉淀</strong></td>
+<td>经验结构化与系统自进化</td>
+<td>全链路事件 + 执行反馈</td>
+<td>更新知识图谱 + 策略模型</td>
+<td>知识抽取/Pattern Mining/Online Learning</td>
+<td>学习</td>
+<td>学习 Agent</td>
+<td>TTL &lt; 1min</td>
+</tr>
+<tr>
+<td><strong>Step 10 安全智能助手</strong></td>
+<td>统一入口，一站式智能服务</td>
+<td>用户指令 + 上下文</td>
+<td>对话响应 + 任务执行 + 知识推荐</td>
+<td>LLM/Agent/RAG/工具编排</td>
+<td>认知+执行</td>
+<td>助手 Agent</td>
+<td>响应 &lt; 1s</td>
+</tr>
+</tbody></table>
+<h4 id="十步闭环-mermaid-时序图">十步闭环 Mermaid 时序图</h4>
+<div class="mermaid">sequenceDiagram
+    participant Data as 数据层
+    participant Sense as 感知Agent
+    participant Know as 知识图谱(KG)
+    participant Cogn as 认知Agent
+    participant Reason as 推理Agent
+    participant Action as 执行Agent
+    participant Report as 报告系统
+    participant Learn as 学习Agent
+    participant Assistant as 智能助手
+    
+    Data->>Sense: Step1 原始安全数据
+    Sense->>Sense: Step2 事件归并/异常检测
+    Sense->>Know: Step3 实体/关系抽取
+    Know->>Cogn: Step4 提供上下文图谱
+    Sense->>Cogn: Step4 异常事件流
+    Cogn->>Reason: Step5 攻击语义+上下文
+    Reason->>Reason: Step5 攻击链重建(Kill Chain)
+    Reason->>Action: Step6 风险+影响评估
+    Action->>Report: Step7 执行结果+审计日志
+    Report->>Learn: Step8 全链路数据沉淀
+    Learn->>Know: Step9 更新知识图谱
+    Learn->>Sense: 模型/规则优化反馈
+    Learn->>Reason: 推理策略优化反馈
+    Learn->>Action: 响应策略优化反馈
+    Learn->>Assistant: Step10 统一入口赋能
+    Assistant->>Data: 指令触发/查询</div><h4 id="平台输出vs-传统告警">平台输出（vs 传统告警）</h4>
+<div class="mermaid">graph LR
+    subgraph 传统 SOC
+        A1["输出：单一告警"]
+    end
+    
+    subgraph AISOP
+        B1["攻击解释"]
+        B2["风险判断"]
+        B3["行动决策"]
+        B4["执行结果"]
+    end
+    
+    A1 --> B1
+    B1 --> B2
+    B2 --> B3
+    B3 --> B4
+    
+    style A1 fill:#ffcdd2,stroke:#c62828
+    style B1 fill:#e3f2fd,stroke:#1565c0
+    style B2 fill:#e8f5e9,stroke:#2e7d32
+    style B3 fill:#fff3e0,stroke:#e65100
+    style B4 fill:#f3e5f5,stroke:#7b1fa2</div><table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th>传统 SOC</th>
+<th>AISOP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>输出形式</strong></td>
+<td>单一告警</td>
+<td>攻击解释 + 风险判断 + 行动决策 + 执行结果</td>
+</tr>
+<tr>
+<td><strong>信息完整性</strong></td>
+<td>仅告知&quot;发生了什么&quot;</td>
+<td>理解&quot;是什么攻击、为什么发生、会影响什么&quot;</td>
+</tr>
+<tr>
+<td><strong>可操作性</strong></td>
+<td>需人工解读</td>
+<td>直接给出行动建议和执行结果</td>
+</tr>
+<tr>
+<td><strong>响应时效</strong></td>
+<td>依赖人工，延迟高</td>
+<td>自动执行，秒级响应</td>
+</tr>
+<tr>
+<td><strong>学习积累</strong></td>
+<td>经验难以传承</td>
+<td>自动沉淀为组织知识</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>本质区别：</strong> 传统 SOC 输出的是&quot;数据&quot;，AISOP 输出的是&quot;决策支持链&quot;</p>
+</blockquote>
+<hr>
+<h2 id="安全运营范式升级">02. 安全运营范式升级</h2>
+<h3 id="传统-soc-局限性">02.1 传统 SOC 局限性</h3>
+<div class="mermaid">graph TB
+    subgraph 局限
+        A1["规则依赖\n漏报率高"]
+        A2["人力瓶颈\n响应滞后"]
+        A3["知识孤岛\n能力参差"]
+        A4["被动响应\n被动挨打"]
+    end
+    
+    B["传统 SOC\n运营困境"]
+    
+    A1 --> B
+    A2 --> B
+    A3 --> B
+    A4 --> B
+    
+    style B fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style A1 fill:#fff,stroke:#c62828
+    style A2 fill:#fff,stroke:#c62828
+    style A3 fill:#fff,stroke:#c62828
+    style A4 fill:#fff,stroke:#c62828</div><table>
+<thead>
+<tr>
+<th>局限性</th>
+<th>说明</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>规则依赖</strong></td>
+<td>依赖专家规则，无法理解未知威胁</td>
+<td>漏报率高</td>
+</tr>
+<tr>
+<td><strong>人力瓶颈</strong></td>
+<td>告警分析依赖人工，扩展性差</td>
+<td>响应滞后</td>
+</tr>
+<tr>
+<td><strong>知识孤岛</strong></td>
+<td>经验存在个人脑中，无法传承</td>
+<td>能力参差</td>
+</tr>
+<tr>
+<td><strong>被动响应</strong></td>
+<td>告警驱动，疲于应对</td>
+<td>被动挨打</td>
+</tr>
+</tbody></table>
+<h3 id="aisoc-范式转变">02.2 AISOC 范式转变</h3>
+<h4 id="传统-soc-vs-aisoc-工作流对比">传统 SOC vs AISOC 工作流对比</h4>
+<div class="mermaid">graph TB
+    subgraph 传统SOC["传统 SOC - 告警驱动 (Reactive)"]
+        direction LR
+        T1["数据采集"] --> T2["规则匹配"] --> T3["告警触发"] --> T4["人工分析"] --> T5["人工处置"]
+    end
+    
+    subgraph AISOC["AISOC - 认知驱动 (Proactive)"]
+        direction LR
+        A1["数据融合"] --> A2["智能感知"] --> A3["知识认知"] --> A4["推理研判"] --> A5["Agent响应"] --> A6["知识沉淀"]
+        A6 -.-> A3
+    end
+    
+    传统SOC --> AISOC
+    
+    style 传统SOC fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style AISOC fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    
+    style T1 fill:#fff,stroke:#c62828
+    style T2 fill:#fff,stroke:#c62828
+    style T3 fill:#fff,stroke:#c62828
+    style T4 fill:#fff,stroke:#c62828
+    style T5 fill:#fff,stroke:#c62828
+    
+    style A1 fill:#fff,stroke:#1565c0
+    style A2 fill:#fff,stroke:#1565c0
+    style A3 fill:#fff,stroke:#1565c0
+    style A4 fill:#fff,stroke:#1565c0
+    style A5 fill:#fff,stroke:#1565c0
+    style A6 fill:#fff,stroke:#1565c0</div><h4 id="核心差异五维度对比">核心差异：五维度对比</h4>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>传统 SOC</th>
+<th>AISOC</th>
+<th>差异影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>驱动方式</strong></td>
+<td>告警驱动</td>
+<td><strong>认知驱动</strong></td>
+<td>从被动响应 → 主动防御</td>
+</tr>
+<tr>
+<td><strong>执行主体</strong></td>
+<td>安全分析师</td>
+<td><strong>AI Agent</strong></td>
+<td>从人力密集 → 智能化</td>
+</tr>
+<tr>
+<td><strong>感知方式</strong></td>
+<td>规则匹配</td>
+<td><strong>知识推理</strong></td>
+<td>从依赖规则 → 理解攻击</td>
+</tr>
+<tr>
+<td><strong>响应方式</strong></td>
+<td>人工处置</td>
+<td><strong>自动执行</strong></td>
+<td>从耗时数小时 → 分钟级</td>
+</tr>
+<tr>
+<td><strong>学习方式</strong></td>
+<td>人工积累</td>
+<td><strong>自动进化</strong></td>
+<td>从经验流失 → 组织记忆</td>
+</tr>
+</tbody></table>
+<h4 id="范式转变的本质">范式转变的本质</h4>
+<div class="mermaid">graph LR
+    subgraph 传统SOC["传统 SOC - 以规则为中心"]
+        direction TB
+        A1["规则 = 核心"]
+        A2["人 = 执行者"]
+        A3["告警 = 输出"]
+        A4["被动响应"]
+        A5["线性增长"]
+    end
+    
+    C["安全运营\n范式革命"]
+    
+    subgraph AISOC["AISOC - 以认知为中心"]
+        direction TB
+        B1["知识 = 核心"]
+        B2["AI Agent = 执行者"]
+        B3["决策 = 输出"]
+        B4["主动防御"]
+        B5["指数增长"]
+    end
+    
+    传统SOC --> C --> AISOC
+    
+    style 传统SOC fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style AISOC fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    
+    style A1 fill:#fff,stroke:#c62828
+    style A2 fill:#fff,stroke:#c62828
+    style A3 fill:#fff,stroke:#c62828
+    style A4 fill:#fff,stroke:#c62828
+    style A5 fill:#fff,stroke:#c62828
+    
+    style B1 fill:#fff,stroke:#1565c0
+    style B2 fill:#fff,stroke:#1565c0
+    style B3 fill:#fff,stroke:#1565c0
+    style B4 fill:#fff,stroke:#1565c0
+    style B5 fill:#fff,stroke:#1565c0</div><h4 id="aisoc-价值飞轮">AISOC 价值飞轮</h4>
+<div class="mermaid">graph LR
+    subgraph 价值飞轮
+        direction LR
+        A1["数据融合"] --> A2["智能感知"]
+        A2 --> A3["安全认知"]
+        A3 --> A4["自动响应"]
+        A4 --> A5["持续进化"]
+        A5 -.->|每一次循环
+系统能力更强| A3
+    end
+    
+    style A1 fill:#e1f5ff,stroke:#01579b
+    style A2 fill:#e1f5ff,stroke:#01579b
+    style A3 fill:#fff3e0,stroke:#e65100
+    style A4 fill:#ffebee,stroke:#c62828
+    style A5 fill:#e8f5e9,stroke:#2e7d32</div><h3 id="从事件驱动到认知驱动">02.3 从事件驱动到认知驱动</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>事件驱动</th>
+<th>认知驱动</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>核心</strong></td>
+<td>规则匹配告警</td>
+<td>知识网络推理</td>
+</tr>
+<tr>
+<td><strong>感知</strong></td>
+<td>触发式告警</td>
+<td>主动式感知</td>
+</tr>
+<tr>
+<td><strong>分析</strong></td>
+<td>人工逐条分析</td>
+<td>AI 理解攻击</td>
+</tr>
+<tr>
+<td><strong>决策</strong></td>
+<td>依赖经验判断</td>
+<td>证据链推理</td>
+</tr>
+<tr>
+<td><strong>学习</strong></td>
+<td>人工积累</td>
+<td>自动进化</td>
+</tr>
+</tbody></table>
+<h3 id="从人工运营到-agent-运营">02.4 从人工运营到 Agent 运营</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>传统 SOC</th>
+<th>AISOC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>执行主体</strong></td>
+<td>安全分析师</td>
+<td>AI Agent</td>
+</tr>
+<tr>
+<td><strong>工作模式</strong></td>
+<td>告警 → 分析 → 处置</td>
+<td>感知 → 认知 → 推理 → 决策 → 执行 → 学习</td>
+</tr>
+<tr>
+<td><strong>运营方式</strong></td>
+<td>规则运营</td>
+<td>智能运营</td>
+</tr>
+<tr>
+<td><strong>响应方式</strong></td>
+<td>人工处置</td>
+<td>Agent 协同处置</td>
+</tr>
+<tr>
+<td><strong>学习方式</strong></td>
+<td>人工积累</td>
+<td>自动化知识沉淀</td>
+</tr>
+<tr>
+<td><strong>扩展方式</strong></td>
+<td>增加人力</td>
+<td>增加 Agent 能力</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="核心能力体系六大能力">03. 核心能力体系（六大能力）</h2>
+<h3 id="感知perception">03.1 感知（Perception）</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>输入</strong></td>
+<td>全域安全数据（网络/主机/身份/应用/威胁情报）</td>
+</tr>
+<tr>
+<td><strong>输出</strong></td>
+<td>异常事件、攻击活动、风险变化</td>
+</tr>
+<tr>
+<td><strong>特征</strong></td>
+<td>实时、主动、全方位</td>
+</tr>
+<tr>
+<td><strong>核心能力</strong></td>
+<td>多维感知网络 · 智能降噪（误报率&lt;10%） · 自动归并（压缩比&gt;90%）</td>
+</tr>
+</tbody></table>
+<div class="mermaid">graph LR
+    subgraph 感知层
+        direction LR
+        N1["网络行为"]
+        H1["主机行为"]
+        I1["身份行为"]
+        A1["应用行为"]
+    end
+    
+    P2["智能降噪\n误报率<10%"]
+    P3["自动归并\n压缩比>90%"]
+    P4["异常事件"]
+    
+    N1 --> P2
+    H1 --> P2
+    I1 --> P2
+    A1 --> P2
+    
+    P2 --> P3 --> P4
+    
+    style N1 fill:#fff,stroke:#1565c0
+    style H1 fill:#fff,stroke:#1565c0
+    style I1 fill:#fff,stroke:#1565c0
+    style A1 fill:#fff,stroke:#1565c0
+    style P2 fill:#fff3e0,stroke:#e65100
+    style P3 fill:#fff3e0,stroke:#e65100
+    style P4 fill:#e3f2fd,stroke:#1565c0</div><hr>
+<h3 id="认知cognition">03.2 认知（Cognition）</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>输入</strong></td>
+<td>感知层输出的异常事件</td>
+</tr>
+<tr>
+<td><strong>输出</strong></td>
+<td>攻击上下文、影响范围、严重程度</td>
+</tr>
+<tr>
+<td><strong>特征</strong></td>
+<td>理解&quot;是什么&quot;，而非仅知道&quot;发生了什么&quot;</td>
+</tr>
+<tr>
+<td><strong>核心能力</strong></td>
+<td>安全知识网络（100,000+实体） · 攻击画像构建 · 影响范围评估</td>
+</tr>
+</tbody></table>
+<div class="mermaid">graph LR
+    subgraph 认知层
+        direction LR
+        K1["知识网络\n100,000+实体"]
+        K2["攻击画像\n构建"]
+        K3["影响范围\n评估"]
+    end
+    
+    K1 --> K2 --> K3
+    
+    style K1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style K2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style K3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px</div><hr>
+<h3 id="推理reasoning">03.3 推理（Reasoning）</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>输入</strong></td>
+<td>认知层提供的上下文</td>
+</tr>
+<tr>
+<td><strong>输出</strong></td>
+<td>攻击意图、攻击路径、攻击阶段、置信评分</td>
+</tr>
+<tr>
+<td><strong>特征</strong></td>
+<td>具备&quot;为什么&quot;的推理能力</td>
+</tr>
+<tr>
+<td><strong>核心能力</strong></td>
+<td>攻击链推理（Kill Chain映射） · 时序因果分析 · 图神经网络路径发现</td>
+</tr>
+</tbody></table>
+<div class="mermaid">graph LR
+    subgraph 推理层
+        direction LR
+        R1["Kill Chain\n映射"]
+        R2["时序因果\n分析"]
+        R3["GNN路径\n发现"]
+        R4["置信评分"]
+    end
+    
+    R1 --> R2 --> R3 --> R4
+    
+    style R1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style R2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style R3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style R4 fill:#fce4ec,stroke:#c62828,stroke-width:2px</div><hr>
+<h3 id="决策decision">03.4 决策（Decision）</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>输入</strong></td>
+<td>推理层提供的研判结论</td>
+</tr>
+<tr>
+<td><strong>输出</strong></td>
+<td>处置策略、响应剧本、行动建议、优先级</td>
+</tr>
+<tr>
+<td><strong>特征</strong></td>
+<td>多目标优化，考虑成本与收益</td>
+</tr>
+<tr>
+<td><strong>核心能力</strong></td>
+<td>多策略生成 · 风险收益评估 · 资源优化调度</td>
+</tr>
+</tbody></table>
+<div class="mermaid">graph LR
+    subgraph 决策层
+        direction LR
+        D1["多策略\n生成"]
+        D2["风险收益\n评估"]
+        D3["资源优化\n调度"]
+        D4["处置优先级"]
+    end
+    
+    D1 --> D2 --> D3 --> D4
+    
+    style D1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style D2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style D3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D4 fill:#fce4ec,stroke:#c62828,stroke-width:2px</div><hr>
+<h3 id="执行action">03.5 执行（Action）</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>输入</strong></td>
+<td>决策层生成的处置方案</td>
+</tr>
+<tr>
+<td><strong>输出</strong></td>
+<td>自动化响应执行结果</td>
+</tr>
+<tr>
+<td><strong>特征</strong></td>
+<td>自动完成，而非仅建议</td>
+</tr>
+<tr>
+<td><strong>核心能力</strong></td>
+<td>SOAR剧本自动化 · 安全产品API集成 · 多系统协同执行</td>
+</tr>
+</tbody></table>
+<div class="mermaid">graph LR
+    subgraph 执行层
+        direction LR
+        X1["SOAR\n剧本自动化"]
+        X2["安全产品\nAPI集成"]
+        X3["多系统\n协同执行"]
+        X4["执行结果"]
+    end
+    
+    X1 --> X2 --> X3 --> X4
+    
+    style X1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style X2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style X3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style X4 fill:#fce4ec,stroke:#c62828,stroke-width:2px</div><hr>
+<h3 id="学习learning">03.6 学习（Learning）</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>输入</strong></td>
+<td>每次运营的经验数据</td>
+</tr>
+<tr>
+<td><strong>输出</strong></td>
+<td>更新的知识网络、优化的模型、新的处置剧本</td>
+</tr>
+<tr>
+<td><strong>特征</strong></td>
+<td>持续进化，形成组织级安全记忆</td>
+</tr>
+<tr>
+<td><strong>核心能力</strong></td>
+<td>自动知识抽取 · 模型在线优化 · 经验剧本化</td>
+</tr>
+</tbody></table>
+<div class="mermaid">graph LR
+    subgraph 学习层
+        direction LR
+        L1["自动知识\n抽取"]
+        L2["模型在线\n优化"]
+        L3["经验\n剧本化"]
+        L4["知识网络\n更新"]
+    end
+    
+    L1 --> L2 --> L3 --> L4
+    L4 -.->|持续进化| L1
+    
+    style L1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L4 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><hr>
+<h2 id="安全认知闭环模型">04. 安全认知闭环模型</h2>
+<h3 id="端到端认知链路">04.1 端到端认知链路</h3>
+<div class="mermaid">graph LR
+    subgraph 认知链路
+        direction LR
+        P["感知\n数据融合 + 异常检测"]
+        C["认知\n上下文补全 + 攻击画像"]
+        R["推理\n攻击链还原 + 意图推断"]
+        D["决策\n策略生成 + 优先级排序"]
+        A["执行\n自动响应 + 结果反馈"]
+        L["学习\n知识沉淀 + 模型优化"]
+        
+        P --> C --> R --> D --> A --> L
+        L -.->|持续循环| P
+    end
+    
+    style P fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style R fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style L fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><hr>
+<h3 id="数据-事件-攻击-风险闭环">04.2 数据 → 事件 → 攻击 → 风险闭环</h3>
+<div class="mermaid">graph LR
+    subgraph 闭环流程
+        direction LR
+        D1["数据\n原始日志/流量"] --> D2["事件\n降噪归并分级"]
+        D2 --> D3["攻击\n链路推理"]
+        D3 --> D4["风险\n影响评估"]
+    end
+    
+    style D1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style D2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style D3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D4 fill:#fce4ec,stroke:#c62828,stroke-width:2px</div><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>输入</th>
+<th>处理</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>数据</strong></td>
+<td>原始日志/流量</td>
+<td>标准化采集</td>
+<td>安全事件流</td>
+</tr>
+<tr>
+<td><strong>事件</strong></td>
+<td>安全事件</td>
+<td>降噪归并分级</td>
+<td>异常事件</td>
+</tr>
+<tr>
+<td><strong>攻击</strong></td>
+<td>异常事件</td>
+<td>链路推理</td>
+<td>攻击链</td>
+</tr>
+<tr>
+<td><strong>风险</strong></td>
+<td>攻击链</td>
+<td>影响评估</td>
+<td>风险报告</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="反馈学习机制">04.3 反馈学习机制</h3>
+<div class="mermaid">graph LR
+    subgraph 反馈机制
+        direction LR
+        F1["执行反馈\n响应结果反哺决策"]
+        F2["研判反馈\n分析师复核反哺模型"]
+        F3["案例沉淀\n优秀案例入知识网络"]
+        F4["模型迭代\n在线学习持续优化"]
+    end
+    
+    F1 --> F2 --> F3 --> F4
+    F4 -.->|闭环| F1
+    
+    style F1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style F2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style F3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style F4 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><table>
+<thead>
+<tr>
+<th>机制</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>执行反馈</strong></td>
+<td>响应执行结果反馈至决策层，优化策略</td>
+</tr>
+<tr>
+<td><strong>研判反馈</strong></td>
+<td>分析师复核结果反哺模型优化</td>
+</tr>
+<tr>
+<td><strong>案例沉淀</strong></td>
+<td>优秀案例自动沉淀到知识网络</td>
+</tr>
+<tr>
+<td><strong>模型迭代</strong></td>
+<td>在线学习，持续优化检测模型</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="持续进化模型">04.4 持续进化模型</h3>
+<div class="mermaid">graph LR
+    subgraph 进化模型
+        direction LR
+        E1["每一次\n事件处置"]
+        E2["产生经验数据\n攻击手法/处置方法/因果关系"]
+        E3["知识抽取\n→ 融合 → 验证"]
+        E4["能力提升\n知识网络+检测模型+新剧本"]
+        
+        E1 --> E2 --> E3 --> E4
+        E4 -.->|循环| E1
+    end
+    
+    style E1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style E2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style E3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style E4 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><hr>
+<h2 id="aisoc-架构设计">05. AISOC 架构设计</h2>
+<h3 id="总体架构">05.1 总体架构</h3>
+<div class="mermaid">graph LR
+    subgraph AISOC["AISOC 智能安全运营中心"]
+        direction LR
+        
+        subgraph 感知层["感知层"]
+            P["感知 Agent\nPerception"]
+        end
+        
+        subgraph 认知层["认知层"]
+            C["认知 Agent\nCognition"]
+        end
+        
+        subgraph 推理层["推理层"]
+            R["推理 Agent\nReasoning"]
+        end
+        
+        subgraph 决策层["决策层"]
+            D["决策 Agent\nDecision"]
+        end
+        
+        subgraph 执行层["执行层"]
+            A1["执行 Agent\nAction"]
+            A2["响应 Agent\nResponse"]
+            A3["学习 Agent\nLearning"]
+        end
+        
+        P --> C
+        C --> R
+        R --> D
+        D --> A1
+        D --> A2
+        D --> A3
+    end
+    
+    style AISOC fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style 感知层 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style 认知层 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style 推理层 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style 决策层 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style 执行层 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style P fill:#fff,stroke:#01579b
+    style C fill:#fff,stroke:#2e7d32
+    style R fill:#fff,stroke:#e65100
+    style D fill:#fff,stroke:#c62828
+    style A1 fill:#fff,stroke:#7b1fa2
+    style A2 fill:#fff,stroke:#7b1fa2
+    style A3 fill:#fff,stroke:#7b1fa2</div><hr>
+<h3 id="agent-分层架构">05.2 Agent 分层架构</h3>
+<div class="mermaid">graph LR
+    subgraph 分层架构
+        direction LR
+        L1["感知层\n感知 Agent\n数据采集/降噪/异常检测"]
+        L2["认知层\n认知 Agent\n上下文补全/攻击画像/知识检索"]
+        L3["推理层\n推理 Agent\n攻击链还原/意图推断/风险评估"]
+        L4["决策层\n决策 Agent\n策略生成/优先级排序"]
+        L5["执行层\n执行 Agent\n自动响应/API集成"]
+        L6["学习层\n学习 Agent\n知识抽取/模型优化/剧本生成"]
+        
+        L1 --> L2 --> L3 --> L4 --> L5 --> L6
+    end
+    
+    style L1 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style L2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style L5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style L6 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px</div><table>
+<thead>
+<tr>
+<th>层级</th>
+<th>Agent</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>感知层</strong></td>
+<td>感知 Agent</td>
+<td>数据采集、降噪归并、异常检测</td>
+</tr>
+<tr>
+<td><strong>认知层</strong></td>
+<td>认知 Agent</td>
+<td>上下文补全、攻击画像、知识检索</td>
+</tr>
+<tr>
+<td><strong>推理层</strong></td>
+<td>推理 Agent</td>
+<td>攻击链还原、意图推断、风险评估</td>
+</tr>
+<tr>
+<td><strong>决策层</strong></td>
+<td>决策 Agent</td>
+<td>策略生成、优先级排序</td>
+</tr>
+<tr>
+<td><strong>执行层</strong></td>
+<td>执行 Agent</td>
+<td>自动响应、API 集成</td>
+</tr>
+<tr>
+<td><strong>学习层</strong></td>
+<td>学习 Agent</td>
+<td>知识抽取、模型优化、剧本生成</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="安全认知网络knowledge-graph">05.3 安全认知网络（Knowledge Graph）</h3>
+<div class="mermaid">graph TB
+    subgraph 节点类型
+        direction LR
+        N1["攻击者\nThreat Actor"]
+        N2["攻击手法\nTTP"]
+        N3["漏洞\nVulnerability"]
+        N4["资产\nAsset"]
+        N5["用户\nUser"]
+        N6["行为\nBehavior"]
+    end
+    
+    subgraph 关系类型
+        direction LR
+        R1["uses\n攻击者→手法"]
+        R2["exploits\n手法→漏洞"]
+        R3["targets\n攻击者→资产"]
+        R4["accesses\n用户→资产"]
+    end
+    
+    N1 --> R1 --> N2
+    N2 --> R2 --> N3
+    N1 --> R3 --> N4
+    N5 --> R4 --> N4
+    
+    style N1 fill:#fce4ec,stroke:#c62828
+    style N2 fill:#fff3e0,stroke:#e65100
+    style N3 fill:#e8f5e9,stroke:#2e7d32
+    style N4 fill:#e3f2fd,stroke:#1565c0
+    style N5 fill:#f3e5f5,stroke:#7b1fa2
+    style N6 fill:#e1f5fe,stroke:#01579b
+    style R1 fill:#fff,stroke:#c62828
+    style R2 fill:#fff,stroke:#e65100
+    style R3 fill:#fff,stroke:#2e7d32
+    style R4 fill:#fff,stroke:#1565c0</div><hr>
+<h3 id="数据与事件流架构">05.4 数据与事件流架构</h3>
+<div class="mermaid">graph LR
+    subgraph 数据流
+        direction LR
+        D1["外部数据源"]
+        D2["OTEL 采集层\n标准化"]
+        D3["Kafka 消息队列\n解耦+缓冲"]
+        D4["Flink 流处理\n实时分析"]
+        D5["实时分析管道\n异常检测/上下文富化/事件归并"]
+        D6["时序数据库\n安全事件"]
+        D7["Agent 协作链\n触发"]
+    end
+    
+    D1 --> D2 --> D3 --> D4 --> D5 --> D6 --> D7
+    
+    style D1 fill:#e3f2fd,stroke:#1565c0
+    style D2 fill:#e1f5fe,stroke:#01579b
+    style D3 fill:#fff3e0,stroke:#e65100
+    style D4 fill:#e8f5e9,stroke:#2e7d32
+    style D5 fill:#fce4ec,stroke:#c62828
+    style D6 fill:#f3e5f5,stroke:#7b1fa2
+    style D7 fill:#e1f5fe,stroke:#01579b</div><hr>
+<h3 id="执行与响应架构">05.5 执行与响应架构</h3>
+<div class="mermaid">graph LR
+    subgraph 执行响应
+        direction LR
+        X1["决策 Agent\n生成处置方案"]
+        X2["SOAR 剧本\n自动化编排"]
+        X3["安全产品\nAPI 集成"]
+        X4["多系统\n协同执行"]
+        X5["执行结果\n反馈"]
+    end
+    
+    X1 --> X2 --> X3 --> X4 --> X5
+    X5 -.->|优化策略| X1
+    
+    style X1 fill:#e3f2fd,stroke:#1565c0
+    style X2 fill:#fff3e0,stroke:#e65100
+    style X3 fill:#e8f5e9,stroke:#2e7d32
+    style X4 fill:#fce4ec,stroke:#c62828
+    style X5 fill:#f3e5f5,stroke:#7b1fa2</div><hr>
+<h2 id="安全知识与认知模型">06. 安全知识与认知模型</h2>
+<h3 id="安全实体模型">06.1 安全实体模型</h3>
+<div class="mermaid">graph LR
+    subgraph 实体模型
+        direction LR
+        E1["用户\nID/姓名/部门/角色"]
+        E2["主机\nIP/主机名/OS/重要性"]
+        E3["应用\n服务名/端口/协议"]
+        E4["数据\n类型/敏感等级/存储"]
+    end
+    
+    E1 --> E2
+    E2 --> E3
+    E3 --> E4
+    
+    style E1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style E2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style E3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style E4 fill:#fce4ec,stroke:#c62828,stroke-width:2px</div><table>
+<thead>
+<tr>
+<th>实体类型</th>
+<th>属性</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>用户</strong></td>
+<td>ID、姓名、部门、角色</td>
+<td>user001、zhangsan</td>
+</tr>
+<tr>
+<td><strong>主机</strong></td>
+<td>IP、主机名、操作系统、资产重要性</td>
+<td>192.168.1.100、SRV-DB-01</td>
+</tr>
+<tr>
+<td><strong>应用</strong></td>
+<td>服务名、端口、协议</td>
+<td>HTTPS:443、MySQL:3306</td>
+</tr>
+<tr>
+<td><strong>数据</strong></td>
+<td>数据类型、敏感等级、存储位置</td>
+<td>用户数据、PII、财务数据</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="攻击行为模型">06.2 攻击行为模型</h3>
+<div class="mermaid">graph LR
+    subgraph ATTCK模型
+        direction LR
+        T1["战术\nTactic"]
+        T2["技术\nTechnique"]
+        T3["子技术\nSub-technique"]
+        T4["程序\nProcedure"]
+        T5["检测\nDetection"]
+        
+        T1 --> T2 --> T3 --> T4 --> T5
+    end
+    
+    style T1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style T2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style T3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style T4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style T5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>战术（Tactic）</strong></td>
+<td>Initial Access、Execution、Persistence、Lateral Movement</td>
+</tr>
+<tr>
+<td><strong>技术（Technique）</strong></td>
+<td>T1190（漏洞利用）、T1059（命令执行）、T1078（账号利用）</td>
+</tr>
+<tr>
+<td><strong>子技术（Sub-technique）</strong></td>
+<td>T1190.001（SQL 注入）</td>
+</tr>
+<tr>
+<td><strong>程序（Procedure）</strong></td>
+<td>APT-41 使用 T1190.001 攻击 Web 系统</td>
+</tr>
+<tr>
+<td><strong>检测（Detection）</strong></td>
+<td>对应的检测规则和告警逻辑</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="风险关系模型">06.3 风险关系模型</h3>
+<div class="mermaid">graph LR
+    subgraph 风险因素
+        direction LR
+        F1["攻击可能性\n威胁情报+历史事件+ATT&CK映射"]
+        F2["资产价值\n资产分级\n核心/重要/普通"]
+        F3["影响范围\n资产拓扑+业务关联+数据敏感度"]
+        F4["脆弱性\nCVE评分+配置缺陷+攻击面"]
+    end
+    
+    subgraph 风险计算
+        direction LR
+        R["风险值\n=RiskScore"]
+    end
+    
+    subgraph 风险等级
+        direction LR
+        L1["🔴 高风险"]
+        L2["🟡 中风险"]
+        L3["🟢 低风险"]
+    end
+    
+    F1 --> R
+    F2 --> R
+    F3 --> R
+    F4 --> R
+    
+    R --> L1
+    R --> L2
+    R --> L3
+    
+    style F1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style F2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style F3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style F4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style R fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style L1 fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style L2 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style L3 fill:#c8e6c9,stroke:#388e3c,stroke-width:2px</div><p><strong>风险计算公式：</strong></p>
+<pre><code>风险值 = f(攻击可能性, 资产价值, 影响范围, 脆弱性)</code></pre><table>
+<thead>
+<tr>
+<th>风险因素</th>
+<th>计算因子</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>攻击可能性</strong></td>
+<td>威胁情报 + 历史事件 + <strong>ATT&amp;CK</strong> 映射</td>
+<td>ATT&amp;CK = Adversarial Tactics, Techniques &amp; Common Knowledge（MITRE 攻击框架）</td>
+</tr>
+<tr>
+<td><strong>资产价值</strong></td>
+<td>资产分级（核心/重要/普通）</td>
+<td>根据业务重要性分级</td>
+</tr>
+<tr>
+<td><strong>影响范围</strong></td>
+<td>资产拓扑 + 业务关联 + 数据敏感度</td>
+<td>受影响资产的范围评估</td>
+</tr>
+<tr>
+<td><strong>脆弱性</strong></td>
+<td>CVE 评分 + 配置缺陷 + 攻击面</td>
+<td>系统漏洞和弱点评估</td>
+</tr>
+</tbody></table>
+<p><strong>ATT&amp;CK 框架说明：</strong></p>
+<ul>
+<li><strong>来源</strong>：MITRE 公司发布的对抗战术与技术知识库</li>
+<li><strong>全称</strong>：Adversarial Tactics, Techniques &amp; Common Knowledge</li>
+<li><strong>用途</strong>：标准化描述攻击者行为（战术、技术、程序）</li>
+<li><strong>映射</strong>：将检测到的攻击行为映射到 ATT&amp;CK 战术和技术，评估攻击可能性</li>
+</ul>
+<p><strong>风险等级判定：</strong></p>
+<table>
+<thead>
+<tr>
+<th>风险等级</th>
+<th>判定标准</th>
+<th>响应策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>🔴 <strong>高风险</strong></td>
+<td>多个高危因素叠加</td>
+<td>即时处置，优先响应</td>
+</tr>
+<tr>
+<td>🟡 <strong>中风险</strong></td>
+<td>存在中等风险因素</td>
+<td>计划处置，跟踪监控</td>
+</tr>
+<tr>
+<td>🟢 <strong>低风险</strong></td>
+<td>风险因素可控</td>
+<td>例行监控，持续观察</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="攻击链与因果图模型">06.4 攻击链与因果图模型</h3>
+<h4 id="攻击链kill-chain">攻击链（Kill Chain）</h4>
+<p><strong>来源</strong>：Lockheed Martin 公司提出的网络攻击杀伤链模型</p>
+<p><strong>目标</strong>：在攻击链的每个阶段部署检测和防御措施，切断攻击链路</p>
+<div class="mermaid">graph LR
+    subgraph KillChain["攻击链 Kill Chain (Lockheed Martin)"]
+        direction LR
+        
+        subgraph 早期阶段["早期阶段 - 入侵前"]
+            K1["1.Reconnaissance\n侦察"]
+            K2["2.Resource Dev\n资源准备"]
+        end
+        
+        subgraph 入口阶段["入口阶段 - 突破口"]
+            K3["3.Initial Access\n初始入口"]
+        end
+        
+        subgraph 持久化阶段["持久化阶段 - 建立据点"]
+            K4["4.Execution\n执行"]
+            K5["5.Persistence\n持久化"]
+            K6["6.Priv Esc\n权限提升"]
+        end
+        
+        subgraph 横向阶段["横向阶段 - 扩大范围"]
+            K7["7.Defense Evasion\n防御规避"]
+            K8["8.Cred Access\n凭证访问"]
+            K9["9.Discovery\n横向探测"]
+            K10["10.Lateral Move\n横向移动"]
+        end
+        
+        subgraph 收获阶段["收获阶段 - 达成目标"]
+            K11["11.Collection\n数据收集"]
+            K12["12.Exfiltration\n数据外泄"]
+        end
+        
+        subgraph 影响阶段["影响阶段 - 破坏影响"]
+            K13["13.Impact\n影响破坏"]
+        end
+        
+        K1 --> K2 --> K3 --> K4 --> K5 --> K6 --> K7 --> K8 --> K9 --> K10 --> K11 --> K12 --> K13
+    end
+    
+    style K1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style K2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style K3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style K4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style K5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style K6 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style K7 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style K8 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style K9 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style K10 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style K11 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style K12 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style K13 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    
+    style 早期阶段 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style 入口阶段 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style 持久化阶段 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style 横向阶段 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style 收获阶段 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style 影响阶段 fill:#ffcdd2,stroke:#b71c1c,stroke-width:3px</div><p><strong>AISOC 应对策略：</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>阶段名称</th>
+<th>关键行动</th>
+<th>AISOC 检测能力</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>侦察</strong></td>
+<td>收集目标信息</td>
+<td>威胁情报关联分析</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>资源准备</strong></td>
+<td>准备攻击工具</td>
+<td>IOC 检测/域名监控</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>初始入口</strong></td>
+<td>获得第一个据点</td>
+<td>边界防护/邮件安全</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>执行</strong></td>
+<td>运行恶意代码</td>
+<td>行为检测/EDR</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>持久化</strong></td>
+<td>保持控制权限</td>
+<td>权限监控/配置监控</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>权限提升</strong></td>
+<td>获取更高权限</td>
+<td>异常行为检测</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>防御规避</strong></td>
+<td>躲避安全检测</td>
+<td>多维度分析</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>凭证访问</strong></td>
+<td>窃取账号密码</td>
+<td>认证监控</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>横向探测</strong></td>
+<td>发现新目标</td>
+<td>网络分割监控</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>横向移动</strong></td>
+<td>内部扩散</td>
+<td>行为分析</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>数据收集</strong></td>
+<td>收集敏感信息</td>
+<td>DLP 监控</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>数据外泄</strong></td>
+<td>数据传出</td>
+<td>流量监控</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>影响破坏</strong></td>
+<td>加密/破坏</td>
+<td>应急响应/备份恢复</td>
+</tr>
+</tbody></table>
+<hr>
+<h4 id="因果图knowledge-graph">因果图（Knowledge Graph）</h4>
+<div class="mermaid">graph TB
+    subgraph 核心节点
+        direction TB
+        G1["攻击者\nThreat Actor\nAPT-41/ Lazarus/ 勒索团伙"]
+        G2["攻击手法\nTTP\nT1190/ T1059/ T1078"]
+        G3["漏洞\nVulnerability\nCVE-2021-44228/ 零日"]
+        G4["资产\nAsset\n服务器/ 数据库/ 终端"]
+        G5["业务\nBusiness\n核心业务/ 支撑系统"]
+    end
+    
+    subgraph 关系边
+        direction TB
+        E1["uses\n使用"]
+        E2["exploits\n利用"]
+        E3["affects\n影响"]
+        E4["belongs_to\n属于"]
+    end
+    
+    subgraph 图谱能力
+        direction TB
+        C1["攻击路径推断\n从入口到目标"]
+        C2["影响范围分析\n横向传播路径"]
+        C3["风险传播评估\n损失量化"]
+        C4["防御策略推荐\n最优处置方案"]
+    end
+    
+    G1 -->|uses| E1
+    E1 -->|exploits| G2
+    G2 -->|exploits| E2
+    E2 -->|affects| G3
+    G3 -->|affects| E3
+    E3 -->|belongs_to| G4
+    G4 -->|belongs_to| E4
+    E4 -->|belongs_to| G5
+    
+    G2 --> C1
+    G4 --> C2
+    C1 --> C3
+    C3 --> C4
+    
+    style G1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style G2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style G3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style G4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style G5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style E1 fill:#fff,stroke:#c62828,stroke-width:2px
+    style E2 fill:#fff,stroke:#e65100,stroke-width:2px
+    style E3 fill:#fff,stroke:#2e7d32,stroke-width:2px
+    style E4 fill:#fff,stroke:#1565c0,stroke-width:2px
+    style C1 fill:#fff,stroke:#e65100,stroke-width:2px
+    style C2 fill:#fff,stroke:#1565c0,stroke-width:2px
+    style C3 fill:#fff,stroke:#c62828,stroke-width:2px
+    style C4 fill:#fff,stroke:#2e7d32,stroke-width:2px</div><p><strong>因果图核心关系：</strong></p>
+<table>
+<thead>
+<tr>
+<th>关系类型</th>
+<th>描述</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>uses</strong></td>
+<td>攻击者使用手法</td>
+<td>APT-41 使用 T1190.001（漏洞利用）</td>
+</tr>
+<tr>
+<td><strong>exploits</strong></td>
+<td>手法利用漏洞</td>
+<td>SQL注入 利用 CVE-2021-44228（Log4j）</td>
+</tr>
+<tr>
+<td><strong>affects</strong></td>
+<td>漏洞影响资产</td>
+<td>Log4j 影响 Web 服务器集群</td>
+</tr>
+</tbody></table>
+<h2 id="agent-协作机制">07. Agent 协作机制</h2>
+<h3 id="agent-类型划分">07.1 Agent 类型划分</h3>
+<div class="mermaid">graph LR
+    subgraph Agent类型
+        direction LR
+        A1["感知 Agent\n异常检测"]
+        A2["认知 Agent\n上下文补全"]
+        A3["推理 Agent\n因果推理"]
+        A4["决策 Agent\n策略生成"]
+        A5["执行 Agent\n自动响应"]
+        A6["学习 Agent\n知识沉淀"]
+        
+        A1 --> A2 --> A3 --> A4 --> A5 --> A6
+        A6 -.->|持续优化| A1
+        A6 -.->|知识积累| A2
+    end
+    
+    style A1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style A3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style A4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A5 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style A6 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>核心能力</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>感知 Agent</strong></td>
+<td>异常检测</td>
+<td>全域数据流</td>
+<td>异常事件</td>
+</tr>
+<tr>
+<td><strong>认知 Agent</strong></td>
+<td>上下文补全</td>
+<td>异常事件 + 知识网络</td>
+<td>攻击上下文</td>
+</tr>
+<tr>
+<td><strong>推理 Agent</strong></td>
+<td>因果推理</td>
+<td>攻击上下文</td>
+<td>攻击链 + 置信度</td>
+</tr>
+<tr>
+<td><strong>决策 Agent</strong></td>
+<td>策略生成</td>
+<td>攻击链 + 风险评估</td>
+<td>处置方案</td>
+</tr>
+<tr>
+<td><strong>执行 Agent</strong></td>
+<td>自动响应</td>
+<td>处置方案</td>
+<td>执行结果</td>
+</tr>
+<tr>
+<td><strong>学习 Agent</strong></td>
+<td>知识沉淀</td>
+<td>执行结果 + 案例</td>
+<td>更新的知识网络</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="orchestrator-调度机制">07.2 Orchestrator 调度机制</h3>
+<div class="mermaid">graph LR
+    subgraph 调度流程
+        direction LR
+        O1["用户/系统\n触发事件"]
+        O2["Orchestrator\n编排器"]
+        O3["感知 Agent\n事件检测"]
+        O4["认知 Agent\n上下文补全"]
+        O5["推理 Agent\n攻击链推理"]
+        O6["决策 Agent\n处置策略"]
+        O7["执行 Agent\n分发执行"]
+        O8["学习 Agent\n沉淀经验"]
+        
+        O1 --> O2 --> O3 --> O4 --> O5 --> O6 --> O7 --> O8
+        O8 -.->|反馈| O2
+    end
+    
+    style O1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style O2 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style O3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style O4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style O5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style O6 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style O7 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style O8 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><p><strong>Orchestrator 核心职责：</strong></p>
+<ul>
+<li><strong>事件分发与路由</strong>：根据事件类型和Agent负载，智能分发任务到合适的Agent</li>
+<li><strong>Agent 协作编排</strong>：协调多个Agent之间的协作流程，确保任务有序执行</li>
+<li><strong>结果汇总与反馈</strong>：收集各Agent的执行结果，统一汇总后反馈给上游</li>
+<li><strong>异常处理与重试</strong>：当某个Agent执行失败时，自动重试或切换到备用Agent</li>
+</ul>
+<hr>
+<h3 id="多-agent-协同流程">07.3 多 Agent 协同流程</h3>
+<div class="mermaid">graph LR
+    subgraph 协同流程
+        direction LR
+        C1["事件触发\n感知 Agent 发现异常"]
+        C2["协作分发\nOrchestrator 协调"]
+        C3["上下文共享\n认知 Agent 提供背景"]
+        C4["联合推理\n多推理 Agent 协同"]
+        C5["策略共识\n决策 Agent 投票加权"]
+        C6["执行协调\n按依赖顺序执行"]
+        C7["经验回流\n学习 Agent 汇总"]
+        
+        C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7
+        C7 -.->|持续优化| C1
+    end
+    
+    style C1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style C3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C5 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style C6 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style C7 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><p><strong>协同流程说明：</strong></p>
+<ol>
+<li><strong>事件触发</strong> — 感知 Agent 发现异常事件，启动协作链</li>
+<li><strong>协作分发</strong> — Orchestrator 根据事件类型分发给合适的 Agent</li>
+<li><strong>上下文共享</strong> — 认知 Agent 提供攻击背景、资产信息、用户上下文</li>
+<li><strong>联合推理</strong> — 多个推理 Agent 并行分析，从不同角度推理攻击链</li>
+<li><strong>策略共识</strong> — 决策 Agent 通过投票或加权方式生成最优处置策略</li>
+<li><strong>执行协调</strong> — 执行 Agent 按依赖关系顺序执行，确保安全操作顺序</li>
+<li><strong>经验回流</strong> — 学习 Agent 汇总协作过程中的经验，更新知识网络</li>
+</ol>
+<p><strong>核心特点：</strong></p>
+<ul>
+<li><strong>并行处理</strong>：多个推理 Agent 可同时分析，缩短响应时间</li>
+<li><strong>上下文共享</strong>：避免重复工作，提高推理效率</li>
+<li><strong>策略共识</strong>：多决策源融合，降低单一决策风险</li>
+<li><strong>持续优化</strong>：每次协作结果反馈到学习 Agent，形成进化闭环</li>
+</ul>
+<hr>
+<h3 id="工具调用与外部系统集成">07.4 工具调用与外部系统集成</h3>
+<div class="mermaid">graph TB
+    subgraph 工具集成
+        direction TB
+        T1["安全数据\nSIEM/EDR/WAF"]
+        T2["威胁情报\nVT/OTX"]
+        T3["身份管理\nIAM/AD"]
+        T4["资产管理\nCMDB/漏洞扫描"]
+        T5["响应执行\n防火墙/SOAR"]
+        T6["知识管理\n知识图谱/LLM"]
+    end
+    
+    subgraph Agent映射
+        direction TB
+        A1["感知 Agent"]
+        A2["推理 Agent"]
+        A3["认知 Agent"]
+        A4["认知 Agent"]
+        A5["执行 Agent"]
+        A6["学习 Agent"]
+    end
+    
+    T1 --> A1
+    T2 --> A2
+    T3 --> A3
+    T4 --> A4
+    T5 --> A5
+    T6 --> A6
+    
+    style T1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style T2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style T3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style T4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style T5 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style T6 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style A1 fill:#fff,stroke:#1565c0
+    style A2 fill:#fff,stroke:#e65100
+    style A3 fill:#fff,stroke:#2e7d32
+    style A4 fill:#fff,stroke:#2e7d32
+    style A5 fill:#fff,stroke:#c62828
+    style A6 fill:#fff,stroke:#7b1fa2</div><table>
+<thead>
+<tr>
+<th>工具类型</th>
+<th>代表工具</th>
+<th>Agent 用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>安全数据</strong></td>
+<td>SIEM、EDR、WAF</td>
+<td>感知 Agent 数据源</td>
+</tr>
+<tr>
+<td><strong>威胁情报</strong></td>
+<td>VT、AlienVault OTX</td>
+<td>推理 Agent 上下文</td>
+</tr>
+<tr>
+<td><strong>身份管理</strong></td>
+<td>IAM、AD</td>
+<td>认知 Agent 用户上下文</td>
+</tr>
+<tr>
+<td><strong>资产管理</strong></td>
+<td>CMDB、漏洞扫描器</td>
+<td>认知 Agent 资产上下文</td>
+</tr>
+<tr>
+<td><strong>响应执行</strong></td>
+<td>防火墙、EDR、SOAR</td>
+<td>执行 Agent 执行能力</td>
+</tr>
+<tr>
+<td><strong>知识管理</strong></td>
+<td>知识图谱、LLM</td>
+<td>学习 Agent 知识沉淀</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="事件到攻击链路分析">08. 事件到攻击链路分析</h2>
+<h3 id="安全事件建模">08.1 安全事件建模</h3>
+<div class="mermaid">graph LR
+    subgraph 安全事件模型
+        direction LR
+        E1["事件ID\nEVT-2026-0531-001"]
+        E2["时间戳\n2026-05-31T10:00:00Z"]
+        E3["类型\nnetwork_connection"]
+        E4["严重度\nhigh"]
+    end
+    
+    subgraph 主体信息
+        direction LR
+        A1["Actor\nIP/用户/资产"]
+        A2["Target\n目标IP/端口/服务"]
+    end
+    
+    subgraph 证据与链路
+        direction LR
+        Ev["Evidence\n异常连接/端口/历史行为"]
+        K["Kill Chain\nT1190/T1059/T1078"]
+    end
+    
+    E1 --> E2 --> E3 --> E4
+    E4 --> A1
+    A1 --> Ev
+    Ev --> K
+    
+    style E1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style E2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style E3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style E4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A1 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style A2 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style Ev fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style K fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px</div><p><strong>事件字段说明：</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>event.id</strong></td>
+<td>事件唯一标识</td>
+<td>EVT-2026-0531-001</td>
+</tr>
+<tr>
+<td><strong>event.type</strong></td>
+<td>事件类型</td>
+<td>network_connection、file_access</td>
+</tr>
+<tr>
+<td><strong>event.severity</strong></td>
+<td>严重程度</td>
+<td>high、medium、low</td>
+</tr>
+<tr>
+<td><strong>actor</strong></td>
+<td>行为主体信息</td>
+<td>IP、用户、资产ID</td>
+</tr>
+<tr>
+<td><strong>target</strong></td>
+<td>目标信息</td>
+<td>目标IP、端口、服务</td>
+</tr>
+<tr>
+<td><strong>evidence</strong></td>
+<td>证据列表</td>
+<td>异常特征、历史行为</td>
+</tr>
+<tr>
+<td><strong>linked_killchain</strong></td>
+<td>关联的 ATT&amp;CK 技术</td>
+<td>T1190、T1059、T1078</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="攻击链重建">08.2 攻击链重建</h3>
+<div class="mermaid">graph LR
+    subgraph 攻击链重建流程
+        direction LR
+        R1["原始事件\n异常连接/非工作时间"]
+        R2["上下文富化\n主机分组/历史标记"]
+        R3["时间线扩展\n攻击步骤时序"]
+        R4["ATT\u0026CK映射\n战术技术映射"]
+        R5["攻击链输出\n完整链路+置信度"]
+    end
+    
+    subgraph 时间线示例
+        direction LR
+        T1["09:00\n钓鱼邮件投递"]
+        T2["09:15\n恶意宏执行"]
+        T3["09:30\n创建后门账户"]
+        T4["10:00\n尝试横向移动"]
+    end
+    
+    R1 --> R2 --> R3 --> R4 --> R5
+    R3 --> T1 --> T2 --> T3 --> T4
+    
+    style R1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style R2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style R3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style R4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style R5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style T1 fill:#fff,stroke:#1565c0
+    style T2 fill:#fff,stroke:#1565c0
+    style T3 fill:#fff,stroke:#1565c0
+    style T4 fill:#fff,stroke:#1565c0</div><p><strong>ATT&amp;CK 映射示例：</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>技术</th>
+<th>战术</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>09:00</td>
+<td><strong>T1566.001</strong>（钓鱼邮件）</td>
+<td>Initial Access</td>
+</tr>
+<tr>
+<td>09:15</td>
+<td><strong>T1059.001</strong>（PowerShell）</td>
+<td>Execution</td>
+</tr>
+<tr>
+<td>09:30</td>
+<td><strong>T1078.004</strong>（账户创建）</td>
+<td>Persistence</td>
+</tr>
+<tr>
+<td>10:00</td>
+<td><strong>T1021</strong>（远程桌面）</td>
+<td>Lateral Movement</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="因果推理机制">08.3 因果推理机制</h3>
+<div class="mermaid">graph TB
+    subgraph 因果推理方法
+        direction TB
+        C1["时序因果\n同一主体+时序相邻=因果关系"]
+        C2["拓扑因果\n同网段/同业务=传播关系"]
+        C3["实体因果\n用户→资产→数据=归属关系"]
+        C4["图推理\nGNN学习正常图结构"]
+    end
+    
+    subgraph 应用场景
+        direction TB
+        A1["攻击步骤还原"]
+        A2["横向移动识别"]
+        A3["影响范围评估"]
+        A4["隐蔽攻击发现"]
+    end
+    
+    C1 --> A1
+    C2 --> A2
+    C3 --> A3
+    C4 --> A4
+    
+    style C1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style C3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A1 fill:#fff,stroke:#1565c0
+    style A2 fill:#fff,stroke:#e65100
+    style A3 fill:#fff,stroke:#2e7d32
+    style A4 fill:#fff,stroke:#c62828</div><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+<th>应用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>时序因果</strong></td>
+<td>同一主体、时序相邻的事件具有因果关系</td>
+<td>攻击步骤还原</td>
+</tr>
+<tr>
+<td><strong>拓扑因果</strong></td>
+<td>同网段/同业务的主机具有传播关系</td>
+<td>横向移动识别</td>
+</tr>
+<tr>
+<td><strong>实体因果</strong></td>
+<td>用户→资产→数据具有归属关系</td>
+<td>影响范围评估</td>
+</tr>
+<tr>
+<td><strong>图推理</strong></td>
+<td>GNN 学习正常图结构，识别异常子图</td>
+<td>隐蔽攻击发现</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="风险传播分析">08.4 风险传播分析</h3>
+<div class="mermaid">graph LR
+    subgraph 风险传播
+        direction LR
+        P1["攻击源\n钓鱼邮件→PC-001"]
+        P2["传播路径1\nPC-001→SMB→SRV-FILE"]
+        P3["传播路径2\nPC-001→RDP→DC-01"]
+        P4["传播路径3\nDC-01→DB访问→DB-ORDER"]
+    end
+    
+    subgraph 影响评估
+        direction LR
+        L1["直接损失\nPC-001用户数据泄露"]
+        L2["间接损失\nSRV-FILE文件被窃取"]
+        L3["严重损失\nDB-ORDER订单数据风险"]
+    end
+    
+    subgraph 风险报告
+        direction LR
+        R["风险报告\n量化损失估算+隔离建议"]
+    end
+    
+    P1 --> P2 --> P3 --> P4
+    P2 --> L1
+    P3 --> L2
+    P4 --> L3
+    L1 --> R
+    L2 --> R
+    L3 --> R
+    
+    style P1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style P2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style L1 fill:#fff,stroke:#1565c0
+    style L2 fill:#fff,stroke:#1565c0
+    style L3 fill:#fff,stroke:#c62828
+    style R fill:#ffcdd2,stroke:#b71c1c,stroke-width:3px</div><div class="mermaid">graph LR
+    subgraph 攻击源
+        direction LR
+        A1["钓鱼邮件"]
+        A2["PC-001\n员工主机"]
+    end
+    
+    subgraph 传播路径
+        direction LR
+        P1["SMB共享"]
+        P2["RDP\n远程桌面"]
+        P3["数据库访问"]
+    end
+    
+    subgraph 目标资产
+        direction LR
+        T1["SRV-FILE-01\n文件服务器"]
+        T2["DC-01\n域控制器"]
+        T3["DB-ORDER\n核心数据库"]
+    end
+    
+    subgraph 影响评估
+        direction LR
+        L1["用户数据泄露"]
+        L2["文件被窃取"]
+        L3["订单数据风险"]
+    end
+    
+    A1 --> A2
+    A2 -->|SMB| P1 --> T1
+    A2 -->|RDP| P2 --> T2
+    P2 -->|DB访问| P3 --> T3
+    
+    T1 --> L1
+    T2 --> L2
+    T3 --> L3
+    
+    style A1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A2 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style P1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style T1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style T2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style T3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L1 fill:#ffcdd2,stroke:#b71c1c
+    style L2 fill:#ffcdd2,stroke:#b71c1c
+    style L3 fill:#ffcdd2,stroke:#b71c1c</div><p><strong>传播路径说明：</strong></p>
+<ol>
+<li><strong>攻击入口</strong> — 钓鱼邮件投递到员工主机（PC-001）</li>
+<li><strong>横向传播</strong> — PC-001 通过 SMB/RDP/数据库访问向其他资产扩散</li>
+<li><strong>目标资产</strong> — 文件服务器、域控制器、核心数据库</li>
+<li><strong>影响评估</strong> — 数据泄露、文件丢失、数据篡改风险</li>
+</ol>
+<hr>
+<h2 id="自动化响应体系soar-增强">09. 自动化响应体系（SOAR 增强）</h2>
+<blockquote>
+<p>AISOC 的自动化响应体系在传统 SOAR 基础上，增加了 AI 驱动的智能决策和自适应学习能力，实现从检测到响应的全流程自动化。</p>
+</blockquote>
+<h3 id="响应策略模型">09.1 响应策略模型</h3>
+<div class="mermaid">graph LR
+    subgraph 响应策略层级
+        direction LR
+        L1["自动执行\n低风险操作\n无人工干预"]
+        L2["人工审批\n中风险操作\n确认后执行"]
+        L3["升级通知\n高风险事件\n人工介入"]
+    end
+    
+    subgraph 响应类型
+        direction LR
+        S1["自动封禁\n恶意IP/域名"]
+        S2["自动隔离\n失陷主机/账号"]
+        S3["人工审批\n高危操作"]
+        S4["升级通知\n重大事件"]
+    end
+    
+    L1 --> S1
+    L1 --> S2
+    L2 --> S3
+    L3 --> S4
+    
+    style L1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L3 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style S1 fill:#e8f5e9,stroke:#2e7d32
+    style S2 fill:#e8f5e9,stroke:#2e7d32
+    style S3 fill:#fce4ec,stroke:#c62828
+    style S4 fill:#fce4ec,stroke:#c62828</div><table>
+<thead>
+<tr>
+<th>策略类型</th>
+<th>触发条件</th>
+<th>响应方式</th>
+<th>执行方式</th>
+<th>风险等级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>自动封禁</strong></td>
+<td>确认恶意 IP/域名</td>
+<td>防火墙 ACL 封禁</td>
+<td>无需审批</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>自动隔离</strong></td>
+<td>确认失陷主机</td>
+<td>EDR 网络隔离</td>
+<td>无需审批</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>自动禁用</strong></td>
+<td>确认账号泄露</td>
+<td>IAM API 禁用</td>
+<td>无需审批</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>人工审批</strong></td>
+<td>高影响/高风险事件</td>
+<td>SOAR 工单审批</td>
+<td>审批通过执行</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>升级通知</strong></td>
+<td>重大安全事件</td>
+<td>实时通知+值班升级</td>
+<td>即时通知</td>
+<td>低</td>
+</tr>
+</tbody></table>
+<p><strong>策略决策树：</strong></p>
+<div class="mermaid">graph TB
+    D1["事件确认"]
+    D2{"风险等级?"}
+    D3["自动执行"]
+    D4{"操作可逆?"}
+    D5["人工审批"]
+    D6["升级通知"]
+    D7["执行并记录"]
+    D8["回滚准备"]
+    
+    D1 --> D2
+    D2 -->|"低风险"| D3
+    D3 --> D4
+    D4 -->|"是"| D7
+    D4 -->|"否"| D5
+    D2 -->|"中风险"| D5
+    D2 -->|"高风险"| D6
+    D5 --> D7
+    D7 --> D8
+    
+    style D1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style D2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style D3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D5 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style D6 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style D7 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style D8 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><hr>
+<h3 id="剧本编排机制">09.2 剧本编排机制</h3>
+<p><strong>剧本核心要素：</strong></p>
+<ol>
+<li><strong>触发条件</strong> — 事件类型 + 置信度阈值 + 时间窗口</li>
+<li><strong>步骤编排</strong> — 顺序执行、条件分支、循环处理</li>
+<li><strong>目标指定</strong> — 变量模板、上下文引用、动态解析</li>
+<li><strong>结果反馈</strong> — 执行状态、日志记录、告警通知</li>
+</ol>
+<div class="mermaid">graph LR
+    subgraph 剧本生命周期
+        direction LR
+        P1["创建\n定义剧本"]
+        P2["测试\n验证逻辑"]
+        P3["部署\n上线运行"]
+        P4["执行\n自动触发"]
+        P5["优化\n持续改进"]
+    end
+    
+    P1 --> P2 --> P3 --> P4 --> P5
+    P5 -.->|反馈| P1
+    
+    style P1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style P4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style P5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><p><strong>常见剧本类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>剧本类型</th>
+<th>触发场景</th>
+<th>核心步骤</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>勒索软件响应</strong></td>
+<td>检测到勒索软件特征</td>
+<td>主机隔离→账号禁用→快照取证→通知团队→创建工单</td>
+</tr>
+<tr>
+<td><strong>钓鱼邮件处置</strong></td>
+<td>钓鱼邮件报告/检测</td>
+<td>邮件分析→链接封锁→账号检查→用户通知→IOC提取</td>
+</tr>
+<tr>
+<td><strong>失陷主机处置</strong></td>
+<td>主机存在恶意行为</td>
+<td>网络隔离→进程终止→账号排查→痕迹提取→修复验证</td>
+</tr>
+<tr>
+<td><strong>数据外泄响应</strong></td>
+<td>异常数据外传</td>
+<td>流量封锁→会话终止→取证分析→影响评估→报告生成</td>
+</tr>
+</tbody></table>
+<p><strong>剧本示例：勒索软件响应</strong></p>
+<div class="mermaid">graph LR
+    subgraph 触发条件
+        direction LR
+        T1["勒索软件指标检测"]
+        T2["置信度 >= 0.8"]
+        T3["触发剧本"]
+    end
+    
+    subgraph 执行步骤
+        direction LR
+        S1["1.隔离主机"]
+        S2["2.禁用账号"]
+        S3["3.备份取证"]
+        S4["4.通知团队"]
+        S5["5.创建工单"]
+        S6["6.阻止横向移动"]
+    end
+    
+    subgraph 响应目标
+        direction LR
+        R1["防止扩散"]
+        R2["保留证据"]
+        R3["快速恢复"]
+    end
+    
+    T1 --> T2 --> T3
+    T3 --> S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    S1 --> R1
+    S3 --> R2
+    S6 --> R3
+    
+    style T1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style T2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style T3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style S1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S5 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S6 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style R1 fill:#fff,stroke:#c62828
+    style R2 fill:#fff,stroke:#1565c0
+    style R3 fill:#fff,stroke:#2e7d32</div><p><strong>剧本配置：</strong></p>
+<pre><code class="language-yaml">playbook: ransomware_response
+name: 勒索软件自动化响应剧本
+version: 1.0
+trigger:
+  condition: &gt;
+    event_type == "ransomware_indicators" AND 
+    confidence &gt;= 0.8
+  description: "当检测到勒索软件特征且置信度≥0.8时触发"
+
+steps:
+  - name: 隔离主机
+    action: network_isolation
+    target: "{{affected_asset}}"
+    timeout: 60s
+    retry: 2
+    
+  - name: 禁用账号
+    action: disable_account
+    target: "{{compromised_user}}"
+    condition: exists(compromised_user)
+    timeout: 30s
+    
+  - name: 备份取证
+    action: forensics_snapshot
+    target: "{{affected_asset}}"
+    timeout: 120s
+    
+  - name: 通知安全团队
+    action: send_notification
+    channel: slack
+    message: &gt;
+      勒索软件告警
+      主机: {{affected_asset}}
+      时间: {{event_timestamp}}
+      已自动隔离
+    priority: critical
+    
+  - name: 创建工单
+    action: create_ticket
+    system: itsm
+    title: "勒索软件事件 - {{affected_asset}}"
+    priority: P1
+    assignee: security_oncall
+    
+  - name: 阻止横向移动
+    action: block_lateral_movement
+    target: "{{affected_asset}}"
+    condition: confidence &gt;= 0.95</code></pre><p><strong>步骤说明：</strong></p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>名称</th>
+<th>动作</th>
+<th>目标</th>
+<th>超时</th>
+<th>重试</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>隔离主机</td>
+<td>network_isolation</td>
+<td>{{affected_asset}}</td>
+<td>60s</td>
+<td>2</td>
+</tr>
+<tr>
+<td>2</td>
+<td>禁用账号</td>
+<td>disable_account</td>
+<td>{{compromised_user}}</td>
+<td>30s</td>
+<td>-</td>
+</tr>
+<tr>
+<td>3</td>
+<td>备份取证</td>
+<td>forensics_snapshot</td>
+<td>{{affected_asset}}</td>
+<td>120s</td>
+<td>-</td>
+</tr>
+<tr>
+<td>4</td>
+<td>通知团队</td>
+<td>send_notification</td>
+<td>security_oncall</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>5</td>
+<td>创建工单</td>
+<td>create_ticket</td>
+<td>itsm</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>6</td>
+<td>阻止横向移动</td>
+<td>block_lateral_movement</td>
+<td>{{affected_asset}}</td>
+<td>30s</td>
+<td>1</td>
+</tr>
+</tbody></table>
+<p><strong>响应目标：</strong></p>
+<ol>
+<li><strong>防止扩散</strong> — 网络隔离 + 账号禁用，切断横向移动路径</li>
+<li><strong>保留证据</strong> — 取证快照，为后续溯源和法律取证提供支持</li>
+<li><strong>快速恢复</strong> — 创建工单，触发应急响应流程，缩短恢复时间</li>
+</ol>
+<hr>
+<h3 id="自动执行链路">09.3 自动执行链路</h3>
+<div class="mermaid">graph LR
+    subgraph 主链路["执行链路"]
+        direction LR
+        E1["决策 Agent\n输出处置方案"]
+        E2["剧本引擎\n解析生成计划"]
+        E3["节点分发\nAPI调用"]
+        E4["执行验证\n状态确认"]
+        E5["结果写入\n知识网络"]
+        E6["学习沉淀\n经验积累"]
+    end
+    
+    subgraph 安全节点["安全执行节点"]
+        direction LR
+        N1["防火墙\nACL管理"]
+        N2["EDR\n终端隔离"]
+        N3["IAM\n账号管理"]
+    end
+    
+    subgraph 日志节点["日志与工单"]
+        direction LR
+        N4["SIEM\n日志记录"]
+        N5["SOAR\n工单管理"]
+    end
+    
+    subgraph 结果["执行结果"]
+        direction LR
+        R1["成功\n完成响应"]
+        R2["失败\n重试/回滚"]
+        R3["超时\n人工介入"]
+    end
+    
+    E1 --> E2 --> E3 --> E4 --> E5 --> E6
+    E3 --> N1 & N2 & N3
+    E2 --> N4 & N5
+    E4 --> R1 & R2 & R3
+    
+    style E1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style E2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style E3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style E4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style E5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style E6 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style 主链路 fill:#fff,stroke:#1565c0,stroke-width:3px
+    style 安全节点 fill:#fff,stroke:#e65100,stroke-width:2px
+    style 日志节点 fill:#fff,stroke:#7b1fa2,stroke-width:2px
+    style 结果 fill:#fff,stroke:#2e7d32,stroke-width:2px
+    style N1 fill:#fff,stroke:#1565c0
+    style N2 fill:#fff,stroke:#e65100
+    style N3 fill:#fff,stroke:#2e7d32
+    style N4 fill:#fff,stroke:#7b1fa2
+    style N5 fill:#fff,stroke:#c62828
+    style R1 fill:#e8f5e9,stroke:#2e7d32
+    style R2 fill:#fff3e0,stroke:#e65100
+    style R3 fill:#fce4ec,stroke:#c62828</div><p><strong>执行节点详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>节点类型</th>
+<th>执行能力</th>
+<th>典型 API</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>防火墙</strong></td>
+<td>ACL 规则添加/删除</td>
+<td>NetScaler API、FortiGate API</td>
+</tr>
+<tr>
+<td><strong>EDR</strong></td>
+<td>终端隔离、进程终止</td>
+<td>CrowdStrike API、Carbon Black API</td>
+</tr>
+<tr>
+<td><strong>IAM</strong></td>
+<td>账号禁用、会话终止</td>
+<td>Azure AD API、Okta API</td>
+</tr>
+<tr>
+<td><strong>SIEM</strong></td>
+<td>日志写入、事件关联</td>
+<td>Splunk API、Elastic API</td>
+</tr>
+<tr>
+<td><strong>SOAR</strong></td>
+<td>工单创建、审批流程</td>
+<td>ServiceNow API、Jira API</td>
+</tr>
+</tbody></table>
+<p><strong>执行状态机：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 执行状态
+        direction LR
+        S1["待执行"]
+        S2["执行中"]
+        S3["成功"]
+        S4["失败"]
+        S5["超时"]
+        S6["回滚中"]
+        S7["已回滚"]
+    end
+    
+    S1 -->|"开始"| S2
+    S2 -->|"完成"| S3
+    S2 -->|"失败"| S4
+    S2 -->|"超时"| S5
+    S4 -->|"重试"| S2
+    S4 -->|"回滚"| S6
+    S5 -->|"人工介入"| S6
+    S6 -->|"完成"| S7
+    
+    style S1 fill:#e3f2fd,stroke:#1565c0
+    style S2 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style S3 fill:#e8f5e9,stroke:#2e7d32
+    style S4 fill:#fce4ec,stroke:#c62828
+    style S5 fill:#fce4ec,stroke:#c62828
+    style S6 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style S7 fill:#e1f5fe,stroke:#01579b</div><hr>
+<h3 id="响应安全与回滚机制">09.4 响应安全与回滚机制</h3>
+<div class="mermaid">graph LR
+    subgraph 安全机制层级
+        direction LR
+        L1["预防\n执行前验证"]
+        L2["监控\n执行中保护"]
+        L3["恢复\n执行后回滚"]
+    end
+    
+    subgraph 核心机制
+        direction LR
+        M1["执行审批\n二次确认"]
+        M2["回滚机制\n状态快照"]
+        M3["执行日志\n完整审计"]
+        M4["超时保护\n自动中止"]
+        M5["限流保护\n防误操作"]
+        M6["灰度执行\n先小后大"]
+    end
+    
+    L1 --> M1 & M6
+    L2 --> M3 & M4 & M5
+    L3 --> M2
+    
+    style L1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M1 fill:#fff,stroke:#1565c0
+    style M2 fill:#fff,stroke:#e65100
+    style M3 fill:#fff,stroke:#2e7d32
+    style M4 fill:#fff,stroke:#c62828
+    style M5 fill:#fff,stroke:#7b1fa2
+    style M6 fill:#fff,stroke:#01579b</div><p><strong>回滚机制详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>说明</th>
+<th>实现方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>执行审批</strong></td>
+<td>高风险操作（删除、隔离）需要二次确认</td>
+<td>短信/邮件/工单审批</td>
+</tr>
+<tr>
+<td><strong>回滚机制</strong></td>
+<td>执行操作前保存系统状态，支持自动回滚</td>
+<td>配置快照、内存镜像</td>
+</tr>
+<tr>
+<td><strong>执行日志</strong></td>
+<td>完整记录所有操作，支持审计追溯</td>
+<td>操作录像、命令日志</td>
+</tr>
+<tr>
+<td><strong>超时保护</strong></td>
+<td>执行超时自动中止并告警</td>
+<td>任务超时监控</td>
+</tr>
+<tr>
+<td><strong>限流保护</strong></td>
+<td>防止误操作导致的频繁封禁</td>
+<td>操作频率限制</td>
+</tr>
+<tr>
+<td><strong>灰度执行</strong></td>
+<td>先小范围验证，成功后全量执行</td>
+<td>渐进式发布</td>
+</tr>
+</tbody></table>
+<p><strong>回滚流程：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 回滚流程
+        direction LR
+        R1["执行前\n保存状态"]
+        R2["执行中\n监控状态"]
+        R3{"异常检测?"}
+        R4["执行回滚\n恢复快照"]
+        R5["结果验证\n确认恢复"]
+        R6["告警通知\n人工介入"]
+    end
+    
+    R1 --> R2 --> R3
+    R3 -->|"正常"| R2
+    R3 -->|"异常"| R4 --> R5 --> R6
+    
+    style R1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style R2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style R3 fill:#fff,stroke:#e65100,stroke-width:3px
+    style R4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style R5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style R6 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><hr>
+<h3 id="aisoc-与传统-soar-对比">09.5 AISOC 与传统 SOAR 对比</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>传统 SOAR</th>
+<th>AISOC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>决策方式</strong></td>
+<td>规则驱动，人工配置</td>
+<td>AI 驱动，自主学习</td>
+</tr>
+<tr>
+<td><strong>响应速度</strong></td>
+<td>分钟级（规则匹配）</td>
+<td>秒级（智能决策）</td>
+</tr>
+<tr>
+<td><strong>适应能力</strong></td>
+<td>需人工更新规则</td>
+<td>自动学习新威胁</td>
+</tr>
+<tr>
+<td><strong>误报率</strong></td>
+<td>较高（规则僵化）</td>
+<td>低（AI 智能研判）</td>
+</tr>
+<tr>
+<td><strong>扩展性</strong></td>
+<td>线性扩展</td>
+<td>弹性扩展</td>
+</tr>
+<tr>
+<td><strong>成本</strong></td>
+<td>人力持续投入</td>
+<td>边际成本递减</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="知识沉淀与持续学习">10. 知识沉淀与持续学习</h2>
+<h3 id="安全知识图谱更新机制">10.1 安全知识图谱更新机制</h3>
+<div class="mermaid">graph LR
+    subgraph 更新类型
+        direction LR
+        U1["增量更新\n新攻击手法发现"]
+        U2["关联更新\n新攻击案例"]
+        U3["纠正更新\n误报事件"]
+        U4["淘汰更新\n过时情报"]
+    end
+    
+    subgraph 更新内容
+        direction LR
+        C1["新增 ATT\u0026CK TTP 节点"]
+        C2["补充攻击链关系"]
+        C3["修正错误实体关系"]
+        C4["标记过期节点"]
+    end
+    
+    U1 --> C1
+    U2 --> C2
+    U3 --> C3
+    U4 --> C4
+    
+    style U1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style U2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style U3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style U4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style C1 fill:#fff,stroke:#1565c0
+    style C2 fill:#fff,stroke:#e65100
+    style C3 fill:#fff,stroke:#2e7d32
+    style C4 fill:#fff,stroke:#c62828</div><table>
+<thead>
+<tr>
+<th>更新类型</th>
+<th>触发条件</th>
+<th>更新内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>增量更新</strong></td>
+<td>新攻击手法发现</td>
+<td>新增 ATT&amp;CK TTP 节点</td>
+</tr>
+<tr>
+<td><strong>关联更新</strong></td>
+<td>新攻击案例</td>
+<td>补充攻击链关系</td>
+</tr>
+<tr>
+<td><strong>纠正更新</strong></td>
+<td>误报事件</td>
+<td>修正错误实体关系</td>
+</tr>
+<tr>
+<td><strong>淘汰更新</strong></td>
+<td>过时情报</td>
+<td>标记过期节点</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="攻击模式归纳">10.2 攻击模式归纳</h3>
+<div class="mermaid">graph LR
+    subgraph 原始案例
+        direction LR
+        O1["钓鱼邮件获取凭证"]
+        O2["登录 VPN 进入内网"]
+        O3["内网扫描发现文件服务器"]
+        O4["SMB 横向移动"]
+        O5["窃取机密文件"]
+    end
+    
+    subgraph ATTCK映射
+        direction LR
+        A1["T1566.001\n钓鱼邮件"]
+        A2["T1078.004\n账号利用"]
+        A3["T1046\n网络发现"]
+        A4["T1021.002\nSMB横向移动"]
+        A5["T1005\n数据收集"]
+    end
+    
+    subgraph 知识沉淀
+        direction LR
+        K1["新增攻击模式节点"]
+        K2["3 条关系边"]
+    end
+    
+    O1 --> O2 --> O3 --> O4 --> O5
+    O1 --> A1
+    O2 --> A2
+    O3 --> A3
+    O4 --> A4
+    O5 --> A5
+    A1 --> K1
+    A4 --> K2
+    
+    style O1 fill:#fff,stroke:#c62828
+    style O2 fill:#fff,stroke:#e65100
+    style O3 fill:#fff,stroke:#2e7d32
+    style O4 fill:#fff,stroke:#1565c0
+    style O5 fill:#fff,stroke:#7b1fa2
+    style A1 fill:#ffcdd2,stroke:#c62828
+    style A2 fill:#ffcdd2,stroke:#c62828
+    style A3 fill:#ffcdd2,stroke:#c62828
+    style A4 fill:#ffcdd2,stroke:#c62828
+    style A5 fill:#ffcdd2,stroke:#c62828
+    style K1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style K2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px</div><p><strong>攻击模式示例：</strong></p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>原始行为</th>
+<th>ATT&amp;CK 技术</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>钓鱼邮件获取员工凭证</td>
+<td>T1566.001（钓鱼邮件）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>使用凭证登录 VPN</td>
+<td>T1078.004（账号利用）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>内网扫描发现文件服务器</td>
+<td>T1046（网络发现）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>使用 SMB 横向移动</td>
+<td>T1021.002（SMB横向移动）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>窃取机密文件</td>
+<td>T1005（数据从系统收集）</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="策略优化与反馈学习">10.3 策略优化与反馈学习</h3>
+<div class="mermaid">graph LR
+    subgraph 学习闭环
+        direction LR
+        L1["事件处置结果"]
+        L2["评估决策质量"]
+        L3["更新模型参数"]
+        L4["优化策略规则"]
+        L5["下一次决策质量提升"]
+    end
+    
+    subgraph 评估维度
+        direction LR
+        E1["策略有效性"]
+        E2["响应时机"]
+        E3["资源利用率"]
+    end
+    
+    L1 --> L2
+    L2 --> E1
+    L2 --> E2
+    L2 --> E3
+    E1 --> L3
+    E2 --> L3
+    E3 --> L3
+    L3 --> L4 --> L5
+    L5 -.->|闭环| L1
+    
+    style L1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style L5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style E1 fill:#fff,stroke:#1565c0
+    style E2 fill:#fff,stroke:#e65100
+    style E3 fill:#fff,stroke:#2e7d32</div><hr>
+<h3 id="组织级安全记忆体系">10.4 组织级安全记忆体系</h3>
+<div class="mermaid">graph TB
+    subgraph 组织安全记忆
+        direction TB
+        M1["案例库\n历史事件处置过程"]
+        M2["手法库\n已发现攻击手法TTP"]
+        M3["剧本库\n成熟处置剧本"]
+        M4["知识库\n安全领域专业知识"]
+        M5["模型库\n检测/预测模型"]
+    end
+    
+    subgraph 应用场景
+        direction TB
+        A1["相似事件参考"]
+        A2["检测规则生成"]
+        A3["自动化响应"]
+        A4["AI 推理辅助"]
+        A5["实时检测"]
+    end
+    
+    M1 --> A1
+    M2 --> A2
+    M3 --> A3
+    M4 --> A4
+    M5 --> A5
+    
+    style M1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style M2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style M3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style M5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style A1 fill:#fff,stroke:#1565c0
+    style A2 fill:#fff,stroke:#e65100
+    style A3 fill:#fff,stroke:#2e7d32
+    style A4 fill:#fff,stroke:#c62828
+    style A5 fill:#fff,stroke:#7b1fa2</div><table>
+<thead>
+<tr>
+<th>层级</th>
+<th>内容</th>
+<th>应用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>案例库</strong></td>
+<td>历史安全事件及处置过程</td>
+<td>相似事件参考</td>
+</tr>
+<tr>
+<td><strong>手法库</strong></td>
+<td>已发现的攻击手法 TTP</td>
+<td>检测规则生成</td>
+</tr>
+<tr>
+<td><strong>剧本库</strong></td>
+<td>成熟的处置剧本</td>
+<td>自动化响应</td>
+</tr>
+<tr>
+<td><strong>知识库</strong></td>
+<td>安全领域常识和专业知识</td>
+<td>AI 推理辅助</td>
+</tr>
+<tr>
+<td><strong>模型库</strong></td>
+<td>训练好的检测/预测模型</td>
+<td>实时检测</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="关键指标体系slo-kpi">11. 关键指标体系（SLO / KPI）</h2>
+<h3 id="发现效率指标mttd">11.1 发现效率指标（MTTD）</h3>
+<div class="mermaid">graph LR
+    subgraph MTTD["MTTD 发现效率"]
+        direction LR
+        A1["攻击发生"]
+        A2["系统发现"]
+        A3["MTTD\n< 1 分钟"]
+    end
+    
+    A1 --> A2 --> A3
+    
+    style A1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style A3 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px</div><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>全称</th>
+<th>定义</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MTTD</strong></td>
+<td>Mean Time To Detect</td>
+<td>从攻击发生到系统发现的时间</td>
+<td>&lt; 1 分钟</td>
+</tr>
+</tbody></table>
+<p><strong>计算方式：</strong> 所有已确认攻击事件的发现时间平均值</p>
+<hr>
+<h3 id="研判效率指标mtti">11.2 研判效率指标（MTTI）</h3>
+<div class="mermaid">graph LR
+    subgraph MTTI["MTTI 研判效率"]
+        direction LR
+        B1["系统发现"]
+        B2["事件定性\nAI+分析师"]
+        B3["MTTI\n< 5 分钟"]
+    end
+    
+    B1 --> B2 --> B3
+    
+    style B1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style B2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style B3 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px</div><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>全称</th>
+<th>定义</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MTTI</strong></td>
+<td>Mean Time To Investigate</td>
+<td>从发现到完成事件定性分析的时间</td>
+<td>&lt; 5 分钟</td>
+</tr>
+</tbody></table>
+<p><strong>计算方式：</strong> AI 自动研判 + 分析师复核的综合时间</p>
+<hr>
+<h3 id="响应效率指标mttr">11.3 响应效率指标（MTTR）</h3>
+<div class="mermaid">graph LR
+    subgraph MTTR["MTTR 响应效率"]
+        direction LR
+        C1["确认事件"]
+        C2["响应处置\n自动+人工"]
+        C3["MTTR\n< 10 分钟"]
+    end
+    
+    C1 --> C2 --> C3
+    
+    style C1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style C2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style C3 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px</div><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>全称</th>
+<th>定义</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MTTR</strong></td>
+<td>Mean Time To Respond</td>
+<td>从确认事件到完成响应的处置时间</td>
+<td>&lt; 10 分钟</td>
+</tr>
+</tbody></table>
+<p><strong>计算方式：</strong> 包含自动响应和人工审批的端到端时间</p>
+<hr>
+<h3 id="闭环效率指标mttc">11.4 闭环效率指标（MTTC）</h3>
+<div class="mermaid">graph LR
+    subgraph MTTC["MTTC 闭环效率"]
+        direction LR
+        D1["发现"]
+        D2["处置"]
+        D3["复盘报告"]
+        D4["经验沉淀"]
+        D5["MTTC\n< 30 分钟"]
+    end
+    
+    D1 --> D2 --> D3 --> D4 --> D5
+    
+    style D1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style D2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style D3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D4 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style D5 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px</div><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>全称</th>
+<th>定义</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MTTC</strong></td>
+<td>Mean Time To Close</td>
+<td>从发现到事件完全关闭的时间</td>
+<td>&lt; 30 分钟</td>
+</tr>
+</tbody></table>
+<p><strong>计算方式：</strong> 包括事后复盘、处置报告、经验沉淀</p>
+<hr>
+<h3 id="学习时延指标ttl">11.5 学习时延指标（TTL）</h3>
+<div class="mermaid">graph LR
+    subgraph TTL["TTL 学习时延"]
+        direction LR
+        E1["新攻击出现"]
+        E2["知识学习\n模型更新"]
+        E3["实时检测\n能力上线"]
+    end
+    
+    E1 --> E2 --> E3
+    E3 -.->|持续| E2
+    
+    style E1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style E2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style E3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px</div><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>全称</th>
+<th>定义</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>TTL</strong></td>
+<td>Time To Learning</td>
+<td>从新攻击出现到系统学会检测的时间</td>
+<td>实时</td>
+</tr>
+</tbody></table>
+<p><strong>计算方式：</strong> 知识网络从新案例中学习并更新模型的时间</p>
+<hr>
+<h3 id="指标体系全景">11.6 指标体系全景</h3>
+<div class="mermaid">graph LR
+    subgraph 安全运营全流程
+        direction LR
+        F1["MTTD\n发现"]
+        F2["MTTI\n研判"]
+        F3["MTTR\n响应"]
+        F4["MTTC\n闭环"]
+        F5["TTL\n学习"]
+    end
+    
+    F1 --> F2 --> F3 --> F4 --> F5
+    F5 -.->|进化| F1
+    
+    style F1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style F2 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style F3 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style F4 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style F5 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px</div><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>阶段</th>
+<th>目标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MTTD</strong></td>
+<td>发现</td>
+<td>&lt; 1 分钟</td>
+<td>从攻击发生到系统发现</td>
+</tr>
+<tr>
+<td><strong>MTTI</strong></td>
+<td>研判</td>
+<td>&lt; 5 分钟</td>
+<td>从发现到完成定性分析</td>
+</tr>
+<tr>
+<td><strong>MTTR</strong></td>
+<td>响应</td>
+<td>&lt; 10 分钟</td>
+<td>从确认到完成响应处置</td>
+</tr>
+<tr>
+<td><strong>MTTC</strong></td>
+<td>闭环</td>
+<td>&lt; 30 分钟</td>
+<td>从发现到事件完全关闭</td>
+</tr>
+<tr>
+<td><strong>TTL</strong></td>
+<td>学习</td>
+<td>实时</td>
+<td>新攻击到能力上线</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="价值体系与商业化能力">12. 价值体系与商业化能力</h2>
+<h3 id="安全运营效率提升">12.1 安全运营效率提升</h3>
+<div class="mermaid">graph LR
+    subgraph 效率对比
+        direction LR
+        V1["传统 SOC\n1,000 告警/天"]
+        V2["AISOC\n100,000+ 告警/天"]
+        V3["提升 100x"]
+        
+        V1 --> V3
+        V2 --> V3
+    end
+    
+    subgraph 成本对比
+        direction LR
+        C1["传统 SOC\n5人团队"]
+        C2["AISOC\n1人监督"]
+        C3["人力减少 80%"]
+        
+        C1 --> C3
+        C2 --> C3
+    end
+    
+    subgraph 响应对比
+        direction LR
+        R1["传统 SOC\n30min"]
+        R2["AISOC\n< 10min"]
+        R3["响应加快 3x"]
+        
+        R1 --> R3
+        R2 --> R3
+    end
+    
+    style V1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style V2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style V3 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style C1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style C2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C3 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style R1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style R2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style R3 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px</div><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>传统 SOC</th>
+<th>AISOC</th>
+<th>提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>告警处理量</strong></td>
+<td>1,000/天</td>
+<td>100,000+/天</td>
+<td>100x</td>
+</tr>
+<tr>
+<td><strong>人力投入</strong></td>
+<td>5人 SOC团队</td>
+<td>1人监督</td>
+<td>-80%</td>
+</tr>
+<tr>
+<td><strong>响应时间</strong></td>
+<td>30min</td>
+<td>&lt; 10min</td>
+<td>3x</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="风险控制能力提升">12.2 风险控制能力提升</h3>
+<div class="mermaid">graph LR
+    subgraph 检测能力
+        direction LR
+        D1["误报率"]
+        D2["漏报率"]
+        D3["检测覆盖率"]
+    end
+    
+    subgraph 传统 SOC
+        direction LR
+        T1["70%+"]
+        T2["30%+"]
+        T3["60%"]
+    end
+    
+    subgraph AISOC
+        direction LR
+        A1["< 10%"]
+        A2["< 5%"]
+        A3["95%+"]
+    end
+    
+    D1 --> T1 & A1
+    D2 --> T2 & A2
+    D3 --> T3 & A3
+    
+    style T1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style T2 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style T3 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style A2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style A3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px</div><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>传统 SOC</th>
+<th>AISOC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>误报率</strong></td>
+<td>70%+</td>
+<td>&lt; 10%</td>
+</tr>
+<tr>
+<td><strong>漏报率</strong></td>
+<td>30%+</td>
+<td>&lt; 5%</td>
+</tr>
+<tr>
+<td><strong>检测覆盖率</strong></td>
+<td>60%</td>
+<td>95%+</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="人力替代与扩展性">12.3 人力替代与扩展性</h3>
+<div class="mermaid">graph TB
+    subgraph 扩展性对比
+        direction TB
+        E1["传统 SOC\n线性扩展"]
+        E2["增加人力\n成本线性增长"]
+        E3["能力依赖个人"]
+    end
+    
+    subgraph AISOC
+        direction TB
+        A1["AISOC\n弹性扩展"]
+        A2["增加 Agent\n边际成本递减"]
+        A3["能力标准化"]
+    end
+    
+    E1 --> E2 --> E3
+    A1 --> A2 --> A3
+    
+    style E1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style E2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style E3 fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style A1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style A2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A3 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px</div><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>传统 SOC</th>
+<th>AISOC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>扩展方式</strong></td>
+<td>增加人力（线性）</td>
+<td>增加 Agent（弹性）</td>
+</tr>
+<tr>
+<td><strong>成本模型</strong></td>
+<td>人力成本线性增长</td>
+<td>边际成本递减</td>
+</tr>
+<tr>
+<td><strong>能力一致性</strong></td>
+<td>依赖个人能力</td>
+<td>能力标准化</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="企业安全能力资产化">12.4 企业安全能力资产化</h3>
+<div class="mermaid">graph LR
+    subgraph 四大资产
+        direction LR
+        K1["知识资产\n安全知识图谱"]
+        K2["剧本资产\n可复用处置库"]
+        K3["模型资产\n检测/预测模型"]
+        K4["案例资产\n历史事件库"]
+    end
+    
+    subgraph 价值转化
+        direction LR
+        V1["数据收集"]
+        V2["知识沉淀"]
+        V3["能力复用"]
+        V4["价值输出"]
+    end
+    
+    K1 --> V1
+    K2 --> V2
+    K3 --> V3
+    K4 --> V4
+    
+    style K1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style K2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style K3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style K4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style V1 fill:#fff,stroke:#1565c0
+    style V2 fill:#fff,stroke:#e65100
+    style V3 fill:#fff,stroke:#2e7d32
+    style V4 fill:#fff,stroke:#c62828</div><table>
+<thead>
+<tr>
+<th>资产类型</th>
+<th>说明</th>
+<th>价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>知识资产</strong></td>
+<td>安全知识图谱，组织级安全记忆</td>
+<td>可传承、可复用</td>
+</tr>
+<tr>
+<td><strong>剧本资产</strong></td>
+<td>可复用的处置剧本库</td>
+<td>标准化、可扩展</td>
+</tr>
+<tr>
+<td><strong>模型资产</strong></td>
+<td>检测模型、预测模型</td>
+<td>持续优化、精度提升</td>
+</tr>
+<tr>
+<td><strong>案例资产</strong></td>
+<td>历史安全事件案例库</td>
+<td>经验积累、风险预测</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="商业价值模型">12.5 商业价值模型</h3>
+<div class="mermaid">graph LR
+    subgraph 成本节约
+        direction LR
+        C1["人力成本\n-80%"]
+        C2["培训成本\n-60%"]
+        C3["响应成本\n-70%"]
+    end
+    
+    subgraph 效率提升
+        direction LR
+        E1["处理量\n+100x"]
+        E2["响应速度\n+3x"]
+        E3["检测精度\n+95%"]
+    end
+    
+    subgraph ROI
+        direction LR
+        R1["投资回报率\n> 300%"]
+        R2["一年回本"]
+        R3["持续增值"]
+    end
+    
+    C1 & C2 & C3 --> R1
+    E1 & E2 & E3 --> R2
+    R1 --> R3
+    
+    style C1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style C2 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style C3 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style E1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style E2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style E3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style R1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style R2 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style R3 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px</div><table>
+<thead>
+<tr>
+<th>商业维度</th>
+<th>价值说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>成本节约</strong></td>
+<td>人力成本减少 80%，培训成本减少 60%，响应成本减少 70%</td>
+</tr>
+<tr>
+<td><strong>效率提升</strong></td>
+<td>告警处理量提升 100 倍，响应速度提升 3 倍</td>
+</tr>
+<tr>
+<td><strong>精度提升</strong></td>
+<td>误报率降低至 10% 以下，漏报率降低至 5% 以下</td>
+</tr>
+<tr>
+<td><strong>投资回报</strong></td>
+<td>ROI 超过 300%，一年回本，持续增值</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="总体总结与系统定义">13. 总体总结与系统定义</h2>
+<h3 id="aisoc-本质定义">13.1 AISOC 本质定义</h3>
+<blockquote>
+<p><strong>AISOC（AI Security Operations Center）</strong> 是一种以 <strong>AI Agent</strong> 为核心执行单元、以 <strong>安全认知网络</strong> 为核心大脑、以 <strong>自动化响应</strong> 为核心行动能力、以 <strong>持续进化</strong> 为核心目标的新一代 <strong>AI 原生安全运营中心</strong>。</p>
+</blockquote>
+<div class="mermaid">graph LR
+    subgraph AISOC核心
+        direction LR
+        A1["AI Agent\n核心执行单元"]
+        A2["安全认知网络\n核心大脑"]
+        A3["自动化响应\n核心行动能力"]
+        A4["持续进化\n核心目标"]
+    end
+    
+    subgraph 输出
+        direction LR
+        O1["攻击解释"]
+        O2["风险判断"]
+        O3["行动决策"]
+        O4["执行结果"]
+    end
+    
+    A1 --> O1 & O2 & O3 & O4
+    A2 --> O1 & O2 & O3 & O4
+    A3 --> O1 & O2 & O3 & O4
+    A4 --> O1 & O2 & O3 & O4
+    
+    style A1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style A2 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style A3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style A4 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style O1 fill:#fff,stroke:#1565c0
+    style O2 fill:#fff,stroke:#1565c0
+    style O3 fill:#fff,stroke:#1565c0
+    style O4 fill:#fff,stroke:#1565c0</div><p><strong>核心本质：</strong></p>
+<ul>
+<li>不是把 AI 当工具用，而是让 AI Agent 成为安全运营的主体</li>
+<li>不是输出告警，而是输出攻击解释 + 风险判断 + 行动决策 + 执行结果</li>
+<li>不是一次分析，而是形成组织级安全记忆，持续进化</li>
+</ul>
+<hr>
+<h3 id="系统能力边界">13.2 系统能力边界</h3>
+<div class="mermaid">graph TB
+    subgraph 覆盖范围
+        direction TB
+        C1["网络安全"]
+        C2["主机安全"]
+        C3["应用安全"]
+        C4["数据安全"]
+        C5["身份安全"]
+    end
+    
+    subgraph 智能化水平
+        direction TB
+        I1["感知\n自动检测"]
+        I2["认知\n上下文理解"]
+        I3["推理\n因果分析"]
+        I4["决策\n策略生成"]
+        I5["执行\n自动响应"]
+    end
+    
+    subgraph 适用规模
+        direction TB
+        S1["大型企业\n1000+ 终端"]
+        S2["中型企业\n500-1000 终端"]
+    end
+    
+    C1 & C2 & C3 & C4 & C5 --> I1 --> I2 --> I3 --> I4 --> I5
+    I5 --> S1 & S2
+    
+    style C1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style C3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style C5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style I1 fill:#fff,stroke:#1565c0
+    style I2 fill:#fff,stroke:#1565c0
+    style I3 fill:#fff,stroke:#1565c0
+    style I4 fill:#fff,stroke:#1565c0
+    style I5 fill:#fff,stroke:#1565c0,stroke-width:3px
+    style S1 fill:#e3f2fd,stroke:#1565c0
+    style S2 fill:#e3f2fd,stroke:#1565c0</div><table>
+<thead>
+<tr>
+<th>能力范围</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>覆盖范围</strong></td>
+<td>网络安全、主机安全、应用安全、数据安全、身份安全</td>
+</tr>
+<tr>
+<td><strong>智能化水平</strong></td>
+<td>完全自主感知→认知→推理→决策，部分场景自动执行</td>
+</tr>
+<tr>
+<td><strong>适用规模</strong></td>
+<td>中大型企业（1000+ 终端）</td>
+</tr>
+<tr>
+<td><strong>集成能力</strong></td>
+<td>支持主流安全产品 API 集成</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="下一代安全系统演进方向">13.3 下一代安全系统演进方向</h3>
+<div class="mermaid">graph LR
+    subgraph 演进阶段
+        direction LR
+        E1["当前：AI 辅助\n安全分析师 + AI 工具"]
+        E2["近期：AI Agent\nAI Agent 承担核心执行"]
+        E3["远期：自主安全\n完全自主的 AI 安全运营"]
+    end
+    
+    subgraph 特征
+        direction LR
+        F1["辅助工具"]
+        F2["核心执行"]
+        F3["持续进化"]
+    end
+    
+    subgraph 目标
+        direction LR
+        G1["效率提升"]
+        G2["成本降低"]
+        G3["数字安全专家"]
+    end
+    
+    E1 --> F1 --> G1
+    E2 --> F2 --> G2
+    E3 --> F3 --> G3
+    
+    style E1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style E2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style E3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style F1 fill:#fff,stroke:#1565c0
+    style F2 fill:#fff,stroke:#e65100
+    style F3 fill:#fff,stroke:#2e7d32,stroke-width:2px
+    style G1 fill:#fff,stroke:#1565c0
+    style G2 fill:#fff,stroke:#e65100
+    style G3 fill:#fff,stroke:#2e7d32,stroke-width:2px</div><p><strong>演进路径：</strong></p>
+<pre><code>当前：AI 辅助安全运营
+  → 安全分析师 + AI 工具协作
+
+近期：AI Agent 安全运营
+  → AI Agent 承担核心执行，分析师转型监督
+
+远期：自主安全运营
+  → 完全自主的 AI 安全运营中心
+  → 持续自我优化、自我进化
+  → 趋近"数字安全运营专家"目标</code></pre><hr>
+<h3 id="aisoc-价值矩阵">13.4 AISOC 价值矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>用户价值</th>
+<th>商业价值</th>
+<th>技术价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>效率</strong></td>
+<td>告警处理量提升 100x</td>
+<td>ROI &gt; 300%</td>
+<td>自动化程度提升</td>
+</tr>
+<tr>
+<td><strong>效果</strong></td>
+<td>误报率 &lt; 10%，漏报率 &lt; 5%</td>
+<td>客户满意度提升</td>
+<td>检测精度提升</td>
+</tr>
+<tr>
+<td><strong>成本</strong></td>
+<td>人力成本减少 80%</td>
+<td>边际成本递减</td>
+<td>资源利用率提升</td>
+</tr>
+<tr>
+<td><strong>进化</strong></td>
+<td>持续学习新威胁</td>
+<td>可持续竞争优势</td>
+<td>技术领先性</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="总结">13.5 总结</h3>
+<p><strong>AISOC = AI Agent + 安全认知网络 + 自动化响应 + 持续进化</strong></p>
+<ul>
+<li><strong>AI Agent</strong>：从辅助工具到核心执行单元</li>
+<li><strong>安全认知网络</strong>：从数据到知识到智能</li>
+<li><strong>自动化响应</strong>：从规则驱动到 AI 驱动</li>
+<li><strong>持续进化</strong>：从被动响应到主动预防</li>
+</ul>
+<hr>
+<p><strong>下一步：<a href="../02-process/01-data-fusion.html">Step 1 - 安全数据融合 →</a></strong></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

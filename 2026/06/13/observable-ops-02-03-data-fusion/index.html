@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Observable Ops — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/06/13/observable-ops-02-03-data-fusion/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Observable Ops — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Observable Ops 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-13T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/06/13/observable-ops-02-03-data-fusion/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 03 · 数据融合 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/06/13/observable-ops-02-03-data-fusion/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 03 · 数据融合
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-ops/" itemprop="url" rel="index"><span
+                          itemprop="name">Observable Ops</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+        <h1>模块 03 · 数据融合</h1>
+<blockquote>
+<p>数据融合是 Observable Ops 的「数据中枢」——将来自采集层的原始指标、日志、追踪、事件进行统一建模、质量治理与融合输出，为智能感知、认知网络、故障研判等能力模块提供高质量、一致性的数据底座。</p>
+</blockquote>
+<hr>
+<h2>1. 模块定位与职责</h2>
+<h3>1.1 在 4 层架构中的位置</h3>
+<p>数据融合属于<strong>数据层</strong>核心模块，位于采集层与能力层之间：接收采集层的原始数据，输出经过融合的高质量数据给能力层各模块使用。</p>
+<div class="mermaid">flowchart LR
+    subgraph 采集层["采集层 Collection Layer"]
+        C1[CMDB 采集器]
+        C2[Prometheus]
+        C3[APM Agent]
+        C4[Log Agent]
+        C5[Fluent Bit]
+    end
+
+    subgraph 数据层["数据层 Data Layer"]
+        FUS[03 数据融合
+Data Fusion]
+        D3[02 拓扑建模]
+    end
+
+    subgraph 能力层["能力层 Capability Layer"]
+        A4[04 智能感知]
+        A5[05 认知网络]
+        A6[06 故障研判]
+        A11[11 知识进化]
+    end
+
+    C1 -->|CMDB 数据| FUS
+    C2 -->|Metrics| FUS
+    C3 -->|Traces| FUS
+    C4 -->|Logs| FUS
+    C5 -->|Events| FUS
+    D3 -->|拓扑上下文
+Entity Anchor| FUS
+    FUS -->|融合事件
+Fused Events| A4
+    FUS -->|实体快照
+Entity Snapshots| A5
+    FUS -->|融合指标
+Fused Metrics| A6
+    FUS -->|历史数据| A11
+
+    style FUS fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style 采集层 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 数据层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 能力层 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px</div><h3>1.2 核心职责</h3>
+<table>
+<thead>
+<tr>
+<th>职责</th>
+<th>描述</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>统一数据建模</strong></td>
+<td>将指标、日志、追踪、事件四类异构数据统一为同一 Schema，支持跨类型关联查询</td>
+<td>统一事件模型</td>
+</tr>
+<tr>
+<td><strong>多源数据接入</strong></td>
+<td>接入 CMDB / K8s / APM / Log Agent / 自定义 Exporter 等多数据源</td>
+<td>标准化原始数据</td>
+</tr>
+<tr>
+<td><strong>数据质量治理</strong></td>
+<td>完整性检查、新鲜度检查、一致性检查、异常值检测</td>
+<td>质量报告 + 清洗数据</td>
+</tr>
+<tr>
+<td><strong>实体对齐</strong></td>
+<td>跨数据源的同一实体（服务/主机/数据库）进行 ID 映射与消歧</td>
+<td>Canonical ID 映射表</td>
+</tr>
+<tr>
+<td><strong>冲突解决</strong></td>
+<td>多数据源对同一实体给出矛盾数据时，按优先级自动裁定</td>
+<td>融合后单一数据</td>
+</tr>
+<tr>
+<td><strong>时序数据存储</strong></td>
+<td>高性能时序存储（Elasticsearch + InfluxDB），支持高速写入与查询</td>
+<td>时序索引</td>
+</tr>
+</tbody></table>
+<h3>1.3 核心设计原则</h3>
+<div class="mermaid">flowchart LR
+    P1[Schema First
+模型先行] --> P2[Event Driven
+事件驱动]
+    P2 --> P3[Quality Gated
+质量门禁]
+    P3 --> P4[Enrichment Loop
+持续富化]
+    P4 -.-> P1
+    style P1 fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style P2 fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style P3 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style P4 fill:#e8f5e9,stroke:#388e3c,stroke-width:3px</div><ul>
+<li><strong>模型先行（Schema First）</strong>：所有数据必须符合统一 Schema，禁止裸数据进入融合管道</li>
+<li><strong>事件驱动（Event Driven）</strong>：数据流动通过 Kafka 事件驱动，避免同步批处理延迟</li>
+<li><strong>质量门禁（Quality Gated）</strong>：数据质量不达标时拒绝写入，并触发告警</li>
+<li><strong>持续富化（Enrichment Loop）</strong>：融合数据持续与拓扑上下文关联，持续提升数据价值</li>
+</ul>
+<h3>1.4 子模块划分</h3>
+<table>
+<thead>
+<tr>
+<th>子模块</th>
+<th>职责</th>
+<th>技术选型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Adapters 数据源适配器</td>
+<td>多协议多格式数据接入（Prometheus / OTLP / HTTP / Kafka）</td>
+<td>Flink CDC / Python Connector</td>
+</tr>
+<tr>
+<td>Stream 流处理引擎</td>
+<td>Kafka → Flink 实时流处理，数据清洗与转换</td>
+<td>Apache Flink</td>
+</tr>
+<tr>
+<td>Validator 数据质量验证</td>
+<td>完整性/新鲜度/一致性/异常值检测</td>
+<td>Flink SQL / Python</td>
+</tr>
+<tr>
+<td>Resolver 实体对齐器</td>
+<td>跨数据源实体 ID 映射，Canonical ID 生成</td>
+<td>Python / Redis Hash</td>
+</tr>
+<tr>
+<td>Store 时序存储引擎</td>
+<td>Elasticsearch 存储融合事件，InfluxDB 存储指标</td>
+<td>Elasticsearch / InfluxDB</td>
+</tr>
+<tr>
+<td>Enricher 上下文富化器</td>
+<td>融合数据与拓扑上下文关联，补充实体标签</td>
+<td>Flink / Python</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 数据模型设计</h2>
+<h3>2.1 统一事件模型（Unified Event Schema）</h3>
+<p>数据融合的核心是统一事件模型，将指标（Metric）、日志（Log）、追踪（Trace）、告警（Alert）四种数据类型统一为同一个事件 Schema，通过 <code>event_type</code> 字段区分类型。</p>
+<h4>2.1.1 统一事件字段定义</h4>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>event_id</code></td>
+<td>String (UUID)</td>
+<td>全局唯一事件 ID</td>
+<td><code>evt-20260607-001234</code></td>
+</tr>
+<tr>
+<td><code>event_type</code></td>
+<td>Enum</td>
+<td>事件类型：metric / log / trace / alert / heartbeat</td>
+<td><code>metric</code></td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td>Timestamp (ms)</td>
+<td>事件发生时间</td>
+<td><code>1750000000000</code></td>
+</tr>
+<tr>
+<td><code>canonical_entity_id</code></td>
+<td>String</td>
+<td>融合后统一实体 ID（来自拓扑建模）</td>
+<td><code>svc-payment-prod</code></td>
+</tr>
+<tr>
+<td><code>source_entity_id</code></td>
+<td>String</td>
+<td>原始数据源中的实体 ID</td>
+<td><code>pod-nginx-42</code></td>
+</tr>
+<tr>
+<td><code>metric_name</code></td>
+<td>String</td>
+<td>指标名（仅 metric 类型）</td>
+<td><code>cpu_usage_percent</code></td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>Float / String</td>
+<td>指标值或日志内容</td>
+<td><code>85.6</code></td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>String</td>
+<td>数据来源系统</td>
+<td><code>prometheus</code>, <code>jaeger</code>, <code>elk</code></td>
+</tr>
+<tr>
+<td><code>confidence</code></td>
+<td>Float [0-1]</td>
+<td>数据可信度（ML 融合结果）</td>
+<td><code>0.95</code></td>
+</tr>
+<tr>
+<td><code>labels</code></td>
+<td>Map&lt;String, String&gt;</td>
+<td>标签集合（来自拓扑的 labels + 动态标签）</td>
+<td><code>{&quot;cluster&quot;:&quot;prod&quot;, &quot;region&quot;:&quot;us-east&quot;}</code></td>
+</tr>
+<tr>
+<td><code>raw_payload</code></td>
+<td>JSON String</td>
+<td>原始数据快照（用于审计）</td>
+<td><code>{&quot;original_field&quot;: &quot;...&quot;}</code></td>
+</tr>
+<tr>
+<td><code>quality_score</code></td>
+<td>Float [0-1]</td>
+<td>质量评分（完整性/新鲜度/一致性综合）</td>
+<td><code>0.88</code></td>
+</tr>
+</tbody></table>
+<h3>2.2 时序存储模型</h3>
+<h4>2.2.1 指标时序模型（InfluxDB）</h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>说明</th>
+<th>Tag（索引）</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>time</code></td>
+<td>时间戳（UTC）</td>
+<td>——</td>
+<td>主键</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>指标浮点值</td>
+<td>——</td>
+<td>Floats</td>
+</tr>
+<tr>
+<td><code>entity_id</code></td>
+<td>Canonical 实体 ID</td>
+<td>索引</td>
+<td>查询维度</td>
+</tr>
+<tr>
+<td><code>metric_name</code></td>
+<td>指标名称</td>
+<td>索引</td>
+<td>查询维度</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>数据来源</td>
+<td>索引</td>
+<td>Prometheus / K8s / APM</td>
+</tr>
+<tr>
+<td><code>cluster</code></td>
+<td>集群名</td>
+<td>索引</td>
+<td>多集群场景</td>
+</tr>
+</tbody></table>
+<h3>2.3 实体对齐模型</h3>
+<h4>2.3.1 Canonical ID 映射表</h4>
+<p>实体对齐的核心是维护一个 <code>canonical_id ↔ source_id</code> 的多值映射表。每个 source 可以贡献一个或多个 source_id，最终映射到同一个 Canonical ID。</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>canonical_id</code></td>
+<td>String</td>
+<td>融合后的统一实体 ID（由拓扑建模生成）</td>
+</tr>
+<tr>
+<td><code>canonical_name</code></td>
+<td>String</td>
+<td>展示用标准名称</td>
+</tr>
+<tr>
+<td><code>entity_type</code></td>
+<td>Enum</td>
+<td>实体类型：Service / Host / Database / Middleware</td>
+</tr>
+<tr>
+<td><code>source_mappings</code></td>
+<td>Map&lt;String, String[]&gt;</td>
+<td>各数据源的 ID 列表（如 <code>{&quot;cmdb&quot;: [&quot;host-042&quot;], &quot;k8s&quot;: [&quot;10.0.0.42&quot;], &quot;apm&quot;: [&quot;pod-42&quot;]}</code>）</td>
+</tr>
+<tr>
+<td><code>confidence</code></td>
+<td>Float [0-1]</td>
+<td>对齐置信度（多源一致则高）</td>
+</tr>
+<tr>
+<td><code>last_updated</code></td>
+<td>Timestamp</td>
+<td>最后更新时间</td>
+</tr>
+</tbody></table>
+<h4>2.3.2 对齐规则优先级</h4>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>优先级</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>IP + Port 精确匹配</strong></td>
+<td>P0</td>
+<td>IP + Port 完全一致时直接对齐</td>
+</tr>
+<tr>
+<td><strong>CMDB ID 精确匹配</strong></td>
+<td>P0</td>
+<td>CMDB 实体 ID 匹配</td>
+</tr>
+<tr>
+<td><strong>服务名 + 集群名匹配</strong></td>
+<td>P1</td>
+<td>Service Name + Cluster 组合唯一匹配</td>
+</tr>
+<tr>
+<td><strong>标签模糊匹配</strong></td>
+<td>P2</td>
+<td>共享标签 &gt; 0.8 时推测为同一实体</td>
+</tr>
+<tr>
+<td><strong>时序相似度匹配</strong></td>
+<td>P3</td>
+<td>指标时序曲线相关性 &gt; 0.9 时推测为同一实体</td>
+</tr>
+</tbody></table>
+<h3>2.4 数据质量评分模型</h3>
+<p>每个融合事件附带 <code>quality_score</code>，综合反映数据的完整性、新鲜度和一致性。</p>
+<div class="mermaid">flowchart LR
+    subgraph 质量维度["质量维度"]
+        COMP[完整性
+Completeness]
+        FRESH[新鲜度
+Freshness]
+        CONSIS[一致性
+Consistency]
+        OUTLIER[异常检测
+Outlier]
+    end
+
+    subgraph 评分计算["质量评分"]
+        FORMULA[quality_score
+= w1×C + w2×F + w3×Cs]
+    end
+
+    COMP --> FORMULA
+    FRESH --> FORMULA
+    CONSIS --> FORMULA</div><ul>
+<li><strong>完整性（Completeness）</strong>：必填字段非空比例，低于 80% 则 quality_score 降级</li>
+<li><strong>新鲜度（Freshness）</strong>：数据时间戳 vs 当前时间差，超过 30s  freshness=0</li>
+<li><strong>一致性（Consistency）</strong>：多数据源对同一实体同一指标的值差异，差异 &gt; 20% 则 consistency 降级</li>
+</ul>
+<hr>
+<h2>3. 核心功能分解</h2>
+<h3>3.1 数据源适配器（Data Source Adapters）</h3>
+<h4>3.1.1 适配器类型与规格</h4>
+<table>
+<thead>
+<tr>
+<th>适配器</th>
+<th>协议</th>
+<th>数据格式</th>
+<th>采集频率</th>
+<th>吞吐能力</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CMDB Metrics Adapter</strong></td>
+<td>REST API / Webhook</td>
+<td>JSON</td>
+<td>每 5 分钟</td>
+<td>5000 指标/批</td>
+</tr>
+<tr>
+<td><strong>K8s Metrics Adapter</strong></td>
+<td>K8s API / Metrics Server</td>
+<td>JSON</td>
+<td>每 15 秒</td>
+<td>50000 指标/批</td>
+</tr>
+<tr>
+<td><strong>APM Traces Adapter</strong></td>
+<td>OTLP / Kafka</td>
+<td>Protobuf / JSON</td>
+<td>实时采样 1%</td>
+<td>10000 span/s</td>
+</tr>
+<tr>
+<td><strong>Log Agent Adapter</strong></td>
+<td>Fluent Bit / Filebeat</td>
+<td>JSON Lines</td>
+<td>实时</td>
+<td>20000 logs/s</td>
+</tr>
+<tr>
+<td><strong>Custom Exporter Adapter</strong></td>
+<td>Prometheus Scrape / HTTP Push</td>
+<td>Prometheus format / JSON</td>
+<td>按需</td>
+<td>10000 指标/批</td>
+</tr>
+</tbody></table>
+<h3>3.2 流处理架构（Stream Processing）</h3>
+<h4>3.2.1 处理流程</h4>
+<div class="mermaid">flowchart LR
+    subgraph 原始数据["原始数据源"]
+        KAFKA_K8S[Kafka Topic:
+raw-k8s-metrics]
+        KAFKA_APM[Kafka Topic:
+raw-apm-traces]
+        KAFKA_LOGS[Kafka Topic:
+raw-logs]
+        KAFKA_CMDB[Kafka Topic:
+raw-cmdb]
+    end
+
+    subgraph 流处理["Flink 流处理管道"]
+        STAGE1[Flink Job 1
+Parse & Validate]
+        STAGE2[Flink Job 2
+Entity Resolution]
+        STAGE3[Flink Job 3
+Quality Check]
+        STAGE4[Flink Job 4
+Merge & Deduplicate]
+    end
+
+    subgraph 融合存储["融合存储层"]
+        ES[Elasticsearch
+Fused Events]
+        INF[InfluxDB
+Fused Metrics]
+        RED[Redis
+Entity Cache]
+    end
+
+    subgraph 输出["输出到能力层"]
+        A4[04 智能感知]
+        A5[05 认知网络]
+        A11[11 知识进化]
+    end
+
+    KAFKA_K8S --> STAGE1
+    KAFKA_APM --> STAGE1
+    KAFKA_LOGS --> STAGE1
+    KAFKA_CMDB --> STAGE1
+
+    STAGE1 --> STAGE2 --> STAGE3 --> STAGE4
+    STAGE4 --> ES
+    STAGE4 --> INF
+    STAGE4 --> RED
+
+    ES --> A4
+    ES --> A5
+    INF --> A4
+    INF --> A11</div><h4>3.2.2 Flink 处理阶段</h4>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>Job 名称</th>
+<th>处理逻辑</th>
+<th>状态后端</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>S1</td>
+<td>Parse &amp; Validate</td>
+<td>JSON/Protobuf 解析，Schema 校验，必填字段检查</td>
+<td>RocksDB</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>Entity Resolution</td>
+<td>查询 Redis Entity Cache，映射 source_id → canonical_id</td>
+<td>RocksDB</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>Quality Check</td>
+<td>完整性/新鲜度/一致性评分，异常值检测</td>
+<td>RocksDB</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>Merge &amp; Deduplicate</td>
+<td>多源同指标合并，重复数据去重，冲突解决</td>
+<td>RocksDB</td>
+</tr>
+</tbody></table>
+<h3>3.3 数据质量验证（Data Quality Validation）</h3>
+<h4>3.3.1 四类质量检查</h4>
+<table>
+<thead>
+<tr>
+<th>检查类型</th>
+<th>检查内容</th>
+<th>阈值</th>
+<th>不达标处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>完整性检查</strong></td>
+<td>必填字段（event_id, timestamp, entity_id, metric_name, value）非空</td>
+<td>缺失率 &lt; 5%</td>
+<td>拒绝写入，触发告警</td>
+</tr>
+<tr>
+<td><strong>新鲜度检查</strong></td>
+<td>数据时间戳与当前时间差</td>
+<td>延迟 &lt; 30s</td>
+<td>降级 confidence 评分，写入但标记</td>
+</tr>
+<tr>
+<td><strong>一致性检查</strong></td>
+<td>多数据源对同一实体的同一指标值差异</td>
+<td>差异 &lt; 20%</td>
+<td>触发冲突解决流程</td>
+</tr>
+<tr>
+<td><strong>异常值检测</strong></td>
+<td>指标值超出历史均值 ± 3σ</td>
+<td>无</td>
+<td>标记 outlier=true，降低 confidence</td>
+</tr>
+</tbody></table>
+<h3>3.4 合并与冲突解决（Merge &amp; Conflict Resolution）</h3>
+<h4>3.4.1 多源冲突解决规则</h4>
+<table>
+<thead>
+<tr>
+<th>数据类型</th>
+<th>解决策略</th>
+<th>规则说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>库存类数据</strong></td>
+<td>CMDB 优先</td>
+<td>实体属性（IP、名称、类型）以 CMDB 为准，其他数据源参考</td>
+</tr>
+<tr>
+<td><strong>指标类数据</strong></td>
+<td>Latest Wins</td>
+<td>同一实体同一指标，以最新时间戳的值写入</td>
+</tr>
+<tr>
+<td><strong>事件类数据</strong></td>
+<td>Evidence Weighted</td>
+<td>多数据源报告同一事件时，confidence 高的数据权重更大</td>
+</tr>
+<tr>
+<td><strong>追踪类数据</strong></td>
+<td>APM 唯一</td>
+<td>调用链拓扑以 APM 数据为准（最完整），不与其他数据源合并</td>
+</tr>
+<tr>
+<td><strong>日志类数据</strong></td>
+<td>Append Only</td>
+<td>日志只追加，不去重也不冲突，所有日志均保留</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. API 设计规范</h2>
+<h3>4.1 REST API</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>描述</th>
+<th>请求体</th>
+<th>响应</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td><code>/api/v1/fusion/events</code></td>
+<td>批量写入融合事件</td>
+<td><code>Event[]</code></td>
+<td><code>WriteResult</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/fusion/timeseries</code></td>
+<td>查询融合时序数据</td>
+<td><code>?entity_id=&amp;metric=&amp;from=&amp;to=</code></td>
+<td><code>TimeSeries[]</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/fusion/entities/{id}</code></td>
+<td>查询实体融合详情（含所有 source）</td>
+<td>——</td>
+<td><code>FusedEntity</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/fusion/quality/{event_id}</code></td>
+<td>查询事件质量评分详情</td>
+<td>——</td>
+<td><code>QualityReport</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/fusion/sources</code></td>
+<td>查询所有数据源状态</td>
+<td>——</td>
+<td><code>SourceStatus[]</code></td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/v1/fusion/entities/{id}/mapping</code></td>
+<td>手工更新实体 ID 映射</td>
+<td><code>SourceMapping</code></td>
+<td><code>MappingResult</code></td>
+</tr>
+</tbody></table>
+<h3>4.2 Kafka Topics</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>数据类型</th>
+<th>生产者</th>
+<th>消费者</th>
+<th>Partition Key</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>raw-metrics</code></td>
+<td>原始指标数据</td>
+<td>Prometheus / K8s</td>
+<td>Flink S1</td>
+<td><code>entity_id</code></td>
+</tr>
+<tr>
+<td><code>raw-logs</code></td>
+<td>原始日志数据</td>
+<td>Log Agent / Fluent Bit</td>
+<td>Flink S1</td>
+<td><code>hostname</code></td>
+</tr>
+<tr>
+<td><code>raw-traces</code></td>
+<td>原始调用链追踪</td>
+<td>APM Agent / OTLP</td>
+<td>Flink S1</td>
+<td><code>trace_id</code></td>
+</tr>
+<tr>
+<td><code>raw-events</code></td>
+<td>原始告警/变更事件</td>
+<td>CMDB / Monitor</td>
+<td>Flink S1</td>
+<td><code>entity_id</code></td>
+</tr>
+<tr>
+<td><code>fused.events</code></td>
+<td>融合后事件（输出）</td>
+<td>Flink S4</td>
+<td>04 智能感知 / 05 认知网络</td>
+<td><code>canonical_entity_id</code></td>
+</tr>
+<tr>
+<td><code>fused.metrics</code></td>
+<td>融合后指标（输出）</td>
+<td>Flink S4</td>
+<td>04 智能感知 / 11 知识进化</td>
+<td><code>canonical_entity_id</code></td>
+</tr>
+<tr>
+<td><code>fusion.quality.alert</code></td>
+<td>质量告警事件</td>
+<td>Flink S3</td>
+<td>告警系统</td>
+<td><code>source</code></td>
+</tr>
+</tbody></table>
+<h3>4.3 gRPC 高频摄入接口</h3>
+<table>
+<thead>
+<tr>
+<th>服务</th>
+<th>方法</th>
+<th>适用场景</th>
+<th>性能要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FusionIngest</code></td>
+<td><code>IngestMetrics(MetricsRequest)</code></td>
+<td>高频指标摄入（Prometheus Remote Write）</td>
+<td>100,000 指标/s</td>
+</tr>
+<tr>
+<td><code>FusionIngest</code></td>
+<td><code>IngestTraces(TraceRequest)</code></td>
+<td>高频追踪摄入（OTLP 替代）</td>
+<td>50,000 span/s</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. 数据流架构</h2>
+<h3>5.1 整体数据流</h3>
+<div class="mermaid">flowchart LR
+    subgraph Sources["数据源"]
+        CMDB[CMDB]
+        K8S[Kubernetes]
+        APM[APM Trace]
+        LOG[Log Agent]
+        EXP[Custom Exporter]
+    end
+
+    subgraph Adapters["适配器层"]
+        AD1[CMDB Adapter]
+        AD2[K8s Adapter]
+        AD3[APM Adapter]
+        AD4[Log Adapter]
+        AD5[Exporter Adapter]
+    end
+
+    subgraph Kafka_In["Kafka 输入层"]
+        K1[raw-metrics]
+        K2[raw-logs]
+        K3[raw-traces]
+        K4[raw-events]
+    end
+
+    subgraph Flink["Flink 流处理"]
+        F1[Parse & Validate]
+        F2[Entity Resolution]
+        F3[Quality Check]
+        F4[Merge & Deduplicate]
+    end
+
+    subgraph Stores["融合存储"]
+        ES[Elasticsearch
+Fused Events]
+        INF[InfluxDB
+Fused Metrics]
+        RD[Redis
+Entity Cache]
+    end
+
+    subgraph Downstream["下游能力模块"]
+        A4[04 智能感知]
+        A5[05 认知网络]
+        A6[06 故障研判]
+        A11[11 知识进化]
+    end
+
+    Sources --> Adapters
+    Adapters --> Kafka_In
+    Kafka_In --> Flink
+    Flink --> Stores
+    Stores --> Downstream</div><h3>5.2 实体对齐流程</h3>
+<div class="mermaid">flowchart LR
+    subgraph 输入["多源原始 ID"]
+        S1[CMDB: host-042]
+        S2[K8s: 10.0.0.42]
+        S3[APM: pod-nginx-42]
+    end
+
+    subgraph 对齐流程["实体对齐流程"]
+        LOOKUP[Lookup
+Redis Cache]
+        FUZZY[Fuzzy Match
+相似度计算]
+        MERGE[Merge
+写入 Canonical ID]
+        UPDATE[Update Cache
+更新 Redis]
+    end
+
+    subgraph 存储["Entity Cache"]
+        RC[(Redis Hash
+entity_mapping)]
+    end
+
+    S1 --> LOOKUP
+    S2 --> LOOKUP
+    S3 --> LOOKUP
+    LOOKUP -->|未命中| FUZZY
+    FUZZY -->|相似度 > 0.9| MERGE
+    MERGE --> UPDATE
+    UPDATE --> RC
+    RC -->|下次命中| LOOKUP</div><h3>5.3 质量门禁流程</h3>
+<div class="mermaid">flowchart LR
+    RAW[原始事件] --> COMP{完整性
+检查}
+    COMP -->|通过| FRESH{新鲜度
+检查}
+    COMP -->|失败| REJECT[拒绝写入
+触发告警]
+    FRESH -->|通过| CONSIS{一致性
+检查}
+    FRESH -->|过期| DEGRADE[降级写入
+标记 confidence]
+    CONSIS -->|通过| OUTLIER{异常值
+检测}
+    CONSIS -->|冲突| RESOLVE[触发冲突
+解决流程]
+    OUTLIER -->|正常| PASS[通过门禁
+写入存储]
+    OUTLIER -->|异常| MARK[标记 outlier
+降级 confidence]</div><hr>
+<h2>6. 模块协作关系</h2>
+<h3>6.1 依赖矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>依赖数据融合的什么</th>
+<th>依赖类型</th>
+<th>接口方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>02 拓扑建模</strong></td>
+<td>提供 Entity Anchor（拓扑实体 ID 和 labels），作为数据融合的上下文锚点</td>
+<td>数据依赖</td>
+<td>Neo4j 查询 / Kafka 事件</td>
+</tr>
+<tr>
+<td><strong>04 智能感知</strong></td>
+<td>消费融合后的 <code>fused.events</code> Kafka 流，进行实时异常检测</td>
+<td>数据依赖</td>
+<td>Kafka 订阅 fused.events</td>
+</tr>
+<tr>
+<td><strong>05 认知网络</strong></td>
+<td>接收融合后的实体快照（Entity Snapshot），构建知识图谱节点</td>
+<td>数据依赖</td>
+<td>Kafka 订阅 fused.events</td>
+</tr>
+<tr>
+<td><strong>06 故障研判</strong></td>
+<td>查询融合时序数据（Elasticsearch / InfluxDB）作为诊断上下文</td>
+<td>数据依赖</td>
+<td>REST 查询 / Kafka</td>
+</tr>
+<tr>
+<td><strong>11 知识进化</strong></td>
+<td>接收历史融合数据快照，用于知识库积累和模式学习</td>
+<td>数据依赖</td>
+<td>Kafka 订阅 fused.metrics</td>
+</tr>
+<tr>
+<td><strong>07 根因分析</strong></td>
+<td>查询融合时序数据和事件关联，进行传播路径分析</td>
+<td>数据依赖</td>
+<td>REST / gRPC</td>
+</tr>
+<tr>
+<td><strong>Dashboard</strong></td>
+<td>查询融合后的时序数据进行可视化展示</td>
+<td>数据依赖</td>
+<td>REST 查询</td>
+</tr>
+</tbody></table>
+<h3>6.2 输入接口契约</h3>
+<h4>6.2.1 融合事件输出格式</h4>
+<pre><code>{
+  "event_id": "evt-20260607-001234",
+  "event_type": "metric",
+  "timestamp": 1750000000000,
+  "canonical_entity_id": "svc-payment-prod",
+  "source_entity_ids": {
+    "cmdb": "host-042",
+    "k8s": "10.0.0.42",
+    "apm": "pod-nginx-42"
+  },
+  "metric_name": "cpu_usage_percent",
+  "value": 85.6,
+  "source": "k8s",
+  "confidence": 0.95,
+  "labels": {
+    "cluster": "prod",
+    "region": "us-east-1",
+    "owner_team": "payment-team"
+  },
+  "quality_score": 0.88,
+  "outlier": false,
+  "raw_payload": "{\"original_value\": 85.6}"
+}</code></pre><h3>6.3 实战场景：常见数据融合问题</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>问题描述</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>指标重复上报</strong></td>
+<td>Prometheus 和 K8s Metrics Server 都在上报 <code>payment-svc</code> 的 CPU 使用率，数值略有不同</td>
+<td>Flink S4 按 Latest Wins 策略取最新值，标记 source 为 <code>k8s+prometheus</code></td>
+</tr>
+<tr>
+<td><strong>实体 ID 漂移</strong></td>
+<td>Pod 重启后 K8s 分配了新的 Pod IP，CMDB 还没有更新</td>
+<td>Fuzzy Match 根据 service_name + cluster 做标签匹配触发对齐，更新 Canonical ID 映射</td>
+</tr>
+<tr>
+<td><strong>日志时间戳倾斜</strong></td>
+<td>Log Agent 所在节点时钟偏移，日志时间戳比实际晚 2 分钟</td>
+<td>Freshness 检查标记该批次为过期数据，降级 confidence 到 0.6，通知运维修复时钟</td>
+</tr>
+<tr>
+<td><strong>Schema 变更不兼容</strong></td>
+<td>上游 APM 升级后新增了 <code>span.kind</code> 必填字段，旧版 Flink Job 无法解析</td>
+<td>Schema 校验拒绝不合规数据 → 触发告警 → Flink Job 热加载新 Schema</td>
+</tr>
+<tr>
+<td><strong>数据源故障恢复</strong></td>
+<td>CMDB 宕机 30 分钟后恢复，积压了大量变更事件需要追写入</td>
+<td>Kafka 消费积压检测 → Flink 自动降级为批处理模式（batch size 增大，checkpoint 间隔缩小）→ 积压消化后恢复实时</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. 量化指标体系</h2>
+<h3>7.1 数据质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>基线（当前）</th>
+<th>目标</th>
+<th>测量方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>数据完整性</strong></td>
+<td>必填字段非空比例</td>
+<td>88%</td>
+<td>&gt; 98%</td>
+<td>Flink S3 完整性检查</td>
+</tr>
+<tr>
+<td><strong>数据新鲜度</strong></td>
+<td>数据从产生到写入的平均延迟</td>
+<td>45s</td>
+<td>&lt; 30s</td>
+<td>timestamp vs write_time 差值</td>
+</tr>
+<tr>
+<td><strong>数据准确率</strong></td>
+<td>融合数据与真实值偏差在可接受范围内的比例</td>
+<td>85%</td>
+<td>&gt; 95%</td>
+<td>人工抽检 + 设备比对</td>
+</tr>
+<tr>
+<td><strong>冲突解决率</strong></td>
+<td>多数据源冲突被正确（按规则）解决的比例</td>
+<td>72%</td>
+<td>&gt; 90%</td>
+<td>冲突日志抽样审计</td>
+</tr>
+<tr>
+<td><strong>实体对齐率</strong></td>
+<td>成功对齐到 Canonical ID 的原始 ID 比例</td>
+<td>80%</td>
+<td>&gt; 95%</td>
+<td>Redis mapping 命中率</td>
+</tr>
+</tbody></table>
+<h3>7.2 处理性能指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>处理延迟 P99</strong></td>
+<td>数据从 Kafka 摄入到写入存储的端到端延迟</td>
+<td>&lt; 5s</td>
+<td>&gt; 10s</td>
+</tr>
+<tr>
+<td><strong>写入吞吐量</strong></td>
+<td>融合事件写入 Elasticsearch 的速率</td>
+<td>&gt; 50,000/s</td>
+<td>&lt; 30,000/s</td>
+</tr>
+<tr>
+<td><strong>指标摄入吞吐</strong></td>
+<td>Prometheus 指标摄入速率</td>
+<td>&gt; 100,000/s</td>
+<td>&lt; 80,000/s</td>
+</tr>
+<tr>
+<td><strong>Flink Job 故障率</strong></td>
+<td>Flink 流处理作业异常重启比例</td>
+<td>&lt; 0.1%</td>
+<td>&gt; 0.5%</td>
+</tr>
+</tbody></table>
+<h3>7.3 容量规划指标</h3>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>当前使用</th>
+<th>规格上限</th>
+<th>扩容触发阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Elasticsearch 存储</strong></td>
+<td>100GB / 500GB</td>
+<td>500GB</td>
+<td>80%</td>
+</tr>
+<tr>
+<td><strong>InfluxDB 存储</strong></td>
+<td>200GB / 800GB</td>
+<td>800GB</td>
+<td>80%</td>
+</tr>
+<tr>
+<td><strong>Redis Entity Cache</strong></td>
+<td>4GB / 16GB</td>
+<td>16GB</td>
+<td>70%</td>
+</tr>
+<tr>
+<td><strong>Kafka 吞吐量</strong></td>
+<td>30,000 msg/s</td>
+<td>100,000 msg/s</td>
+<td>70%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. 部署架构</h2>
+<h3>8.1 K8s 部署拓扑</h3>
+<div class="mermaid">flowchart LR
+    subgraph 控制面["控制面"]
+        API[API Server]
+        CCM[CMDB Webhook]
+    end
+
+    subgraph 计算层["计算层"]
+        subgraph Flink_JOBS["Flink StatefulSet Jobs"]
+            FJ1[Flink Job 1
+Parse & Validate]
+            FJ2[Flink Job 2
+Entity Resolution]
+            FJ3[Flink Job 3
+Quality Check]
+            FJ4[Flink Job 4
+Merge & Deduplicate]
+        end
+
+        subgraph 服务["Fusion API 服务"]
+            FUS[Data Fusion
+API x2]
+        end
+    end
+
+    subgraph 存储层["存储层"]
+        ES[(Elasticsearch
+Hot/Warm Cluster)]
+        INF[(InfluxDB
+2副本)]
+        RD[(Redis
+Cluster x3)]
+        KF[(Kafka
+Partition x12)]
+    end
+
+    API -->|K8s API| FJ1
+    CCM -->|Webhook| FUS
+    FJ1 -->|数据流| FJ2 --> FJ3 --> FJ4
+    FJ4 -->|写入| ES
+    FJ4 -->|写入| INF
+    FJ4 -->|更新| RD
+    FUS -->|查询| ES
+    FUS -->|查询| INF
+    FUS -->|Entity Cache| RD</div><h3>8.2 资源配置</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>副本数</th>
+<th>CPU</th>
+<th>内存</th>
+<th>存储</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Flink Job 1-4</strong></td>
+<td>各 2（TaskManager）</td>
+<td>8 核 / TM</td>
+<td>16 GB / TM</td>
+<td>——</td>
+<td>StatefulSet，TM Pool 共享</td>
+</tr>
+<tr>
+<td><strong>Fusion API</strong></td>
+<td>2（主备）</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>StatefulSet，PDB 允许 1 故障</td>
+</tr>
+<tr>
+<td><strong>Elasticsearch Hot</strong></td>
+<td>3 节点</td>
+<td>8 核</td>
+<td>32 GB</td>
+<td>200 GB SSD</td>
+<td>Hot 节点处理写入</td>
+</tr>
+<tr>
+<td><strong>Elasticsearch Warm</strong></td>
+<td>2 节点</td>
+<td>8 核</td>
+<td>32 GB</td>
+<td>500 GB HDD</td>
+<td>Warm 节点存储历史</td>
+</tr>
+<tr>
+<td><strong>InfluxDB</strong></td>
+<td>1 主 + 1 从</td>
+<td>8 核</td>
+<td>32 GB</td>
+<td>800 GB SSD</td>
+<td>时序指标存储</td>
+</tr>
+<tr>
+<td><strong>Redis Cluster</strong></td>
+<td>3 节点</td>
+<td>4 核</td>
+<td>16 GB</td>
+<td>——</td>
+<td>Entity Cache + 映射表</td>
+</tr>
+<tr>
+<td><strong>Kafka</strong></td>
+<td>3 Broker</td>
+<td>8 核</td>
+<td>32 GB</td>
+<td>1 TB SSD</td>
+<td>12 Partition，副因子 3</td>
+</tr>
+</tbody></table>
+<h3>8.3 高可用设计</h3>
+<ul>
+<li><strong>Flink Checkpoint</strong>：流处理状态每 30s Checkpoint 到 HDFS，S3 故障恢复</li>
+<li><strong>Kafka 消费隔离</strong>：每个 Flink Job 独立 Consumer Group，单 Job 故障不影响其他</li>
+<li><strong>Elasticsearch 多副本</strong>：Hot 节点 3 副本，任意 1 节点故障不丢失数据</li>
+<li><strong>Redis Entity Cache</strong>：Cluster 模式，3 节点任意 1 节点故障 Cache 部分失效可接受</li>
+<li><strong>InfluxDB 连续查询</strong>：Downsample 数据保留策略（1s → 1min → 1h）</li>
+</ul>
+<hr>
+<h2>9. 本章小结</h2>
+<h3>9.1 核心要点</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>核心要点</th>
+<th>量化目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>定位</strong></td>
+<td>数据层核心模块，采集层与能力层之间的数据中枢</td>
+<td>——</td>
+</tr>
+<tr>
+<td><strong>模型</strong></td>
+<td>统一事件 Schema，融合 metric/log/trace/alert 四类数据</td>
+<td>完整性 &gt; 98%</td>
+</tr>
+<tr>
+<td><strong>能力</strong></td>
+<td>Schema First / 事件驱动 / 质量门禁 / 持续富化四大原则</td>
+<td>新鲜度 &lt; 30s</td>
+</tr>
+<tr>
+<td><strong>接口</strong></td>
+<td>REST + gRPC + Kafka，覆盖同步/异步/高频摄入场景</td>
+<td>处理延迟 P99 &lt; 5s</td>
+</tr>
+<tr>
+<td><strong>质量</strong></td>
+<td>完整性/新鲜度/一致性/异常值四维质量评分</td>
+<td>准确率 &gt; 95%</td>
+</tr>
+</tbody></table>
+<h3>9.2 关键成功要素</h3>
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>优先级</th>
+<th>实施策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Schema 验证入 CI</strong></td>
+<td>P0</td>
+<td>所有入库数据强制 Schema 校验，Flink Job 启动时拒绝不合规数据</td>
+</tr>
+<tr>
+<td><strong>多源合并策略落地</strong></td>
+<td>P1</td>
+<td>CMDB 优先解决库存冲突，Latest Wins 处理指标，覆盖率目标 90%</td>
+</tr>
+<tr>
+<td><strong>ML 富化能力建设</strong></td>
+<td>P2</td>
+<td>构建实体对齐 ML 模型，替代规则匹配，持续提升对齐率</td>
+</tr>
+</tbody></table>
+<h3>9.3 模块边界</h3>
+<table>
+<thead>
+<tr>
+<th>边界</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>vs 02 拓扑建模</strong></td>
+<td>拓扑建模负责「结构」（实体-关系），数据融合负责「内容」（指标/日志/追踪融合），数据融合消费拓扑上下文作为 Entity Anchor</td>
+</tr>
+<tr>
+<td><strong>vs 04 智能感知</strong></td>
+<td>数据融合输出「融合后的干净数据」，智能感知消费融合数据做异常检测，两者边界是「数据质量」vs「检测逻辑」</td>
+</tr>
+<tr>
+<td><strong>vs 11 知识进化</strong></td>
+<td>数据融合负责「实时数据融合」，知识进化负责「历史数据积累」，知识进化消费数据融合的输出作为知识原料</td>
+</tr>
+</tbody></table>
+<h3>9.4 本章思考</h3>
+<blockquote>
+<p>以下问题供设计评审和团队讨论时使用。</p>
+</blockquote>
+<p><strong>基础问题：</strong></p>
+<ol>
+<li>统一事件 Schema 中 <code>quality_score</code> 和 <code>confidence</code> 两个字段的区别是什么？为什么需要同时保留？</li>
+<li>如果 Prometheus 和 APM 对同一服务的同一指标的同一时刻返回了不同值（80% vs 85%），冲突解决应该优先哪个数据源？判断依据是什么？</li>
+<li>实体对齐中「标签模糊匹配」阈值为 0.8，这个阈值如何确定？过高或过低会带来什么问题？</li>
+</ol>
+<p><strong>进阶问题：</strong></p>
+<ol start="4">
+<li>Flink 流处理采用 4 个独立 Job 串联而非 1 个 Job 内含 4 个 Operator，这种设计考虑了什么权衡？（提示：故障隔离 / 扩缩容粒度 / 状态后端）</li>
+<li>质量门禁拒绝写入的数据直接在 Kafka 丢弃是否合理？如果这些数据事后发现其实是因为 Schema 定义有误，你如何设计「数据救回」机制？</li>
+<li>数据融合模块如何避免成为「单点瓶颈」？在 100 万指标/秒的极端场景下，哪个组件会最先达到性能拐点？</li>
+</ol>
+<p><strong>反模式自查：</strong></p>
+<ul>
+<li>❌ <strong>万能 Schema</strong>：一个 Schema 试图覆盖所有场景 → 导致字段过多、大部分为空、查询性能差</li>
+<li>❌ <strong>对齐即信任</strong>：实体对齐后不再验证 → source 漂移导致 Canonical ID 映射过期但不自知</li>
+<li>❌ <strong>门禁即丢弃</strong>：质量不合格的数据直接丢弃 → 可能丢失关键故障信号，应降级写入并标记</li>
+<li>❌ <strong>无降级预案</strong>：Flink 或 Kafka 故障时整个数据管道停摆 → 应设计本地缓冲 + 故障恢复重放机制</li>
+</ul>
+<hr>
+<blockquote>
+<p>本章定义了模块 03 数据融合的详细功能设计规范。后续章节将阐述智能感知（04）、认知网络（05）、故障研判（06）等能力模块的设计细节。</p>
+</blockquote>
+<p><em>文档版本：V1.1 | 更新日期：2026-06-08</em></p>
+
+      
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

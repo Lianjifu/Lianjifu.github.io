@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="02 00 arch overview<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-02-00-arch-overview/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-02-00-arch-overview/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 00 · 架构综述 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-02-00-arch-overview/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 00 · 架构综述
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>模块 0 - 架构综述</h1>
+<blockquote>
+<p><strong>核心定位：</strong> 以 AI Agent 为核心，构建具备自主感知、自主认知、自主推理、自主决策、自主执行与持续进化能力的智能安全运营体系。</p>
+</blockquote>
+<hr>
+<h2 id="设计目标">1. 设计目标</h2>
+<h3 id="时间目标">1.1 时间目标</h3>
+<p><strong>1分钟发现威胁 → 5分钟分析攻击链 → 10分钟处置响应</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">目标</th>
+<th align="left">AI 自主率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>发现</strong></td>
+<td align="left">1分钟内发现安全威胁</td>
+<td align="left">90%</td>
+</tr>
+<tr>
+<td align="left"><strong>分析</strong></td>
+<td align="left">5分钟内完成攻击链分析</td>
+<td align="left">85%</td>
+</tr>
+<tr>
+<td align="left"><strong>处置</strong></td>
+<td align="left">10分钟内完成响应处置</td>
+<td align="left">80%</td>
+</tr>
+</tbody></table>
+<h3 id="能力目标">1.2 能力目标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">能力维度</th>
+<th align="left">目标</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>自主感知</strong></td>
+<td align="left">自动化数据采集 + 实时汇聚</td>
+<td align="left">减少人工介入</td>
+</tr>
+<tr>
+<td align="left"><strong>自主认知</strong></td>
+<td align="left">多模态理解 + 知识关联</td>
+<td align="left">深度理解安全上下文</td>
+</tr>
+<tr>
+<td align="left"><strong>自主推理</strong></td>
+<td align="left">攻击链还原 + 因果推断</td>
+<td align="left">智能分析决策</td>
+</tr>
+<tr>
+<td align="left"><strong>自主执行</strong></td>
+<td align="left">SOAR 自动化 + 多系统协同</td>
+<td align="left">自动处置响应</td>
+</tr>
+<tr>
+<td align="left"><strong>持续进化</strong></td>
+<td align="left">案例学习 + 知识沉淀</td>
+<td align="left">越战越强</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="整体架构">2. 整体架构</h2>
+<h3 id="架构总览">2.1 架构总览</h3>
+<div class="mermaid">graph TB
+    subgraph 数据层
+        D1["安全数据融合"]
+    end
+    
+    subgraph 感知层
+        D2["安全事件感知"]
+    end
+    
+    subgraph 认知层
+        D3["安全知识网络"]
+        D4["安全事件研判"]
+    end
+    
+    subgraph 推理层
+        D5["攻击溯源分析"]
+        D6["安全影响评估"]
+    end
+    
+    subgraph 执行层
+        D7["安全响应处置"]
+    end
+    
+    subgraph 报告层
+        D8["安全态势报告"]
+        D9["安全知识沉淀"]
+        D10["安全智能助手"]
+    end
+    
+    D1 --> D2 --> D3 --> D4
+    D4 --> D5 --> D6 --> D7
+    D7 --> D8 --> D9 --> D10
+    D9 -.-> D3
+    D10 -.-> D1
+    
+    style D1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style D10 fill:#fff9c4,stroke:#f57f17,stroke-width:3px</div><h3 id="数据流向">2.2 数据流向</h3>
+<div class="mermaid">graph LR
+    I["原始数据\\n日志/流量/告警"] --> F["数据融合层"]
+    F --> P["感知层"]
+    P --> C["认知层"]
+    C --> R["推理层"]
+    R --> E["执行层"]
+    E --> O["报告层"]
+    O --> K["知识沉淀"]
+    K -.-> C
+    style I fill:#e3f2fd,stroke:#1565c0
+    style F fill:#e3f2fd,stroke:#1565c0
+    style P fill:#fff3e0,stroke:#e65100
+    style C fill:#fff3e0,stroke:#e65100
+    style R fill:#e8f5e9,stroke:#2e7d32
+    style E fill:#e8f5e9,stroke:#2e7d32
+    style O fill:#fce4ec,stroke:#c62828
+    style K fill:#fce4ec,stroke:#c62828</div><hr>
+<h2 id="十大功能模块">3. 十大功能模块</h2>
+<table>
+<thead>
+<tr>
+<th align="left">序号</th>
+<th align="left">功能模块</th>
+<th align="left">文档</th>
+<th align="left">核心能力</th>
+<th align="left">量化目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">01</td>
+<td align="left">数据融合</td>
+<td align="left">01-数据融合功能逻辑</td>
+<td align="left">标准化采集、实时汇聚、智能富化、弹性存储</td>
+<td align="left">数据完整性 &gt; 99%</td>
+</tr>
+<tr>
+<td align="left">02</td>
+<td align="left">事件感知</td>
+<td align="left">02-事件感知功能逻辑</td>
+<td align="left">多维感知网络、智能降噪引擎、上下文补全</td>
+<td align="left">误报率 &lt; 5%</td>
+</tr>
+<tr>
+<td align="left">03</td>
+<td align="left">知识网络</td>
+<td align="left">03-知识网络功能逻辑</td>
+<td align="left">知识获取引擎、知识表示模型、知识推理引擎</td>
+<td align="left">知识覆盖率 &gt; 90%</td>
+</tr>
+<tr>
+<td align="left">04</td>
+<td align="left">事件研判</td>
+<td align="left">04-事件研判功能逻辑</td>
+<td align="left">智能研判引擎、证据推理链、知识赋能</td>
+<td align="left">研判时间 &lt; 5min</td>
+</tr>
+<tr>
+<td align="left">05</td>
+<td align="left">攻击溯源</td>
+<td align="left">05-攻击溯源功能逻辑</td>
+<td align="left">攻击链还原、因果推理、溯源报告</td>
+<td align="left">还原率 &gt; 95%</td>
+</tr>
+<tr>
+<td align="left">06</td>
+<td align="left">影响评估</td>
+<td align="left">06-影响评估功能逻辑</td>
+<td align="left">多维影响建模、风险传播模型、动态评估</td>
+<td align="left">评估准确率 &gt; 90%</td>
+</tr>
+<tr>
+<td align="left">07</td>
+<td align="left">响应处置</td>
+<td align="left">07-响应处置功能逻辑</td>
+<td align="left">SOAR自动化编排、策略引擎决策、多系统协同</td>
+<td align="left">自动处置率 &gt; 80%</td>
+</tr>
+<tr>
+<td align="left">08</td>
+<td align="left">态势报告</td>
+<td align="left">08-态势报告功能逻辑</td>
+<td align="left">智能报告引擎、多维分析引擎、NLG生成</td>
+<td align="left">生成时间 &lt; 5min</td>
+</tr>
+<tr>
+<td align="left">09</td>
+<td align="left">知识沉淀</td>
+<td align="left">09-知识沉淀功能逻辑</td>
+<td align="left">知识抽取引擎、知识组织模型、知识服务引擎</td>
+<td align="left">沉淀周期实时</td>
+</tr>
+<tr>
+<td align="left">10</td>
+<td align="left">安全助手</td>
+<td align="left">10-安全助手功能逻辑</td>
+<td align="left">对话交互引擎、意图理解引擎、工具编排引擎</td>
+<td align="left">意图准确率 &gt; 90%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="技术架构">4. 技术架构</h2>
+<h3 id="技术栈总览">4.1 技术栈总览</h3>
+<table>
+<thead>
+<tr>
+<th align="left">层级</th>
+<th align="left">技术组件</th>
+<th align="left">作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>数据采集</strong></td>
+<td align="left">OTEL、FileBeat、Kafka</td>
+<td align="left">标准化采集、实时传输</td>
+</tr>
+<tr>
+<td align="left"><strong>流处理</strong></td>
+<td align="left">Apache Flink</td>
+<td align="left">实时计算、事件处理</td>
+</tr>
+<tr>
+<td align="left"><strong>批量处理</strong></td>
+<td align="left">Apache Spark</td>
+<td align="left">历史数据分析</td>
+</tr>
+<tr>
+<td align="left"><strong>知识图谱</strong></td>
+<td align="left">Neo4j</td>
+<td align="left">图存储、关系推理</td>
+</tr>
+<tr>
+<td align="left"><strong>向量检索</strong></td>
+<td align="left">Milvus</td>
+<td align="left">语义检索、相似度匹配</td>
+</tr>
+<tr>
+<td align="left"><strong>AI 引擎</strong></td>
+<td align="left">LLM + BERT + GNN</td>
+<td align="left">语义理解、推理、学习</td>
+</tr>
+<tr>
+<td align="left"><strong>Agent 框架</strong></td>
+<td align="left">LangChain</td>
+<td align="left">自主决策、执行编排</td>
+</tr>
+<tr>
+<td align="left"><strong>编排引擎</strong></td>
+<td align="left">Temporal / Airflow</td>
+<td align="left">工作流编排</td>
+</tr>
+<tr>
+<td align="left"><strong>安全集成</strong></td>
+<td align="left">SOAR、SIEM、EDR</td>
+<td align="left">响应、检测、联动</td>
+</tr>
+</tbody></table>
+<h3 id="分层架构">4.2 分层架构</h3>
+<div class="mermaid">graph TB
+    subgraph 应用层
+        A1["态势报告"]
+        A2["安全助手"]
+        A3["管理门户"]
+    end
+    
+    subgraph 智能层
+        I1["研判引擎"]
+        I2["推理引擎"]
+        I3["知识引擎"]
+    end
+    
+    subgraph 数据层
+        D1["实时流处理\\nFlink"]
+        D2["批量处理\\nSpark"]
+        D3["图存储\\nNeo4j"]
+        D4["向量存储\\nMilvus"]
+    end
+    
+    subgraph 基础设施
+        F1["消息队列\\nKafka"]
+        F2["对象存储\\nS3"]
+        F3["时序存储\\nTimescaleDB"]
+    end
+    
+    D1 & D2 --> I1 & I2 & I3
+    D3 & D4 --> I1 & I2 & I3
+    I1 & I2 & I3 --> A1 & A2 & A3
+    
+    style A1 fill:#f3e5f5,stroke:#7b1fa2
+    style A2 fill:#f3e5f5,stroke:#7b1fa2
+    style A3 fill:#f3e5f5,stroke:#7b1fa2
+    style I1 fill:#fff9c4,stroke:#f57f17
+    style I2 fill:#fff9c4,stroke:#f57f17
+    style I3 fill:#fff9c4,stroke:#f57f17
+    style D1 fill:#e3f2fd,stroke:#1565c0
+    style F1 fill:#e3f2fd,stroke:#1565c0</div><hr>
+<h2 id="核心数据流">5. 核心数据流</h2>
+<h3 id="安全事件处理流程">5.1 安全事件处理流程</h3>
+<div class="mermaid">sequenceDiagram
+    participant SO as 安全事件源
+    participant DF as 数据融合
+    participant EP as 事件感知
+    participant KN as 知识网络
+    participant EV as 事件研判
+    participant TR as 攻击溯源
+    participant IA as 影响评估
+    participant RD as 响应处置
+    participant RP as 态势报告
+    participant KD as 知识沉淀
+    
+    SO->>DF: 原始事件
+    DF->>EP: 标准化数据
+    EP->>KN: 上下文请求
+    KN-->>EP: 关联知识
+    EP->>EV: 感知结果
+    EV->>TR: 研判结论
+    TR->>IA: 溯源结果
+    IA->>RD: 影响评估
+    RD->>RP: 处置结果
+    RP->>KD: 报告数据
+    KD->>KN: 沉淀知识</div><h3 id="模块协作关系">5.2 模块协作关系</h3>
+<table>
+<thead>
+<tr>
+<th align="left">源模块</th>
+<th align="left">目标模块</th>
+<th align="left">协作内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">数据融合</td>
+<td align="left">事件感知</td>
+<td align="left">提供标准化数据</td>
+</tr>
+<tr>
+<td align="left">事件感知</td>
+<td align="left">知识网络</td>
+<td align="left">查询上下文知识</td>
+</tr>
+<tr>
+<td align="left">知识网络</td>
+<td align="left">事件研判</td>
+<td align="left">提供知识赋能</td>
+</tr>
+<tr>
+<td align="left">事件研判</td>
+<td align="left">攻击溯源</td>
+<td align="left">输入研判结论</td>
+</tr>
+<tr>
+<td align="left">攻击溯源</td>
+<td align="left">影响评估</td>
+<td align="left">输出攻击链</td>
+</tr>
+<tr>
+<td align="left">影响评估</td>
+<td align="left">响应处置</td>
+<td align="left">输入影响范围</td>
+</tr>
+<tr>
+<td align="left">响应处置</td>
+<td align="left">态势报告</td>
+<td align="left">输入处置记录</td>
+</tr>
+<tr>
+<td align="left">态势报告</td>
+<td align="left">知识沉淀</td>
+<td align="left">输入报告数据</td>
+</tr>
+<tr>
+<td align="left">知识沉淀</td>
+<td align="left">知识网络</td>
+<td align="left">回填知识</td>
+</tr>
+<tr>
+<td align="left">安全助手</td>
+<td align="left">所有模块</td>
+<td align="left">统一交互入口</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="量化指标体系">6. 量化指标体系</h2>
+<h3 id="核心能力指标">6.1 核心能力指标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">能力域</th>
+<th align="left">指标</th>
+<th align="left">目标值</th>
+<th align="left">当前值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>发现</strong></td>
+<td align="left">MTTD（平均发现时间）</td>
+<td align="left">&lt; 1min</td>
+<td align="left">30min</td>
+</tr>
+<tr>
+<td align="left"><strong>分析</strong></td>
+<td align="left">MTTI（平均分析时间）</td>
+<td align="left">&lt; 5min</td>
+<td align="left">15min</td>
+</tr>
+<tr>
+<td align="left"><strong>处置</strong></td>
+<td align="left">MTTR（平均响应时间）</td>
+<td align="left">&lt; 10min</td>
+<td align="left">30min</td>
+</tr>
+<tr>
+<td align="left"><strong>研判</strong></td>
+<td align="left">研判准确率</td>
+<td align="left">&gt; 95%</td>
+<td align="left">70%</td>
+</tr>
+<tr>
+<td align="left"><strong>溯源</strong></td>
+<td align="left">攻击链还原率</td>
+<td align="left">&gt; 95%</td>
+<td align="left">50%</td>
+</tr>
+<tr>
+<td align="left"><strong>响应</strong></td>
+<td align="left">自动处置率</td>
+<td align="left">&gt; 80%</td>
+<td align="left">20%</td>
+</tr>
+</tbody></table>
+<h3 id="性能指标">6.2 性能指标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">目标值</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>系统可用性</strong></td>
+<td align="left">99.9%</td>
+<td align="left">全年停机 &lt; 8.76h</td>
+</tr>
+<tr>
+<td align="left"><strong>事件处理延迟</strong></td>
+<td align="left">P95 &lt; 1s</td>
+<td align="left">端到端延迟</td>
+</tr>
+<tr>
+<td align="left"><strong>并发处理能力</strong></td>
+<td align="left">10,000 EPS</td>
+<td align="left">事件/秒</td>
+</tr>
+<tr>
+<td align="left"><strong>知识检索延迟</strong></td>
+<td align="left">P95 &lt; 100ms</td>
+<td align="left">查询响应</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="技术选型原则">7. 技术选型原则</h2>
+<h3 id="选型标准">7.1 选型标准</h3>
+<table>
+<thead>
+<tr>
+<th align="left">标准</th>
+<th align="left">说明</th>
+<th align="left">权重</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>成熟度</strong></td>
+<td align="left">开源社区活跃度、企业级应用案例</td>
+<td align="left">25%</td>
+</tr>
+<tr>
+<td align="left"><strong>性能</strong></td>
+<td align="left">吞吐量、延迟、扩展性</td>
+<td align="left">25%</td>
+</tr>
+<tr>
+<td align="left"><strong>易用性</strong></td>
+<td align="left">学习曲线、运维成本、文档完善度</td>
+<td align="left">20%</td>
+</tr>
+<tr>
+<td align="left"><strong>生态</strong></td>
+<td align="left">插件丰富度、集成成本</td>
+<td align="left">15%</td>
+</tr>
+<tr>
+<td align="left"><strong>成本</strong></td>
+<td align="left">许可成本、运维成本</td>
+<td align="left">15%</td>
+</tr>
+</tbody></table>
+<h3 id="关键技术对比">7.2 关键技术对比</h3>
+<table>
+<thead>
+<tr>
+<th align="left">场景</th>
+<th align="left">选项A</th>
+<th align="left">选项B</th>
+<th align="left">推荐</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">流处理</td>
+<td align="left">Apache Flink</td>
+<td align="left">Apache Spark Streaming</td>
+<td align="left">Flink（低延迟）</td>
+</tr>
+<tr>
+<td align="left">图存储</td>
+<td align="left">Neo4j</td>
+<td align="left">Amazon Neptune</td>
+<td align="left">Neo4j（成熟度）</td>
+</tr>
+<tr>
+<td align="left">向量检索</td>
+<td align="left">Milvus</td>
+<td align="left">Pinecone</td>
+<td align="left">Milvus（开源）</td>
+</tr>
+<tr>
+<td align="left">工作流编排</td>
+<td align="left">Temporal</td>
+<td align="left">Airflow</td>
+<td align="left">Temporal（云原生）</td>
+</tr>
+<tr>
+<td align="left">AI 框架</td>
+<td align="left">LangChain</td>
+<td align="left">AutoGPT</td>
+<td align="left">LangChain（生态）</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Last updated: 2026-06-01</em></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

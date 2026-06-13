@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Observable Ops — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/06/13/observable-ops-02-02-topology/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Observable Ops — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Observable Ops 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-13T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/06/13/observable-ops-02-02-topology/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 02 · 拓扑建模 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/06/13/observable-ops-02-02-topology/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 02 · 拓扑建模
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-ops/" itemprop="url" rel="index"><span
+                          itemprop="name">Observable Ops</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+        <h1>模块 02 · 拓扑建模</h1>
+<blockquote>
+<p>智能系统运维可观测性 · 拓扑建模模块功能逻辑设计</p>
+</blockquote>
+<hr>
+<h2>1. 功能概述</h2>
+<blockquote>
+<p>拓扑建模模块是 Observable Ops 平台的「数字底盘」——将物理世界的基础设施和逻辑世界的依赖关系抽象为统一知识图谱，为所有上层智能分析模块提供拓扑数据服务。</p>
+</blockquote>
+<h3>1.1 模块定位</h3>
+<div class="mermaid">flowchart LR
+    subgraph 采集["数据采集层"]
+        C1[K8s API]
+        C2[CMDB]
+        C3[Service Mesh]
+        C4[Prometheus]
+    end
+    subgraph 本模块["02 拓扑建模"]
+        T1[拓扑构建]
+        T2[拓扑存储]
+        T3[拓扑查询]
+        T4[拓扑分析]
+    end
+    subgraph 上层["上层消费模块"]
+        U1[04 智能感知]
+        U2[05 认知网络]
+        U3[06 故障研判]
+        U4[07 根因分析]
+        U5[08 影响分析]
+    end
+    采集 --> 本模块 --> 上层
+    style 采集 fill:#e3f2fd
+    style 本模块 fill:#d1e7dd
+    style 上层 fill:#fff9c4</div><table>
+<thead>
+<tr>
+<th>定位维度</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>平台定位</strong></td>
+<td>数据基础设施模块，为所有上层智能分析模块提供拓扑数据服务</td>
+</tr>
+<tr>
+<td><strong>能力定位</strong></td>
+<td>拓扑数据的构建、存储、查询和分析能力</td>
+</tr>
+<tr>
+<td><strong>数据定位</strong></td>
+<td>实体（节点）+ 关系（边）+ 属性统一模型</td>
+</tr>
+<tr>
+<td><strong>技术定位</strong></td>
+<td>图数据库（Neo4j）+ 时序数据库（TimescaleDB）+ 消息队列（Kafka）</td>
+</tr>
+</tbody></table>
+<h3>1.2 职责边界</h3>
+<div class="mermaid">flowchart TB
+    subgraph 做["职责范围：做"]
+        D1[多源拓扑数据汇聚与融合]
+        D2[实体与关系统一建模]
+        D3[图谱实时更新与增量同步]
+        D4[拓扑查询 API]
+        D5[拓扑分析算法]
+        D6[拓扑变更事件发布]
+    end
+    subgraph 不做["明确不做"]
+        N1[不做监控指标采集]
+        N2[不做异常检测判断]
+        N3[不做根因推理]
+        N4[不做业务告警通知]
+    end
+    做 --> 不做
+    style 做 fill:#d1e7dd
+    style 不做 fill:#fce7f3</div><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>具体职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>做</strong></td>
+<td>多源拓扑数据汇聚融合（K8s、CMDB、Prometheus、Service Mesh）· 实体与关系统一建模 · 图谱实时更新与增量同步 · 拓扑查询 API（路径、邻居、子图、聚合）· 拓扑分析算法（连通分量、中心性、PageRank、社区发现）· 拓扑变更事件发布</td>
+</tr>
+<tr>
+<td><strong>不做</strong></td>
+<td>原始指标采集（采集层负责）· 异常检测逻辑（智能感知负责）· 根因推理（根因分析负责）· 业务告警通知（应用层负责）</td>
+</tr>
+</tbody></table>
+<h3>1.3 模块协作关系</h3>
+<div class="mermaid">flowchart LR
+    M02[02 拓扑建模] --> M03[03 数据融合]
+    M02 --> M04[04 智能感知]
+    M02 --> M05[05 认知网络]
+    M02 --> M06[06 故障研判]
+    M02 --> M07[07 根因分析]
+    M02 --> M08[08 影响分析]
+    M03 -.->|数据融合| M02
+    M04 -.->|拓扑查询| M02
+    M05 -.->|知识检索| M02
+    M06 -.->|拓扑上下文| M02
+    M07 -.->|故障路径| M02
+    M08 -.->|影响范围| M02
+    style M02 fill:#d1e7dd
+    style M03 fill:#e3f2fd
+    style M04 fill:#fff9c4
+    style M05 fill:#fff9c4
+    style M06 fill:#ffccbc
+    style M07 fill:#ffccbc
+    style M08 fill:#ffccbc</div><table>
+<thead>
+<tr>
+<th>上游模块</th>
+<th>数据流向</th>
+<th>接口方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>03 数据融合</td>
+<td>汇聚后的标准化实体/关系数据</td>
+<td>Kafka Topic 推送</td>
+</tr>
+<tr>
+<td>04 智能感知</td>
+<td>查询拓扑上下文用于异常检测</td>
+<td>gRPC 查询</td>
+</tr>
+<tr>
+<td>05 认知网络</td>
+<td>构建知识图谱的拓扑层</td>
+<td>gRPC 订阅</td>
+</tr>
+<tr>
+<td>06 故障研判</td>
+<td>获取故障相关的拓扑信息</td>
+<td>gRPC 查询</td>
+</tr>
+<tr>
+<td>07 根因分析</td>
+<td>故障传播路径分析</td>
+<td>gRPC 查询</td>
+</tr>
+<tr>
+<td>08 影响分析</td>
+<td>影响范围评估</td>
+<td>gRPC 查询</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 功能架构</h2>
+<h3>2.1 数据模型架构</h3>
+<div class="mermaid">flowchart TB
+    subgraph 实体层["实体层级模型"]
+        L1[基础设施层]
+        L2[逻辑服务层]
+        L3[应用实例层]
+        L4[运行时层]
+    end
+    subgraph 基础设施层
+        I1[主机 Host]
+        I2[网络设备 Network]
+        I3[存储设备 Storage]
+    end
+    subgraph 逻辑服务层
+        L21[服务 Service]
+        L22[命名空间 Namespace]
+        L23[集群 Cluster]
+        L24[网关 Gateway]
+    end
+    subgraph 应用实例层
+        L31[容器 Container]
+        L32[进程 Process]
+        L33[端点 Endpoint]
+        L34[域名 Domain]
+    end
+    subgraph 运行时层
+        R1[指标 Metric]
+        R2[追踪 Trace]
+        R3[日志 Log]
+        R4[事件 Event]
+    end
+    L1 --> L2 --> L3 --> L4
+    style L1 fill:#e3f2fd
+    style L2 fill:#d1e7dd
+    style L3 fill:#fff9c4
+    style L4 fill:#ffccbc</div><h4>实体模型</h4>
+<table>
+<thead>
+<tr>
+<th>实体类型</th>
+<th>英文名</th>
+<th>关键属性</th>
+<th>数据来源</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>主机</strong></td>
+<td>Host</td>
+<td>hostname, ip, os, cpu_count, mem_gb, cloud_region</td>
+<td>CMDB / 云平台 API</td>
+</tr>
+<tr>
+<td><strong>网络设备</strong></td>
+<td>NetworkDevice</td>
+<td>device_type, vendor, model</td>
+<td>CMDB / SNMP</td>
+</tr>
+<tr>
+<td><strong>服务</strong></td>
+<td>Service</td>
+<td>service_name, namespace, protocol, port</td>
+<td>K8s API / 服务发现</td>
+</tr>
+<tr>
+<td><strong>集群</strong></td>
+<td>Cluster</td>
+<td>cluster_id, cluster_name, version, cloud_provider</td>
+<td>K8s API</td>
+</tr>
+<tr>
+<td><strong>命名空间</strong></td>
+<td>Namespace</td>
+<td>ns_name, cluster, labels</td>
+<td>K8s API</td>
+</tr>
+<tr>
+<td><strong>容器</strong></td>
+<td>Container</td>
+<td>container_id, image, pod_name, node_name, status</td>
+<td>K8s API / cAdvisor</td>
+</tr>
+<tr>
+<td><strong>网关</strong></td>
+<td>Gateway</td>
+<td>gateway_name, upstream_services, rate_limit</td>
+<td>Service Mesh</td>
+</tr>
+<tr>
+<td><strong>端点</strong></td>
+<td>Endpoint</td>
+<td>path, method, status_code, latency_p99</td>
+<td>APM / 日志解析</td>
+</tr>
+</tbody></table>
+<h4>关系模型</h4>
+<table>
+<thead>
+<tr>
+<th>关系</th>
+<th>英文名</th>
+<th>起点</th>
+<th>终点</th>
+<th>属性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>包含</strong></td>
+<td>contains</td>
+<td>Cluster / Namespace / Service</td>
+<td>Namespace / Service / Container</td>
+<td>labels, since</td>
+</tr>
+<tr>
+<td><strong>部署在</strong></td>
+<td>runs_on</td>
+<td>Container / Pod</td>
+<td>Host / Node</td>
+<td>node_name, zone</td>
+</tr>
+<tr>
+<td><strong>调用</strong></td>
+<td>calls</td>
+<td>Service / Container</td>
+<td>Service / Endpoint</td>
+<td>protocol, port, qps, latency_avg</td>
+</tr>
+<tr>
+<td><strong>访问</strong></td>
+<td>accesses</td>
+<td>Gateway / Ingress</td>
+<td>Service</td>
+<td>path, method, rate_limit</td>
+</tr>
+<tr>
+<td><strong>监控</strong></td>
+<td>monitors</td>
+<td>Prometheus / Telegraf</td>
+<td>Host / Service / Container</td>
+<td>scrape_interval, metrics</td>
+</tr>
+<tr>
+<td><strong>同步</strong></td>
+<td>syncs</td>
+<td>CMDB</td>
+<td>Host / NetworkDevice</td>
+<td>last_sync, source</td>
+</tr>
+</tbody></table>
+<h4>属性模型</h4>
+<table>
+<thead>
+<tr>
+<th>属性类型</th>
+<th>说明</th>
+<th>存储方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>静态属性</strong></td>
+<td>不经常变化（hostname, os, region）</td>
+<td>Neo4j 节点属性</td>
+</tr>
+<tr>
+<td><strong>动态属性</strong></td>
+<td>实时变化（status, cpu_usage, qps）</td>
+<td>TimescaleDB 时序数据</td>
+</tr>
+<tr>
+<td><strong>关系属性</strong></td>
+<td>边的属性（调用 qps, 延迟）</td>
+<td>Neo4j 边属性</td>
+</tr>
+<tr>
+<td><strong>元数据属性</strong></td>
+<td>标签、注解、描述</td>
+<td>Neo4j 节点属性（JSON）</td>
+</tr>
+</tbody></table>
+<h3>2.2 分层架构</h3>
+<div class="mermaid">flowchart TB
+    subgraph 元数据层["元数据层 Meta Graph"]
+        G1[Schema 定义
+实体类型 + 关系类型]
+    end
+    subgraph 实例层["实例层 Instance Graph"]
+        G2[具体实体
+具体关系实例]
+    end
+    subgraph 聚合层["聚合层 Aggregate Graph"]
+        G3[服务拓扑视图
+集群拓扑视图]
+    end
+    subgraph 时序层["时序层 Temporal Graph"]
+        G4[历史快照
+变更轨迹]
+    end
+    G1 --> G2 --> G3 --> G4
+    style G1 fill:#e3f2fd
+    style G2 fill:#d1e7dd
+    style G3 fill:#fff9c4
+    style G4 fill:#ffccbc</div><table>
+<thead>
+<tr>
+<th>层次</th>
+<th>描述</th>
+<th>查询场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>元数据层</strong></td>
+<td>Schema 级别的实体类型和关系类型定义</td>
+<td>类型查询、Schema 验证</td>
+</tr>
+<tr>
+<td><strong>实例层</strong></td>
+<td>具体实体和关系实例</td>
+<td>节点查询、路径查询、邻居查询</td>
+</tr>
+<tr>
+<td><strong>聚合层</strong></td>
+<td>按服务/集群聚合的视图</td>
+<td>服务拓扑、集群拓扑、聚合指标</td>
+</tr>
+<tr>
+<td><strong>时序层</strong></td>
+<td>拓扑变更的历史快照</td>
+<td>变更轨迹、回滚分析、故障复盘</td>
+</tr>
+</tbody></table>
+<h3>2.3 协作模式</h3>
+<div class="mermaid">sequenceDiagram
+    participant CMDB as 数据源
+CMDB / K8s
+    participant TM as 02 拓扑建模
+    participant NB as Neo4j
+    participant RD as Redis
+    participant 04 as 04 智能感知
+    participant 06 as 06 故障研判
+
+    Note over TM: 启动时全量同步
+    CMDB->>TM: 批量导出
+    TM->>TM: 解析 + 实体映射
+    TM->>NB: 批量写入
+    NB-->>TM: 写入完成
+    TM->>RD: 缓存预热
+
+    Note over TM: 运行期增量更新
+    loop 实时监听
+        CMDB->>TM: K8s Watch / API 变更
+        TM->>TM: 增量解析
+        TM->>NB: 事务更新
+        TM->>RD: 缓存失效
+        TM->>04: Kafka拓扑变更事件
+    end
+
+    Note over TM: 查询请求
+    04->>TM: gRPC: GetNeighbors
+    TM->>RD: 缓存查询
+    RD-->>TM: 缓存命中
+    TM-->>04: 邻居节点列表
+    06->>TM: gRPC: FindPath
+    TM->>NB: Cypher 路径查询
+    NB-->>TM: 路径结果
+    TM-->>06: 故障传播路径</div><hr>
+<h2>3. 核心功能</h2>
+<h3>3.1 拓扑构建</h3>
+<div class="mermaid">flowchart LR
+    C1[多源数据] --> P1[数据解析]
+    P1 --> P2[实体映射]
+    P2 --> P3[关系抽取]
+    P3 --> P4[冲突解决]
+    P4 --> P5[图谱写入]
+    P5 --> E1[Neo4j]
+    P5 --> E2[Kafka 事件]
+
+    style C1 fill:#e3f2fd
+    style P1 fill:#d1e7dd
+    style P2 fill:#d1e7dd
+    style P3 fill:#d1e7dd
+    style P4 fill:#fff9c4
+    style P5 fill:#fff9c4
+    style E1 fill:#e1bee7
+    style E2 fill:#ffccbc</div><table>
+<thead>
+<tr>
+<th>子功能</th>
+<th>输入</th>
+<th>处理逻辑</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>主动发现</strong></td>
+<td>K8s API / CMDB API / 服务发现</td>
+<td>周期性拉取 + Diff 对比</td>
+<td>增量拓扑变更</td>
+</tr>
+<tr>
+<td><strong>被动接收</strong></td>
+<td>Kafka Topic（服务变更、实例变更）</td>
+<td>实时消费 + 解析 + 写入</td>
+<td>实时拓扑更新</td>
+</tr>
+<tr>
+<td><strong>实体映射</strong></td>
+<td>原始数据（多种格式）</td>
+<td>格式标准化 + ID 映射 + 去重</td>
+<td>标准化实体</td>
+</tr>
+<tr>
+<td><strong>关系抽取</strong></td>
+<td>标准化实体 + 数据源上下文</td>
+<td>关系类型识别 + 方向判断 + 属性提取</td>
+<td>标准化关系</td>
+</tr>
+<tr>
+<td><strong>冲突解决</strong></td>
+<td>多源同一实体</td>
+<td>优先级策略（CMDB &gt; K8s &gt; Prometheus）</td>
+<td>合并后实体</td>
+</tr>
+<tr>
+<td><strong>图谱写入</strong></td>
+<td>合并后实体 + 关系</td>
+<td>Neo4j Transaction + 批量写入</td>
+<td>图数据库记录</td>
+</tr>
+</tbody></table>
+<h4>冲突解决策略详解</h4>
+<p>多源数据不可避免出现冲突，按以下优先级链处理：</p>
+<table>
+<thead>
+<tr>
+<th>冲突场景</th>
+<th>默认策略</th>
+<th>可配置选项</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>同一实体属性冲突</strong></td>
+<td>CMDB &gt; K8s &gt; Prometheus &gt; Service Mesh</td>
+<td>按数据源调整优先级</td>
+</tr>
+<tr>
+<td><strong>实体删除冲突</strong></td>
+<td>一个源删除 + 另一源存在 → 标记疑似删除，人工确认</td>
+<td>自动删除 / 标记</td>
+</tr>
+<tr>
+<td><strong>关系方向冲突</strong></td>
+<td>服务调用关系以 Service Mesh 为准</td>
+<td>可指定权威数据源</td>
+</tr>
+<tr>
+<td><strong>类型不一致冲突</strong></td>
+<td>同一 ID 在不同源类型不同 → 报错 + 人工介入</td>
+<td>忽略 / 取新</td>
+</tr>
+</tbody></table>
+<h3>3.2 拓扑更新</h3>
+<div class="mermaid">flowchart TB
+    subgraph 增量["增量更新"]
+        U1[变更检测
+Hash Diff]
+        U2[影响评估
+变更范围]
+        U3[原子更新
+ACID Transaction]
+        U4[事件发布
+Kafka]
+    end
+    subgraph 全量["全量更新"]
+        F1[周期全量
+每日 / 每周]
+        F2[快照存储
+时序数据库]
+        F3[Diff 对比
+变更集]
+    end
+    U1 --> U2 --> U3 --> U4
+    F1 --> F2 --> F3
+    style 增量 fill:#d1e7dd
+    style 全量 fill:#fff9c4</div><table>
+<thead>
+<tr>
+<th>更新策略</th>
+<th>触发条件</th>
+<th>更新范围</th>
+<th>延迟</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>实时增量</strong></td>
+<td>Kafka 事件 / K8s Webhook</td>
+<td>变更节点 + 直接关联边</td>
+<td>&lt; 1s</td>
+</tr>
+<tr>
+<td><strong>定时增量</strong></td>
+<td>每 5 分钟轮询</td>
+<td>上次轮询至今的变更</td>
+<td>&lt; 5min</td>
+</tr>
+<tr>
+<td><strong>全量同步</strong></td>
+<td>每日 02:00 / 手动触发</td>
+<td>全部实体 + 关系</td>
+<td>&lt; 30min</td>
+</tr>
+<tr>
+<td><strong>故障触发</strong></td>
+<td>检测到数据源异常恢复</td>
+<td>故障时段变更</td>
+<td>&lt; 5min</td>
+</tr>
+</tbody></table>
+<h3>3.3 拓扑查询</h3>
+<table>
+<thead>
+<tr>
+<th>查询类型</th>
+<th>Cypher 示例</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>节点查询</strong></td>
+<td><code>MATCH (n:Service {name: $name}) RETURN n</code></td>
+<td>按名称/类型查找节点</td>
+</tr>
+<tr>
+<td><strong>路径查询</strong></td>
+<td><code>MATCH path = (a)-[:calls*1..3]-(b) WHERE a.name=$x RETURN path</code></td>
+<td>查找两点间所有路径</td>
+</tr>
+<tr>
+<td><strong>邻居查询</strong></td>
+<td><code>MATCH (n)-[r]-(m) WHERE n.name=$name RETURN m</code></td>
+<td>查找直接关联节点</td>
+</tr>
+<tr>
+<td><strong>子图查询</strong></td>
+<td><code>MATCH p = ()-[*1..2]-() WHERE all(n IN nodes(p) WHERE n.cluster=$cluster) RETURN p</code></td>
+<td>按条件截取子图</td>
+</tr>
+<tr>
+<td><strong>聚合查询</strong></td>
+<td><code>MATCH (n:Service) RETURN n.namespace, count(n) AS cnt</code></td>
+<td>按属性聚合统计</td>
+</tr>
+<tr>
+<td><strong>时序查询</strong></td>
+<td><code>MATCH (n)-[r]-&gt;(m) WHERE r.updated_at &gt; $since RETURN r</code></td>
+<td>查询变更历史</td>
+</tr>
+</tbody></table>
+<h4>实战查询场景</h4>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>查询意图</th>
+<th>结果示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SQL 慢查询分析</strong></td>
+<td>查找 <code>order-svc</code> 依赖的所有数据库实例</td>
+<td><code>order-svc → calls → order-db:5432</code> + <code>order-svc → calls → user-db:3306</code></td>
+</tr>
+<tr>
+<td><strong>发布影响评估</strong></td>
+<td>查找 <code>api-gateway</code> 新版本部署后会影响的上下游</td>
+<td>上游依赖（3 个服务）· 下游被调用（8 个服务）· 间接影响（15 个端点）</td>
+</tr>
+<tr>
+<td><strong>故障隔离范围</strong></td>
+<td>查找 <code>payment-svc</code> 不可达时可能影响的所有路径</td>
+<td>连通分量分析 → 3 个服务 + 2 个数据库将不可达</td>
+</tr>
+<tr>
+<td><strong>链路追踪辅助</strong></td>
+<td>查找从 <code>frontend</code> 到 <code>recommend</code> 的所有调用链</td>
+<td>4 条路径：最长 5 跳，最短 2 跳</td>
+</tr>
+<tr>
+<td><strong>配置变更验证</strong></td>
+<td>新上线 <code>redis-cluster-2</code> 后，检查哪些服务已连接到新节点</td>
+<td>已迁移: <code>session-svc</code> / <code>cache-svc</code> · 未迁移: <code>rate-limiter</code>（告警）</td>
+</tr>
+</tbody></table>
+<h3>3.4 拓扑分析</h3>
+<table>
+<thead>
+<tr>
+<th>分析算法</th>
+<th>输入</th>
+<th>输出</th>
+<th>应用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>连通分量</strong></td>
+<td>全量拓扑</td>
+<td>连通分量列表</td>
+<td>故障隔离范围判断</td>
+</tr>
+<tr>
+<td><strong>强连通分量 SCC</strong></td>
+<td>有向拓扑</td>
+<td>SCC 列表</td>
+<td>服务循环依赖检测</td>
+</tr>
+<tr>
+<td><strong>PageRank</strong></td>
+<td>有向拓扑</td>
+<td>节点排名分数</td>
+<td>核心服务识别</td>
+</tr>
+<tr>
+<td><strong>介数中心性</strong></td>
+<td>拓扑图</td>
+<td>节点介数分数</td>
+<td>关键链路识别</td>
+</tr>
+<tr>
+<td><strong>社区发现 Louvain</strong></td>
+<td>无向拓扑</td>
+<td>社区划分</td>
+<td>服务分组分析</td>
+</tr>
+<tr>
+<td><strong>故障传播路径</strong></td>
+<td>故障节点</td>
+<td>传播路径 DAG</td>
+<td>影响分析、根因推理</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. 技术实现</h2>
+<h3>4.1 数据采集</h3>
+<div class="mermaid">flowchart LR
+    subgraph 数据源
+        DS1[K8s API Server]
+        DS2[CMDB]
+        DS3[Service Mesh]
+        DS4[Prometheus]
+        DS5[DNS 系统]
+    end
+    subgraph 采集层
+        CL1[主动发现
+API轮询]
+        CL2[被动接收
+Webhook / Kafka]
+    end
+    subgraph 处理层
+        PR1[格式解析]
+        PR2[实体映射]
+        PR3[关系抽取]
+        PR4[冲突解决]
+    end
+    DS1 & DS2 & DS3 & DS4 & DS5 --> CL1 & CL2
+    CL1 & CL2 --> PR1 --> PR2 --> PR3 --> PR4
+    style 数据源 fill:#e3f2fd
+    style 采集层 fill:#d1e7dd
+    style 处理层 fill:#fff9c4</div><table>
+<thead>
+<tr>
+<th>数据源</th>
+<th>采集方式</th>
+<th>频率</th>
+<th>数据内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>K8s API Server</strong></td>
+<td>Watch + List</td>
+<td>实时 + 5min 轮询</td>
+<td>Node / Pod / Service / Endpoint / Ingress</td>
+</tr>
+<tr>
+<td><strong>CMDB</strong></td>
+<td>REST API 轮询</td>
+<td>5min 轮询</td>
+<td>主机 / 网络设备 / 存储设备</td>
+</tr>
+<tr>
+<td><strong>Service Mesh</strong></td>
+<td>Envoy ADS / CDS</td>
+<td>实时</td>
+<td>服务发现 / 流量拓扑 / 路由规则</td>
+</tr>
+<tr>
+<td><strong>Prometheus</strong></td>
+<td>PromQL + Targets</td>
+<td>15s 轮询</td>
+<td>指标采集目标 / 告警规则</td>
+</tr>
+<tr>
+<td><strong>DNS 系统</strong></td>
+<td>DNS Zone Transfer</td>
+<td>1h 轮询</td>
+<td>域名解析 / CNAME / A 记录</td>
+</tr>
+</tbody></table>
+<h3>4.2 存储架构</h3>
+<table>
+<thead>
+<tr>
+<th>存储引擎</th>
+<th>存储内容</th>
+<th>数据模型</th>
+<th>容量规划</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Neo4j</strong></td>
+<td>实体 + 关系 + 属性</td>
+<td>属性图（Property Graph）</td>
+<td>100 万节点 / 1000 万边</td>
+</tr>
+<tr>
+<td><strong>TimescaleDB</strong></td>
+<td>拓扑变更时序</td>
+<td>时序表（node_changes / edge_changes）</td>
+<td>保留 90 天</td>
+</tr>
+<tr>
+<td><strong>Kafka</strong></td>
+<td>变更事件流</td>
+<td>6 个 Topic（按事件类型分区）</td>
+<td>保留 7 天</td>
+</tr>
+<tr>
+<td><strong>Redis</strong></td>
+<td>查询缓存 + 变更缓冲</td>
+<td>String / Hash / Sorted Set</td>
+<td>10GB</td>
+</tr>
+</tbody></table>
+<h3>4.3 缓存策略</h3>
+<table>
+<thead>
+<tr>
+<th>缓存类型</th>
+<th>内容</th>
+<th>TTL</th>
+<th>更新策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>节点缓存</strong></td>
+<td>高频查询节点</td>
+<td>5 分钟</td>
+<td>LRU + 变更事件失效</td>
+</tr>
+<tr>
+<td><strong>路径缓存</strong></td>
+<td>热点路径查询结果</td>
+<td>1 分钟</td>
+<td>LRU + 边变更失效</td>
+</tr>
+<tr>
+<td><strong>聚合缓存</strong></td>
+<td>服务统计 / 集群统计</td>
+<td>5 分钟</td>
+<td>定时刷新</td>
+</tr>
+<tr>
+<td><strong>时序缓冲</strong></td>
+<td>变更事件批量写入缓冲</td>
+<td>实时 flush</td>
+<td>时间/数量双阈值触发</td>
+</tr>
+</tbody></table>
+<h3>4.4 错误处理与边界场景</h3>
+<table>
+<thead>
+<tr>
+<th>异常场景</th>
+<th>检测方式</th>
+<th>处理策略</th>
+<th>恢复动作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>数据源不可达</strong></td>
+<td>健康检查超时</td>
+<td>使用缓存数据 + 标记数据源离线</td>
+<td>重试 3 次 → 指数退避 → 告警</td>
+</tr>
+<tr>
+<td><strong>数据格式异常</strong></td>
+<td>Schema 校验失败</td>
+<td>跳过异常记录 + 写入死信队列</td>
+<td>人工检视死信队列</td>
+</tr>
+<tr>
+<td><strong>实体 ID 冲突</strong></td>
+<td>唯一约束冲突</td>
+<td>按优先级链合并</td>
+<td>记录冲突日志</td>
+</tr>
+<tr>
+<td><strong>Neo4j 写入失败</strong></td>
+<td>事务异常</td>
+<td>回滚 + 重试队列</td>
+<td>落盘到本地队列，恢复后回放</td>
+</tr>
+<tr>
+<td><strong>Kafka 消费积压</strong></td>
+<td>消费延迟 &gt; 阈值</td>
+<td>降级为批处理模式</td>
+<td>积压消除后恢复实时</td>
+</tr>
+<tr>
+<td><strong>全量同步中断</strong></td>
+<td>同步任务超时</td>
+<td>标记断点 + 下次从断点续传</td>
+<td>重试 + 通知运维</td>
+</tr>
+</tbody></table>
+<h3>4.5 图分析引擎</h3>
+<div class="mermaid">flowchart LR
+    G1[查询请求] --> G2[查询计划生成
+Cypher Parser]
+    G2 --> G3[查询优化
+Index + Cost Model]
+    G3 --> G4[执行引擎
+运行时]
+    G4 --> G5[结果聚合]
+    G5 --> G6[返回结果]
+
+    G4 -->|深度查询| A1[图算法库
+PageRank / Louvain
+连通分量]
+    A1 --> G5
+
+    style G1 fill:#e3f2fd
+    style G2 fill:#d1e7dd
+    style G3 fill:#fff9c4
+    style G4 fill:#ffccbc
+    style A1 fill:#e1bee7
+    style G5 fill:#e1bee7
+    style G6 fill:#d1e7dd</div><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>技术选型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>查询语言</strong></td>
+<td>Cypher</td>
+<td>Neo4j 原生查询语言</td>
+</tr>
+<tr>
+<td><strong>查询优化器</strong></td>
+<td>Cost-based Optimizer</td>
+<td>基于统计信息选择最优执行计划</td>
+</tr>
+<tr>
+<td><strong>图算法库</strong></td>
+<td>Neo4j Graph Data Science (GDS)</td>
+<td>PageRank、Louvain、连通分量等</td>
+</tr>
+<tr>
+<td><strong>索引</strong></td>
+<td>Composite Index + Range Index</td>
+<td>支持多字段组合查询</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. 接口设计</h2>
+<h3>5.1 REST API</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>响应</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/topology/nodes</code></td>
+<td>查询节点列表</td>
+<td>NodeList</td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/topology/nodes/{id}</code></td>
+<td>查询单个节点</td>
+<td>Node</td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/topology/edges</code></td>
+<td>查询边列表</td>
+<td>EdgeList</td>
+</tr>
+<tr>
+<td><strong>POST</strong></td>
+<td><code>/api/v1/topology/query/path</code></td>
+<td>路径查询</td>
+<td>Path[]</td>
+</tr>
+<tr>
+<td><strong>POST</strong></td>
+<td><code>/api/v1/topology/query/neighbors</code></td>
+<td>邻居查询</td>
+<td>Node[]</td>
+</tr>
+<tr>
+<td><strong>POST</strong></td>
+<td><code>/api/v1/topology/query/subgraph</code></td>
+<td>子图查询</td>
+<td>Graph</td>
+</tr>
+<tr>
+<td><strong>POST</strong></td>
+<td><code>/api/v1/topology/analyze</code></td>
+<td>拓扑分析</td>
+<td>AnalyzeResult</td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/topology/stats</code></td>
+<td>拓扑统计</td>
+<td>TopologyStats</td>
+</tr>
+<tr>
+<td><strong>POST</strong></td>
+<td><code>/api/v1/topology/sync/trigger</code></td>
+<td>手动触发同步</td>
+<td>SyncJob</td>
+</tr>
+</tbody></table>
+<h3>5.2 gRPC 接口</h3>
+<table>
+<thead>
+<tr>
+<th>服务</th>
+<th>方法</th>
+<th>说明</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>TopologyService</strong></td>
+<td>GetNode</td>
+<td>获取单个节点</td>
+<td>故障研判上下文</td>
+</tr>
+<tr>
+<td><strong>TopologyService</strong></td>
+<td>FindPath</td>
+<td>路径查询</td>
+<td>根因分析传播路径</td>
+</tr>
+<tr>
+<td><strong>TopologyService</strong></td>
+<td>GetNeighbors</td>
+<td>邻居查询</td>
+<td>影响分析</td>
+</tr>
+<tr>
+<td><strong>TopologyService</strong></td>
+<td>GetSubGraph</td>
+<td>子图查询</td>
+<td>服务拓扑大图</td>
+</tr>
+<tr>
+<td><strong>TopologyService</strong></td>
+<td>AnalyzeGraph</td>
+<td>拓扑分析</td>
+<td>PageRank / 社区发现</td>
+</tr>
+<tr>
+<td><strong>TopologyService</strong></td>
+<td>SyncTopology</td>
+<td>触发全量同步</td>
+<td>管理面操作</td>
+</tr>
+</tbody></table>
+<h3>5.3 Kafka 事件流</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>事件类型</th>
+<th>Payload</th>
+<th>消费者</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>topology.node.created</code></td>
+<td>节点创建</td>
+<td>NodeCreatedEvent</td>
+<td>认知网络、智能感知</td>
+</tr>
+<tr>
+<td><code>topology.node.updated</code></td>
+<td>节点更新</td>
+<td>NodeUpdatedEvent</td>
+<td>认知网络、智能感知</td>
+</tr>
+<tr>
+<td><code>topology.node.deleted</code></td>
+<td>节点删除</td>
+<td>NodeDeletedEvent</td>
+<td>认知网络、智能感知</td>
+</tr>
+<tr>
+<td><code>topology.edge.created</code></td>
+<td>边创建</td>
+<td>EdgeCreatedEvent</td>
+<td>认知网络、根因分析</td>
+</tr>
+<tr>
+<td><code>topology.edge.updated</code></td>
+<td>边更新</td>
+<td>EdgeUpdatedEvent</td>
+<td>认知网络、根因分析</td>
+</tr>
+<tr>
+<td><code>topology.sync.completed</code></td>
+<td>同步完成</td>
+<td>SyncCompletedEvent</td>
+<td>监控告警</td>
+</tr>
+</tbody></table>
+<h3>5.4 接口质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>可用性</strong></td>
+<td>99.95%</td>
+<td>&lt; 99.9%</td>
+</tr>
+<tr>
+<td><strong>节点查询延迟 P99</strong></td>
+<td>&lt; 50ms</td>
+<td>&gt; 100ms</td>
+</tr>
+<tr>
+<td><strong>路径查询延迟 P99</strong></td>
+<td>&lt; 200ms</td>
+<td>&gt; 500ms</td>
+</tr>
+<tr>
+<td><strong>子图查询延迟 P99</strong></td>
+<td>&lt; 1s</td>
+<td>&gt; 2s</td>
+</tr>
+<tr>
+<td><strong>实时更新延迟</strong></td>
+<td>&lt; 1s</td>
+<td>&gt; 5s</td>
+</tr>
+<tr>
+<td><strong>图分析延迟 P99</strong></td>
+<td>&lt; 5s</td>
+<td>&gt; 10s</td>
+</tr>
+<tr>
+<td><strong>吞吐量</strong></td>
+<td>&gt; 5000 QPS</td>
+<td>&lt; 2000 QPS</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>6. 量化指标</h2>
+<h3>6.1 性能指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标名称</th>
+<th>当前基线</th>
+<th>目标值</th>
+<th>测量方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>节点查询延迟 P99</strong></td>
+<td>&lt; 80ms</td>
+<td>&lt; 50ms</td>
+<td>APM 追踪</td>
+</tr>
+<tr>
+<td><strong>路径查询延迟 P99</strong></td>
+<td>&lt; 300ms</td>
+<td>&lt; 200ms</td>
+<td>APM 追踪</td>
+</tr>
+<tr>
+<td><strong>子图查询延迟 P99</strong></td>
+<td>&lt; 2s</td>
+<td>&lt; 1s</td>
+<td>APM 追踪</td>
+</tr>
+<tr>
+<td><strong>实时更新延迟</strong></td>
+<td>&lt; 3s</td>
+<td>&lt; 1s</td>
+<td>变更时间戳差值</td>
+</tr>
+<tr>
+<td><strong>图分析延迟 P99</strong></td>
+<td>&lt; 10s</td>
+<td>&lt; 5s</td>
+<td>日志时间戳</td>
+</tr>
+<tr>
+<td><strong>全量同步时间</strong></td>
+<td>&lt; 45min</td>
+<td>&lt; 30min</td>
+<td>同步任务日志</td>
+</tr>
+<tr>
+<td><strong>API 吞吐量</strong></td>
+<td>&gt; 3000 QPS</td>
+<td>&gt; 5000 QPS</td>
+<td>Prometheus metrics</td>
+</tr>
+</tbody></table>
+<h3>6.2 准确指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标名称</th>
+<th>当前基线</th>
+<th>目标值</th>
+<th>测量方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>实体覆盖率</strong></td>
+<td>90%</td>
+<td>&gt; 98%</td>
+<td>与 CMDB 对比</td>
+</tr>
+<tr>
+<td><strong>关系准确率</strong></td>
+<td>92%</td>
+<td>&gt; 97%</td>
+<td>人工抽检验证</td>
+</tr>
+<tr>
+<td><strong>数据一致性</strong></td>
+<td>95%</td>
+<td>99.5%</td>
+<td>多源交叉验证</td>
+</tr>
+<tr>
+<td><strong>重复实体率</strong></td>
+<td>&lt; 3%</td>
+<td>&lt; 0.5%</td>
+<td>ID 去重分析</td>
+</tr>
+<tr>
+<td><strong>孤立节点率</strong></td>
+<td>&lt; 5%</td>
+<td>&lt; 2%</td>
+<td>图分析算法</td>
+</tr>
+</tbody></table>
+<h3>6.3 可用指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标名称</th>
+<th>当前基线</th>
+<th>目标值</th>
+<th>测量方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>系统可用性</strong></td>
+<td>99.5%</td>
+<td>99.95%</td>
+<td>正常运行时间统计</td>
+</tr>
+<tr>
+<td><strong>数据完整性</strong></td>
+<td>99%</td>
+<td>99.99%</td>
+<td>缺失数据比率监控</td>
+</tr>
+<tr>
+<td><strong>事件丢失率</strong></td>
+<td>&lt; 0.1%</td>
+<td>&lt; 0.01%</td>
+<td>Kafka 消费位点校验</td>
+</tr>
+<tr>
+<td><strong>Neo4j 可用性</strong></td>
+<td>99.9%</td>
+<td>99.99%</td>
+<td>健康检查</td>
+</tr>
+<tr>
+<td><strong>同步成功率</strong></td>
+<td>95%</td>
+<td>&gt; 99%</td>
+<td>同步任务结果统计</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. 部署架构</h2>
+<h3>7.1 K8s 部署架构</h3>
+<div class="mermaid">flowchart TB
+    subgraph K8s["Kubernetes 集群"]
+        subgraph 数据层["数据层 StatefulSet"]
+            NB1[Neo4j Primary]
+            NB2[Neo4j Replica1]
+            NB3[Neo4j Replica2]
+            RD[Redis Cluster]
+            KG[Kafka Broker]
+        end
+        subgraph 服务层["服务层 Deployment"]
+            TMS[Topology Svc x3]
+            TMA[Topology API x2]
+        end
+        subgraph 采集层["采集层 DaemonSet"]
+            TC[Topology Collector]
+        end
+    end
+    subgraph 外部["外部数据源"]
+        K8S_API[K8s API Server]
+        CMDB[CMDB]
+    end
+    K8S_API --> TC
+    CMDB --> TC
+    TC --> TMS
+    TMS --> NB1
+    TMS --> RD
+    TMS --> KG
+    TMA --> TMS
+    TMA --> NB1
+    NB1 --> NB2
+    NB1 --> NB3
+    style K8s fill:#f0f9ff
+    style 数据层 fill:#fff9c4
+    style 服务层 fill:#d1e7dd
+    style 采集层 fill:#ffccbc</div><h3>7.2 资源配置</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>副本数</th>
+<th>CPU</th>
+<th>Memory</th>
+<th>Storage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Topology Service</strong></td>
+<td>3</td>
+<td>2 核</td>
+<td>4Gi</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Topology API</strong></td>
+<td>2</td>
+<td>1 核</td>
+<td>2Gi</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Topology Collector</strong></td>
+<td>DaemonSet</td>
+<td>0.5 核</td>
+<td>512Mi</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Neo4j</strong></td>
+<td>3（1 主 2 从）</td>
+<td>4 核</td>
+<td>16Gi</td>
+<td>500Gi SSD</td>
+</tr>
+<tr>
+<td><strong>Redis Cluster</strong></td>
+<td>3</td>
+<td>2 核</td>
+<td>8Gi</td>
+<td>10Gi</td>
+</tr>
+<tr>
+<td><strong>Kafka Broker</strong></td>
+<td>3</td>
+<td>2 核</td>
+<td>4Gi</td>
+<td>100Gi SSD</td>
+</tr>
+</tbody></table>
+<h3>7.3 高可用设计</h3>
+<table>
+<thead>
+<tr>
+<th>高可用策略</th>
+<th>实现方式</th>
+<th>故障切换时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Neo4j 高可用</strong></td>
+<td>因果集群（Causal Cluster）1 主 2 从</td>
+<td>&lt; 30s</td>
+</tr>
+<tr>
+<td><strong>Redis 高可用</strong></td>
+<td>Cluster 模式 + 自动故障转移</td>
+<td>&lt; 10s</td>
+</tr>
+<tr>
+<td><strong>Kafka 高可用</strong></td>
+<td>3 副本 + ISR</td>
+<td>&lt; 30s</td>
+</tr>
+<tr>
+<td><strong>服务高可用</strong></td>
+<td>K8s HPA + 就绪探针 + 存活探针</td>
+<td>&lt; 60s</td>
+</tr>
+<tr>
+<td><strong>数据备份</strong></td>
+<td>Neo4j 定时快照 + 异地备份</td>
+<td>每日 03:00</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. 本章小结</h2>
+<h3>8.1 核心要点速记</h3>
+<p><strong>5 个关键认知：</strong></p>
+<ol>
+<li><strong>拓扑是平台的数字底盘</strong> — 为所有上层智能分析模块提供拓扑数据服务</li>
+<li><strong>实体 + 关系 + 属性统一模型</strong> — 覆盖物理层、逻辑层、实例层、运行时层全层级</li>
+<li><strong>图数据库 + 时序数据库 + Kafka</strong> — 三种存储引擎各司其职（图谱/变更/事件）</li>
+<li><strong>实时增量 + 定时全量双轨更新</strong> — 保证数据新鲜度和完整性</li>
+<li><strong>变更事件驱动上游模块</strong> — 通过 Kafka 事件总线实现模块间松耦合</li>
+</ol>
+<p><strong>4 个架构目标：</strong></p>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>描述</th>
+<th>量化指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>高性能查询</strong></td>
+<td>P99 节点查询 &lt; 50ms</td>
+<td>路径查询 &lt; 200ms</td>
+</tr>
+<tr>
+<td><strong>高覆盖率</strong></td>
+<td>实体覆盖率 &gt; 98%</td>
+<td>关系准确率 &gt; 97%</td>
+</tr>
+<tr>
+<td><strong>强一致性</strong></td>
+<td>数据一致性 99.5%</td>
+<td>事件丢失率 &lt; 0.01%</td>
+</tr>
+<tr>
+<td><strong>高可用</strong></td>
+<td>系统可用性 99.95%</td>
+<td>故障切换 &lt; 60s</td>
+</tr>
+</tbody></table>
+<h3>8.2 接口矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>接口类型</th>
+<th>数量</th>
+<th>关键接口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>REST API</strong></td>
+<td>9 个</td>
+<td>节点查询、路径查询、子图查询、拓扑分析</td>
+</tr>
+<tr>
+<td><strong>gRPC</strong></td>
+<td>6 个</td>
+<td>GetNode、FindPath、GetNeighbors、AnalyzeGraph</td>
+</tr>
+<tr>
+<td><strong>Kafka Topic</strong></td>
+<td>6 个</td>
+<td>节点创建/更新/删除、边创建/更新、同步完成</td>
+</tr>
+</tbody></table>
+<h3>8.3 关键成功要素</h3>
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>说明</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>多源数据汇聚</strong></td>
+<td>CMDB、K8s、Service Mesh、Prometheus 多源融合</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>实体 ID 统一</strong></td>
+<td>跨数据源的实体 ID 映射与去重</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>实时更新延迟</strong></td>
+<td>拓扑变更到上层感知 &lt; 1s</td>
+<td>P1</td>
+</tr>
+<tr>
+<td><strong>查询性能</strong></td>
+<td>P99 节点查询 &lt; 50ms、路径查询 &lt; 200ms</td>
+<td>P1</td>
+</tr>
+<tr>
+<td><strong>高可用架构</strong></td>
+<td>Neo4j 因果集群 + Redis Cluster + Kafka 多副本</td>
+<td>P1</td>
+</tr>
+<tr>
+<td><strong>图分析算法</strong></td>
+<td>PageRank、中心性、社区发现、故障传播</td>
+<td>P2</td>
+</tr>
+</tbody></table>
+<h3>8.4 本章思考</h3>
+<blockquote>
+<p>以下问题供设计评审和团队讨论时使用，旨在检验对拓扑建模模块的理解深度。</p>
+</blockquote>
+<p><strong>基础问题：</strong></p>
+<ol>
+<li>拓扑建模模块为什么选择「属性图」模型而非「资源-关系」ER 模型？两种模型在运维场景中的本质差异是什么？</li>
+<li>如果 CMDB 和 K8s 对同一台主机的 IP 地址返回不同值，应按什么策略处理？什么场景下应该自动合并，什么场景下必须人工介入？</li>
+<li>全量同步中断超过 1 小时后恢复，如何确保中间发生的增量变更不丢失、不重复？</li>
+</ol>
+<p><strong>进阶问题：</strong></p>
+<ol start="4">
+<li>在大规模集群（10 万+ 节点）下，实时路径查询（<code>MATCH path = (a)-[:calls*1..5]-(b)</code>）的性能瓶颈在哪里？如何通过图分区或索引优化？</li>
+<li>如果 Service Mesh 数据出现环路依赖（Service A → B → C → A），拓扑建模模块应如何处理？是自动断路还是报错给上层？</li>
+<li>「故障传播路径分析」与「影响范围分析」的本质区别是什么？在图查询层面分别对应什么算法？</li>
+</ol>
+<p><strong>反模式自查：</strong></p>
+<ul>
+<li>❌ <strong>全量查询</strong>：每次故障都查全图 — 正确做法是使用子图查询 + 缓存</li>
+<li>❌ <strong>贫瘠属性</strong>：只存 ID 不存属性 — 每次都需要回查数据源</li>
+<li>❌ <strong>滞后同步</strong>：仅靠定时全量同步 — 关键变更的分钟级延迟可能导致误告警</li>
+<li>❌ <strong>无主数据源</strong>：每个数据源都视为权威 — 必须建立数据源优先级链</li>
+</ul>
+<hr>
+<blockquote>
+<p>本章定义了 Observable Ops 平台拓扑建模模块的详细设计规范。模块 02 作为数据基础设施，为模块 04-11 提供拓扑数据服务，是整个平台的核心数据底盘。</p>
+</blockquote>
+<p><em>文档版本：V1.1 | 更新日期：2026-06-08</em></p>
+
+      
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

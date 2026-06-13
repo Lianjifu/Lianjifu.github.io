@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Observable Ops — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/06/13/observable-ops-02-04-sensing/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Observable Ops — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Observable Ops 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-13T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/06/13/observable-ops-02-04-sensing/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 04 · 智能感知 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/06/13/observable-ops-02-04-sensing/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 04 · 智能感知
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-ops/" itemprop="url" rel="index"><span
+                          itemprop="name">Observable Ops</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+        <h1>模块 04 · 智能感知</h1>
+<blockquote>
+<p>智能感知是 Observable Ops 的「异常雷达」——通过多维度实时分析，识别系统运行中的异常模式、告警噪声和关联故障，将海量原始监控数据转化为可操作的高质量告警事件，输出给故障研判模块。</p>
+</blockquote>
+<hr>
+<h2>📑 目录</h2>
+<h3>章节导航</h3>
+<ul>
+<li><ol>
+<li>模块定位与职责</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>感知数据模型</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>核心功能分解</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>API 设计规范</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>数据流架构</li>
+</ol>
+</li>
+<li><ol start="6">
+<li>模块协作关系</li>
+</ol>
+</li>
+<li><ol start="7">
+<li>量化指标体系</li>
+</ol>
+</li>
+<li><ol start="8">
+<li>部署架构</li>
+</ol>
+</li>
+<li><ol start="9">
+<li>本章小结</li>
+</ol>
+</li>
+</ul>
+<hr>
+<h2>1. 模块定位与职责</h2>
+<h3>1.1 在 4 层架构中的位置</h3>
+<p>智能感知属于<strong>能力层</strong>核心模块，位于数据层与业务分析层之间：接收数据融合后的高质量融合事件，进行实时异常检测与告警压缩，输出研判友好的告警事件给故障研判模块。</p>
+<div class="mermaid">flowchart LR
+    subgraph 数据层["数据层"]
+        FUS[03 数据融合]
+        STORE[Elasticsearch
+InfluxDB]
+    end
+
+    subgraph 能力层["能力层 · 智能感知"]
+        SENS[04 智能感知
+Intelligent Sensing]
+        D4[子模块]
+    end
+
+    subgraph 业务层["业务分析层"]
+        A6[06 故障研判]
+        A7[07 根因分析]
+        A8[08 影响分析]
+    end
+
+    FUS -->|fused.events
+Kafka| SENS
+    STORE -->|查询时序数据| SENS
+    SENS -->|alert.events
+Kafka| A6
+    SENS -->|anomaly.events| A7
+    SENS -->|alert.events| A8
+
+    style SENS fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style 数据层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 能力层 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style 业务层 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+
+    style FUS fill:#c8e6c9
+    style STORE fill:#c8e6c9
+    style SENS fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style A6 fill:#bbdefb
+    style A7 fill:#bbdefb
+    style A8 fill:#bbdefb</div><h3>1.2 核心职责</h3>
+<table>
+<thead>
+<tr>
+<th>职责</th>
+<th>描述</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>实时异常检测</strong></td>
+<td>对融合指标进行流式异常检测，识别指标偏离正常基线的行为</td>
+<td>Anomaly Event</td>
+</tr>
+<tr>
+<td><strong>模式学习</strong></td>
+<td>从历史数据中学习正常基线，处理周期性/季节性特征，检测概念漂移</td>
+<td>Baseline Model</td>
+</tr>
+<tr>
+<td><strong>告警压缩与关联</strong></td>
+<td>将同类告警聚合，识别传播链上的告警关系，过滤重复告警</td>
+<td>Correlated Alert</td>
+</tr>
+<tr>
+<td><strong>噪声抑制</strong></td>
+<td>过滤非可操作告警（如计划内维护、已知无害波动），减少告警风暴</td>
+<td>Filtered Alert</td>
+</tr>
+<tr>
+<td><strong>告警路由</strong></td>
+<td>根据告警类型和严重程度，自动路由到对应值班团队或自动恢复流程</td>
+<td>Routed Alert</td>
+</tr>
+</tbody></table>
+<h3>1.3 核心设计原则</h3>
+<div class="mermaid">flowchart LR
+    P1[Streaming First
+流式优先] --> P2[Adaptive Thresholds
+自适应阈值]
+    P2 --> P3[Correlation Over Isolation
+关联优于孤立]
+    P3 --> P4[Human-in-the-Loop
+人工反馈闭环]
+    P4 -.-> P1
+    style P1 fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style P2 fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style P3 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style P4 fill:#e8f5e9,stroke:#388e3c,stroke-width:3px</div><ul>
+<li><strong>流式优先（Streaming First）</strong>：所有检测逻辑基于流处理实现，最小化检测延迟</li>
+<li><strong>自适应阈值（Adaptive Thresholds）</strong>：告别静态阈值，基线随历史数据动态调整</li>
+<li><strong>关联优于孤立（Correlation Over Isolation）</strong>：单点异常不如多点关联异常重要，关联检测减少误报</li>
+<li><strong>人工反馈闭环（Human-in-the-Loop）</strong>：告警收敛结果可被人工修正，修正结果反哺模型迭代</li>
+</ul>
+<h3>1.4 子模块划分</h3>
+<table>
+<thead>
+<tr>
+<th>子模块</th>
+<th>职责</th>
+<th>技术选型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Detector</strong> 异常检测引擎</td>
+<td>流式异常检测（统计 + ML），输出 anomaly_score</td>
+<td>Flink / TensorFlow Serving</td>
+</tr>
+<tr>
+<td><strong>Pattern Learner</strong> 模式学习器</td>
+<td>基线构建、季节性检测、概念漂移检测</td>
+<td>Python / Prophet / LSTM</td>
+</tr>
+<tr>
+<td><strong>Correlator</strong> 告警关联器</td>
+<td>症状聚类、因果关联、指标组合关联</td>
+<td>Flink / Redis Graph</td>
+</tr>
+<tr>
+<td><strong>Noise Reducer</strong> 噪声抑制器</td>
+<td>重复抑制、非可操作过滤、告警路由</td>
+<td>Flink / Python</td>
+</tr>
+<tr>
+<td><strong>Rule Engine</strong> 规则引擎</td>
+<td>规则管理与执行，支持条件-告警映射</td>
+<td>Drools / Python</td>
+</tr>
+<tr>
+<td><strong>Feedback Loop</strong> 反馈闭环</td>
+<td>人工反馈采集、模型在线学习</td>
+<td>Python / Redis</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 感知数据模型</h2>
+<h3>2.1 异常评分模型（Anomaly Score Schema）</h3>
+<p>每个检测点输出的异常评分对象，是告警生成的直接输入。</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>anomaly_id</code></td>
+<td>String (UUID)</td>
+<td>异常事件唯一 ID</td>
+<td><code>ano-20260607-001</code></td>
+</tr>
+<tr>
+<td><code>node_id</code></td>
+<td>String</td>
+<td>发生异常的实体 ID（Canonical ID）</td>
+<td><code>svc-payment-prod</code></td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td>Timestamp (ms)</td>
+<td>异常检测时间</td>
+<td><code>1750000000000</code></td>
+</tr>
+<tr>
+<td><code>metric_name</code></td>
+<td>String</td>
+<td>异常指标名</td>
+<td><code>cpu_usage_percent</code></td>
+</tr>
+<tr>
+<td><code>score</code></td>
+<td>Float [0-1]</td>
+<td>异常评分（越高越异常）</td>
+<td><code>0.92</code></td>
+</tr>
+<tr>
+<td><code>severity</code></td>
+<td>Enum</td>
+<td>严重程度：CRITICAL / HIGH / MEDIUM / LOW / INFO</td>
+<td><code>HIGH</code></td>
+</tr>
+<tr>
+<td><code>baseline</code></td>
+<td>Float</td>
+<td>基线值（正常期望值）</td>
+<td><code>65.0</code></td>
+</tr>
+<tr>
+<td><code>deviation</code></td>
+<td>Float</td>
+<td>偏离值（当前值 - 基线值）</td>
+<td><code>+20.6</code></td>
+</tr>
+<tr>
+<td><code>algorithm</code></td>
+<td>String</td>
+<td>检测算法名称</td>
+<td><code>Z-score</code>, <code>LSTM-AE</code></td>
+</tr>
+<tr>
+<td><code>window_size</code></td>
+<td>Integer</td>
+<td>检测窗口大小（分钟）</td>
+<td><code>5</code></td>
+</tr>
+<tr>
+<td><code>confidence</code></td>
+<td>Float [0-1]</td>
+<td>检测置信度</td>
+<td><code>0.88</code></td>
+</tr>
+</tbody></table>
+<h3>2.2 告警模板模型（Alert Template Schema）</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>name</code></td>
+<td>String</td>
+<td>告警名称（唯一标识）</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>String</td>
+<td>告警描述（人类可读）</td>
+</tr>
+<tr>
+<td><code>condition</code></td>
+<td>String</td>
+<td>触发条件表达式</td>
+</tr>
+<tr>
+<td><code>threshold_expr</code></td>
+<td>String</td>
+<td>阈值表达式，如 <code>score &gt; 0.8 AND duration &gt; 2min</code></td>
+</tr>
+<tr>
+<td><code>severity_mapping</code></td>
+<td>Map</td>
+<td>条件满足时的严重程度映射</td>
+</tr>
+<tr>
+<td><code>labels</code></td>
+<td>Map&lt;String, String&gt;</td>
+<td>告警附加标签</td>
+</tr>
+<tr>
+<td><code>cooldown_minutes</code></td>
+<td>Integer</td>
+<td>告警冷却时间（分钟），防止同一告警重复触发</td>
+</tr>
+</tbody></table>
+<h3>2.3 检测规则模型（Detection Rule Model）</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rule_id</code></td>
+<td>String</td>
+<td>规则唯一 ID</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>String</td>
+<td>规则名称</td>
+</tr>
+<tr>
+<td><code>metric_set</code></td>
+<td>String[]</td>
+<td>规则涉及的指标集合</td>
+</tr>
+<tr>
+<td><code>entity_filter</code></td>
+<td>Map</td>
+<td>实体过滤条件（如 <code>{&quot;labels.cluster&quot;: &quot;prod&quot;}</code>）</td>
+</tr>
+<tr>
+<td><code>algorithm</code></td>
+<td>Enum</td>
+<td>检测算法：Z-score / IQR / LSTM-AE / Isolation-Forest / Propagation</td>
+</tr>
+<tr>
+<td><code>params</code></td>
+<td>JSON</td>
+<td>算法参数字典</td>
+</tr>
+<tr>
+<td><code>active</code></td>
+<td>Boolean</td>
+<td>规则是否启用</td>
+</tr>
+<tr>
+<td><code>owner_team</code></td>
+<td>String</td>
+<td>负责团队</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. 核心功能分解</h2>
+<h3>3.1 异常检测算法（Anomaly Detection Algorithms）</h3>
+<h4>3.1.1 算法类型与适用场景</h4>
+<table>
+<thead>
+<tr>
+<th>算法类别</th>
+<th>算法名称</th>
+<th>适用指标类型</th>
+<th>优点</th>
+<th>延迟</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>统计方法</strong></td>
+<td>Z-score</td>
+<td>高斯分布指标（CPU/内存）</td>
+<td>实时、可解释性强</td>
+<td>&lt; 1s</td>
+</tr>
+<tr>
+<td><strong>统计方法</strong></td>
+<td>IQR（四分位距）</td>
+<td>非高斯分布指标</td>
+<td>鲁棒、对极端值不敏感</td>
+<td>&lt; 1s</td>
+</tr>
+<tr>
+<td><strong>ML 方法</strong></td>
+<td>LSTM Autoencoder</td>
+<td>多指标联合检测，季节性指标</td>
+<td>捕获时序依赖，误报率低</td>
+<td>&lt; 5s</td>
+</tr>
+<tr>
+<td><strong>ML 方法</strong></td>
+<td>Isolation Forest</td>
+<td>多维特征空间异常点检测</td>
+<td>无需标注，适合高维数据</td>
+<td>&lt; 2s</td>
+</tr>
+<tr>
+<td><strong>拓扑感知</strong></td>
+<td>Propagation Based</td>
+<td>传播类故障（网络/服务级联）</td>
+<td>结合拓扑结构，定位传播源</td>
+<td>&lt; 3s</td>
+</tr>
+</tbody></table>
+<h4>3.1.2 算法选择策略</h4>
+<div class="mermaid">flowchart LR
+    METRIC[新指标注册] --> DIST{分布类型
+检测}
+    DIST -->|高斯分布| ZS[Z-score]
+    DIST -->|非高斯| IQR[IQR]
+    DIST -->|多维特征| IF[Isolation Forest]
+    DIST -->|季节性时序| LSTM[LSTM Autoencoder]
+
+    ZS -->|误报率 > 15%| UP{升级?}
+    UP -->|是| LSTM
+    LSTM -->|持续误报| IF
+
+    style ZS fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style IQR fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style LSTM fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style IF fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px</div><h3>3.2 模式学习（Pattern Learning）</h3>
+<h4>3.2.1 基线构建</h4>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>窗口大小</th>
+<th>方法</th>
+<th>更新频率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>冷启动基线</strong></td>
+<td>7 天历史数据</td>
+<td>Moving Average + 标准差</td>
+<td>一次性构建</td>
+</tr>
+<tr>
+<td><strong>滚动基线</strong></td>
+<td>7 天滚动窗口</td>
+<td>指数加权移动平均（EWMA）</td>
+<td>每日更新</td>
+</tr>
+<tr>
+<td><strong>实时基线</strong></td>
+<td>1 小时滑动窗口</td>
+<td>在线学习更新</td>
+<td>每小时微调</td>
+</tr>
+</tbody></table>
+<h4>3.2.2 季节性处理</h4>
+<table>
+<thead>
+<tr>
+<th>季节性类型</th>
+<th>周期</th>
+<th>检测方法</th>
+<th>处理策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>小时级季节性</strong></td>
+<td>1 小时</td>
+<td>傅里叶变换 / Prophet</td>
+<td>每小时的独立基线</td>
+</tr>
+<tr>
+<td><strong>日级季节性</strong></td>
+<td>24 小时</td>
+<td>Prophet / SARIMA</td>
+<td>按小时聚合同比</td>
+</tr>
+<tr>
+<td><strong>周级季节性</strong></td>
+<td>7 天</td>
+<td>Prophet</td>
+<td>工作日/周末独立基线</td>
+</tr>
+</tbody></table>
+<h4>3.2.3 概念漂移检测</h4>
+<p>当系统正常行为模式发生永久性变化时（如上线新版本、架构调整），检测模型需要适应这种变化：</p>
+<ul>
+<li><strong>DDM（Drift Detection Method）</strong>：监控错误率，错误率上升超过阈值时触发模型重训</li>
+<li><strong>ADWIN</strong>：自适应滑动窗口，窗口内数据分布变化时触发告警</li>
+<li><strong>人工触发</strong>：重大变更（发布/配置变更）后人工触发的模型重训练</li>
+</ul>
+<h3>3.3 告警关联（Alert Correlation）</h3>
+<h4>3.3.1 关联类型</h4>
+<table>
+<thead>
+<tr>
+<th>关联类型</th>
+<th>方法</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>相似告警聚合</strong></td>
+<td>标签相似度 + 时间窗口</td>
+<td>同一实体 / 相似标签的多个告警</td>
+<td>压缩为 1 个告警（保留最高 severity）</td>
+</tr>
+<tr>
+<td><strong>因果传播关联</strong></td>
+<td>拓扑路径 + 时序因果（Granger Causality）</td>
+<td>传播链上 A→B→C 的告警序列</td>
+<td>识别根因告警（A）和派生告警（B/C）</td>
+</tr>
+<tr>
+<td><strong>多指标组合关联</strong></td>
+<td>主成分分析 + 关联规则挖掘</td>
+<td>多个指标同时异常</td>
+<td>识别共同根因（如 CPU+Memory+Disk 同时高）</td>
+</tr>
+</tbody></table>
+<h4>3.3.2 关联流程</h4>
+<div class="mermaid">flowchart LR
+    subgraph 输入["告警流输入"]
+        A1[Alert: svc-A
+CPU 告警]
+        A2[Alert: svc-B
+Latency 告警]
+        A3[Alert: svc-C
+Error Rate 告警]
+    end
+
+    subgraph 关联处理["告警关联引擎"]
+        CLUSTER[症状聚类
+Clustering]
+        CAUSE[因果推断
+Causal Inference]
+        DEDUP[重复合并
+Deduplication]
+        SCORE[关联评分
+Scoring]
+    end
+
+    subgraph 输出["关联告警输出"]
+        ALERT[Correlated Alert
+带传播链标注]
+    end
+
+    A1 --> CLUSTER
+    A2 --> CLUSTER
+    A3 --> CLUSTER
+    CLUSTER --> CAUSE --> DEDUP --> SCORE --> ALERT
+
+    style 关联处理 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style SCORE fill:#fff9c4,stroke:#f9a825,stroke-width:3px</div><h3>3.4 噪声抑制（Noise Reduction）</h3>
+<h4>3.4.1 噪声类型与处理策略</h4>
+<table>
+<thead>
+<tr>
+<th>噪声类型</th>
+<th>识别方法</th>
+<th>处理策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>重复告警</strong></td>
+<td>相同 entity_id + metric_name + 5min 时间窗口</td>
+<td>合并为 1 条，保留最高 severity</td>
+</tr>
+<tr>
+<td><strong>计划内维护</strong></td>
+<td>维护窗口时间匹配 + 变更记录关联</td>
+<td>静默（不发送，也不计入告警量）</td>
+</tr>
+<tr>
+<td><strong>已知无害波动</strong></td>
+<td>历史标记为&quot;误报&quot;的同类告警</td>
+<td>自动降级 severity 或静默</td>
+</tr>
+<tr>
+<td><strong>探针/测试数据</strong></td>
+<td>entity_id 包含 test / probe / canary 标签</td>
+<td>降级为 INFO 级别，不进入研判</td>
+</tr>
+</tbody></table>
+<h4>3.4.2 告警路由规则</h4>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>路由目标</th>
+<th>路由方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>severity = CRITICAL 且 entity_type = Service</td>
+<td>值班 On-Call（PagerDuty）</td>
+<td>立即触发</td>
+</tr>
+<tr>
+<td>severity = HIGH 且 has_auto_recovery = true</td>
+<td>自动恢复流程（09 自动执行）</td>
+<td>自动创建执行任务</td>
+</tr>
+<tr>
+<td>severity ≤ MEDIUM 且持续 &gt; 30min</td>
+<td>工单系统（JIRA / 飞书）</td>
+<td>自动创建工单</td>
+</tr>
+<tr>
+<td>entity_type = Database 且 severity ≥ HIGH</td>
+<td>DBA 值班</td>
+<td>立即触发</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. API 设计规范</h2>
+<h3>4.1 REST API</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>描述</th>
+<th>请求体</th>
+<th>响应</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td><code>/api/v1/sensing/alerts</code></td>
+<td>查询告警列表（支持过滤/分页）</td>
+<td><code>?severity=&amp;entity=&amp;from=&amp;to=&amp;status=</code></td>
+<td><code>Alert[]</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/sensing/alerts/{id}</code></td>
+<td>查询单个告警详情（含关联信息）</td>
+<td>——</td>
+<td><code>AlertDetail</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/sensing/anomalies</code></td>
+<td>查询异常事件列表</td>
+<td><code>?entity=&amp;from=&amp;to=</code></td>
+<td><code>Anomaly[]</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/sensing/rules</code></td>
+<td>查询检测规则列表</td>
+<td>——</td>
+<td><code>Rule[]</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/sensing/rules</code></td>
+<td>创建检测规则</td>
+<td><code>Rule</code></td>
+<td><code>Rule（已创建）</code></td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/v1/sensing/rules/{id}</code></td>
+<td>更新检测规则</td>
+<td><code>Partial Rule</code></td>
+<td><code>Rule（已更新）</code></td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/v1/sensing/alerts/{id}/feedback</code></td>
+<td>提交告警反馈（误报/正确/升级）</td>
+<td><code>Feedback</code></td>
+<td><code>200 OK</code></td>
+</tr>
+</tbody></table>
+<h3>4.2 Kafka Topics</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>数据类型</th>
+<th>生产者</th>
+<th>消费者</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sensing.anomaly.detected</code></td>
+<td>检测到的异常事件</td>
+<td>Flink Detector</td>
+<td>告警关联器 / 06 故障研判</td>
+</tr>
+<tr>
+<td><code>sensing.alert.correlated</code></td>
+<td>关联压缩后的告警</td>
+<td>Flink Correlator</td>
+<td>告警路由 / 06 故障研判</td>
+</tr>
+<tr>
+<td><code>sensing.alert.filtered</code></td>
+<td>过滤后的最终告警</td>
+<td>Flink Noise Reducer</td>
+<td>值班系统 / 飞书 / PagerDuty</td>
+</tr>
+<tr>
+<td><code>sensing.feedback.received</code></td>
+<td>人工反馈事件</td>
+<td>API 层</td>
+<td>Feedback Loop / 11 知识进化</td>
+</tr>
+</tbody></table>
+<h3>4.3 Webhook（外部告警摄入）</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>Webhook URL</th>
+<th>格式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>外部监控告警摄入</td>
+<td><code>/api/v1/sensing/webhook/alert</code></td>
+<td>JSON</td>
+<td>接收 Prometheus / Grafana 等外部告警</td>
+</tr>
+<tr>
+<td>变更事件触发</td>
+<td><code>/api/v1/sensing/webhook/change</code></td>
+<td>JSON</td>
+<td>接收变更事件，自动调整基线</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. 数据流架构</h2>
+<h3>5.1 整体数据流</h3>
+<div class="mermaid">flowchart LR
+    subgraph 数据源["数据融合层"]
+        FUS[03 数据融合
+fused.events]
+        STORE[Elasticsearch
+InfluxDB]
+    end
+
+    subgraph 感知层["智能感知处理管道"]
+        DETECT[Streaming Detector
+异常检测]
+        PATTERN[Pattern Matcher
+模式匹配]
+        CORR[Correlator
+告警关联]
+        NOISE[Noise Reducer
+噪声抑制]
+    end
+
+    subgraph 输出["输出到下游"]
+        ALERT_OUT[alert.events
+Kafka]
+        A6[06 故障研判]
+        A7[07 根因分析]
+        DASH[Dashboard]
+    end
+
+    FUS -->|Kafka 流| DETECT
+    STORE -->|查询基线| DETECT
+    DETECT -->|anomaly 流| PATTERN
+    PATTERN -->|关联输入| CORR
+    CORR -->|压缩告警| NOISE
+    NOISE -->|最终告警| ALERT_OUT
+    ALERT_OUT --> A6
+    ALERT_OUT --> A7
+    ALERT_OUT --> DASH
+
+    style 数据源 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 感知层 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style DETECT fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
+    style 输出 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px</div><h3>5.2 检测流程</h3>
+<div class="mermaid">flowchart LR
+    FUSED[融合事件
+Fused Event] --> PARSE[解析
+Parse]
+    PARSE --> ROUTE[路由到
+规则引擎]
+    ROUTE --> ALGO{算法
+选择}
+    ALGO -->|统计| ZS[Z-score / IQR]
+    ALGO -->|ML| LSTM[LSTM Autoencoder]
+    ALGO -->|多维| IF[Isolation Forest]
+    ZS --> SCORE[计算
+anomaly_score]
+    LSTM --> SCORE
+    IF --> SCORE
+    SCORE --> THRESH{阈值
+判断}
+    THRESH -->|score > threshold| ANO[发布
+Anomaly Event]
+    THRESH -->|score <= threshold| DROP[丢弃]
+
+    style ALGO fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style SCORE fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style ANO fill:#c8e6c9,stroke:#388e3c,stroke-width:2px</div><h3>5.3 反馈闭环流程</h3>
+<div class="mermaid">flowchart LR
+    FEEDBACK[人工反馈
+Feedback] --> SCORE[评分
+更新]
+    SCORE --> RETRAIN[模型
+重训练]
+    RETRAIN --> DEPLOY[模型
+热部署]
+    DEPLOY --> BETTER[检测效果
+提升]
+
+    style FEEDBACK fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style RETRAIN fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style DEPLOY fill:#e8f5e9,stroke:#388e3c,stroke-width:2px</div><hr>
+<h2>6. 模块协作关系</h2>
+<h3>6.1 依赖矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>依赖智能感知的什么</th>
+<th>依赖类型</th>
+<th>接口方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>03 数据融合</strong></td>
+<td>消费融合后的 fused.events 流作为检测输入</td>
+<td>数据依赖</td>
+<td>Kafka 订阅 fused.events</td>
+</tr>
+<tr>
+<td><strong>06 故障研判</strong></td>
+<td>消费智能感知输出的 alert.events，进行故障分类与研判</td>
+<td>数据依赖</td>
+<td>Kafka 订阅 alert.events</td>
+</tr>
+<tr>
+<td><strong>07 根因分析</strong></td>
+<td>消费 anomaly.events，结合拓扑进行传播路径分析</td>
+<td>数据依赖</td>
+<td>Kafka 订阅 anomaly.detected</td>
+</tr>
+<tr>
+<td><strong>08 影响分析</strong></td>
+<td>查询告警列表，了解当前告警态势</td>
+<td>数据依赖</td>
+<td>REST 查询</td>
+</tr>
+<tr>
+<td><strong>09 智能决策</strong></td>
+<td>查询告警上下文，辅助决策判断</td>
+<td>数据依赖</td>
+<td>REST 查询</td>
+</tr>
+<tr>
+<td><strong>11 知识进化</strong></td>
+<td>消费 feedback 事件，更新知识库和模型配置</td>
+<td>数据依赖</td>
+<td>Kafka 订阅 feedback.received</td>
+</tr>
+</tbody></table>
+<h3>6.2 输出接口契约</h3>
+<h4>6.2.1 关联告警输出格式</h4>
+<pre><code>{
+  "alert_id": "alert-20260607-001",
+  "alert_name": "Payment Service CPU 超限",
+  "severity": "HIGH",
+  "status": "firing",
+  "entity_id": "svc-payment-prod",
+  "fired_at": 1750000000000,
+  "correlated_anomalies": [
+    {
+      "anomaly_id": "ano-001",
+      "metric_name": "cpu_usage_percent",
+      "score": 0.92,
+      "baseline": 65.0,
+      "deviation": "+20.6"
+    }
+  ],
+  "correlated_alerts": ["alert-002", "alert-003"],
+  "propagation_chain": ["svc-payment → svc-order → db-001"],
+  "suggested_action": "检查 Payment 服务 CPU 飙升原因",
+  "auto_recovery_available": true,
+  "feedback_count": 0
+}</code></pre><hr>
+<h2>7. 量化指标体系</h2>
+<h3>7.1 检测效果指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>基线（当前）</th>
+<th>目标</th>
+<th>测量方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>检测准确率</strong></td>
+<td>实际异常被正确检出的比例</td>
+<td>75%</td>
+<td>&gt; 85%</td>
+<td>人工标注验证集评估</td>
+</tr>
+<tr>
+<td><strong>误报率（FPR）</strong></td>
+<td>正常被误判为异常的比例</td>
+<td>25%</td>
+<td>&lt; 15%</td>
+<td>反馈闭环数据统计</td>
+</tr>
+<tr>
+<td><strong>MTTD（平均检测时间）</strong></td>
+<td>异常发生到检测出的平均时间</td>
+<td>3min</td>
+<td>&lt; 1min</td>
+<td>anomaly.timestamp vs 实际异常时间</td>
+</tr>
+<tr>
+<td><strong>告警压缩率</strong></td>
+<td>通过去重/关联减少的告警比例</td>
+<td>40%</td>
+<td>&gt; 60%</td>
+<td>原始告警量 vs 最终告警量</td>
+</tr>
+<tr>
+<td><strong>模型迭代周期</strong></td>
+<td>模型从训练到部署的周期</td>
+<td>30 天</td>
+<td>&lt; 7 天</td>
+<td>CI/CD 流水线统计</td>
+</tr>
+</tbody></table>
+<h3>7.2 服务质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>检测延迟 P99</strong></td>
+<td>从融合事件到异常输出的端到端延迟</td>
+<td>&lt; 5s</td>
+<td>&gt; 15s</td>
+</tr>
+<tr>
+<td><strong>告警生成 QPS</strong></td>
+<td>告警生成速率</td>
+<td>&gt; 1000/s</td>
+<td>&lt; 500/s</td>
+</tr>
+<tr>
+<td><strong>规则管理可用率</strong></td>
+<td>规则 CRUD API 可用性</td>
+<td>99.9%</td>
+<td>&lt; 99%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. 部署架构</h2>
+<h3>8.1 K8s 部署拓扑</h3>
+<div class="mermaid">flowchart LR
+    subgraph 计算层["计算层"]
+        subgraph Flink_JOBS["Flink StatefulSet"]
+            FJ1[Flink Detector
+异常检测]
+            FJ2[Flink Correlator
+告警关联]
+            FJ3[Flink Reducer
+噪声抑制]
+        end
+
+        subgraph 服务["Sensing API 服务"]
+            SENS[Intelligent Sensing
+API x2]
+        end
+
+        subgraph 模型服务["TensorFlow Serving"]
+            TF[Model Serving
+LSTM-AE / IF]
+        end
+    end
+
+    subgraph 存储层["存储层"]
+        ES[(Elasticsearch
+Alert Store)]
+        RD[(Redis
+Baseline Cache)]
+        KF[(Kafka
+Topics)]
+    end
+
+    subgraph 数据输入["输入"]
+        FUS[03 数据融合]
+    end
+
+    FUS -->|Kafka| FJ1
+    FJ1 -->|anomaly 流| FJ2 --> FJ3 -->|alert 流| KF
+    TF -->|模型推理| FJ1
+    RD -->|基线查询| FJ1
+    SENS -->|规则管理| ES
+    SENS -->|查询| ES
+
+    style 计算层 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 存储层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 模型服务 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style FJ1 fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
+    style TF fill:#c8e6c9,stroke:#388e3c,stroke-width:2px</div><h3>8.2 资源配置</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>副本数</th>
+<th>CPU</th>
+<th>内存</th>
+<th>存储</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Flink Detector</strong></td>
+<td>2（TaskManager）</td>
+<td>8 核 / TM</td>
+<td>16 GB / TM</td>
+<td>——</td>
+<td>流式异常检测</td>
+</tr>
+<tr>
+<td><strong>Flink Correlator</strong></td>
+<td>2（TaskManager）</td>
+<td>4 核 / TM</td>
+<td>8 GB / TM</td>
+<td>——</td>
+<td>告警关联压缩</td>
+</tr>
+<tr>
+<td><strong>Flink Reducer</strong></td>
+<td>2（TaskManager）</td>
+<td>4 核 / TM</td>
+<td>8 GB / TM</td>
+<td>——</td>
+<td>噪声抑制过滤</td>
+</tr>
+<tr>
+<td><strong>Sensing API</strong></td>
+<td>2（主备）</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>StatefulSet，PDB</td>
+</tr>
+<tr>
+<td><strong>TensorFlow Serving</strong></td>
+<td>2（GPU 节点）</td>
+<td>8 核 + 1 GPU</td>
+<td>32 GB</td>
+<td>——</td>
+<td>ML 模型推理</td>
+</tr>
+<tr>
+<td><strong>Redis Baseline Cache</strong></td>
+<td>3 节点</td>
+<td>4 核</td>
+<td>16 GB</td>
+<td>——</td>
+<td>基线缓存</td>
+</tr>
+<tr>
+<td><strong>Elasticsearch Alert Store</strong></td>
+<td>3 节点</td>
+<td>8 核</td>
+<td>16 GB</td>
+<td>500 GB SSD</td>
+<td>告警持久化存储</td>
+</tr>
+</tbody></table>
+<h3>8.3 高可用设计</h3>
+<ul>
+<li><strong>Flink Checkpoint</strong>：流处理状态每 60s Checkpoint 到 HDFS，故障自动恢复</li>
+<li><strong>TensorFlow Serving</strong>：2 副本 + Load Balancer，单 GPU 节点故障自动切换</li>
+<li><strong>Redis 基线缓存</strong>：Cluster 模式，缓存失效不影响检测（降级为 Flink 内置状态）</li>
+<li><strong>告警幂等</strong>：Kafka 消费使用 alert_id 作为 idempotency key，防止重复处理</li>
+</ul>
+<hr>
+<h2>9. 本章小结</h2>
+<h3>9.1 核心要点</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>核心要点</th>
+<th>量化目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>定位</strong></td>
+<td>能力层核心模块，异常检测与告警压缩的实时处理中枢</td>
+<td>——</td>
+</tr>
+<tr>
+<td><strong>能力</strong></td>
+<td>异常检测 / 模式学习 / 告警关联 / 噪声抑制 4 大能力</td>
+<td>检测准确率 &gt; 85%</td>
+</tr>
+<tr>
+<td><strong>算法</strong></td>
+<td>统计（Z-score/IQR）+ ML（LSTM-AE / IF）+ 拓扑感知，覆盖全场景</td>
+<td>误报率 &lt; 15%</td>
+</tr>
+<tr>
+<td><strong>效果</strong></td>
+<td>告警压缩 &gt; 60%，MTTD &lt; 1min，减少人工研判负担</td>
+<td>压缩率 &gt; 60%</td>
+</tr>
+<tr>
+<td><strong>闭环</strong></td>
+<td>人工反馈 → 模型迭代，Human-in-the-Loop 持续优化</td>
+<td>迭代周期 &lt; 7 天</td>
+</tr>
+</tbody></table>
+<p><strong>记忆口诀：</strong></p>
+<blockquote>
+<p><strong>流式检测实时算，Z-score 加 LSTM；告警关联找根因，拓扑传播是标尺；噪声过滤去冗余，压缩六成是目标；人工反馈入模型，感知越来越精准。</strong></p>
+</blockquote>
+<hr>
+<blockquote>
+<p>本章定义了模块 04 智能感知的详细功能设计规范。后续章节将阐述故障研判（06）、认知网络（05）等模块的设计细节。</p>
+</blockquote>
+<p><em>文档版本：V1.0 | 更新日期：2026-06-07</em></p>
+
+      
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

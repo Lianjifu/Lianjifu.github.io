@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="03 05 security standards<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-03-05-security-standards/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-03-05-security-standards/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>安全标准与合规 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-03-05-security-standards/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          安全标准与合规
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>05. 安全技术标准与合规框架</h1>
+<blockquote>
+<p>智能安全事件可观测性 · 标准规范参考</p>
+</blockquote>
+<hr>
+<h2 id="一框架概述">一、框架概述</h2>
+<h3 id="安全标准体系分类">1.1 安全标准体系分类</h3>
+<div class="mermaid">graph TB
+    subgraph 国际标准
+        I1[ISO 27000]
+        I2[NIST CSF]
+        I3[COBIT]
+        I4[PCI-DSS]
+    end
+    
+    subgraph 国内标准
+        C1[等保 2.0]
+        C2[网络安全法]
+        C3[数据安全法]
+        C4[个保法]
+    end
+    
+    subgraph 行业标准
+        H1[HIPAA]
+        H2[SOC 2]
+        H3[PCI-DSS]
+        H4[SWIFT CSP]
+    end
+    
+    subgraph 技术标准
+        T1[CVSS]
+        T2[CVE]
+        T3[STIX/TAXII]
+        T4[MITRE ATT&CK]
+    end</div><h3 id="标准适用场景">1.2 标准适用场景</h3>
+<table>
+<thead>
+<tr>
+<th>标准</th>
+<th>适用行业</th>
+<th>强制/自愿</th>
+<th>核心要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>等保 2.0</strong></td>
+<td>全行业（中国）</td>
+<td>强制</td>
+<td>等级保护</td>
+</tr>
+<tr>
+<td><strong>ISO 27001</strong></td>
+<td>跨国企业</td>
+<td>自愿+合同</td>
+<td>信息安全管理</td>
+</tr>
+<tr>
+<td><strong>NIST CSF</strong></td>
+<td>美国企业、政府</td>
+<td>自愿</td>
+<td>网络安全框架</td>
+</tr>
+<tr>
+<td><strong>PCI-DSS</strong></td>
+<td>金融、零售</td>
+<td>强制（卡支付）</td>
+<td>支付卡安全</td>
+</tr>
+<tr>
+<td><strong>HIPAA</strong></td>
+<td>医疗（美国）</td>
+<td>强制</td>
+<td>医疗数据保护</td>
+</tr>
+<tr>
+<td><strong>SOC 2</strong></td>
+<td>SaaS、云服务</td>
+<td>自愿</td>
+<td>服务组织控制</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="二iso-27000-系列">二、ISO 27000 系列</h2>
+<h3 id="核心标准">2.1 核心标准</h3>
+<table>
+<thead>
+<tr>
+<th>标准</th>
+<th>名称</th>
+<th>核心内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ISO 27001</strong></td>
+<td>信息安全管理体系</td>
+<td>建立、实施、维护、持续改进 ISMS</td>
+</tr>
+<tr>
+<td><strong>ISO 27002</strong></td>
+<td>信息安全控制措施</td>
+<td>14 个控制域、114 项控制措施</td>
+</tr>
+<tr>
+<td><strong>ISO 27005</strong></td>
+<td>信息安全风险管理</td>
+<td>风险管理方法论</td>
+</tr>
+<tr>
+<td><strong>ISO 27035</strong></td>
+<td>安全事件管理</td>
+<td>事件发现、报告、评估、响应</td>
+</tr>
+<tr>
+<td><strong>ISO 27017</strong></td>
+<td>云服务信息安全</td>
+<td>云环境特定控制</td>
+</tr>
+<tr>
+<td><strong>ISO 27018</strong></td>
+<td>公有云 PII</td>
+<td>云隐私保护</td>
+</tr>
+</tbody></table>
+<h3 id="iso-27001-控制域">2.2 ISO 27001 控制域</h3>
+<table>
+<thead>
+<tr>
+<th>域</th>
+<th>控制数</th>
+<th>AISOC 能力映射</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>A.5 信息安全政策</strong></td>
+<td>2</td>
+<td>安全策略生成</td>
+</tr>
+<tr>
+<td><strong>A.6 信息安全组织</strong></td>
+<td>7</td>
+<td>角色权限管理</td>
+</tr>
+<tr>
+<td><strong>A.7 人力资源安全</strong></td>
+<td>6</td>
+<td>身份认证、离职管理</td>
+</tr>
+<tr>
+<td><strong>A.8 资产管理</strong></td>
+<td>10</td>
+<td>资产发现、分类</td>
+</tr>
+<tr>
+<td><strong>A.9 访问控制</strong></td>
+<td>14</td>
+<td>IAM、零信任</td>
+</tr>
+<tr>
+<td><strong>A.10 加密</strong></td>
+<td>2</td>
+<td>数据加密、传输加密</td>
+</tr>
+<tr>
+<td><strong>A.11 物理安全</strong></td>
+<td>15</td>
+<td>机房监控、门禁</td>
+</tr>
+<tr>
+<td><strong>A.12 运营安全</strong></td>
+<td>14</td>
+<td>日志审计、漏洞管理</td>
+</tr>
+<tr>
+<td><strong>A.13 通信安全</strong></td>
+<td>7</td>
+<td>网络分段、安全通信</td>
+</tr>
+<tr>
+<td><strong>A.14 系统采购</strong></td>
+<td>3</td>
+<td>安全开发规范</td>
+</tr>
+<tr>
+<td><strong>A.15 供应商关系</strong></td>
+<td>5</td>
+<td>第三方风险管理</td>
+</tr>
+<tr>
+<td><strong>A.16 事件管理</strong></td>
+<td>7</td>
+<td>安全事件闭环</td>
+</tr>
+<tr>
+<td><strong>A.17 业务连续性</strong></td>
+<td>4</td>
+<td>灾备、恢复</td>
+</tr>
+<tr>
+<td><strong>A.18 合规性</strong></td>
+<td>10</td>
+<td>合规审计</td>
+</tr>
+</tbody></table>
+<h3 id="aisoc-iso-27001-合规映射">2.3 AISOC ISO 27001 合规映射</h3>
+<p><strong>A.16 信息安全事件管理：</strong></p>
+<table>
+<thead>
+<tr>
+<th>控制项</th>
+<th>要求</th>
+<th>AISOC 能力</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A.16.1.1</td>
+<td>事件管理流程</td>
+<td>安全事件研判流程</td>
+</tr>
+<tr>
+<td>A.16.1.2</td>
+<td>事件报告</td>
+<td>自动告警、工单创建</td>
+</tr>
+<tr>
+<td>A.16.1.3</td>
+<td>事件评估</td>
+<td>AI 研判、置信度</td>
+</tr>
+<tr>
+<td>A.16.1.4</td>
+<td>事件响应</td>
+<td>SOAR 自动化响应</td>
+</tr>
+<tr>
+<td>A.16.1.5</td>
+<td>事件预防</td>
+<td>知识沉淀、模型优化</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="三nist-网络安全框架">三、NIST 网络安全框架</h2>
+<h3 id="csf-20-架构">3.1 CSF 2.0 架构</h3>
+<p><strong>六大函数（Function）：</strong></p>
+<div class="mermaid">graph TB
+    G[Govern
+治理] --> I[Identify
+识别]
+    I --> P[Protect
+防护]
+    P --> D[Detect
+检测]
+    D --> R[Respond
+响应]
+    R --> Re[Recover
+恢复]
+    
+    style G fill:#e3f2fd,stroke:#1565c0
+    style I fill:#e8f5e9,stroke:#2e7d32
+    style P fill:#fff3e0,stroke:#e65100
+    style D fill:#fce4ec,stroke:#c62828
+    style R fill:#f3e5f5,stroke:#7b1fa2
+    style Re fill:#e1f5fe,stroke:#01579b</div><p><strong>CSF 2.0 新增 Govern 函数：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>说明</th>
+<th>关键要素</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>组织上下文</strong></td>
+<td>使命、利益相关者</td>
+<td>风险容忍度</td>
+</tr>
+<tr>
+<td><strong>治理优先级</strong></td>
+<td>资源分配</td>
+<td>战略规划</td>
+</tr>
+<tr>
+<td><strong>供应链风险管理</strong></td>
+<td>第三方风险</td>
+<td>供应商评估</td>
+</tr>
+<tr>
+<td><strong>资源管理</strong></td>
+<td>人力、技术</td>
+<td>预算规划</td>
+</tr>
+</tbody></table>
+<h3 id="aisoc-与-nist-csf-映射">3.2 AISOC 与 NIST CSF 映射</h3>
+<table>
+<thead>
+<tr>
+<th>NIST CSF 函数</th>
+<th>子类</th>
+<th>AISOC 能力</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Govern</strong></td>
+<td>风险评估</td>
+<td>风险评估引擎</td>
+</tr>
+<tr>
+<td><strong>Identify</strong></td>
+<td>资产管理</td>
+<td>资产发现、漏洞管理</td>
+</tr>
+<tr>
+<td><strong>Identify</strong></td>
+<td>供应链风险</td>
+<td>第三方风险评估</td>
+</tr>
+<tr>
+<td><strong>Protect</strong></td>
+<td>身份管理</td>
+<td>IAM、零信任</td>
+</tr>
+<tr>
+<td><strong>Protect</strong></td>
+<td>数据安全</td>
+<td>数据分类、加密</td>
+</tr>
+<tr>
+<td><strong>Detect</strong></td>
+<td>持续监控</td>
+<td>实时检测、NDR/EDR</td>
+</tr>
+<tr>
+<td><strong>Detect</strong></td>
+<td>异常检测</td>
+<td>AI 行为分析</td>
+</tr>
+<tr>
+<td><strong>Respond</strong></td>
+<td>事件响应</td>
+<td>SOAR 自动化</td>
+</tr>
+<tr>
+<td><strong>Respond</strong></td>
+<td>沟通分析</td>
+<td>威胁情报共享</td>
+</tr>
+<tr>
+<td><strong>Recover</strong></td>
+<td>恢复计划</td>
+<td>业务连续性</td>
+</tr>
+<tr>
+<td><strong>Recover</strong></td>
+<td>改进</td>
+<td>知识沉淀、复盘</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="四等保-20中国">四、等保 2.0（中国）</h2>
+<h3 id="保护等级">4.1 保护等级</h3>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>名称</th>
+<th>适用场景</th>
+<th>监管机构</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>第一级</strong></td>
+<td>自主保护级</td>
+<td>小规模私营、个体企业</td>
+<td>自主</td>
+</tr>
+<tr>
+<td><strong>第二级</strong></td>
+<td>指导保护级</td>
+<td>50人以下小企业、乡镇</td>
+<td>指导</td>
+</tr>
+<tr>
+<td><strong>第三级</strong></td>
+<td>监督保护级</td>
+<td>重要机关、重要企业、金融</td>
+<td>监督</td>
+</tr>
+<tr>
+<td><strong>第四级</strong></td>
+<td>强制保护级</td>
+<td>国防、关键基础设施</td>
+<td>强制</td>
+</tr>
+<tr>
+<td><strong>第五级</strong></td>
+<td>专控保护级</td>
+<td>极端机密</td>
+<td>专控</td>
+</tr>
+</tbody></table>
+<h3 id="技术要求框架">4.2 技术要求框架</h3>
+<pre><code>安全通信网络 ──▶ 网络架构、通信传输、边界防护
+       │
+安全区域边界 ──▶ 边界防护、访问控制、入侵防范、恶意代码防范
+       │
+安全计算环境 ──▶ 身份鉴别、访问控制、安全审计、入侵防范
+       │
+安全管理中心 ──▶ 系统管理、审计管理、集中管控、集中安全管理</code></pre><h3 id="等保三级-aisoc-能力映射">4.3 等保三级 AISOC 能力映射</h3>
+<table>
+<thead>
+<tr>
+<th>等保要求</th>
+<th>技术要求</th>
+<th>AISOC 能力</th>
+<th>实现方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>安全管理中心</strong></td>
+<td>系统管理</td>
+<td>统一管理平台</td>
+<td>配置管理、策略下发</td>
+</tr>
+<tr>
+<td><strong>安全管理中心</strong></td>
+<td>审计管理</td>
+<td>日志审计分析</td>
+<td>SIEM、日志归一化</td>
+</tr>
+<tr>
+<td><strong>安全管理中心</strong></td>
+<td>集中管控</td>
+<td>态势感知</td>
+<td>统一态势大屏</td>
+</tr>
+<tr>
+<td><strong>安全区域边界</strong></td>
+<td>边界防护</td>
+<td>边界威胁检测</td>
+<td>NDR、FW 联动</td>
+</tr>
+<tr>
+<td><strong>安全区域边界</strong></td>
+<td>入侵防范</td>
+<td>入侵检测</td>
+<td>IDS/IPS、流量分析</td>
+</tr>
+<tr>
+<td><strong>安全区域边界</strong></td>
+<td>恶意代码防范</td>
+<td>终端防护</td>
+<td>EDR、防病毒</td>
+</tr>
+<tr>
+<td><strong>安全计算环境</strong></td>
+<td>身份鉴别</td>
+<td>身份认证</td>
+<td>IAM、MFA</td>
+</tr>
+<tr>
+<td><strong>安全计算环境</strong></td>
+<td>访问控制</td>
+<td>权限管理</td>
+<td>RBAC、ABAC</td>
+</tr>
+<tr>
+<td><strong>安全计算环境</strong></td>
+<td>安全审计</td>
+<td>操作审计</td>
+<td>全面日志、溯源</td>
+</tr>
+<tr>
+<td><strong>安全计算环境</strong></td>
+<td>入侵防范</td>
+<td>终端检测</td>
+<td>EDR、主机安全</td>
+</tr>
+</tbody></table>
+<h3 id="等保合规检查清单">4.4 等保合规检查清单</h3>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>检查方法</th>
+<th>AISOC 实现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>日志保留 6 个月</td>
+<td>日志查询</td>
+<td>SIEM 日志归档</td>
+</tr>
+<tr>
+<td>事件追溯 90 天</td>
+<td>日志检索</td>
+<td>日志查询、时间线</td>
+</tr>
+<tr>
+<td>安全事件告警</td>
+<td>告警配置</td>
+<td>NDR/EDR 告警</td>
+</tr>
+<tr>
+<td>恶意代码检测</td>
+<td>终端扫描</td>
+<td>EDR 行为检测</td>
+</tr>
+<tr>
+<td>漏洞扫描记录</td>
+<td>漏洞报告</td>
+<td>周期性漏洞扫描</td>
+</tr>
+<tr>
+<td>访问控制审计</td>
+<td>权限审计</td>
+<td>IAM 日志分析</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="五数据安全法规">五、数据安全法规</h2>
+<h3 id="主要法规对比">5.1 主要法规对比</h3>
+<table>
+<thead>
+<tr>
+<th>法规</th>
+<th>地区</th>
+<th>适用范围</th>
+<th>关键要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>GDPR</strong></td>
+<td>欧盟</td>
+<td>处理欧盟居民数据</td>
+<td>数据保护、隐私权</td>
+</tr>
+<tr>
+<td><strong>CCPA</strong></td>
+<td>加州</td>
+<td>处理加州居民数据</td>
+<td>消费者控制权</td>
+</tr>
+<tr>
+<td><strong>网络安全法</strong></td>
+<td>中国</td>
+<td>关键信息基础设施</td>
+<td>数据本地化</td>
+</tr>
+<tr>
+<td><strong>数据安全法</strong></td>
+<td>中国</td>
+<td>全行业</td>
+<td>数据分类分级</td>
+</tr>
+<tr>
+<td><strong>个保法</strong></td>
+<td>中国</td>
+<td>处理个人信息</td>
+<td>个人信息处理规则</td>
+</tr>
+</tbody></table>
+<h3 id="合规要求矩阵">5.2 合规要求矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>要求</th>
+<th>GDPR</th>
+<th>网络安全法</th>
+<th>个保法</th>
+<th>AISOC 能力</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>数据分类</strong></td>
+<td>要求</td>
+<td>要求</td>
+<td>要求</td>
+<td>敏感数据识别</td>
+</tr>
+<tr>
+<td><strong>数据加密</strong></td>
+<td>要求</td>
+<td>要求</td>
+<td>要求</td>
+<td>传输/存储加密</td>
+</tr>
+<tr>
+<td><strong>访问审计</strong></td>
+<td>要求</td>
+<td>要求</td>
+<td>要求</td>
+<td>日志审计</td>
+</tr>
+<tr>
+<td><strong>数据脱敏</strong></td>
+<td>要求</td>
+<td>-</td>
+<td>要求</td>
+<td>测试数据脱敏</td>
+</tr>
+<tr>
+<td><strong>数据删除权</strong></td>
+<td>要求</td>
+<td>-</td>
+<td>要求</td>
+<td>数据生命周期</td>
+</tr>
+<tr>
+<td><strong>跨境传输</strong></td>
+<td>要求</td>
+<td>限制</td>
+<td>需评估</td>
+<td>数据边界控制</td>
+</tr>
+<tr>
+<td><strong>安全事件报告</strong></td>
+<td>72小时</td>
+<td>7天</td>
+<td>7天</td>
+<td>事件报告生成</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="六安全度量标准">六、安全度量标准</h2>
+<h3 id="核心安全指标">6.1 核心安全指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>全称</th>
+<th>定义</th>
+<th>AISOP 目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MTTD</strong></td>
+<td>Mean Time To Detect</td>
+<td>平均检测时间</td>
+<td>&lt; 1 分钟</td>
+</tr>
+<tr>
+<td><strong>MTTI</strong></td>
+<td>Mean Time To Investigate</td>
+<td>平均调查时间</td>
+<td>&lt; 5 分钟</td>
+</tr>
+<tr>
+<td><strong>MTTR</strong></td>
+<td>Mean Time To Respond</td>
+<td>平均响应时间</td>
+<td>&lt; 10 分钟</td>
+</tr>
+<tr>
+<td><strong>MTTC</strong></td>
+<td>Mean Time To Contain</td>
+<td>平均遏制时间</td>
+<td>&lt; 15 分钟</td>
+</tr>
+<tr>
+<td><strong>MTTK</strong></td>
+<td>Mean Time To Knowledge</td>
+<td>平均知识化时间</td>
+<td>&lt; 30 分钟</td>
+</tr>
+<tr>
+<td><strong>MTBF</strong></td>
+<td>Mean Time Between Failures</td>
+<td>平均故障间隔</td>
+<td>&gt; 720 小时</td>
+</tr>
+<tr>
+<td><strong>FPR</strong></td>
+<td>False Positive Rate</td>
+<td>误报率</td>
+<td>&lt; 5%</td>
+</tr>
+<tr>
+<td><strong>FNR</strong></td>
+<td>False Negative Rate</td>
+<td>漏报率</td>
+<td>&lt; 1%</td>
+</tr>
+</tbody></table>
+<h3 id="安全成熟度模型-cmm">6.2 安全成熟度模型 (CMM)</h3>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>名称</th>
+<th>特征</th>
+<th>指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>L1</strong></td>
+<td>初始级</td>
+<td>被动响应，无标准流程</td>
+<td>MTTD &gt; 1天</td>
+</tr>
+<tr>
+<td><strong>L2</strong></td>
+<td>基础级</td>
+<td>有工具，流程碎片化</td>
+<td>MTTD &lt; 1天</td>
+</tr>
+<tr>
+<td><strong>L3</strong></td>
+<td>规范级</td>
+<td>流程标准化，工具集成</td>
+<td>MTTD &lt; 1小时</td>
+</tr>
+<tr>
+<td><strong>L4</strong></td>
+<td>量化级</td>
+<td>数据驱动，持续优化</td>
+<td>MTTD &lt; 10分钟</td>
+</tr>
+<tr>
+<td><strong>L5</strong></td>
+<td>优化级</td>
+<td>AI 驱动，自主进化</td>
+<td>MTTD &lt; 1分钟</td>
+</tr>
+</tbody></table>
+<p><strong>成熟度评估雷达图：</strong></p>
+<div class="mermaid">%%{init: {'type': 'radar'}}%%
+    title 安全成熟度评估
+    "检测能力" 85
+    "响应速度" 90
+    "分析效率" 80
+    "自动化程度" 75
+    "知识积累" 70
+    "持续优化" 85</div><hr>
+<h2 id="七漏洞评估标准">七、漏洞评估标准</h2>
+<h3 id="cvss-评分体系">7.1 CVSS 评分体系</h3>
+<p><strong>基本度量组：</strong></p>
+<table>
+<thead>
+<tr>
+<th>度量</th>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Attack Vector (AV)</strong></td>
+<td>Network</td>
+<td>可远程利用</td>
+</tr>
+<tr>
+<td></td>
+<td>Adjacent</td>
+<td>需在同一网络</td>
+</tr>
+<tr>
+<td></td>
+<td>Local</td>
+<td>需本地访问</td>
+</tr>
+<tr>
+<td></td>
+<td>Physical</td>
+<td>需物理接触</td>
+</tr>
+<tr>
+<td><strong>Attack Complexity (AC)</strong></td>
+<td>Low</td>
+<td>无特殊条件</td>
+</tr>
+<tr>
+<td></td>
+<td>High</td>
+<td>需特殊条件</td>
+</tr>
+<tr>
+<td><strong>Privileges Required (PR)</strong></td>
+<td>None</td>
+<td>无需权限</td>
+</tr>
+<tr>
+<td></td>
+<td>Low</td>
+<td>普通用户</td>
+</tr>
+<tr>
+<td></td>
+<td>High</td>
+<td>管理员</td>
+</tr>
+<tr>
+<td><strong>User Interaction (UI)</strong></td>
+<td>None</td>
+<td>无需用户</td>
+</tr>
+<tr>
+<td></td>
+<td>Required</td>
+<td>需要用户配合</td>
+</tr>
+</tbody></table>
+<p><strong>评分等级：</strong></p>
+<table>
+<thead>
+<tr>
+<th>分数</th>
+<th>等级</th>
+<th>响应时限</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0.0</td>
+<td>无</td>
+<td>-</td>
+<td>无漏洞</td>
+</tr>
+<tr>
+<td>0.1-3.9</td>
+<td>低</td>
+<td>90天</td>
+<td>信息泄露</td>
+</tr>
+<tr>
+<td>4.0-6.9</td>
+<td>中</td>
+<td>45天</td>
+<td>身份验证绕过</td>
+</tr>
+<tr>
+<td>7.0-8.9</td>
+<td>高</td>
+<td>30天</td>
+<td>RCE 需认证</td>
+</tr>
+<tr>
+<td>9.0-10.0</td>
+<td>严重</td>
+<td>7天</td>
+<td>RCE 无认证</td>
+</tr>
+</tbody></table>
+<h3 id="cve-漏洞披露流程">7.2 CVE 漏洞披露流程</h3>
+<pre><code>发现 ──▶ 验证 ──▶ 披露 ──▶ 修复 ──▶ 验证 ──▶ 关闭
+  │        │        │        │        │        │
+  ▼        ▼        ▼        ▼        ▼        ▼
+ 扫描    PoC验证   NVD发布  补丁发布  验证    完成</code></pre><hr>
+<h2 id="八合规审计技术">八、合规审计技术</h2>
+<h3 id="日志保留要求">8.1 日志保留要求</h3>
+<table>
+<thead>
+<tr>
+<th>合规标准</th>
+<th>日志类型</th>
+<th>保留期限</th>
+<th>AISOC 实现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>等保 2.0 三级</strong></td>
+<td>鉴别、访问、安全</td>
+<td>6个月+</td>
+<td>日志归档</td>
+</tr>
+<tr>
+<td><strong>PCI-DSS</strong></td>
+<td>所有访问、交易</td>
+<td>1年</td>
+<td>日志存储</td>
+</tr>
+<tr>
+<td><strong>SOX</strong></td>
+<td>财务系统日志</td>
+<td>7年</td>
+<td>长期归档</td>
+</tr>
+<tr>
+<td><strong>HIPAA</strong></td>
+<td>医疗数据访问</td>
+<td>6年</td>
+<td>归档存储</td>
+</tr>
+<tr>
+<td><strong>GDPR</strong></td>
+<td>处理活动记录</td>
+<td>3年+</td>
+<td>可搜索归档</td>
+</tr>
+</tbody></table>
+<h3 id="合规报告自动生成">8.2 合规报告自动生成</h3>
+<p><strong>报告类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>报告</th>
+<th>触发</th>
+<th>内容</th>
+<th>频率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>等保合规报告</strong></td>
+<td>手动/定时</td>
+<td>安全状态、控制措施</td>
+<td>月度</td>
+</tr>
+<tr>
+<td><strong>漏洞报告</strong></td>
+<td>扫描完成</td>
+<td>漏洞列表、风险评分</td>
+<td>周度</td>
+</tr>
+<tr>
+<td><strong>事件报告</strong></td>
+<td>事件关闭</td>
+<td>事件分析、处置记录</td>
+<td>事件驱动</td>
+</tr>
+<tr>
+<td><strong>访问审计报告</strong></td>
+<td>手动/定时</td>
+<td>权限变更、异常访问</td>
+<td>周度</td>
+</tr>
+<tr>
+<td><strong>合规差距报告</strong></td>
+<td>季度</td>
+<td>控制差距、改进建议</td>
+<td>季度</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="九参考链接">九、参考链接</h2>
+<table>
+<thead>
+<tr>
+<th>标准</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ISO 27001</td>
+<td><a href="https://www.iso.org/standard/27001">https://www.iso.org/standard/27001</a></td>
+</tr>
+<tr>
+<td>NIST CSF 2.0</td>
+<td><a href="https://www.nist.gov/cyberframework">https://www.nist.gov/cyberframework</a></td>
+</tr>
+<tr>
+<td>等保 2.0</td>
+<td><a href="https://www.djbh.net/">https://www.djbh.net/</a></td>
+</tr>
+<tr>
+<td>CVSS 4.0</td>
+<td><a href="https://www.first.org/cvss/">https://www.first.org/cvss/</a></td>
+</tr>
+<tr>
+<td>MITRE ATT&amp;CK</td>
+<td><a href="https://attack.mitre.org/">https://attack.mitre.org/</a></td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Last updated: 2026-06-02</em></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

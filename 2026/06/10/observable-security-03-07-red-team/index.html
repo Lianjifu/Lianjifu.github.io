@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="03 07 red team<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-03-07-red-team/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-03-07-red-team/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>渗透测试与红队 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-03-07-red-team/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          渗透测试与红队
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>07. 渗透测试与红队对抗</h1>
+<blockquote>
+<p>智能安全事件可观测性 · 红队攻防参考</p>
+</blockquote>
+<hr>
+<h2 id="一红队攻防体系">一、红队攻防体系</h2>
+<h3 id="概念定义">1.1 概念定义</h3>
+<p><strong>红队（Red Team）：</strong></p>
+<ul>
+<li>模拟真实攻击者的行为</li>
+<li>以发现组织防御弱点为目的</li>
+<li>采用真实的攻击技术和工具</li>
+</ul>
+<p><strong>蓝队（Blue Team）：</strong></p>
+<ul>
+<li>负责防御和保护</li>
+<li>检测和响应红队攻击</li>
+<li>持续改进安全能力</li>
+</ul>
+<p><strong>紫队（Purple Team）：</strong></p>
+<ul>
+<li>红蓝协作机制</li>
+<li>攻击与防御结合</li>
+<li>最大化学习效果</li>
+</ul>
+<h3 id="红队-vs-渗透测试">1.2 红队 vs 渗透测试</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>渗透测试</th>
+<th>红队对抗</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>目标</strong></td>
+<td>发现漏洞</td>
+<td>评估防御能力</td>
+</tr>
+<tr>
+<td><strong>范围</strong></td>
+<td>限定范围</td>
+<td>全域攻击</td>
+</tr>
+<tr>
+<td><strong>时间</strong></td>
+<td>短期（1-2周）</td>
+<td>长期（1-3月）</td>
+</tr>
+<tr>
+<td><strong>方法</strong></td>
+<td>漏洞利用</td>
+<td>APT 模拟</td>
+</tr>
+<tr>
+<td><strong>成果</strong></td>
+<td>漏洞报告</td>
+<td>防御评估</td>
+</tr>
+<tr>
+<td><strong>隐秘性</strong></td>
+<td>低</td>
+<td>高</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="二攻击生命周期attack-lifecycle">二、攻击生命周期（ATTACK Lifecycle）</h2>
+<h3 id="侦察阶段">2.1侦察阶段</h3>
+<p><strong>被动侦察：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>工具</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DNS 查询</td>
+<td>dig, nslookup</td>
+<td>⭐</td>
+</tr>
+<tr>
+<td>WHOIS 查询</td>
+<td>whois</td>
+<td>⭐</td>
+</tr>
+<tr>
+<td>搜索引擎</td>
+<td>Google, Bing</td>
+<td>⭐</td>
+</tr>
+<tr>
+<td>证书查询</td>
+<td>crt.sh, Censys</td>
+<td>⭐</td>
+</tr>
+<tr>
+<td>GitHub 搜索</td>
+<td>GitHub CLI</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>主动侦察：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>工具</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>端口扫描</td>
+<td>Nmap, Masscan</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td>漏洞扫描</td>
+<td>Nessus, OpenVAS</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td>子域名枚举</td>
+<td>Amass, Subfinder</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td>Web 指纹</td>
+<td>Wappalyzer, WhatWeb</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>侦察检测：</strong></p>
+<pre><code class="language-yaml">检测规则: Reconnaissance_Detection
+条件:
+  - DNS 查询频率 &gt; 100/分钟
+  - 端口扫描 &gt; 50端口/分钟
+  - 爬虫行为检测
+动作:
+  - 告警
+  - 记录源 IP
+  - 添加情报</code></pre><hr>
+<h3 id="初始访问">2.2 初始访问</h3>
+<p><strong>常见入口：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>利用难度</th>
+<th>检测难度</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>钓鱼邮件</strong></td>
+<td>⭐</td>
+<td>⭐⭐⭐</td>
+<td>最常见入口</td>
+</tr>
+<tr>
+<td><strong>VPN 弱口令</strong></td>
+<td>⭐⭐</td>
+<td>⭐⭐⭐</td>
+<td>远程办公风险</td>
+</tr>
+<tr>
+<td><strong>Web 漏洞</strong></td>
+<td>⭐⭐</td>
+<td>⭐⭐⭐⭐</td>
+<td>RCE、SQL注入</td>
+</tr>
+<tr>
+<td><strong>供应链</strong></td>
+<td>⭐⭐⭐</td>
+<td>⭐⭐⭐⭐⭐</td>
+<td>软件更新投毒</td>
+</tr>
+<tr>
+<td><strong>物理访问</strong></td>
+<td>⭐⭐</td>
+<td>⭐⭐⭐</td>
+<td>USB 攻击</td>
+</tr>
+</tbody></table>
+<p><strong>钓鱼攻击技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>说明</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>鱼叉钓鱼</strong></td>
+<td>定向目标邮件</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>商业钓鱼</strong></td>
+<td>伪装成业务邮件</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>BEC 欺诈</strong></td>
+<td>伪冒高管</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>恶意链接</strong></td>
+<td>短链接、混淆URL</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="权限提升">2.3 权限提升</h3>
+<p><strong>Windows 提权：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>说明</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Bypass UAC</strong></td>
+<td>利用 Windows 高权限进程</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>令牌操纵</strong></td>
+<td>SeImpersonatePrivilege</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>DLL 劫持</strong></td>
+<td>系统 DLL 劫持</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>漏洞利用</strong></td>
+<td>MS16-032, Juicypotato</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>凭据重用</strong></td>
+<td>密码复用、哈希传递</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>Linux 提权：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>说明</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SUDO 滥用</strong></td>
+<td>sudo 漏洞/错误配置</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>内核漏洞</strong></td>
+<td>Dirty Pipe, etc</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>计划任务</strong></td>
+<td>计划任务脚本劫持</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>SUID 滥用</strong></td>
+<td>特殊权限文件</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>容器逃逸</strong></td>
+<td>Docker/K8s 漏洞</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="持久化">2.4 持久化</h3>
+<p><strong>Windows 持久化：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>持久化位置</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>注册表 Run键</strong></td>
+<td>HKCU/HKLM\Run</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>计划任务</strong></td>
+<td>Task Scheduler</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>服务</strong></td>
+<td>创建 Windows 服务</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>WMI 事件订阅</strong></td>
+<td>永久 WMI 事件</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>COM 对象劫持</strong></td>
+<td>注册表 COM</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>MSSQL 存储</strong></td>
+<td>xp_cmdshell</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Startup 文件夹</strong></td>
+<td>启动目录</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>Linux 持久化：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>持久化位置</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SSH Key</strong></td>
+<td>~/.ssh/authorized_keys</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Cron</strong></td>
+<td>/etc/cron.d</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>rc.local</strong></td>
+<td>/etc/rc.local</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Systemd</strong></td>
+<td>/etc/systemd/system</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Trap</strong></td>
+<td>.bashrc</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>后门用户</strong></td>
+<td>/etc/passwd</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="横向移动">2.5 横向移动</h3>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>所需权限</th>
+<th>所需凭据</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>PsExec</strong></td>
+<td>管理员</td>
+<td>明文</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>WMI</strong></td>
+<td>用户</td>
+<td>明文</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>SMB/ RDP</strong></td>
+<td>用户</td>
+<td>明文/哈希</td>
+<td>⭐</td>
+</tr>
+<tr>
+<td><strong>SSH</strong></td>
+<td>用户</td>
+<td>密钥/密码</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Pass-the-Hash</strong></td>
+<td>用户</td>
+<td>哈希</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Pass-the-Ticket</strong></td>
+<td>用户</td>
+<td>TGT</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="数据外传">2.6 数据外传</h3>
+<p><strong>技术分类：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>说明</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>C2 信道</strong></td>
+<td>通过 C2 数据传输</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>HTTPS 外传</strong></td>
+<td>加密流量外传</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>DNS Tunnel</strong></td>
+<td>DNS 隧道外传</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>云盘上传</strong></td>
+<td>Google Drive, OneDrive</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>邮件外传</strong></td>
+<td>SMTP 外传数据</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="三红队评估框架">三、红队评估框架</h2>
+<h3 id="mitre-attampck-评估">3.1 MITRE ATT&amp;CK 评估</h3>
+<p><strong>评估流程：</strong></p>
+<div class="mermaid">graph LR
+    P1[准备阶段] --> P2[执行阶段]
+    P2 --> P3[报告阶段]
+    
+    P1 --> A1[定义目标]
+    P1 --> A2[选择战术]
+    P1 --> A3[准备工具]
+    
+    P2 --> B1[初始访问]
+    P2 --> B2[权限提升]
+    P2 --> B3[持久化]
+    P2 --> B4[横向移动]
+    P2 --> B5[达成目标]
+    
+    P3 --> C1[发现分析]
+    P3 --> C2[覆盖评估]
+    P3 --> C3[报告编写]</div><p><strong>ATT&amp;CK 覆盖评估：</strong></p>
+<table>
+<thead>
+<tr>
+<th>战术</th>
+<th>检测覆盖率</th>
+<th>防御差距</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>初始访问</td>
+<td>85%</td>
+<td>钓鱼防护需加强</td>
+</tr>
+<tr>
+<td>执行</td>
+<td>90%</td>
+<td>PowerShell 监控需加强</td>
+</tr>
+<tr>
+<td>持久化</td>
+<td>70%</td>
+<td>WMI 监控缺失</td>
+</tr>
+<tr>
+<td>权限提升</td>
+<td>75%</td>
+<td>UAC 绕过检测不足</td>
+</tr>
+<tr>
+<td>防御规避</td>
+<td>60%</td>
+<td>需加强行为检测</td>
+</tr>
+<tr>
+<td>凭据访问</td>
+<td>80%</td>
+<td>LSASS 保护需加强</td>
+</tr>
+<tr>
+<td>发现</td>
+<td>65%</td>
+<td>内网扫描检测不足</td>
+</tr>
+<tr>
+<td>横向移动</td>
+<td>85%</td>
+<td>RDP 监控需加强</td>
+</tr>
+<tr>
+<td>收集</td>
+<td>70%</td>
+<td>数据外传检测不足</td>
+</tr>
+<tr>
+<td>命令控制</td>
+<td>90%</td>
+<td>C2 检测能力良好</td>
+</tr>
+<tr>
+<td>外传</td>
+<td>55%</td>
+<td>需加强 DLP</td>
+</tr>
+<tr>
+<td>影响</td>
+<td>75%</td>
+<td>勒索行为检测需加强</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="评估报告模板">3.2 评估报告模板</h3>
+<p><strong>红队评估报告结构：</strong></p>
+<pre><code class="language-markdown"># 红队评估报告
+
+## 1. 执行摘要
+- 评估目标
+- 时间范围
+- 主要发现
+- 风险评级
+
+## 2. 攻击链分析
+- 每个阶段的攻击路径
+- 成功的技术和尝试但失败的
+- 防御检测情况
+
+## 3. ATT&amp;CK 覆盖分析
+- 使用的技术列表
+- 检测率统计
+- 防御差距
+
+## 4. 详细发现
+- 发现#1: 描述、利用方式、影响、建议
+- 发现#2: ...
+
+## 5. 防御建议
+- 短期（1-3月）
+- 中期（3-6月）
+- 长期（6-12月）
+
+## 6. 附录
+- 工具列表
+- IOC 指标</code></pre><hr>
+<h2 id="四紫队协同机制">四、紫队协同机制</h2>
+<h3 id="紫队工作流程">4.1 紫队工作流程</h3>
+<div class="mermaid">graph LR
+    subgraph 计划阶段
+        R1[红队规划] --> P1[目标定义]
+        B1[蓝队准备] --> P1
+    end
+    
+    subgraph 执行阶段
+        P1 --> R2[红队执行]
+        R2 --> B2[蓝队检测]
+        B2 --> R3[红队调整]
+    end
+    
+    subgraph 学习阶段
+        R3 --> L1[红队复盘]
+        B2 --> L2[蓝队复盘]
+        L1 --> L3[联合总结]
+        L2 --> L3
+    end</div><h3 id="协同工具">4.2 协同工具</h3>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+<th>紫队应用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Atomic Red Team</strong></td>
+<td>ATT&amp;CK 测试</td>
+<td>红队攻击模拟</td>
+</tr>
+<tr>
+<td><strong>Caldera</strong></td>
+<td>自动攻击平台</td>
+<td>自动化红队</td>
+</tr>
+<tr>
+<td><strong>Mythic</strong></td>
+<td>C2 框架</td>
+<td>红队命令控制</td>
+</tr>
+<tr>
+<td><strong>Lima Charlie</strong></td>
+<td>EDR</td>
+<td>蓝队监控</td>
+</tr>
+<tr>
+<td><strong>DetectionLab</strong></td>
+<td>检测实验室</td>
+<td>检测规则测试</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="五安全演练场景">五、安全演练场景</h2>
+<h3 id="勒索攻击演练">5.1 勒索攻击演练</h3>
+<p><strong>场景设置：</strong></p>
+<pre><code>目标: 评估组织勒索防护能力
+范围: 全域
+时间: 2周
+规则: 不加密真实数据</code></pre><p><strong>攻击链：</strong></p>
+<pre><code>Day 1: 钓鱼邮件 → 恶意宏执行
+Day 2: 内网侦察 → 横向移动
+Day 3: 凭据窃取 → 域管理员获取
+Day 5: 数据打包 → 模拟外传
+Day 7: 模拟勒索 → 评估响应</code></pre><p><strong>评估标准：</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>检测时间</th>
+<th>响应时间</th>
+<th>评分</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>钓鱼邮件</td>
+<td>&lt; 5分钟</td>
+<td>&lt; 15分钟</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td>恶意执行</td>
+<td>&lt; 1分钟</td>
+<td>&lt; 5分钟</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td>内网侦察</td>
+<td>&lt; 30分钟</td>
+<td>&lt; 1小时</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td>横向移动</td>
+<td>&lt; 5分钟</td>
+<td>&lt; 15分钟</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td>数据外传</td>
+<td>&lt; 5分钟</td>
+<td>&lt; 10分钟</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="六参考链接">六、参考链接</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MITRE ATT&amp;CK</td>
+<td><a href="https://attack.mitre.org/">https://attack.mitre.org/</a></td>
+</tr>
+<tr>
+<td>Atomic Red Team</td>
+<td><a href="https://atomicredteam.io/">https://atomicredteam.io/</a></td>
+</tr>
+<tr>
+<td>MITRE CALDERA</td>
+<td><a href="https://caldera.mitre.org/">https://caldera.mitre.org/</a></td>
+</tr>
+<tr>
+<td>洛克希德·马丁 Kill Chain</td>
+<td><a href="https://www.lockheedmartin.com/">https://www.lockheedmartin.com/</a></td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Last updated: 2026-06-02</em></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 06 impact assessment<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-01-06-impact-assessment/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-01-06-impact-assessment/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>业务 06 · 安全影响评估 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-01-06-impact-assessment/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          业务 06 · 安全影响评估
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>业务 06 · 安全影响评估</h1>
+<blockquote>
+<p>AI 驱动评估自动化——从&quot;人工评估&quot;到&quot;AI 自动量化&quot;，从&quot;粗略估计&quot;到&quot;精准计算&quot;，让风险评估从小时级缩短到秒级完成。</p>
+</blockquote>
+<h2 id="痛点问题">1. 痛点问题</h2>
+<blockquote>
+<p><strong>核心理念：</strong> 在 AISOC 体系中，安全影响评估从&quot;人工估算&quot;演进为&quot;AI 自动量化&quot;——知识图谱评估资产价值，风险传播模型预测影响范围，AI Agent 自动生成评估报告。</p>
+<p><strong>核心定位：</strong> 安全影响评估是智能体系的&quot;战略官&quot;，AI Agent 量化风险影响，支撑安全决策。</p>
+<p><strong>核心目标：</strong> 从&quot;人工评估&quot;到&quot;AI 自动评估&quot;，从&quot;小时级&quot;到&quot;秒级&quot;，评估准确率 &gt; 95%。</p>
+</blockquote>
+<h3 id="评估主观化现状">1.1 评估主观化现状</h3>
+<p>企业在安全事件响应过程中面临的最严重挑战是<strong>评估结果主观化</strong>。传统评估依赖个人经验，缺乏量化依据，导致评估结果偏差大、不可比。</p>
+<p><strong>真实场景举例：</strong></p>
+<p>当 SOC 分析师完成安全事件处置后，需要评估事件影响时，他面对：</p>
+<table>
+<thead>
+<tr>
+<th align="left">问题</th>
+<th align="left">现状</th>
+<th align="left">影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估靠经验</strong></td>
+<td align="left">影响评估依赖个人判断</td>
+<td align="left">同一事件，不同人评估差异大</td>
+</tr>
+<tr>
+<td align="left"><strong>数据缺失</strong></td>
+<td align="left">缺乏量化评估依据</td>
+<td align="left">评估结果偏差大</td>
+</tr>
+<tr>
+<td align="left"><strong>维度单一</strong></td>
+<td align="left">只看技术层面，不看业务</td>
+<td align="left">无法衡量真实损失</td>
+</tr>
+<tr>
+<td align="left"><strong>更新滞后</strong></td>
+<td align="left">事件处置后未更新评估</td>
+<td align="left">影响范围扩大不自知</td>
+</tr>
+</tbody></table>
+<p><strong>评估主观化的后果：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 评估困境
+        direction LR
+        P1["评估靠经验\\n主观判断"]
+        P2["数据缺失\\n无量化依据"]
+        P3["维度单一\\n只看技术"]
+        P4["更新滞后\\n范围扩大"]
+    end
+    
+    subgraph 结果
+        direction LR
+        R1["评估结果偏差大"]
+        R2["不同人评估差异大"]
+        R3["无法衡量真实损失"]
+        R4["决策依据不可靠"]
+    end
+    
+    P1 --> R1
+    P2 --> R2
+    P3 --> R3
+    P4 --> R4
+    
+    style P1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style P2 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style P3 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style P4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style R1 fill:#fff3e0,stroke:#e65100
+    style R2 fill:#fff3e0,stroke:#e65100
+    style R3 fill:#fff3e0,stroke:#e65100
+    style R4 fill:#fff3e0,stroke:#e65100</div><h3 id="评估的核心挑战">1.2 评估的核心挑战</h3>
+<p>安全影响评估面临五大核心技术挑战：</p>
+<table>
+<thead>
+<tr>
+<th align="left">挑战</th>
+<th align="left">具体表现</th>
+<th align="left">根因分析</th>
+<th align="left">实际影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>多维度建模</strong></td>
+<td align="left">技术+业务+声誉+合规+经济如何统一量化</td>
+<td align="left">缺乏统一评估框架</td>
+<td align="left">评估结果片面</td>
+</tr>
+<tr>
+<td align="left"><strong>动态评估</strong></td>
+<td align="left">事件演变中如何实时更新评估</td>
+<td align="left">数据实时性不足</td>
+<td align="left">评估滞后</td>
+</tr>
+<tr>
+<td align="left"><strong>因果归因</strong></td>
+<td align="left">如何确定事件与损失的因果关系</td>
+<td align="left">缺乏归因分析</td>
+<td align="left">损失难以量化</td>
+</tr>
+<tr>
+<td align="left"><strong>预测能力</strong></td>
+<td align="left">如何预测事件的潜在影响</td>
+<td align="left">缺乏预测模型</td>
+<td align="left">无法前瞻性决策</td>
+</tr>
+<tr>
+<td align="left"><strong>量化标准</strong></td>
+<td align="left">如何建立客观的量化评估标准</td>
+<td align="left">缺乏历史基准</td>
+<td align="left">评估主观</td>
+</tr>
+</tbody></table>
+<h3 id="评估的商业价值">1.3 评估的商业价值</h3>
+<table>
+<thead>
+<tr>
+<th align="left">痛点</th>
+<th align="left">传统方式</th>
+<th align="left">多维评估后</th>
+<th align="left">价值提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估维度</strong></td>
+<td align="left">1维（技术）</td>
+<td align="left">5维（技术+业务+声誉+合规+经济）</td>
+<td align="left"><strong>+400%</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>评估准确率</strong></td>
+<td align="left">60%</td>
+<td align="left">&gt; 90%</td>
+<td align="left"><strong>+30%</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>评估延迟</strong></td>
+<td align="left">1小时+</td>
+<td align="left">&lt; 5min</td>
+<td align="left"><strong>12x 提速</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>预测准确率</strong></td>
+<td align="left">无预测</td>
+<td align="left">80%</td>
+<td align="left"><strong>新能力</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 痛点问题小结：</strong></p>
+<ul>
+<li>评估主观化是安全决策质量低下的核心原因，缺乏量化依据让评估结果不可靠</li>
+<li>五大挑战（多维度、动态、归因、预测、量化）相互交织，形成评估的技术壁垒</li>
+<li>多维评估的商业价值巨大，可将评估维度扩大 5 倍，评估准确率提升 30%</li>
+</ul>
+<hr>
+<h2 id="业务目标">2. 业务目标</h2>
+<blockquote>
+<p><strong>核心目标：</strong> 构建多维影响评估模型，实现从&quot;主观经验&quot;到&quot;量化模型&quot;的转变，让影响评估变得客观、量化、可预测。</p>
+</blockquote>
+<hr>
+<h3 id="核心目标">2.1 核心目标</h3>
+<p>构建<strong>多维影响评估模型</strong>，实现量化评估 + 实时更新 + 预测分析 + 损失估算：</p>
+<table>
+<thead>
+<tr>
+<th align="left">核心能力</th>
+<th align="left">说明</th>
+<th align="left">关键指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>量化评估</strong></td>
+<td align="left">技术+业务+声誉+合规+经济多维量化评分</td>
+<td align="left">5个维度全覆盖</td>
+</tr>
+<tr>
+<td align="left"><strong>实时更新</strong></td>
+<td align="left">事件演变过程中实时更新评估</td>
+<td align="left">&lt; 1min 更新</td>
+</tr>
+<tr>
+<td align="left"><strong>预测分析</strong></td>
+<td align="left">预测事件潜在影响和发展趋势</td>
+<td align="left">预测准确率 80%</td>
+</tr>
+<tr>
+<td align="left"><strong>损失估算</strong></td>
+<td align="left">估算事件可能造成的财务损失</td>
+<td align="left">误差&lt; 20%</td>
+</tr>
+</tbody></table>
+<p><strong>目标架构图：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 评估输入层
+        direction TB
+        I1["技术指标\\n系统/日志"]
+        I2["业务指标\\n交易/服务"]
+        I3["舆情指标\\n媒体/社交"]
+        I4["合规记录\\n法规/合同"]
+        I5["财务数据\\n损失/成本"]
+    end
+    
+    subgraph 评估模型层
+        direction TB
+        M1["技术影响评分"]
+        M2["业务影响评分"]
+        M3["声誉影响评分"]
+        M4["合规影响评分"]
+        M5["经济影响评分"]
+    end
+    
+    subgraph 综合评估层
+        direction TB
+        C["综合影响指数\\n加权汇总"]
+        P["趋势预测\\n未来影响"]
+    end
+    
+    subgraph 输出层
+        direction TB
+        O1["评估报告\\n多维评分"]
+        O2["损失估算\\n财务影响"]
+        O3["决策建议\\n行动推荐"]
+    end
+    
+    I1 --> M1
+    I2 --> M2
+    I3 --> M3
+    I4 --> M4
+    I5 --> M5
+    M1 & M2 & M3 & M4 & M5 --> C --> P --> O1 & O2 & O3
+    
+    style I1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style I2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style I3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style I4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style I5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style M1 fill:#fff,stroke:#1565c0
+    style M2 fill:#fff,stroke:#e65100
+    style M3 fill:#fff,stroke:#2e7d32
+    style M4 fill:#fff,stroke:#c62828
+    style M5 fill:#fff,stroke:#7b1fa2
+    style C fill:#fff,stroke:#1565c0,stroke-width:3px
+    style P fill:#fff,stroke:#e65100,stroke-width:3px
+    style O1 fill:#f3e5f5,stroke:#7b1fa2
+    style O2 fill:#f3e5f5,stroke:#7b1fa2
+    style O3 fill:#f3e5f5,stroke:#7b1fa2</div><hr>
+<h3 id="量化指标">2.2 量化指标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">当前状态</th>
+<th align="left">目标值</th>
+<th align="left">提升幅度</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估维度</strong></td>
+<td align="left">1维（技术）</td>
+<td align="left">5维</td>
+<td align="left">+400%</td>
+<td align="left">从单维到多维</td>
+</tr>
+<tr>
+<td align="left"><strong>评估准确率</strong></td>
+<td align="left">60%</td>
+<td align="left">&gt; 90%</td>
+<td align="left">+30%</td>
+<td align="left">量化模型提升</td>
+</tr>
+<tr>
+<td align="left"><strong>评估延迟</strong></td>
+<td align="left">1小时+</td>
+<td align="left">&lt; 5min</td>
+<td align="left">12x</td>
+<td align="left">自动化评估</td>
+</tr>
+<tr>
+<td align="left"><strong>预测准确率</strong></td>
+<td align="left">无预测</td>
+<td align="left">80%</td>
+<td align="left">新能力</td>
+<td align="left">时序预测</td>
+</tr>
+</tbody></table>
+<p><strong>指标可视化：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">维度</th>
+<th align="left">当前</th>
+<th align="left">目标</th>
+<th align="left">改善效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">评估维度</td>
+<td align="left">█░░░░░░░░░ 1维</td>
+<td align="left">██████████ 5维</td>
+<td align="left">+400%</td>
+</tr>
+<tr>
+<td align="left">评估准确率</td>
+<td align="left">██████░░░░ 60%</td>
+<td align="left">██████████ &gt;90%</td>
+<td align="left">+30%</td>
+</tr>
+<tr>
+<td align="left">评估延迟</td>
+<td align="left">████████████ 1h+</td>
+<td align="left">█░░5min</td>
+<td align="left">12x 提速</td>
+</tr>
+<tr>
+<td align="left">预测准确率</td>
+<td align="left">░░░░░░░░░░ 无</td>
+<td align="left">████████░░ 80%</td>
+<td align="left">新能力</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="阶段性里程碑">2.3 阶段性里程碑</h3>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">时间</th>
+<th align="left">目标</th>
+<th align="left">关键成果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>Phase 1</strong></td>
+<td align="left">第1-3月</td>
+<td align="left">基础评估能力</td>
+<td align="left">完成3维评估模型，评估时间降至 30min</td>
+</tr>
+<tr>
+<td align="left"><strong>Phase 2</strong></td>
+<td align="left">第4-6月</td>
+<td align="left">多维评估</td>
+<td align="left">扩展至5维，评估准确率 &gt; 80%</td>
+</tr>
+<tr>
+<td align="left"><strong>Phase 3</strong></td>
+<td align="left">第7-12月</td>
+<td align="left">智能预测</td>
+<td align="left">引入预测模型，预测准确率 &gt; 80%，评估&lt; 5min</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 业务目标小结：</strong></p>
+<ul>
+<li><strong>核心目标：</strong> 多维影响评估模型 = 5维量化评估 + 实时更新 + 预测分析 + 损失估算</li>
+<li><strong>量化指标：</strong> 5个维度，准确率 &gt; 90%，延迟 &lt; 5min，预测准确率 80%</li>
+<li><strong>里程碑：</strong> 12 个月分三阶段实现目标</li>
+</ul>
+<hr>
+<h2 id="关键能力">3. 关键能力</h2>
+<blockquote>
+<p><strong>核心定位：</strong> 关键能力从&quot;人工评估&quot;升级为&quot;AI 量化&quot;——知识图谱构建资产关系，风险传播模型预测影响，实时计算量化损失。</p>
+<p><strong>核心价值：</strong> 评估从&quot;人的工作&quot;变为&quot;AI 的工作&quot;，分析师从&quot;评估者&quot;变为&quot;决策者&quot;。</p>
+</blockquote>
+<hr>
+<h3 id="影响评估模型">3.1 影响评估模型</h3>
+<p><strong>评估模型设计：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 单维评估
+        direction TB
+        S1["技术影响\\n评分模型"]
+        S2["业务影响\\n评分模型"]
+        S3["声誉影响\\n评分模型"]
+        S4["合规影响\\n评分模型"]
+        S5["经济影响\\n评分模型"]
+    end
+    
+    subgraph 综合评估
+        direction TB
+        C["综合影响指数\\nAHP加权"]
+    end
+    
+    subgraph 预测评估
+        direction TB
+        P["趋势预测\\nLSTM"]
+    end
+    
+    subgraph 输出
+        direction TB
+        O1["评估报告"]
+        O2["损失估算"]
+        O3["决策建议"]
+    end
+    
+    S1 & S2 & S3 & S4 & S5 --> C --> P --> O1 & O2 & O3
+    
+    style S1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style S3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style S4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style S5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style C fill:#fff,stroke:#1565c0,stroke-width:3px
+    style P fill:#fff,stroke:#e65100,stroke-width:3px
+    style O1 fill:#f3e5f5,stroke:#7b1fa2
+    style O2 fill:#f3e5f5,stroke:#7b1fa2
+    style O3 fill:#f3e5f5,stroke:#7b1fa2</div><p><strong>各维度评估模型：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">维度</th>
+<th align="left">评估指标</th>
+<th align="left">数据来源</th>
+<th align="left">评分方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>技术影响</strong></td>
+<td align="left">系统可用性、数据泄露量、漏洞利用风险</td>
+<td align="left">监控系统、日志系统</td>
+<td align="left">量化指标评分</td>
+</tr>
+<tr>
+<td align="left"><strong>业务影响</strong></td>
+<td align="left">业务中断时长、交易损失、客户服务影响</td>
+<td align="left">业务系统、CRM</td>
+<td align="left">业务指标量化</td>
+</tr>
+<tr>
+<td align="left"><strong>声誉影响</strong></td>
+<td align="left">媒体曝光、社交媒体舆情、客户投诉</td>
+<td align="left">舆情系统、客服系统</td>
+<td align="left">舆情分析评分</td>
+</tr>
+<tr>
+<td align="left"><strong>法律合规</strong></td>
+<td align="left">监管处罚风险、合规违规、合同违约</td>
+<td align="left">法务系统、合规系统</td>
+<td align="left">法规条款映射</td>
+</tr>
+<tr>
+<td align="left"><strong>经济损失</strong></td>
+<td align="left">直接损失、间接损失、恢复成本</td>
+<td align="left">财务系统、事件记录</td>
+<td align="left">财务模型估算</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>💡 <strong>设计原则：</strong> 各维度独立评估，通过 AHP 加权汇总为综合影响指数，确保评估客观公正。</p>
+</blockquote>
+<hr>
+<h3 id="评估维度矩阵">3.2 评估维度矩阵</h3>
+<p><strong>评估维度详细说明：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">维度</th>
+<th align="left">一级指标</th>
+<th align="left">二级指标</th>
+<th align="left">权重</th>
+<th align="left">数据来源</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>技术影响</strong></td>
+<td align="left">系统可用性</td>
+<td align="left">可用性下降比例</td>
+<td align="left">30%</td>
+<td align="left">监控系统</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">数据泄露量</td>
+<td align="left">泄露数据量（GB）</td>
+<td align="left">25%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">漏洞利用风险</td>
+<td align="left">CVE 严重程度</td>
+<td align="left">20%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">影响资产数</td>
+<td align="left">受影响资产占比</td>
+<td align="left">25%</td>
+</tr>
+<tr>
+<td align="left"><strong>业务影响</strong></td>
+<td align="left">业务中断时长</td>
+<td align="left">中断时间（小时）</td>
+<td align="left">35%</td>
+<td align="left">业务系统</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">交易损失</td>
+<td align="left">损失金额</td>
+<td align="left">30%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">客户服务影响</td>
+<td align="left">客诉数量</td>
+<td align="left">20%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">供应链影响</td>
+<td align="left">上下游中断</td>
+<td align="left">15%</td>
+</tr>
+<tr>
+<td align="left"><strong>声誉影响</strong></td>
+<td align="left">媒体曝光</td>
+<td align="left">新闻报道数</td>
+<td align="left">30%</td>
+<td align="left">舆情系统</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">社交媒体舆情</td>
+<td align="left">负面占比</td>
+<td align="left">30%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">客户投诉</td>
+<td align="left">投诉数量</td>
+<td align="left">25%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">品牌价值损失</td>
+<td align="left">预估品牌损失</td>
+<td align="left">15%</td>
+</tr>
+<tr>
+<td align="left"><strong>法律合规</strong></td>
+<td align="left">监管处罚风险</td>
+<td align="left">处罚金额预估</td>
+<td align="left">35%</td>
+<td align="left">法务系统</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">合规违规</td>
+<td align="left">违规条款数</td>
+<td align="left">30%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">合同违约</td>
+<td align="left">违约赔偿</td>
+<td align="left">20%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">法律诉讼风险</td>
+<td align="left">诉讼概率</td>
+<td align="left">15%</td>
+</tr>
+<tr>
+<td align="left"><strong>经济损失</strong></td>
+<td align="left">直接损失</td>
+<td align="left">资产损失</td>
+<td align="left">30%</td>
+<td align="left">财务记录</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">间接损失</td>
+<td align="left">业务损失</td>
+<td align="left">35%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">恢复成本</td>
+<td align="left">恢复费用</td>
+<td align="left">25%</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">潜在罚款</td>
+<td align="left">监管罚款</td>
+<td align="left">10%</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="影响评估报告">3.3 影响评估报告</h3>
+<p><strong>报告结构：</strong></p>
+<pre><code class="language-json">{
+  "impact_assessment": {
+    "report_id": "IA-2026-0531-001",
+    "event_id": "EVT-2026-0531-001",
+    "timestamp": "2026-05-31T09:00:00Z",
+    "overall_score": 85,
+    "overall_level": "high",
+    "dimensions": {
+      "technical_impact": {
+        "score": 92,
+        "level": "critical",
+        "metrics": {
+          "availability_loss": "40%",
+          "data_leakage": "10GB",
+          "cve_severity": "critical"
+        }
+      },
+      "business_impact": {
+        "score": 78,
+        "level": "high",
+        "metrics": {
+          "downtime": "2hours",
+          "transaction_loss": "¥50,000",
+          "customer_impact": "100+ customers"
+        }
+      },
+      "reputation_impact": {
+        "score": 65,
+        "level": "medium",
+        "metrics": {
+          "media_coverage": "5 articles",
+          "negative_sentiment": "30%",
+          "customer_complaints": "15"
+        }
+      },
+      "legal_compliance": {
+        "score": 45,
+        "level": "high",
+        "metrics": {
+          "personal_data_leak": "10,000 users",
+          "gdpr_violation": true,
+          "potential_fine": "¥350,000"
+        }
+      },
+      "financial_impact": {
+        "estimated_loss": "¥200,000 - ¥500,000",
+        "confidence": 0.85,
+        "breakdown": {
+          "direct_loss": "¥50,000",
+          "recovery_cost": "¥100,000",
+          "potential_fine": "¥350,000"
+        }
+      }
+    },
+    "trend": "increasing",
+    "prediction": {
+      "24h_later_score": 95,
+      "24h_later_level": "critical",
+      "confidence": 0.80
+    },
+    "recommended_actions": [
+      "立即隔离受影响系统",
+      "启动应急响应流程",
+      "通知监管机构",
+      "准备客户通知"
+    ]
+  }
+}</code></pre><p><strong>报告生成流程：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 输入
+        direction LR
+        I["事件信息\\n触发评估"]
+    end
+    
+    subgraph 生成阶段
+        direction LR
+        G1["① 数据采集\\n多源聚合"]
+        G2["② 维度评分\\n各维度评估"]
+        G3["③ 综合计算\\nAHP加权"]
+        G4["④ 趋势预测\\nLSTM预测"]
+    end
+    
+    subgraph 输出
+        direction LR
+        O["评估报告\\n多维评分+预测"]
+    end
+    
+    I --> G1 --> G2 --> G3 --> G4 --> O
+    
+    style I fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style G1 fill:#fff3e0,stroke:#e65100
+    style G2 fill:#fff3e0,stroke:#e65100
+    style G3 fill:#e8f5e9,stroke:#2e7d32
+    style G4 fill:#e8f5e9,stroke:#2e7d32
+    style O fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px</div><hr>
+<p><strong>📌 关键能力小结：</strong></p>
+<ul>
+<li><strong>影响评估模型：</strong> 5维独立评估 + AHP加权汇总 + LSTM趋势预测</li>
+<li><strong>评估维度矩阵：</strong> 20+评估指标，覆盖技术/业务/声誉/合规/经济</li>
+<li><strong>评估报告生成：</strong> 结构化 JSON + 多维评分 + 损失估算 + 趋势预测</li>
+</ul>
+<hr>
+<h2 id="核心技术">4. 核心技术</h2>
+<blockquote>
+<p><strong>核心定位：</strong> 核心技术从&quot;规则计算&quot;升级为&quot;认知计算&quot;——知识图谱理解资产价值，传播模型预测风险扩散，AI 计算量化损失。</p>
+<p><strong>技术范式转变：</strong> 从&quot;静态阈值&quot;到&quot;动态基线&quot;，从&quot;单点计算&quot;到&quot;全网传播&quot;，从&quot;人工估计&quot;到&quot;AI 精准量化&quot;。</p>
+</blockquote>
+<hr>
+<h3 id="评估模型技术">4.1 评估模型技术</h3>
+<p><strong>技术选型：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">技术</th>
+<th align="left">选型</th>
+<th align="left">作用</th>
+<th align="left">关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>多因子评估</strong></td>
+<td align="left">AHP + TOPSIS</td>
+<td align="left">多维度综合评分</td>
+<td align="left">层次分析法</td>
+</tr>
+<tr>
+<td align="left"><strong>贝叶斯网络</strong></td>
+<td align="left">pgmpy</td>
+<td align="left">不确定性推理</td>
+<td align="left">置信区间</td>
+</tr>
+<tr>
+<td align="left"><strong>时序预测</strong></td>
+<td align="left">LSTM / ARIMA</td>
+<td align="left">趋势预测</td>
+<td align="left">24h预测</td>
+</tr>
+<tr>
+<td align="left"><strong>博弈论</strong></td>
+<td align="left">攻防建模</td>
+<td align="left">攻击者意图分析</td>
+<td align="left">威胁建模</td>
+</tr>
+<tr>
+<td align="left"><strong>损失估算</strong></td>
+<td align="left">蒙特卡洛模拟</td>
+<td align="left">财务损失估算</td>
+<td align="left">概率分布</td>
+</tr>
+</tbody></table>
+<p><strong>评估技术架构：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 数据输入
+        direction TB
+        D1["技术数据"]
+        D2["业务数据"]
+        D3["舆情数据"]
+        D4["合规数据"]
+        D5["财务数据"]
+    end
+    
+    subgraph 模型层
+        direction TB
+        M1["AHP\\n权重计算"]
+        M2["TOPSIS\\n综合评估"]
+        M3["贝叶斯网络\\n不确定性"]
+        M4["LSTM\\n趋势预测"]
+    end
+    
+    subgraph 输出层
+        direction TB
+        O1["多维评分"]
+        O2["综合指数"]
+        O3["损失估算"]
+        O4["趋势预测"]
+    end
+    
+    D1 & D2 & D3 & D4 & D5 --> M1 & M2 & M3 & M4 --> O1 & O2 & O3 & O4
+    
+    style D1 fill:#e3f2fd,stroke:#1565c0
+    style D2 fill:#fff3e0,stroke:#e65100
+    style D3 fill:#e8f5e9,stroke:#2e7d32
+    style D4 fill:#fce4ec,stroke:#c62828
+    style D5 fill:#f3e5f5,stroke:#7b1fa2
+    style M1 fill:#fff,stroke:#1565c0
+    style M2 fill:#fff,stroke:#e65100
+    style M3 fill:#fff,stroke:#2e7d32
+    style M4 fill:#fff,stroke:#c62828
+    style O1 fill:#f3e5f5,stroke:#7b1fa2
+    style O2 fill:#f3e5f5,stroke:#7b1fa2
+    style O3 fill:#f3e5f5,stroke:#7b1fa2
+    style O4 fill:#f3e5f5,stroke:#7b1fa2</div><hr>
+<h3 id="评估算法">4.2 评估算法</h3>
+<p><strong>核心评估算法：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">算法</th>
+<th align="left">原理</th>
+<th align="left">应用场景</th>
+<th align="left">输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>层次分析法（AHP）</strong></td>
+<td align="left">多层次权重分配，综合评分</td>
+<td align="left">多维度权重计算</td>
+<td align="left">权重向量</td>
+</tr>
+<tr>
+<td align="left"><strong>TOPSIS</strong></td>
+<td align="left">多指标综合评估排序</td>
+<td align="left">综合影响指数</td>
+<td align="left">排序结果</td>
+</tr>
+<tr>
+<td align="left"><strong>蒙特卡洛模拟</strong></td>
+<td align="left">概率分布抽样</td>
+<td align="left">不确定性评估</td>
+<td align="left">损失分布</td>
+</tr>
+<tr>
+<td align="left"><strong>LSTM 预测</strong></td>
+<td align="left">长短期记忆网络</td>
+<td align="left">影响趋势预测</td>
+<td align="left">24h 预测</td>
+</tr>
+</tbody></table>
+<p><strong>评估算法流程：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 输入
+        direction LR
+        I["多维数据\\n原始指标"]
+    end
+    
+    subgraph 算法阶段
+        direction LR
+        A1["① AHP 权重计算"]
+        A2["② 指标标准化"]
+        A3["③ TOPSIS 排序"]
+        A4["④ 蒙特卡洛模拟"]
+    end
+    
+    subgraph 输出
+        direction LR
+        O["综合影响指数\\n+置信区间"]
+    end
+    
+    I --> A1 --> A2 --> A3 --> A4 --> O
+    
+    style I fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A1 fill:#fff3e0,stroke:#e65100
+    style A2 fill:#fff3e0,stroke:#e65100
+    style A3 fill:#e8f5e9,stroke:#2e7d32
+    style A4 fill:#e8f5e9,stroke:#2e7d32
+    style O fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px</div><blockquote>
+<p>💡 <strong>最佳实践：</strong> AHP 确定权重，TOPSIS 综合评估，蒙特卡洛模拟不确定性，LSTM 预测趋势。</p>
+</blockquote>
+<hr>
+<h3 id="预测引擎">4.3 预测引擎</h3>
+<p><strong>预测引擎架构：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 历史数据
+        direction TB
+        H["历史事件\\n影响数据"]
+    end
+    
+    subgraph 特征工程
+        direction TB
+        F1["时间序列特征"]
+        F2["事件类型特征"]
+        F3["处置措施特征"]
+    end
+    
+    subgraph 预测模型
+        direction TB
+        P1["LSTM\\n时序预测"]
+        P2["ARIMA\\n趋势预测"]
+        P3["XGBoost\\n分类预测"]
+    end
+    
+    subgraph 预测输出
+        direction TB
+        O1["24h 影响预测"]
+        O2["发展趋势判断"]
+        O3["置信区间"]
+    end
+    
+    H --> F1 & F2 & F3 --> P1 & P2 & P3 --> O1 & O2 & O3
+    
+    style H fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style F1 fill:#fff,stroke:#1565c0
+    style F2 fill:#fff,stroke:#e65100
+    style F3 fill:#fff,stroke:#2e7d32
+    style P1 fill:#fff,stroke:#c62828
+    style P2 fill:#fff,stroke:#7b1fa2
+    style P3 fill:#fff,stroke:#01579b
+    style O1 fill:#f3e5f5,stroke:#7b1fa2
+    style O2 fill:#f3e5f5,stroke:#7b1fa2
+    style O3 fill:#f3e5f5,stroke:#7b1fa2</div><hr>
+<p><strong>📌 核心技术小结：</strong></p>
+<ul>
+<li><strong>评估模型技术：</strong> AHP + TOPSIS + 贝叶斯网络 + LSTM</li>
+<li><strong>评估算法：</strong> 层次分析法 + TOPSIS + 蒙特卡洛模拟</li>
+<li><strong>预测引擎：</strong> LSTM + ARIMA + XGBoost，支撑24h 影响预测</li>
+</ul>
+<hr>
+<h2 id="用户体验">5. 用户体验</h2>
+<blockquote>
+<p><strong>核心定位：</strong> 用户体验从&quot;人做评估&quot;转变为&quot;AI 做评估、人做决策&quot;——AI 自动生成评估报告，人类专注决策而非计算。</p>
+<p><strong>核心转变：</strong> 评估时间从小时级到秒级，分析师从&quot;计算者&quot;变为&quot;决策者&quot;。</p>
+</blockquote>
+<hr>
+<h3 id="安全分析师视角">5.1 安全分析师视角</h3>
+<p><strong>核心体验：</strong> 安全分析师关注的是评估的便捷性和行动指导。</p>
+<p><strong>用户旅程：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">用户行为</th>
+<th align="left">系统响应</th>
+<th align="left">体验指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>启动阶段</strong></td>
+<td align="left">事件触发，自动生成评估</td>
+<td align="left">一键评估</td>
+<td align="left">&lt; 5min</td>
+</tr>
+<tr>
+<td align="left"><strong>查看阶段</strong></td>
+<td align="left">查看各维度评分明细</td>
+<td align="left">维度拆解</td>
+<td align="left">一目了然</td>
+</tr>
+<tr>
+<td align="left"><strong>决策阶段</strong></td>
+<td align="left">基于评估结果查看建议</td>
+<td align="left">建议行动</td>
+<td align="left">自动推荐</td>
+</tr>
+<tr>
+<td align="left"><strong>对比阶段</strong></td>
+<td align="left">与历史事件对比</td>
+<td align="left">对比分析</td>
+<td align="left">参照基准</td>
+</tr>
+</tbody></table>
+<p><strong>关键功能：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">功能</th>
+<th align="left">说明</th>
+<th align="left">用户价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>一键评估</strong></td>
+<td align="left">事件触发，自动生成评估报告</td>
+<td align="left">简化操作</td>
+</tr>
+<tr>
+<td align="left"><strong>维度拆解</strong></td>
+<td align="left">各维度评分明细，一目了然</td>
+<td align="left">清晰可见</td>
+</tr>
+<tr>
+<td align="left"><strong>建议行动</strong></td>
+<td align="left">基于评估结果推荐行动</td>
+<td align="left">决策支撑</td>
+</tr>
+<tr>
+<td align="left"><strong>对比分析</strong></td>
+<td align="left">与历史事件对比</td>
+<td align="left">参照学习</td>
+</tr>
+</tbody></table>
+<p><strong>体验优化设计：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 用户操作
+        direction LR
+        U1["查看评估报告"]
+        U2["查看维度明细"]
+        U3["查看建议行动"]
+        U4["对比历史事件"]
+    end
+    
+    subgraph 系统响应
+        direction LR
+        S1["多维评分\\n综合指数"]
+        S2["雷达图\\n各维度"]
+        S3["行动清单\\n优先级"]
+        S4["趋势对比\\n历史基准"]
+    end
+    
+    U1 --> S1
+    U2 --> S2
+    U3 --> S3
+    U4 --> S4
+    
+    style U1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style U2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style U3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style U4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style S1 fill:#fff,stroke:#1565c0
+    style S2 fill:#fff,stroke:#e65100
+    style S3 fill:#fff,stroke:#2e7d32
+    style S4 fill:#fff,stroke:#c62828</div><blockquote>
+<p>💡 <strong>设计原则：</strong> 安全分析师需要&quot;一目了然&quot;的评估结果，系统应该&quot;维度清晰&quot;+&quot;建议明确&quot;。</p>
+</blockquote>
+<hr>
+<h3 id="管理层视角">5.2 管理层视角</h3>
+<p><strong>核心体验：</strong> 管理层关注的是 Executive Summary、决策支持、ROI 分析。</p>
+<p><strong>用户旅程：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">用户行为</th>
+<th align="left">系统响应</th>
+<th align="left">体验指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>汇报阶段</strong></td>
+<td align="left">查看高管汇报</td>
+<td align="left">一页纸 Summary</td>
+<td align="left">直观呈现</td>
+</tr>
+<tr>
+<td align="left"><strong>决策阶段</strong></td>
+<td align="left">评估支撑资源调配</td>
+<td align="left">决策支持</td>
+<td align="left">数据驱动</td>
+</tr>
+<tr>
+<td align="left"><strong>投资阶段</strong></td>
+<td align="left">安全投入 vs 损失避免</td>
+<td align="left">ROI 分析</td>
+<td align="left">量化呈现</td>
+</tr>
+</tbody></table>
+<p><strong>关键功能：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">功能</th>
+<th align="left">说明</th>
+<th align="left">用户价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>Executive Summary</strong></td>
+<td align="left">一页纸高管汇报</td>
+<td align="left">高效汇报</td>
+</tr>
+<tr>
+<td align="left"><strong>决策支持</strong></td>
+<td align="left">影响评估支撑资源调配</td>
+<td align="left">数据驱动</td>
+</tr>
+<tr>
+<td align="left"><strong>ROI 分析</strong></td>
+<td align="left">安全投入 vs 损失避免</td>
+<td align="left">量化决策</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="用户体验指标">5.3 用户体验指标</h3>
+<p><strong>量化指标体系：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">指标类别</th>
+<th align="left">指标名称</th>
+<th align="left">目标值</th>
+<th align="left">当前值</th>
+<th align="left">差距</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估效率</strong></td>
+<td align="left">平均评估时间</td>
+<td align="left">&lt; 5min</td>
+<td align="left">30min</td>
+<td align="left">-25min</td>
+</tr>
+<tr>
+<td align="left"><strong>评估准确率</strong></td>
+<td align="left">评估准确率</td>
+<td align="left">&gt; 90%</td>
+<td align="left">75%</td>
+<td align="left">-15%</td>
+</tr>
+<tr>
+<td align="left"><strong>用户满意度</strong></td>
+<td align="left">NPS 评分</td>
+<td align="left">&gt; 60</td>
+<td align="left">50</td>
+<td align="left">-10</td>
+</tr>
+<tr>
+<td align="left"><strong>预测准确率</strong></td>
+<td align="left">影响趋势预测</td>
+<td align="left">80%</td>
+<td align="left">65%</td>
+<td align="left">-15%</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 用户体验小结：</strong></p>
+<ul>
+<li><strong>安全分析师：</strong> 一键评估、维度拆解、建议行动、对比分析，让评估更便捷</li>
+<li><strong>管理层：</strong> Executive Summary、决策支持、ROI 分析，让汇报更轻松</li>
+<li><strong>体验指标：</strong> 评估时间 &lt; 5min，准确率 &gt; 90%，满意度 &gt; 60</li>
+</ul>
+<hr>
+<h2 id="系统质量">6. 系统质量</h2>
+<blockquote>
+<p><strong>核心定位：</strong> 系统质量从&quot;可用性保障&quot;升级为&quot;量化可靠性&quot;——评估的准确性、可解释性、可追溯性成为核心指标。</p>
+<p><strong>可靠性新内涵：</strong> AI 不仅要给出评估数值，更要给出计算逻辑；评估结果可追溯、可解释、可验证。</p>
+</blockquote>
+<hr>
+<h3 id="评估性能指标">6.1 评估性能指标</h3>
+<p><strong>核心性能指标：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">目标值</th>
+<th align="left">当前值</th>
+<th align="left">差距</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估延迟</strong></td>
+<td align="left">&lt; 5min</td>
+<td align="left">30min</td>
+<td align="left">+25min</td>
+<td align="left">需优化管道</td>
+</tr>
+<tr>
+<td align="left"><strong>维度覆盖率</strong></td>
+<td align="left">5个维度</td>
+<td align="left">3个维度</td>
+<td align="left">+2</td>
+<td align="left">需扩展</td>
+</tr>
+<tr>
+<td align="left"><strong>评估准确率</strong></td>
+<td align="left">&gt; 90%</td>
+<td align="left">75%</td>
+<td align="left">+15%</td>
+<td align="left">需优化模型</td>
+</tr>
+<tr>
+<td align="left"><strong>更新频率</strong></td>
+<td align="left">实时</td>
+<td align="left">1小时</td>
+<td align="left">需提升</td>
+<td align="left">实时监测</td>
+</tr>
+</tbody></table>
+<p><strong>性能测试结果：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">测试场景</th>
+<th align="left">目标指标</th>
+<th align="left">实际结果</th>
+<th align="left">通过率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估延迟</strong></td>
+<td align="left">P95 &lt; 5min</td>
+<td align="left">P95 = 4.8min</td>
+<td align="left">✅ 96%</td>
+</tr>
+<tr>
+<td align="left"><strong>维度覆盖率</strong></td>
+<td align="left">5个维度</td>
+<td align="left">5个维度</td>
+<td align="left">✅ 100%</td>
+</tr>
+<tr>
+<td align="left"><strong>评估准确率</strong></td>
+<td align="left">&gt; 90%</td>
+<td align="left">88%</td>
+<td align="left">🔄 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>更新频率</strong></td>
+<td align="left">实时</td>
+<td align="left">30s</td>
+<td align="left">✅ 98%</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="可用性要求">6.2 可用性要求</h3>
+<p><strong>高可用架构设计：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">组件</th>
+<th align="left">可用性目标</th>
+<th align="left">设计方案</th>
+<th align="left">故障切换时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估引擎</strong></td>
+<td align="left">99.9%</td>
+<td align="left">多节点部署，自动故障转移</td>
+<td align="left">&lt; 30s</td>
+</tr>
+<tr>
+<td align="left"><strong>预测服务</strong></td>
+<td align="left">99.9%</td>
+<td align="left">模型热更新，A/B 测试</td>
+<td align="left">0（灰度）</td>
+</tr>
+<tr>
+<td align="left"><strong>数据存储</strong></td>
+<td align="left">99.99%</td>
+<td align="left">多副本，跨地域部署</td>
+<td align="left">&lt; 10s</td>
+</tr>
+</tbody></table>
+<p><strong>容灾设计方案：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 评估层
+        direction TB
+        E1["评估节点-1"]
+        E2["评估节点-2"]
+        E3["评估节点-N"]
+    end
+    
+    subgraph 模型层
+        direction TB
+        M1["模型服务-1"]
+        M2["模型服务-2"]
+    end
+    
+    subgraph 存储层
+        direction TB
+        S1["存储集群"]
+    end
+    
+    E1 & E2 & E3 -->|负载均衡| M1 & M2 --> S1
+    
+    style E1 fill:#e3f2fd,stroke:#1565c0
+    style E2 fill:#fff3e0,stroke:#e65100
+    style E3 fill:#e8f5e9,stroke:#2e7d32
+    style M1 fill:#fce4ec,stroke:#c62828
+    style M2 fill:#fce4ec,stroke:#c62828
+    style S1 fill:#f3e5f5,stroke:#7b1fa2</div><p><strong>故障场景与应对：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">故障场景</th>
+<th align="left">影响范围</th>
+<th align="left">应对策略</th>
+<th align="left">恢复时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估节点宕机</strong></td>
+<td align="left">评估中断</td>
+<td align="left">自动切换</td>
+<td align="left">&lt; 30s</td>
+</tr>
+<tr>
+<td align="left"><strong>模型服务故障</strong></td>
+<td align="left">预测失败</td>
+<td align="left">切换备用模型</td>
+<td align="left">&lt; 1min</td>
+</tr>
+<tr>
+<td align="left"><strong>存储故障</strong></td>
+<td align="left">数据无法写入</td>
+<td align="left">切换到备用存储</td>
+<td align="left">&lt; 10s</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="扩展性">6.3 扩展性</h3>
+<p><strong>扩展性架构设计：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">扩展维度</th>
+<th align="left">扩展方式</th>
+<th align="left">扩展能力</th>
+<th align="left">配置方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估维度扩展</strong></td>
+<td align="left">插件式接入</td>
+<td align="left">新维度热插拔</td>
+<td align="left">Schema 扩展</td>
+</tr>
+<tr>
+<td align="left"><strong>预测能力扩展</strong></td>
+<td align="left">模型热更新</td>
+<td align="left">新预测场景</td>
+<td align="left">A/B 测试</td>
+</tr>
+<tr>
+<td align="left"><strong>数据源扩展</strong></td>
+<td align="left">数据连接器</td>
+<td align="left">新数据源接入</td>
+<td align="left">连接器注册</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="监控与告警">6.4 监控与告警</h3>
+<p><strong>系统监控指标：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">监控维度</th>
+<th align="left">指标名称</th>
+<th align="left">目标值</th>
+<th align="left">告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估</strong></td>
+<td align="left">评估延迟 P95</td>
+<td align="left">&lt; 5min</td>
+<td align="left">&gt; 10min</td>
+</tr>
+<tr>
+<td align="left"><strong>模型</strong></td>
+<td align="left">预测准确率</td>
+<td align="left">&gt; 80%</td>
+<td align="left">&lt; 70%</td>
+</tr>
+<tr>
+<td align="left"><strong>数据</strong></td>
+<td align="left">数据完整性</td>
+<td align="left">&gt; 99%</td>
+<td align="left">&lt; 95%</td>
+</tr>
+<tr>
+<td align="left"><strong>可用性</strong></td>
+<td align="left">系统可用性</td>
+<td align="left">&gt; 99.9%</td>
+<td align="left">&lt; 99%</td>
+</tr>
+</tbody></table>
+<p><strong>告警等级定义：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">告警等级</th>
+<th align="left">触发条件</th>
+<th align="left">通知方式</th>
+<th align="left">处理时效</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>P0 紧急</strong></td>
+<td align="left">评估引擎不可用</td>
+<td align="left">电话+短信+邮件</td>
+<td align="left">15分钟内响应</td>
+</tr>
+<tr>
+<td align="left"><strong>P1 高</strong></td>
+<td align="left">评估延迟 &gt; 30min</td>
+<td align="left">短信+邮件</td>
+<td align="left">1小时内响应</td>
+</tr>
+<tr>
+<td align="left"><strong>P2 中</strong></td>
+<td align="left">预测准确率 &lt; 70%</td>
+<td align="left">邮件</td>
+<td align="left">4小时内响应</td>
+</tr>
+<tr>
+<td align="left"><strong>P3 低</strong></td>
+<td align="left">轻微性能下降</td>
+<td align="left">邮件</td>
+<td align="left">次日内响应</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 系统质量小结：</strong></p>
+<ul>
+<li><strong>性能指标：</strong> P95 &lt; 5min，5个维度全覆盖，准确率 &gt; 90%</li>
+<li><strong>可用性设计：</strong> 99.9% 可用性，&lt; 30s 故障切换，热更新机制</li>
+<li><strong>扩展性架构：</strong> 维度插件扩展、模型热更新、数据源接入</li>
+</ul>
+<hr>
+<h2 id="特性运营">7. 特性运营</h2>
+<blockquote>
+<p><strong>核心定位：</strong> 特性运营从&quot;规则优化&quot;升级为&quot;模型进化&quot;——AI 评估模型通过反馈持续优化，评估准确率不断提升。</p>
+<p><strong>进化机制：</strong> 每次实际损失反馈 → 模型校正 → 效果验证 → 自动更新，形成评估能力的正向进化。</p>
+</blockquote>
+<hr>
+<h3 id="评估质量运营">7.1 评估质量运营</h3>
+<p><strong>评估质量评估体系：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 质量评估
+        direction LR
+        Q1["准确性评估\\n预测 vs 实际"]
+        Q2["时效性评估\\n评估时间"]
+        Q3["完整性评估\\n维度覆盖"]
+        Q4["可用性评估\\n系统稳定"]
+    end
+    
+    subgraph 质量改进
+        direction LR
+        I1["模型优化\\n提升准确"]
+        I2["流程优化\\n缩短时间"]
+        I3["维度扩展\\n增加覆盖"]
+        I4["架构优化\\n提升稳定"]
+    end
+    
+    Q1 & Q2 & Q3 & Q4 --> I1 & I2 & I3 & I4
+    
+    style Q1 fill:#e3f2fd,stroke:#1565c0
+    style Q2 fill:#fff3e0,stroke:#e65100
+    style Q3 fill:#e8f5e9,stroke:#2e7d32
+    style Q4 fill:#fce4ec,stroke:#c62828
+    style I1 fill:#fff,stroke:#1565c0
+    style I2 fill:#fff,stroke:#e65100
+    style I3 fill:#fff,stroke:#2e7d32
+    style I4 fill:#fff,stroke:#c62828</div><p><strong>评估质量指标：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">指标名称</th>
+<th align="left">目标值</th>
+<th align="left">当前值</th>
+<th align="left">差距</th>
+<th align="left">优化计划</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估准确率</strong></td>
+<td align="left">&gt; 90%</td>
+<td align="left">75%</td>
+<td align="left">+15%</td>
+<td align="left">优化模型</td>
+</tr>
+<tr>
+<td align="left"><strong>评估延迟</strong></td>
+<td align="left">&lt; 5min</td>
+<td align="left">30min</td>
+<td align="left">+25min</td>
+<td align="left">优化管道</td>
+</tr>
+<tr>
+<td align="left"><strong>预测准确率</strong></td>
+<td align="left">80%</td>
+<td align="left">65%</td>
+<td align="left">+15%</td>
+<td align="left">增加训练数据</td>
+</tr>
+<tr>
+<td align="left"><strong>维度覆盖率</strong></td>
+<td align="left">100%</td>
+<td align="left">60%</td>
+<td align="left">+40%</td>
+<td align="left">扩展维度</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="评估案例运营">7.2 评估案例运营</h3>
+<p><strong>案例生命周期管理：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">触发条件</th>
+<th align="left">自动动作</th>
+<th align="left">责任人</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>案例生成</strong></td>
+<td align="left">评估完成</td>
+<td align="left">自动保存</td>
+<td align="left">系统</td>
+</tr>
+<tr>
+<td align="left"><strong>准确标记</strong></td>
+<td align="left">预测 vs 实际对比</td>
+<td align="left">记录准确率</td>
+<td align="left">系统</td>
+</tr>
+<tr>
+<td align="left"><strong>偏差分析</strong></td>
+<td align="left">偏差 &gt; 20%</td>
+<td align="left">记录偏差原因</td>
+<td align="left">分析师</td>
+</tr>
+<tr>
+<td align="left"><strong>模型优化</strong></td>
+<td align="left">积累偏差案例</td>
+<td align="left">优化模型</td>
+<td align="left">算法工程师</td>
+</tr>
+</tbody></table>
+<p><strong>案例质量评估：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">评估维度</th>
+<th align="left">评估标准</th>
+<th align="left">权重</th>
+<th align="left">评分标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>准确性</strong></td>
+<td align="left">评估结果与实际损失一致</td>
+<td align="left">40%</td>
+<td align="left">一致 100%，偏差大 0%</td>
+</tr>
+<tr>
+<td align="left"><strong>时效性</strong></td>
+<td align="left">评估时间</td>
+<td align="left">20%</td>
+<td align="left">&lt; 5min 100%，&gt; 30min 50%</td>
+</tr>
+<tr>
+<td align="left"><strong>完整性</strong></td>
+<td align="left">维度覆盖程度</td>
+<td align="left">20%</td>
+<td align="left">5维 100%，3维 60%</td>
+</tr>
+<tr>
+<td align="left"><strong>预测性</strong></td>
+<td align="left">趋势预测准确</td>
+<td align="left">20%</td>
+<td align="left">准确 100%，偏差大 0%</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="持续优化机制">7.3 持续优化机制</h3>
+<p><strong>持续优化流程：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 数据输入
+        direction LR
+        D["评估反馈\\n预测 vs 实际"]
+    end
+    
+    subgraph 分析
+        direction LR
+        A1["偏差分析\\n找出根因"]
+        A2["模式分析\\n发现规律"]
+        A3["趋势分析\\n预测变化"]
+    end
+    
+    subgraph 优化
+        direction LR
+        O1["模型优化\\n提升准确"]
+        O2["流程优化\\n缩短时间"]
+        O3["维度扩展\\n增加覆盖"]
+    end
+    
+    subgraph 输出
+        direction LR
+        O4["评估能力提升\\n持续迭代"]
+    end
+    
+    D --> A1 & A2 & A3 --> O1 & O2 & O3 --> O4
+    
+    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A1 fill:#fff3e0,stroke:#e65100
+    style A2 fill:#fff3e0,stroke:#e65100
+    style A3 fill:#fff3e0,stroke:#e65100
+    style O1 fill:#e8f5e9,stroke:#2e7d32
+    style O2 fill:#e8f5e9,stroke:#2e7d32
+    style O3 fill:#e8f5e9,stroke:#2e7d32
+    style O4 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px</div><p><strong>优化迭代机制：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">优化类型</th>
+<th align="left">优化频率</th>
+<th align="left">优化内容</th>
+<th align="left">效果评估</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>模型优化</strong></td>
+<td align="left">每周</td>
+<td align="left">基于偏差案例优化模型</td>
+<td align="left">准确率提升</td>
+</tr>
+<tr>
+<td align="left"><strong>流程优化</strong></td>
+<td align="left">每月</td>
+<td align="left">优化评估流程</td>
+<td align="left">时间缩短</td>
+</tr>
+<tr>
+<td align="left"><strong>维度扩展</strong></td>
+<td align="left">按需</td>
+<td align="left">新维度接入</td>
+<td align="left">覆盖面扩大</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 特性运营小结：</strong></p>
+<ul>
+<li><strong>质量运营：</strong> 准确率 &gt; 90%，评估时间 &lt; 5min，预测准确率 80%</li>
+<li><strong>案例运营：</strong> 案例生命周期管理（生成→标记→分析→优化）</li>
+<li><strong>持续优化：</strong> 偏差分析 + 模式分析 + 趋势分析，持续迭代提升</li>
+</ul>
+<hr>
+<h2 id="本章小结">8. 本章小结</h2>
+<blockquote>
+<p><strong>核心理念：</strong> 在 AISOC 体系中，安全影响评估从&quot;人工估算&quot;演进为&quot;AI 自动量化&quot;——知识图谱评估资产价值，风险传播模型预测影响范围，AI Agent 自动生成评估报告。</p>
+<p><strong>核心定位：</strong> 安全影响评估是智能体系的&quot;战略官&quot;，AI Agent 量化风险影响，支撑决策。</p>
+<p><strong>核心目标：</strong> 从&quot;人工评估&quot;到&quot;AI 自动评估&quot;，从&quot;小时级&quot;到&quot;秒级&quot;，评估准确率 &gt; 95%。</p>
+</blockquote>
+<hr>
+<h3 id="核心成果">核心成果</h3>
+<p><strong>评估架构：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 评估输入层
+        direction TB
+        I1["技术数据"]
+        I2["业务数据"]
+        I3["舆情数据"]
+        I4["合规数据"]
+        I5["财务数据"]
+    end
+    
+    subgraph 评估模型层
+        direction TB
+        M1["技术影响"]
+        M2["业务影响"]
+        M3["声誉影响"]
+        M4["合规影响"]
+        M5["经济影响"]
+    end
+    
+    subgraph 综合评估层
+        direction TB
+        C["综合影响指数"]
+        P["趋势预测"]
+    end
+    
+    subgraph 输出层
+        direction TB
+        O1["评估报告"]
+        O2["损失估算"]
+        O3["决策建议"]
+    end
+    
+    I1 & I2 & I3 & I4 & I5 --> M1 & M2 & M3 & M4 & M5 --> C --> P --> O1 & O2 & O3
+    
+    style I1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style I2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style I3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style I4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style I5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style M1 fill:#fff,stroke:#1565c0
+    style M2 fill:#fff,stroke:#e65100
+    style M3 fill:#fff,stroke:#2e7d32
+    style M4 fill:#fff,stroke:#c62828
+    style M5 fill:#fff,stroke:#7b1fa2
+    style C fill:#fff,stroke:#1565c0,stroke-width:3px
+    style P fill:#fff,stroke:#e65100,stroke-width:3px
+    style O1 fill:#f3e5f5,stroke:#7b1fa2
+    style O2 fill:#f3e5f5,stroke:#7b1fa2
+    style O3 fill:#f3e5f5,stroke:#7b1fa2</div><p><strong>核心指标达成：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">核心指标</th>
+<th align="left">目标值</th>
+<th align="left">达成值</th>
+<th align="left">状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估维度</strong></td>
+<td align="left">5维</td>
+<td align="left">5维</td>
+<td align="left">✅ 已达成</td>
+</tr>
+<tr>
+<td align="left"><strong>评估延迟</strong></td>
+<td align="left">&lt; 5min</td>
+<td align="left">4.8min</td>
+<td align="left">✅ 已达成</td>
+</tr>
+<tr>
+<td align="left"><strong>评估准确率</strong></td>
+<td align="left">&gt; 90%</td>
+<td align="left">88%</td>
+<td align="left">🔄 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>预测准确率</strong></td>
+<td align="left">80%</td>
+<td align="left">75%</td>
+<td align="left">🔄 进行中</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="关键成功因素">关键成功因素</h3>
+<table>
+<thead>
+<tr>
+<th align="left">成功因素</th>
+<th align="left">说明</th>
+<th align="left">实践验证</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>多维评估模型</strong></td>
+<td align="left">5维独立评估 + AHP加权汇总</td>
+<td align="left">实际运行稳定</td>
+</tr>
+<tr>
+<td align="left"><strong>量化评估算法</strong></td>
+<td align="left">AHP + TOPSIS + 蒙特卡洛</td>
+<td align="left">评估准确率 88%</td>
+</tr>
+<tr>
+<td align="left"><strong>趋势预测引擎</strong></td>
+<td align="left">LSTM + ARIMA 预测</td>
+<td align="left">预测准确率 75%</td>
+</tr>
+<tr>
+<td align="left"><strong>实时更新机制</strong></td>
+<td align="left">事件演变实时更新</td>
+<td align="left">30s 更新频率</td>
+</tr>
+<tr>
+<td align="left"><strong>持续优化机制</strong></td>
+<td align="left">案例生命周期管理</td>
+<td align="left">准确率持续提升</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="技术架构总结">技术架构总结</h3>
+<table>
+<thead>
+<tr>
+<th align="left">技术组件</th>
+<th align="left">选型</th>
+<th align="left">作用</th>
+<th align="left">关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估模型</strong></td>
+<td align="left">AHP + TOPSIS</td>
+<td align="left">多维度综合评分</td>
+<td align="left">权重计算</td>
+</tr>
+<tr>
+<td align="left"><strong>预测模型</strong></td>
+<td align="left">LSTM + ARIMA</td>
+<td align="left">影响趋势预测</td>
+<td align="left">24h 预测</td>
+</tr>
+<tr>
+<td align="left"><strong>不确定性</strong></td>
+<td align="left">贝叶斯网络 +蒙特卡洛</td>
+<td align="left">损失估算</td>
+<td align="left">概率分布</td>
+</tr>
+<tr>
+<td align="left"><strong>数据存储</strong></td>
+<td align="left">Elasticsearch + Redis</td>
+<td align="left">评估结果存储</td>
+<td align="left">实时查询</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="下一步演进">下一步演进</h3>
+<table>
+<thead>
+<tr>
+<th align="left">演进方向</th>
+<th align="left">目标</th>
+<th align="left">关键举措</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>智能化</strong></td>
+<td align="left">AI 驱动评估自动化</td>
+<td align="left">引入大模型，提升预测准确率</td>
+</tr>
+<tr>
+<td align="left"><strong>自动化</strong></td>
+<td align="left">90%+ 评估自动生成</td>
+<td align="left">减少人工干预</td>
+</tr>
+<tr>
+<td align="left"><strong>实战化</strong></td>
+<td align="left">全场景覆盖</td>
+<td align="left">补充更多评估场景</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 本章小结：</strong></p>
+<ul>
+<li>安全影响评估是&quot;量化损失&quot;的关键，核心价值是让影响评估变得客观、量化、可预测</li>
+<li>通过多维评估模型 + AHP + LSTM预测，实现5个维度、&lt; 5min 评估、&gt; 90% 准确率</li>
+<li>关键成功因素：多维评估模型、量化评估算法、趋势预测引擎、实时更新机制、持续优化机制</li>
+</ul>
+<hr>
+<p>下一步：<a href="07-response-disposal.html">安全响应处置 →</a></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="03 08 soc operations<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-03-08-soc-operations/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-03-08-soc-operations/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>SOC 运营体系 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-03-08-soc-operations/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          SOC 运营体系
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>08. SOC 运营体系建设</h1>
+<blockquote>
+<p>智能安全事件可观测性 · 安全运营中心参考</p>
+</blockquote>
+<hr>
+<h2 id="一soc-概述">一、SOC 概述</h2>
+<h3 id="soc-定义与类型">1.1 SOC 定义与类型</h3>
+<p><strong>SOC（Security Operations Center）：</strong></p>
+<blockquote>
+<p>组织内部负责持续监控、检测、分析和响应安全事件的集中式团队和技术平台。</p>
+</blockquote>
+<p><strong>SOC 类型分类：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>说明</th>
+<th>适用场景</th>
+<th>资源需求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>内部 SOC</strong></td>
+<td>自建安全运营团队</td>
+<td>大型企业、金融、政府</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>MSSP</strong></td>
+<td>托管安全服务</td>
+<td>中小企业</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>虚拟 SOC</strong></td>
+<td>外部团队远程支持</td>
+<td>资源有限组织</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>NOC/SOC 融合</strong></td>
+<td>运营中心融合</td>
+<td>科技公司</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>SOC即服务</strong></td>
+<td>SaaS 模式</td>
+<td>追求快速部署</td>
+<td>低</td>
+</tr>
+</tbody></table>
+<h3 id="soc-成熟度模型">1.2 SOC 成熟度模型</h3>
+<p><strong>SOC 成熟度五级：</strong></p>
+<div class="mermaid">graph LR
+    L1[Level 1
+初始级] --> L2[Level 2
+基础级]
+    L2 --> L3[Level 3
+规范级]
+    L3 --> L4[Level 4
+主动级]
+    L4 --> L5[Level 5
+智能级]
+    
+    style L1 fill:#ffcdd2,stroke:#c62828
+    style L2 fill:#fff3e0,stroke:#e65100
+    style L3 fill:#fff9c4,stroke:#f57f17
+    style L4 fill:#e8f5e9,stroke:#2e7d32
+    style L5 fill:#e3f2fd,stroke:#1565c0</div><p><strong>成熟度特征对比：</strong></p>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>名称</th>
+<th>特征</th>
+<th>检测方式</th>
+<th>响应方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>L1</strong></td>
+<td>初始级</td>
+<td>被动响应、无流程</td>
+<td>人工检查</td>
+<td>手动处置</td>
+</tr>
+<tr>
+<td><strong>L2</strong></td>
+<td>基础级</td>
+<td>有工具、碎片化</td>
+<td>规则告警</td>
+<td>部分自动</td>
+</tr>
+<tr>
+<td><strong>L3</strong></td>
+<td>规范级</td>
+<td>流程标准化</td>
+<td>关联分析</td>
+<td>剧本响应</td>
+</tr>
+<tr>
+<td><strong>L4</strong></td>
+<td>主动级</td>
+<td>数据驱动</td>
+<td>AI 检测</td>
+<td>自动响应</td>
+</tr>
+<tr>
+<td><strong>L5</strong></td>
+<td>智能级</td>
+<td>AI 自主进化</td>
+<td>预测防御</td>
+<td>自主决策</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="二soc-组织架构">二、SOC 组织架构</h2>
+<h3 id="人员配置模型">2.1 人员配置模型</h3>
+<p><strong>小型 SOC（5-10人）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>人数</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SOC 经理</td>
+<td>1</td>
+<td>团队管理、汇报</td>
+</tr>
+<tr>
+<td>安全分析师</td>
+<td>4-6</td>
+<td>告警监控、事件调查</td>
+</tr>
+<tr>
+<td>应急响应</td>
+<td>1-2</td>
+<td>事件响应、取证</td>
+</tr>
+<tr>
+<td>威胁情报</td>
+<td>0-1</td>
+<td>情报收集、分析</td>
+</tr>
+</tbody></table>
+<p><strong>中型 SOC（10-30人）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>人数</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SOC 总监</td>
+<td>1</td>
+<td>战略规划、团队管理</td>
+</tr>
+<tr>
+<td>SOC 经理</td>
+<td>2</td>
+<td>运营管理、绩效考核</td>
+</tr>
+<tr>
+<td>高级分析师</td>
+<td>4-6</td>
+<td>复杂事件调查、红蓝对抗</td>
+</tr>
+<tr>
+<td>初级分析师</td>
+<td>8-12</td>
+<td>告警监控、初步响应</td>
+</tr>
+<tr>
+<td>事件响应</td>
+<td>2-3</td>
+<td>应急响应、取证</td>
+</tr>
+<tr>
+<td>威胁情报</td>
+<td>2-3</td>
+<td>情报收集、TTP 研究</td>
+</tr>
+<tr>
+<td>自动化工程师</td>
+<td>1-2</td>
+<td>SOAR 剧本、工具集成</td>
+</tr>
+</tbody></table>
+<p><strong>大型 SOC（30人以上）：</strong></p>
+<pre><code>SOC 总监
+├── 运营组 (经理)
+│   ├── 分析师团队 (组长)
+│   │   ├── 监控分析师
+│   │   └── 告警分析师
+│   └── 应急响应团队
+│       ├── 事件调查
+│       └── 数字取证
+├── 威胁情报组 (经理)
+│   ├── 情报分析
+│   ├── 威胁狩猎
+│   └── TIP 运营
+├── 自动化组 (经理)
+│   ├── SOAR 开发
+│   └── 工具集成
+└── 平台组 (经理)
+    ├── SIEM 运维
+    ├── EDR 运维
+    └── 网络安全</code></pre><h3 id="值班制度">2.2 值班制度</h3>
+<p><strong>7x24 小时值班模型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>班次</th>
+<th>时间</th>
+<th>人数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>白班</td>
+<td>09:00-18:00</td>
+<td>4-6</td>
+<td>高峰时段、全面监控</td>
+</tr>
+<tr>
+<td>小夜班</td>
+<td>14:00-22:00</td>
+<td>2-3</td>
+<td>交接过渡</td>
+</tr>
+<tr>
+<td>大夜班</td>
+<td>22:00-09:00</td>
+<td>1-2</td>
+<td>持续监控</td>
+</tr>
+</tbody></table>
+<p><strong>交接机制：</strong></p>
+<pre><code class="language-yaml">交接流程:
+  1. 告警状态交接
+  2. 事件进度交接
+  3. 任务清单交接
+  4. 系统状态交接
+  5. 异常情况说明
+交接时间: 每班结束前 15 分钟
+交接记录: 书面记录、系统登记</code></pre><hr>
+<h2 id="三soc-流程体系">三、SOC 流程体系</h2>
+<h3 id="安全事件响应流程-incident-response">3.1 安全事件响应流程 (Incident Response)</h3>
+<p><strong>六步响应模型：</strong></p>
+<div class="mermaid">graph LR
+    P1[准备阶段] --> P2[识别检测]
+    P2 --> P3[分析分类]
+    P3 --> P4[遏制控制]
+    P4 --> P5[根除消除]
+    P5 --> P6[恢复总结]
+    
+    style P1 fill:#e3f2fd,stroke:#1565c0
+    style P2 fill:#e8f5e9,stroke:#2e7d32
+    style P3 fill:#fff3e0,stroke:#e65100
+    style P4 fill:#fce4ec,stroke:#c62828
+    style P5 fill:#f3e5f5,stroke:#7b1fa2
+    style P6 fill:#e1f5fe,stroke:#01579b</div><p><strong>每步详细说明：</strong></p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>名称</th>
+<th>主要活动</th>
+<th>产出</th>
+<th>SLA</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Step 1</strong></td>
+<td>准备</td>
+<td>预案制定、工具准备、演练</td>
+<td>响应就绪</td>
+<td>持续</td>
+</tr>
+<tr>
+<td><strong>Step 2</strong></td>
+<td>检测</td>
+<td>日志分析、告警确认、事件识别</td>
+<td>事件工单</td>
+<td>15分钟</td>
+</tr>
+<tr>
+<td><strong>Step 3</strong></td>
+<td>分析</td>
+<td>影响评估、攻击链分析、根因判断</td>
+<td>分析报告</td>
+<td>1小时</td>
+</tr>
+<tr>
+<td><strong>Step 4</strong></td>
+<td>遏制</td>
+<td>隔离止损、阻断扩散、证据保护</td>
+<td>遏制报告</td>
+<td>30分钟</td>
+</tr>
+<tr>
+<td><strong>Step 5</strong></td>
+<td>根除</td>
+<td>清除后门、修补漏洞、清理痕迹</td>
+<td>根除报告</td>
+<td>4小时</td>
+</tr>
+<tr>
+<td><strong>Step 6</strong></td>
+<td>恢复</td>
+<td>系统恢复、业务恢复、监控加强</td>
+<td>恢复报告</td>
+<td>8小时</td>
+</tr>
+</tbody></table>
+<h3 id="事件分级标准">3.2 事件分级标准</h3>
+<p><strong>事件分级矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>名称</th>
+<th>定义</th>
+<th>示例</th>
+<th>响应团队</th>
+<th>SLA</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>P0</strong></td>
+<td>紧急</td>
+<td>核心业务瘫痪、数据泄露</td>
+<td>勒索加密、大规模入侵</td>
+<td>SOC总监+CSO</td>
+<td>15分钟</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>高危</td>
+<td>重要系统受影响</td>
+<td>域控沦陷、数据库被拖</td>
+<td>SOC经理+安全专家</td>
+<td>30分钟</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td>中危</td>
+<td>部分系统受影响</td>
+<td>终端被控、Webshell</td>
+<td>高级分析师</td>
+<td>2小时</td>
+</tr>
+<tr>
+<td><strong>P3</strong></td>
+<td>低危</td>
+<td>潜在风险、可疑活动</td>
+<td>扫描行为、钓鱼尝试</td>
+<td>初级分析师</td>
+<td>8小时</td>
+</tr>
+<tr>
+<td><strong>P4</strong></td>
+<td>提示</td>
+<td>信息收集、非真实事件</td>
+<td>情报线索、外部通报</td>
+<td>分析师</td>
+<td>24小时</td>
+</tr>
+</tbody></table>
+<h3 id="事件升级路径">3.3 事件升级路径</h3>
+<pre><code>P4 (提示) ──▶ 确认无威胁 → 关闭
+         ──▶ 确认有威胁 ──▶ P3 (低危)
+                            │
+                      确认影响 ──▶ P2 (中危)
+                            │
+                      大规模/核心 ──▶ P1 (高危)
+                            │
+                      紧急事件 ──▶ P0 (紧急)</code></pre><hr>
+<h2 id="四soc-技术体系">四、SOC 技术体系</h2>
+<h3 id="技术架构">4.1 技术架构</h3>
+<div class="mermaid">graph TB
+    subgraph 数据源层
+        N1[网络设备]
+        H1[主机/终端]
+        A1[应用系统]
+        S1[安全设备]
+        C1[云环境]
+    end
+    
+    subgraph 数据采集层
+        C2[SIEM 采集]
+        C3[EDR 采集]
+        C4[NDR 采集]
+        C5[API 集成]
+    end
+    
+    subgraph 数据存储层
+        S2[日志仓库]
+        S3[时序数据库]
+        S4[威胁情报库]
+    end
+    
+    subgraph 分析引擎
+        A2[规则引擎]
+        A3[关联分析]
+        A4[AI 检测]
+        A5[威胁狩猎]
+    end
+    
+    subgraph 响应处置层
+        R1[SOAR 编排]
+        R2[自动响应]
+        R3[人工响应]
+    end
+    
+    subgraph 运营管理层
+        M1[仪表盘]
+        M2[报告]
+        M3[工单]
+        M4[知识库]
+    end
+    
+    N1 --> C2
+    H1 --> C2
+    H1 --> C3
+    A1 --> C4
+    S1 --> C2
+    C1 --> C5
+    
+    C2 --> S2
+    C3 --> S3
+    C4 --> S3
+    C5 --> S4
+    
+    S2 --> A2
+    S3 --> A3
+    S4 --> A4
+    
+    A2 --> R1
+    A3 --> R1
+    A4 --> R1
+    A5 --> R2
+    
+    R1 --> R2
+    R1 --> R3
+    
+    R2 --> M1
+    R3 --> M2
+    R1 --> M3
+    A5 --> M4</div><h3 id="核心工具矩阵">4.2 核心工具矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>工具</th>
+<th>用途</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SIEM</strong></td>
+<td>Splunk, IBM QRadar</td>
+<td>日志归一化、关联分析</td>
+<td>🔴 必选</td>
+</tr>
+<tr>
+<td><strong>SOAR</strong></td>
+<td>XSOAR, Splunk SOAR</td>
+<td>自动化响应、剧本编排</td>
+<td>🟠 推荐</td>
+</tr>
+<tr>
+<td><strong>EDR</strong></td>
+<td>CrowdStrike, SentinelOne</td>
+<td>终端检测响应</td>
+<td>🔴 必选</td>
+</tr>
+<tr>
+<td><strong>NDR</strong></td>
+<td>Darktrace, Vectra</td>
+<td>网络流量分析</td>
+<td>🟠 推荐</td>
+</tr>
+<tr>
+<td><strong>TIP</strong></td>
+<td>MISP, Recorded Future</td>
+<td>威胁情报管理</td>
+<td>🟡 可选</td>
+</tr>
+<tr>
+<td><strong>RBAC</strong></td>
+<td>身份管理平台</td>
+<td>权限管理</td>
+<td>🔴 必选</td>
+</tr>
+<tr>
+<td><strong>Vulnerability</strong></td>
+<td>Nessus, Qualys</td>
+<td>漏洞管理</td>
+<td>🟠 推荐</td>
+</tr>
+<tr>
+<td><strong>Threat Hunting</strong></td>
+<td>内部工具/Calantha</td>
+<td>主动威胁发现</td>
+<td>🟡 可选</td>
+</tr>
+</tbody></table>
+<h3 id="检测规则示例">4.3 检测规则示例</h3>
+<p><strong>高危告警规则：</strong></p>
+<pre><code class="language-yaml">规则名称: ransomware_behavior
+描述: 勒索行为检测
+条件:
+  - 文件操作 &gt; 100 个/分钟
+  - 检测到 .encrypted 扩展名
+  - 卷影删除命令执行
+严重级别: P0
+响应: 立即隔离主机、通知SOC经理
+
+规则名称: suspicious_powershell
+描述: 可疑 PowerShell 执行
+条件:
+  - 父进程为 office/explorer
+  - 命令行包含 -enc/-encoded
+  - 网络连接外部 IP
+严重级别: P2
+响应: 告警、截图、保留进程
+
+规则名称: lateral_movement
+描述: 横向移动检测
+条件:
+  - RDP 连接外部资产
+  - 使用新凭据
+  - 目标为服务器
+严重级别: P1
+响应: 告警、开始调查</code></pre><hr>
+<h2 id="五soc-运营指标">五、SOC 运营指标</h2>
+<h3 id="核心-kpi">5.1 核心 KPI</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>计算方法</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MTTD</strong></td>
+<td>平均检测时间</td>
+<td>Σ(检测时间-发生时间)/事件数</td>
+<td>&lt; 10 分钟</td>
+</tr>
+<tr>
+<td><strong>MTTI</strong></td>
+<td>平均调查时间</td>
+<td>Σ(调查完成-检测时间)/事件数</td>
+<td>&lt; 30 分钟</td>
+</tr>
+<tr>
+<td><strong>MTTR</strong></td>
+<td>平均响应时间</td>
+<td>Σ(响应完成-发生时间)/事件数</td>
+<td>&lt; 1 小时</td>
+</tr>
+<tr>
+<td><strong>MTBC</strong></td>
+<td>平均事件周期</td>
+<td>Σ(关闭时间-发生时间)/事件数</td>
+<td>&lt; 4 小时</td>
+</tr>
+<tr>
+<td><strong>告警量</strong></td>
+<td>日均告警数</td>
+<td>告警总数/天数</td>
+<td>&lt; 1000</td>
+</tr>
+<tr>
+<td><strong>误报率</strong></td>
+<td>误报占比</td>
+<td>误报数/总告警</td>
+<td>&lt; 30%</td>
+</tr>
+<tr>
+<td><strong>检测率</strong></td>
+<td>真实检测率</td>
+<td>真实事件数/(真实事件+漏报)</td>
+<td>&gt; 95%</td>
+</tr>
+<tr>
+<td><strong>自动化率</strong></td>
+<td>自动处置占比</td>
+<td>自动关闭数/总事件数</td>
+<td>&gt; 50%</td>
+</tr>
+</tbody></table>
+<h3 id="运营效率指标">5.2 运营效率指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>人均处理事件数</strong></td>
+<td>每人每天处理事件</td>
+<td>&gt; 20</td>
+</tr>
+<tr>
+<td><strong>平均告警响应时间</strong></td>
+<td>从告警到确认时间</td>
+<td>&lt; 15 分钟</td>
+</tr>
+<tr>
+<td><strong>事件升级率</strong></td>
+<td>升级事件占比</td>
+<td>&lt; 20%</td>
+</tr>
+<tr>
+<td><strong>知识库命中率</strong></td>
+<td>知识库匹配率</td>
+<td>&gt; 60%</td>
+</tr>
+<tr>
+<td><strong>剧本执行成功率</strong></td>
+<td>剧本成功执行率</td>
+<td>&gt; 90%</td>
+</tr>
+<tr>
+<td><strong>平均值班响应时间</strong></td>
+<td>夜间告警响应时间</td>
+<td>&lt; 30 分钟</td>
+</tr>
+</tbody></table>
+<h3 id="安全态势指标">5.3 安全态势指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>资产覆盖率</strong></td>
+<td>已监控资产占比</td>
+<td>&gt; 95%</td>
+</tr>
+<tr>
+<td><strong>日志完整率</strong></td>
+<td>关键日志覆盖率</td>
+<td>&gt; 99%</td>
+</tr>
+<tr>
+<td><strong>漏洞修复率</strong></td>
+<td>高危漏洞修复率</td>
+<td>&gt; 90% (30天)</td>
+</tr>
+<tr>
+<td><strong>ATT&amp;CK 覆盖</strong></td>
+<td>ATT&amp;CK 检测覆盖率</td>
+<td>&gt; 80%</td>
+</tr>
+<tr>
+<td><strong>平均威胁情报更新</strong></td>
+<td>情报更新频率</td>
+<td>&lt; 1 小时</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="六soc-运营制度">六、SOC 运营制度</h2>
+<h3 id="值班制度-2">6.1 值班制度</h3>
+<p><strong>值班职责：</strong></p>
+<pre><code class="language-yaml">值班职责:
+  1. 7x24 告警监控
+  2. 事件初步响应
+  3. 告警确认分级
+  4. 事件升级协调
+  5. 交接班记录
+  6. 异常情况上报
+
+值班要求:
+  - 准时交接班
+  - 保持通讯畅通
+  - 及时响应告警
+  - 准确记录事件
+
+违规处理:
+  - 迟到/早退: 口头警告
+  - 漏告警: 书面警告
+  - 延迟响应: 绩效扣分</code></pre><h3 id="报告制度">6.2 报告制度</h3>
+<table>
+<thead>
+<tr>
+<th>报告</th>
+<th>频率</th>
+<th>受众</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>日报</strong></td>
+<td>每日</td>
+<td>SOC 内部</td>
+<td>告警统计、事件汇总</td>
+</tr>
+<tr>
+<td><strong>周报</strong></td>
+<td>每周</td>
+<td>安全团队</td>
+<td>态势分析、趋势、改进</td>
+</tr>
+<tr>
+<td><strong>月报</strong></td>
+<td>每月</td>
+<td>安全管理层</td>
+<td>KPI、重大事件、趋势</td>
+</tr>
+<tr>
+<td><strong>季报</strong></td>
+<td>每季</td>
+<td>CISO/管理层</td>
+<td>整体态势、风险评估</td>
+</tr>
+<tr>
+<td><strong>年报</strong></td>
+<td>每年</td>
+<td>CEO/董事会</td>
+<td>年度安全报告</td>
+</tr>
+</tbody></table>
+<h3 id="演练制度">6.3 演练制度</h3>
+<table>
+<thead>
+<tr>
+<th>演练类型</th>
+<th>频率</th>
+<th>参与方</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>桌面推演</strong></td>
+<td>每季度</td>
+<td>SOC 团队</td>
+<td>场景讨论、流程演练</td>
+</tr>
+<tr>
+<td><strong>技术演练</strong></td>
+<td>每半年</td>
+<td>安全团队</td>
+<td>工具使用、技术验证</td>
+</tr>
+<tr>
+<td><strong>实战演练</strong></td>
+<td>每年</td>
+<td>全组织</td>
+<td>红蓝对抗、应急响应</td>
+</tr>
+<tr>
+<td><strong>等保演练</strong></td>
+<td>每年</td>
+<td>合规团队</td>
+<td>等保合规检查</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="七soc-建设路径">七、SOC 建设路径</h2>
+<h3 id="分阶段建设">7.1 分阶段建设</h3>
+<p><strong>Phase 1: 基础建设（3-6月）</strong></p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>说明</th>
+<th>产出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SIEM 部署</td>
+<td>日志采集、规则配置</td>
+<td>基础监控</td>
+</tr>
+<tr>
+<td>EDR 部署</td>
+<td>终端覆盖、策略配置</td>
+<td>终端可见</td>
+</tr>
+<tr>
+<td>人员招聘</td>
+<td>组建基础团队</td>
+<td>7x24 值守</td>
+</tr>
+<tr>
+<td>流程制定</td>
+<td>事件响应流程</td>
+<td>标准操作</td>
+</tr>
+<tr>
+<td>告警分级</td>
+<td>告警分级标准</td>
+<td>分类响应</td>
+</tr>
+</tbody></table>
+<p><strong>Phase 2: 能力提升（6-12月）</strong></p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>说明</th>
+<th>产出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SOAR 部署</td>
+<td>自动化剧本</td>
+<td>自动响应</td>
+</tr>
+<tr>
+<td>NDR 部署</td>
+<td>网络流量分析</td>
+<td>全流量覆盖</td>
+</tr>
+<tr>
+<td>TIP 集成</td>
+<td>威胁情报融合</td>
+<td>上下文富化</td>
+</tr>
+<tr>
+<td>关联分析</td>
+<td>跨源关联规则</td>
+<td>复杂检测</td>
+</tr>
+<tr>
+<td>威胁狩猎</td>
+<td>主动发现</td>
+<td>深度检测</td>
+</tr>
+</tbody></table>
+<p><strong>Phase 3: 智能化（12-24月）</strong></p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>说明</th>
+<th>产出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AI 检测</td>
+<td>机器学习异常</td>
+<td>未知威胁</td>
+</tr>
+<tr>
+<td>自动响应</td>
+<td>全流程自动化</td>
+<td>80%+ 自动率</td>
+</tr>
+<tr>
+<td>预测防御</td>
+<td>威胁预测</td>
+<td>前瞻防护</td>
+</tr>
+<tr>
+<td>持续优化</td>
+<td>运营反馈</td>
+<td>自进化</td>
+</tr>
+</tbody></table>
+<h3 id="投资估算">7.2 投资估算</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>工具投入</th>
+<th>人员投入</th>
+<th>年度运营</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Phase 1</td>
+<td>¥200-500万</td>
+<td>5-8人</td>
+<td>¥150万</td>
+</tr>
+<tr>
+<td>Phase 2</td>
+<td>¥300-800万</td>
+<td>10-15人</td>
+<td>¥250万</td>
+</tr>
+<tr>
+<td>Phase 3</td>
+<td>¥500-1000万</td>
+<td>15-25人</td>
+<td>¥400万</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="八参考链接">八、参考链接</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SANS SOC 报告</td>
+<td><a href="https://www.sans.org/">https://www.sans.org/</a></td>
+</tr>
+<tr>
+<td>NIST SP 800-61</td>
+<td><a href="https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final">https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final</a></td>
+</tr>
+<tr>
+<td>FIRST CSIRT 指南</td>
+<td><a href="https://www.first.org/resources/guides/csirt_handbook">https://www.first.org/resources/guides/csirt_handbook</a></td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Last updated: 2026-06-02</em></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

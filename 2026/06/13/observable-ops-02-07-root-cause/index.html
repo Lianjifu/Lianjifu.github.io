@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Observable Ops — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/06/13/observable-ops-02-07-root-cause/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Observable Ops — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Observable Ops 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-13T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/06/13/observable-ops-02-07-root-cause/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 07 · 根因分析 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/06/13/observable-ops-02-07-root-cause/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 07 · 根因分析
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-ops/" itemprop="url" rel="index"><span
+                          itemprop="name">Observable Ops</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+        <h1>模块 07 · 根因分析</h1>
+<blockquote>
+<p>根因分析是 Observable Ops 的「逆向推理引擎」——通过向后传播故障信号，在拓扑图中定位故障源头节点，输出带置信度的因果图，为智能决策提供 RCA（Root Cause Analysis）结论。</p>
+</blockquote>
+<hr>
+<h2>目录</h2>
+<h3>章节导航</h3>
+<ul>
+<li><ol>
+<li>模块定位与职责</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>根因分析模型</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>核心功能分解</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>API 设计规范</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>数据流架构</li>
+</ol>
+</li>
+<li><ol start="6">
+<li>模块协作关系</li>
+</ol>
+</li>
+<li><ol start="7">
+<li>量化指标体系</li>
+</ol>
+</li>
+<li><ol start="8">
+<li>部署架构</li>
+</ol>
+</li>
+<li><ol start="9">
+<li>本章小结</li>
+</ol>
+</li>
+</ul>
+<hr>
+<h2>1. 模块定位与职责</h2>
+<h3>1.1 在 4 层架构中的位置</h3>
+<p>根因分析属于<strong>能力层</strong>核心模块，接收来自故障研判、知识图谱、拓扑建模的数据，输出 RCA 结论到智能决策模块。</p>
+<div class="mermaid">flowchart LR
+    subgraph 数据层["数据层 Data Layer"]
+        T[02 拓扑建模]
+        KG[07 知识图谱]
+    end
+
+    subgraph 能力层["能力层 Capability Layer"]
+        FA[06 故障研判]
+        RCA[07 根因分析]
+        IA[08 影响分析]
+        ID[09 智能决策]
+    end
+
+    FA -->|故障事件| RCA
+    KG -->|知识上下文| RCA
+    T -->|拓扑图谱| RCA
+    RCA -->|RCA 结论| ID
+    RCA -->|因果图| IA
+
+    style RCA fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style 数据层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 能力层 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style FA fill:#c8e6c9
+    style ID fill:#c8e6c9
+    style IA fill:#c8e6c9
+    style T fill:#fff9c4
+    style KG fill:#fff9c4</div><h3>1.2 核心职责</h3>
+<table>
+<thead>
+<tr>
+<th>职责</th>
+<th>描述</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>向后传播定位</strong></td>
+<td>从故障节点出发，逆拓扑方向搜索可能的根因节点</td>
+<td>候选根因列表</td>
+</tr>
+<tr>
+<td><strong>因果图构建</strong></td>
+<td>基于拓扑结构 + 知识图谱构建故障传播因果图</td>
+<td>Causality Graph</td>
+</tr>
+<tr>
+<td><strong>根因假设排序</strong></td>
+<td>综合多维度证据对候选根因打分排序</td>
+<td>Ranked Hypotheses</td>
+</tr>
+<tr>
+<td><strong>证据收集增强</strong></td>
+<td>调用知识图谱补充故障案例、运维文档等证据</td>
+<td>Evidence Package</td>
+</tr>
+<tr>
+<td><strong>RCA 报告生成</strong></td>
+<td>生成结构化根因分析报告，含结论 + 置信度 + 支撑证据</td>
+<td>RCA Report</td>
+</tr>
+</tbody></table>
+<h3>1.3 核心设计原则</h3>
+<div class="mermaid">flowchart LR
+    P1[Backward Prop
+逆向传播] --> P2[Evidence Driven
+证据驱动]
+    P2 --> P3[Multi-Hypothesis
+多假设验证]
+    P3 --> P4[Confidence Scored
+置信度量化]
+    P4 -.-> P1
+    style P1 fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style P2 fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style P3 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style P4 fill:#e8f5e9,stroke:#388e3c,stroke-width:3px</div><ul>
+<li><strong>逆向传播（Backward Prop）</strong>：从故障现象出发，沿拓扑反向搜索可能根因，避免盲目全图搜索</li>
+<li><strong>证据驱动（Evidence Driven）</strong>：每个根因假设必须有可验证的证据支撑，无证据不结案</li>
+<li><strong>多假设验证（Multi-Hypothesis）</strong>：保留 Top-N 候选假设，避免单点判断失误</li>
+<li><strong>置信度量化（Confidence Scored）</strong>：所有结论带置信度输出，上游决策模块可据此权衡</li>
+</ul>
+<h3>1.4 子模块划分</h3>
+<table>
+<thead>
+<tr>
+<th>子模块</th>
+<th>职责</th>
+<th>技术选型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Propagator 传播引擎</td>
+<td>从故障节点逆向遍历拓扑，构建传播路径树</td>
+<td>Python / Neo4j GDS</td>
+</tr>
+<tr>
+<td>Inferrer 因果推理器</td>
+<td>基于规则 + ML 模型推断节点间因果关系</td>
+<td>Python / PyTorch / 知识图谱</td>
+</tr>
+<tr>
+<td>Ranker 假设排序器</td>
+<td>综合证据打分，对候选根因排序</td>
+<td>Python / XGBoost</td>
+</tr>
+<tr>
+<td>EvidenceCollector 证据收集器</td>
+<td>从知识图谱/运维文档补充证据</td>
+<td>Python / Elasticsearch</td>
+</tr>
+<tr>
+<td>ReportGenerator 报告生成器</td>
+<td>生成结构化 RCA 报告</td>
+<td>Python / Jinja2</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 根因分析模型</h2>
+<h3>2.1 因果图模型（Causality Graph）</h3>
+<p>因果图是根因分析的核心数据结构，表示故障在拓扑中的传播路径与因果关系。</p>
+<h4>2.1.1 因果图节点</h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>node_id</code></td>
+<td>String (UUID)</td>
+<td>因果图节点唯一标识</td>
+<td><code>cg-node-20260607-001</code></td>
+</tr>
+<tr>
+<td><code>entity_id</code></td>
+<td>String</td>
+<td>对应拓扑实体 ID（可为空，表示中间推理节点）</td>
+<td><code>svc-001</code></td>
+</tr>
+<tr>
+<td><code>node_type</code></td>
+<td>Enum</td>
+<td>节点类型：FAULT（故障现象）/ ENTITY（拓扑实体）/ HYPOTHESIS（根因假设）</td>
+<td><code>HYPOTHESIS</code></td>
+</tr>
+<tr>
+<td><code>root_cause_score</code></td>
+<td>Float [0-1]</td>
+<td>根因得分，综合证据计算得出</td>
+<td><code>0.85</code></td>
+</tr>
+<tr>
+<td><code>evidence_ids</code></td>
+<td>List[String]</td>
+<td>支撑该节点的证据 ID 列表</td>
+<td><code>[&quot;ev-001&quot;, &quot;ev-002&quot;]</code></td>
+</tr>
+<tr>
+<td><code>properties</code></td>
+<td>Object</td>
+<td>节点额外属性（异常类型、影响时长等）</td>
+<td><code>{&quot;alert_count&quot;: 5, &quot;duration_min&quot;: 12}</code></td>
+</tr>
+</tbody></table>
+<h4>2.1.2 因果边</h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>edge_id</code></td>
+<td>String (UUID)</td>
+<td>因果边唯一标识</td>
+<td><code>cg-edge-20260607-001</code></td>
+</tr>
+<tr>
+<td><code>from_node</code></td>
+<td>String</td>
+<td>因果边起点节点 ID</td>
+<td><code>cg-node-001</code></td>
+</tr>
+<tr>
+<td><code>to_node</code></td>
+<td>String</td>
+<td>因果边终点节点 ID</td>
+<td><code>cg-node-002</code></td>
+</tr>
+<tr>
+<td><code>causality_type</code></td>
+<td>Enum</td>
+<td>因果类型：DIRECT（直接因果）/ INFERRED（推断因果）/ TEMPORAL（时序因果）</td>
+<td><code>DIRECT</code></td>
+</tr>
+<tr>
+<td><code>confidence</code></td>
+<td>Float [0-1]</td>
+<td>该因果关系的置信度</td>
+<td><code>0.92</code></td>
+</tr>
+<tr>
+<td><code>propagation_latency_ms</code></td>
+<td>Integer</td>
+<td>该传播路径的预期延迟（毫秒）</td>
+<td><code>5000</code></td>
+</tr>
+</tbody></table>
+<h3>2.2 根因得分模型（Root Cause Score）</h3>
+<p>根因得分是综合多维度证据计算得出的最终排序依据。</p>
+<div class="mermaid">flowchart TB
+    subgraph 输入["输入证据"]
+        A1[拓扑距离
+distance_score]
+        A2[时序先验
+temporal_score]
+        A3[知识匹配
+knowledge_score]
+        A4[告警密度
+alert_density]
+        A5[变更关联
+change_score]
+    end
+
+    subgraph 模型["加权融合模型"]
+        W1[权重配置
+w1...w5]
+        F[融合函数
+Score = Σ wi*si]
+    end
+
+    subgraph 输出["根因得分"]
+        O1[Root Cause Score
+0.0 ~ 1.0]
+        O2[Ranked Hypotheses
+排序假设列表]
+    end
+
+    A1 --> W1 --> F --> O1
+    A2 --> W1
+    A3 --> W1
+    A4 --> W1
+    A5 --> W1
+    O1 --> O2
+
+    style W1 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style F fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style O1 fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><h4>2.2.1 得分维度说明</h4>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>计算方式</th>
+<th>权重（默认）</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>拓扑距离</strong></td>
+<td>距离故障节点的反向跳数，归一化到 [0,1]</td>
+<td>0.25</td>
+<td>越近拓扑优先</td>
+</tr>
+<tr>
+<td><strong>时序先验</strong></td>
+<td>该节点异常是否先于故障发生</td>
+<td>0.25</td>
+<td>时间因果证据</td>
+</tr>
+<tr>
+<td><strong>知识匹配</strong></td>
+<td>知识图谱中该故障类型的历史根因匹配度</td>
+<td>0.20</td>
+<td>经验知识复用</td>
+</tr>
+<tr>
+<td><strong>告警密度</strong></td>
+<td>该节点告警数量 / 总告警数量</td>
+<td>0.15</td>
+<td>异常集中度</td>
+</tr>
+<tr>
+<td><strong>变更关联</strong></td>
+<td>该节点近期是否有变更（部署/配置/容量）</td>
+<td>0.15</td>
+<td>变更风险因子</td>
+</tr>
+</tbody></table>
+<h3>2.3 传播路径 Schema</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>path_id</code></td>
+<td>String (UUID)</td>
+<td>路径唯一标识</td>
+</tr>
+<tr>
+<td><code>nodes</code></td>
+<td>List[EntityNode]</td>
+<td>路径经过的拓扑实体节点序列</td>
+</tr>
+<tr>
+<td><code>edges</code></td>
+<td>List[TopologyEdge]</td>
+<td>路径经过的拓扑边序列</td>
+</tr>
+<tr>
+<td><code>total_hops</code></td>
+<td>Integer</td>
+<td>路径总跳数</td>
+</tr>
+<tr>
+<td><code>propagation_probability</code></td>
+<td>Float [0-1]</td>
+<td>该路径实际发生故障传播的概率</td>
+</tr>
+<tr>
+<td><code>estimated_latency_ms</code></td>
+<td>Integer</td>
+<td>该路径的预期故障传播延迟</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. 核心功能分解</h2>
+<h3>3.1 向后传播（Backward Propagation）</h3>
+<h4>3.1.1 传播算法流程</h4>
+<ol>
+<li><strong>接收故障事件</strong>：从故障研判模块接收故障告警，包含故障节点 ID、故障类型、发生时间</li>
+<li><strong>确定搜索起点</strong>：以故障节点为起点，初始化反向传播队列</li>
+<li><strong>拓扑反向遍历</strong>：沿 CALLS/ACCESSES/DEPLOYED_ON 边的反方向向上游搜索</li>
+<li><strong>广度优先扩展</strong>：BFS 扩展，每层记录节点、边、到达时间</li>
+<li><strong>剪枝策略</strong>：跳数超限（默认 10 跳）、置信度低于阈值时停止</li>
+<li><strong>构建传播树</strong>：输出从根因到故障的传播路径树</li>
+</ol>
+<div class="mermaid">flowchart LR
+    subgraph 输入["输入：故障事件"]
+        FE[故障节点: svc-003]
+    end
+
+    subgraph 传播["向后传播引擎"]
+        BFS[BFS 队列]
+        EXP[Expand: 获取上游邻居]
+        SCORE[打分: 根因得分]
+        PRUNE[剪枝: 置信度 &lt; 阈值]
+    end
+
+    subgraph 输出["输出：传播树"]
+        TREE[传播路径树]
+        HYP[Top-N 候选根因]
+    end
+
+    FE --> BFS --> EXP --> SCORE --> PRUNE --> TREE
+    PRUNE -.->|回溯| BFS
+    SCORE --> HYP
+
+    style 传播 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 输入 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 输出 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px</div><h4>3.1.2 传播方向与边类型</h4>
+<table>
+<thead>
+<tr>
+<th>边类型</th>
+<th>正向含义</th>
+<th>反向传播方向</th>
+<th>传播权重</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>CALLS</code></td>
+<td>A 调用 B（B 故障）</td>
+<td>A 可能是根因</td>
+<td>0.9（强因果）</td>
+</tr>
+<tr>
+<td><code>ACCESSES</code></td>
+<td>A 访问 DB（DB 故障）</td>
+<td>A 可能是根因</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td><code>DEPLOYED_ON</code></td>
+<td>Service 部署在 Host（Host 故障）</td>
+<td>Host 可能是根因</td>
+<td>0.95（基础设施故障强影响）</td>
+</tr>
+<tr>
+<td><code>SUBSCRIBES</code></td>
+<td>A 订阅 Topic（Topic 故障）</td>
+<td>A 可能是根因</td>
+<td>0.7</td>
+</tr>
+<tr>
+<td><code>NETWORK_TO</code></td>
+<td>A 到 B 网络连通（A 故障）</td>
+<td>B 上游可能是根因</td>
+<td>0.5（弱因果，需其他证据）</td>
+</tr>
+</tbody></table>
+<h3>3.2 因果推理（Causal Inference）</h3>
+<h4>3.2.1 推理方法分类</h4>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>适用场景</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>规则推理</strong></td>
+<td>已知故障模式库（如 DB 连接池耗尽 → 服务不可用）</td>
+<td>拓扑 + 故障类型</td>
+<td>因果边（confidence=1.0）</td>
+</tr>
+<tr>
+<td><strong>时序推理</strong></td>
+<td>未知故障模式，但有时间序列异常数据</td>
+<td>告警时间序列</td>
+<td>因果边（confidence=0.7-0.9）</td>
+</tr>
+<tr>
+<td><strong>ML 推理</strong></td>
+<td>复杂故障，无明确规则也无时序先验</td>
+<td>多维度特征向量</td>
+<td>因果边（confidence=0.5-0.8）</td>
+</tr>
+<tr>
+<td><strong>知识图谱推理</strong></td>
+<td>历史同类故障的根因知识</td>
+<td>知识图谱 + 故障特征</td>
+<td>候选根因列表（带相似度）</td>
+</tr>
+</tbody></table>
+<h4>3.2.2 知识图谱辅助推理</h4>
+<p>当本地规则和时序无法得出结论时，系统查询知识图谱获取历史同类故障的根因模式。</p>
+<div class="mermaid">flowchart LR
+    subgraph 推理触发["推理触发"]
+        TR[故障事件]
+    end
+
+    subgraph 知识查询["知识图谱查询"]
+        Q1[查询同类故障模式]
+        KG[(07 知识图谱)]
+        SIM[相似度匹配
+Similarity Match]
+    end
+
+    subgraph 结果融合["结果融合"]
+        F1[规则推理结果]
+        F2[时序推理结果]
+        F3[ML 推理结果]
+        F4[知识图谱结果]
+        FUSION[加权融合]
+    end
+
+    TR --> Q1 --> KG --> SIM --> F4
+    TR --> F1
+    TR --> F2
+    TR --> F3
+    F1 --> FUSION
+    F2 --> FUSION
+    F3 --> FUSION
+    F4 --> FUSION
+
+    style 知识查询 fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
+    style 结果融合 fill:#fff9c4,stroke:#f9a825,stroke-width:2px</div><h3>3.3 假设排序（Hypothesis Ranking）</h3>
+<h4>3.3.1 排序策略</h4>
+<ol>
+<li><strong>综合打分</strong>：对每个候选根因计算多维度加权得分</li>
+<li><strong>多样性保持</strong>：Top-N 结果中避免多个高度相似的假设（相似度 &gt; 0.9 时合并）</li>
+<li><strong>置信区间</strong>：输出每个假设的置信区间，而非单点估计</li>
+<li><strong>可解释性排序</strong>：同等得分时，优先输出可解释性强的假设（证据充分）</li>
+</ol>
+<h4>3.3.2 排序结果示例</h4>
+<table>
+<thead>
+<tr>
+<th>排名</th>
+<th>候选根因</th>
+<th>根因得分</th>
+<th>置信区间</th>
+<th>主要证据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>host-042（物理机故障）</code></td>
+<td>0.92</td>
+<td>[0.88, 0.95]</td>
+<td>硬件告警 + 网络不可达 + 部署的 Service 全部故障</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>db-primary（数据库主库）</code></td>
+<td>0.78</td>
+<td>[0.70, 0.84]</td>
+<td>连接超时告警 + 访问该 DB 的服务相继异常</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>svc-002（上游服务超时）</code></td>
+<td>0.61</td>
+<td>[0.50, 0.70]</td>
+<td>调用链路超时 + 时序早于故障发生</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>kafka-topic-orders（消息堆积）</code></td>
+<td>0.43</td>
+<td>[0.30, 0.55]</td>
+<td>消费者 lag 告警 + 时序关联</td>
+</tr>
+</tbody></table>
+<h3>3.4 证据收集（Evidence Collection）</h3>
+<h4>3.4.1 证据类型</h4>
+<table>
+<thead>
+<tr>
+<th>证据类型</th>
+<th>来源</th>
+<th>描述</th>
+<th>可信度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>拓扑证据</strong></td>
+<td>拓扑建模模块</td>
+<td>节点在拓扑中的位置、上下游关系</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>告警证据</strong></td>
+<td>监控告警系统</td>
+<td>该节点/相关节点的告警历史</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>变更证据</strong></td>
+<td>变更管理系统</td>
+<td>近期部署/配置/容量变更记录</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>指标证据</strong></td>
+<td>数据融合模块</td>
+<td>异常期间该节点的资源指标</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>日志证据</strong></td>
+<td>日志系统</td>
+<td>该节点产生的错误日志/异常日志</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>Trace 证据</strong></td>
+<td>APM 系统</td>
+<td>调用链中的异常Span</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>知识证据</strong></td>
+<td>知识图谱</td>
+<td>历史同类故障的根因记录</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>人工标注</strong></td>
+<td>运维人员</td>
+<td>人工标记的故障根因</td>
+<td>参考</td>
+</tr>
+</tbody></table>
+<h4>3.4.2 证据质量评分</h4>
+<table>
+<thead>
+<tr>
+<th>评分维度</th>
+<th>说明</th>
+<th>权重</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>及时性</strong></td>
+<td>证据是否在故障发生前后短时间内采集</td>
+<td>0.3</td>
+</tr>
+<tr>
+<td><strong>相关性</strong></td>
+<td>证据与候选根因的逻辑相关性</td>
+<td>0.3</td>
+</tr>
+<tr>
+<td><strong>可信度</strong></td>
+<td>证据来源本身的可信度</td>
+<td>0.4</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. API 设计规范</h2>
+<h3>4.1 REST API（同步查询）</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>描述</th>
+<th>请求体</th>
+<th>响应</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td><code>/api/v1/rca/analyze</code></td>
+<td>发起根因分析任务</td>
+<td>FaultEvent</td>
+<td>RCA Report</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/rca/report/{report_id}</code></td>
+<td>查询 RCA 报告详情</td>
+<td>——</td>
+<td>RCA Report</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/rca/causality/{incident_id}</code></td>
+<td>查询故障的因果图</td>
+<td>——</td>
+<td>Causality Graph</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/rca/hypotheses/{incident_id}</code></td>
+<td>查询候选根因假设列表</td>
+<td><code>?top_k=5</code></td>
+<td>Hypothesis[]</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/rca/evidence/{node_id}</code></td>
+<td>查询节点关联的证据列表</td>
+<td>——</td>
+<td>Evidence[]</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/rca/feedback</code></td>
+<td>提交人工反馈（RCA 准确与否）</td>
+<td>Feedback</td>
+<td>200 OK</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/rca/history</code></td>
+<td>查询历史 RCA 记录</td>
+<td><code>?start_time=&amp;end_time=</code></td>
+<td>RCA Report[]</td>
+</tr>
+</tbody></table>
+<h3>4.2 gRPC API（高性能场景）</h3>
+<table>
+<thead>
+<tr>
+<th>服务</th>
+<th>方法</th>
+<th>适用场景</th>
+<th>性能要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RCAService</code></td>
+<td><code>Analyze(AnalyzeRequest)</code></td>
+<td>实时根因分析（故障告警触发）</td>
+<td>P99 &lt; 2s</td>
+</tr>
+<tr>
+<td><code>RCAService</code></td>
+<td><code>GetCausalityGraph(GraphRequest)</code></td>
+<td>获取因果图（Dashboard 可视化）</td>
+<td>P99 &lt; 500ms</td>
+</tr>
+<tr>
+<td><code>RCAService</code></td>
+<td><code>StreamHypothesis(StreamRequest)</code></td>
+<td>流式推送根因假设更新</td>
+<td>&lt; 100ms 延迟</td>
+</tr>
+</tbody></table>
+<h3>4.3 Kafka 事件（异步 RCA 完成通知）</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>事件类型</th>
+<th>发布者</th>
+<th>订阅者</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rca.report.completed</code></td>
+<td>RCA 报告完成</td>
+<td>根因分析模块</td>
+<td>智能决策/Dashboard</td>
+<td>推送 RCA 结论到下游</td>
+</tr>
+<tr>
+<td><code>rca.hypothesis.updated</code></td>
+<td>假设排序更新</td>
+<td>根因分析模块</td>
+<td>Dashboard（实时更新）</td>
+<td>新证据到达时刷新排序</td>
+</tr>
+<tr>
+<td><code>rca.feedback.received</code></td>
+<td>人工反馈到达</td>
+<td>Dashboard / 运维人员</td>
+<td>知识进化模块</td>
+<td>触发知识更新</td>
+</tr>
+</tbody></table>
+<h3>4.4 API 质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>P99 延迟</strong></td>
+<td>&lt; 2s</td>
+<td>&gt; 5s</td>
+<td>RCA 分析完成时间</td>
+</tr>
+<tr>
+<td><strong>准确率</strong></td>
+<td>&gt; 85%</td>
+<td>&lt; 75%</td>
+<td>Top-1 根因正确率</td>
+</tr>
+<tr>
+<td><strong>可用率</strong></td>
+<td>99.9%</td>
+<td>&lt; 99.5%</td>
+<td>月度可用率</td>
+</tr>
+<tr>
+<td><strong>并发分析数</strong></td>
+<td>50 并发</td>
+<td>&lt; 20</td>
+<td>同时进行 RCA 分析的任务数</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. 数据流架构</h2>
+<h3>5.1 整体数据流</h3>
+<div class="mermaid">flowchart LR
+    subgraph 输入["输入数据源"]
+        FE[故障事件
+FaultEvent]
+        TG[拓扑图谱
+Topology Graph]
+        KG[知识图谱
+Knowledge Graph]
+        AL[告警数据
+Alert Stream]
+    end
+
+    subgraph 处理["根因分析处理管道"]
+        PROP[传播引擎
+Propagator]
+        INFR[因果推理器
+Inferrer]
+        RANK[假设排序器
+Ranker]
+        EVID[证据收集器
+Evidence Collector]
+        REPT[报告生成器
+Report Generator]
+    end
+
+    subgraph 输出["输出"]
+        RCA[RCA 结论
+智能决策]
+        CGRAPH[因果图
+Dashboard]
+        REP[RCA 报告
+知识进化]
+    end
+
+    FE --> PROP
+    TG --> PROP
+    AL --> EVID
+    KG --> EVID
+    PROP --> INFR
+    INFR --> RANK
+    EVID --> RANK
+    RANK --> REPT
+    REPT --> RCA
+    REPT --> CGRAPH
+    REPT --> REP
+
+    style 处理 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 输入 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 输出 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px</div><h3>5.2 RCA 分析流程</h3>
+<div class="mermaid">flowchart TB
+    subgraph 步骤1["Step 1: 故障接收"]
+        F1[接收故障事件
+fault_event]
+    end
+
+    subgraph 步骤2["Step 2: 反向传播"]
+        F2[初始化 BFS 队列
+从故障节点开始]
+        F3[逐层向上游扩展
+记录路径和置信度]
+        F4[达到最大跳数或
+置信度低于阈值停止]
+    end
+
+    subgraph 步骤3["Step 3: 因果推理"]
+        F5[规则匹配检查]
+        F6[时序分析]
+        F7[ML 模型预测]
+        F8[知识图谱查询]
+    end
+
+    subgraph 步骤4["Step 4: 证据收集"]
+        F9[收集拓扑证据]
+        F10[收集告警证据]
+        F11[收集变更证据]
+        F12[收集指标证据]
+    end
+
+    subgraph 步骤5["Step 5: 排序输出"]
+        F13[综合打分]
+        F14[生成 RCA 报告]
+        F15[发布到 Kafka]
+    end
+
+    F1 --> F2 --> F3 --> F4 --> F5 --> F6 --> F7 --> F8 --> F9 --> F10 --> F11 --> F12 --> F13 --> F14 --> F15
+
+    style 步骤1 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 步骤2 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 步骤3 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style 步骤4 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style 步骤5 fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px</div><h3>5.3 反馈闭环数据流</h3>
+<div class="mermaid">flowchart LR
+    subgraph 上报["运维人员"]
+        OP[运营工程师]
+    end
+
+    subgraph RCA循环["RCA 反馈闭环"]
+        RCA1[RCA 分析]
+        REP1[生成报告]
+        OP -->|人工反馈| RCA1
+        REP1 -->|准确率反馈| RCA1
+    end
+
+    subgraph 知识更新["知识进化"]
+        FEED[反馈数据]
+        KG1[知识图谱更新]
+        RCA1 -->|feedback| FEED --> KG1
+    end
+
+    KG1 -.->|历史根因知识| RCA1
+
+    style 上报 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style RCA循环 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 知识更新 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px</div><hr>
+<h2>6. 模块协作关系</h2>
+<h3>6.1 依赖矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>依赖根因分析的什么</th>
+<th>依赖类型</th>
+<th>接口方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>02 拓扑建模</strong></td>
+<td>拓扑图谱（节点/边/关系查询）用于反向传播</td>
+<td>数据依赖</td>
+<td>gRPC 高性能查询</td>
+</tr>
+<tr>
+<td><strong>06 故障研判</strong></td>
+<td>故障事件输入（触发 RCA）</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>07 知识图谱</strong></td>
+<td>历史故障案例、运维知识、因果规则</td>
+<td>数据依赖</td>
+<td>REST 查询</td>
+</tr>
+<tr>
+<td><strong>08 影响分析</strong></td>
+<td>RCA 结论（根因节点输入）</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>09 智能决策</strong></td>
+<td>RCA 报告（核心决策输入）</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>11 知识进化</strong></td>
+<td>RCA 结果 + 人工反馈（学习素材）</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>Dashboard</strong></td>
+<td>因果图可视化、RCA 报告展示</td>
+<td>数据依赖</td>
+<td>REST 查询</td>
+</tr>
+</tbody></table>
+<h3>6.2 输出接口契约</h3>
+<h4>6.2.1 RCA 报告格式</h4>
+<pre><code class="language-json">{
+  "report_id": "rca-20260607-001",
+  "incident_id": "inc-20260607-042",
+  "primary_root_cause": {
+    "entity_id": "host-042",
+    "entity_name": "物理机 us-east-1c-042",
+    "root_cause_score": 0.92,
+    "confidence_interval": [0.88, 0.95],
+    "causality_type": "DIRECT"
+  },
+  "hypotheses": [
+    { "rank": 1, "entity_id": "host-042", "score": 0.92, "evidence": [...] },
+    { "rank": 2, "entity_id": "db-primary", "score": 0.78, "evidence": [...] }
+  ],
+  "causality_graph": {
+    "nodes": [...],
+    "edges": [...]
+  },
+  "generated_at": "2026-06-07T08:15:00Z",
+  "analysis_latency_ms": 1850
+}</code></pre><h4>6.2.2 因果图格式</h4>
+<pre><code class="language-json">{
+  "graph_id": "cg-20260607-001",
+  "incident_id": "inc-20260607-042",
+  "nodes": [
+    { "node_id": "cg-n1", "entity_id": "svc-003", "node_type": "FAULT", "root_cause_score": 1.0 },
+    { "node_id": "cg-n2", "entity_id": "svc-001", "node_type": "HYPOTHESIS", "root_cause_score": 0.61 },
+    { "node_id": "cg-n3", "entity_id": "host-042", "node_type": "HYPOTHESIS", "root_cause_score": 0.92 }
+  ],
+  "edges": [
+    { "from": "cg-n1", "to": "cg-n3", "causality_type": "DIRECT", "confidence": 0.95 }
+  ]
+}</code></pre><hr>
+<h2>7. 量化指标体系</h2>
+<h3>7.1 准确性指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>基线（当前）</th>
+<th>目标</th>
+<th>测量方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>RCA 准确率</strong></td>
+<td>Top-1 根因与实际根因一致的比例</td>
+<td>72%</td>
+<td>&gt; 85%</td>
+<td>人工标注验证</td>
+</tr>
+<tr>
+<td><strong>Top-3 召回率</strong></td>
+<td>真实根因出现在 Top-3 候选的比例</td>
+<td>85%</td>
+<td>&gt; 95%</td>
+<td>人工标注验证</td>
+</tr>
+<tr>
+<td><strong>MTTD</strong></td>
+<td>Mean Time To Detect（故障发生到根因定位的平均时间）</td>
+<td>15min</td>
+<td>&lt; 5min</td>
+<td>系统自动测量</td>
+</tr>
+<tr>
+<td><strong>False Positive Rate</strong></td>
+<td>错误根因假设占总假设的比例</td>
+<td>18%</td>
+<td>&lt; 10%</td>
+<td>反馈数据统计</td>
+</tr>
+</tbody></table>
+<h3>7.2 性能质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>分析延迟 P99</strong></td>
+<td>从接收故障事件到输出 RCA 结论的延迟</td>
+<td>&lt; 2s</td>
+<td>&gt; 5s</td>
+</tr>
+<tr>
+<td><strong>因果图生成时间</strong></td>
+<td>生成因果图并可视化的耗时</td>
+<td>&lt; 500ms</td>
+<td>&gt; 1s</td>
+</tr>
+<tr>
+<td><strong>并发分析能力</strong></td>
+<td>同时处理的 RCA 分析任务数</td>
+<td>50</td>
+<td>&lt; 20</td>
+</tr>
+<tr>
+<td><strong>传播深度</strong></td>
+<td>平均可达传播搜索深度</td>
+<td>10 跳</td>
+<td>&lt; 5 跳</td>
+</tr>
+</tbody></table>
+<h3>7.3 业务价值指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>当前</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>平均故障时长缩短</strong></td>
+<td>RCA 准确后智能决策效率提升，故障时长缩短</td>
+<td>基准</td>
+<td>-30%</td>
+</tr>
+<tr>
+<td><strong>人工 RCA 时间节省</strong></td>
+<td>系统自动 RCA 减少人工排查时间</td>
+<td>基准</td>
+<td>-60%</td>
+</tr>
+<tr>
+<td><strong>知识复用率</strong></td>
+<td>历史根因知识被复用的次数</td>
+<td>15%</td>
+<td>&gt; 40%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. 部署架构</h2>
+<h3>8.1 K8s 部署拓扑</h3>
+<div class="mermaid">flowchart LR
+    subgraph 控制面["控制面"]
+        API[API Server]
+    end
+
+    subgraph 计算层["计算层"]
+        subgraph 服务["RCA 服务 StatefulSet"]
+            RCA1[RCA Service x2]
+        end
+        subgraph 工作器["传播引擎 Worker"]
+            WORK1[Propagator x3]
+        end
+    end
+
+    subgraph 存储层["存储层"]
+        NEO[(Neo4j
+拓扑查询)]
+        KG[(知识图谱
+图数据库)]
+        RD[(Redis
+结果缓存)]
+        KF[(Kafka
+事件总线)]
+    end
+
+    FAULT[06 故障研判] -->|Kafka| RCA1
+    RCA1 -->|gRPC| NEO
+    RCA1 -->|REST| KG
+    WORK1 -->|写入| RD
+    RCA1 -->|发布| KF
+    KF -->|订阅| 09 智能决策
+
+
+    style 计算层 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 存储层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style RCA1 fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><h3>8.2 资源配置</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>副本数</th>
+<th>CPU</th>
+<th>内存</th>
+<th>存储</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>RCA Service</strong></td>
+<td>2（主备）</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>StatefulSet，接收分析请求</td>
+</tr>
+<tr>
+<td><strong>Propagator Worker</strong></td>
+<td>3（并行）</td>
+<td>2 核</td>
+<td>4 GB</td>
+<td>——</td>
+<td>执行拓扑反向传播计算</td>
+</tr>
+<tr>
+<td><strong>Inferrer Worker</strong></td>
+<td>2</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>ML 模型推理（GPU 支持）</td>
+</tr>
+<tr>
+<td><strong>Neo4j</strong></td>
+<td>1 主 + 2 从</td>
+<td>8 核</td>
+<td>32 GB</td>
+<td>200 GB SSD</td>
+<td>拓扑查询</td>
+</tr>
+<tr>
+<td><strong>Redis Cluster</strong></td>
+<td>3 节点</td>
+<td>2 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>RCA 结果缓存</td>
+</tr>
+</tbody></table>
+<h3>8.3 高可用设计</h3>
+<ul>
+<li><strong>服务多副本</strong>：RCA Service 部署 2 副本，Kubernetes 自动负载均衡</li>
+<li><strong>工作器并行</strong>：传播引擎工作器 3 副本，并行处理不同故障事件</li>
+<li><strong>结果缓存</strong>：RCA 结果缓存 Redis，相同故障模式 5 分钟内直接返回</li>
+<li><strong>降级策略</strong>：ML 推理超时降级为规则推理，保证分析完成</li>
+<li><strong>事件持久化</strong>：Kafka 事件持久化，下游消费失败重试</li>
+</ul>
+<hr>
+<h2>9. 本章小结</h2>
+<h3>9.1 核心要点</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>核心要点</th>
+<th>量化目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>定位</strong></td>
+<td>能力层核心模块，故障研判的后链路，智能决策的前置输入</td>
+<td>——</td>
+</tr>
+<tr>
+<td><strong>模型</strong></td>
+<td>因果图模型 + 根因得分模型，多维度证据综合打分</td>
+<td>准确率 &gt; 85%</td>
+</tr>
+<tr>
+<td><strong>能力</strong></td>
+<td>逆向传播 + 因果推理 + 假设排序 + 证据收集 4 大能力</td>
+<td>MTTD &lt; 5min</td>
+</tr>
+<tr>
+<td><strong>接口</strong></td>
+<td>REST + gRPC + Kafka，输出 RCA 报告到智能决策</td>
+<td>P99 &lt; 2s</td>
+</tr>
+<tr>
+<td><strong>质量</strong></td>
+<td>准确率 / Top-3 召回率 / MTTD / False Positive 4 类指标</td>
+<td>Top-3 召回 &gt; 95%</td>
+</tr>
+</tbody></table>
+<h3>9.2 关键成功要素</h3>
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>优先级</th>
+<th>实施策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>传播算法优化</strong></td>
+<td>P0</td>
+<td>拓扑查询性能优化，传播引擎并行化</td>
+</tr>
+<tr>
+<td><strong>知识图谱深度集成</strong></td>
+<td>P0</td>
+<td>历史故障知识复用，提升冷启动场景准确率</td>
+</tr>
+<tr>
+<td><strong>证据收集自动化</strong></td>
+<td>P1</td>
+<td>打通告警/变更/指标/日志系统，自动化证据采集</td>
+</tr>
+<tr>
+<td><strong>置信度校准</strong></td>
+<td>P1</td>
+<td>持续用人工反馈校准得分模型，提升可信度</td>
+</tr>
+<tr>
+<td><strong>因果图可视化</strong></td>
+<td>P2</td>
+<td>Dashboard 因果图交互，提升运维人员使用体验</td>
+</tr>
+</tbody></table>
+<h3>9.3 与其他模块的边界</h3>
+<table>
+<thead>
+<tr>
+<th>边界</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>vs 06 故障研判</strong></td>
+<td>故障研判负责「检测故障是否发生」，根因分析负责「定位故障根因是谁」，故障研判输出触发根因分析输入</td>
+</tr>
+<tr>
+<td><strong>vs 02 拓扑建模</strong></td>
+<td>根因分析依赖拓扑建模的图结构做传播，但自己做「因果推理」和「打分排序」</td>
+</tr>
+<tr>
+<td><strong>vs 07 知识图谱</strong></td>
+<td>知识图谱提供历史根因知识作为证据输入，根因分析综合证据做当前故障的推理判断</td>
+</tr>
+<tr>
+<td><strong>vs 09 智能决策</strong></td>
+<td>根因分析输出「根因是谁」，智能决策决定「怎么办」，根因分析不产生动作，只给结论</td>
+</tr>
+</tbody></table>
+<p><strong>记忆口诀：</strong></p>
+<blockquote>
+<p><strong>逆向传播找根因，拓扑反向 BFS 扩；证据驱动多假设，置信度量化打分；知识图谱来辅助，历史经验不浪费；RCA 报告输出后，智能决策来接力。</strong></p>
+</blockquote>
+<hr>
+<blockquote>
+<p>本章定义了模块 07 根因分析的详细功能设计规范。根因分析向上承接故障研判与知识图谱，向下输出 RCA 结论到智能决策，是 Observable Ops 能力层的核心分析引擎。</p>
+</blockquote>
+<p><em>文档版本：V1.0 | 更新日期：2026-06-07</em></p>
+
+      
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

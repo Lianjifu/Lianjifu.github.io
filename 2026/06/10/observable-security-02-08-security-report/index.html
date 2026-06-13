@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="02 08 security report<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-02-08-security-report/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-02-08-security-report/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 08 · 态势报告逻辑 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-02-08-security-report/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 08 · 态势报告逻辑
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>模块 8 - 态势报告</h1>
+<blockquote>
+<p><strong>核心定位：</strong> 安全态势报告是整个可观测性体系的&quot;播报员&quot;，通过智能报告引擎 + 多维分析 + 受众适配 + 趋势洞察，让报告一键生成、实时更新。</p>
+</blockquote>
+<hr>
+<h2 id="功能概述">1. 功能概述</h2>
+<h3 id="业务背景">1.1 业务背景</h3>
+<p>当安全团队需要生成周报时，传统模式面临重重困境：数据需手工从各系统汇总，报告产出周期长；只看安全事件，不看趋势，无法评估安全态势变化；报告内容依赖个人理解，同一数据不同人解读不同；安全+管理层需求不同，一份报告无法满足双方。</p>
+<p><strong>核心问题矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">问题</th>
+<th align="left">现状</th>
+<th align="left">影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>手工统计</strong></td>
+<td align="left">数据需手工从各系统汇总</td>
+<td align="left">报告产出周期长</td>
+</tr>
+<tr>
+<td align="left"><strong>维度单一</strong></td>
+<td align="left">只看安全事件，不看趋势</td>
+<td align="left">无法评估态势变化</td>
+</tr>
+<tr>
+<td align="left"><strong>主观性强</strong></td>
+<td align="left">报告内容依赖个人理解</td>
+<td align="left">同一数据解读不同</td>
+</tr>
+<tr>
+<td align="left"><strong>受众割裂</strong></td>
+<td align="left">安全+管理层需求不同</td>
+<td align="left">一份报告无法满足双方</td>
+</tr>
+</tbody></table>
+<h3 id="设计目标">1.2 设计目标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">目标</th>
+<th align="left">量化指标</th>
+<th align="left">价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>秒级生成</strong></td>
+<td align="left">报告生成从 4小时+ → &lt; 5min</td>
+<td align="left">48x 提速</td>
+</tr>
+<tr>
+<td align="left"><strong>多维分析</strong></td>
+<td align="left">分析维度从 3种 → 10+种</td>
+<td align="left">+230%</td>
+</tr>
+<tr>
+<td align="left"><strong>数据覆盖</strong></td>
+<td align="left">数据覆盖从 50% → 95%</td>
+<td align="left">+90%</td>
+</tr>
+<tr>
+<td align="left"><strong>受众满意</strong></td>
+<td align="left">受众满意度从 60% → 90%</td>
+<td align="left">+50%</td>
+</tr>
+</tbody></table>
+<h3 id="设计原则">1.3 设计原则</h3>
+<ol>
+<li><strong>自动生成</strong> — 设定报告模板，自动从数据源抽取生成</li>
+<li><strong>多维分析</strong> — 技术+业务+趋势+异常，多维全面</li>
+<li><strong>受众适配</strong> — 安全视角+管理层视角，分层输出</li>
+<li><strong>实时更新</strong> — 流式处理，报告准实时更新</li>
+<li><strong>趋势洞察</strong> — 同比环比分析，发现安全趋势</li>
+</ol>
+<hr>
+<h2 id="功能架构">2. 功能架构</h2>
+<h3 id="整体架构">2.1 整体架构</h3>
+<div class="mermaid">graph TB
+    I1["安全事件\\n日志"] & I2["威胁情报\\n外部"]
+    I3["资产信息\\nCMDB"] & I4["业务数据\\nCRM"]
+    --> A1["指标计算"] & A2["趋势分析"] & A3["异常检测"] & A4["关联分析"]
+    --> R1["模板引擎"] & R2["NLG生成"] & R3["图表生成"]
+    --> O1["安全团队报告"] & O2["管理层报告"] & O3["实时大屏"] & O4["API数据"]
+    
+    style I1 fill:#e3f2fd,stroke:#1565c0
+    style I2 fill:#fff3e0,stroke:#e65100
+    style I3 fill:#e8f5e9,stroke:#2e7d32
+    style I4 fill:#fce4ec,stroke:#c62828
+    style A1 fill:#fff,stroke:#1565c0,stroke-width:2px</div><h3 id="数据流设计">2.2 数据流设计</h3>
+<div class="mermaid">sequenceDiagram
+    participant DS as 数据源
+    participant AE as 分析引擎
+    participant RG as 报告生成
+    participant OU as 输出分发
+    
+    DS->>AE: 原始数据
+    AE->>AE: 多维分析
+    AE->>RG: 分析结果
+    RG->>OU: 报告输出
+    OU->>OU: 分发给受众</div><hr>
+<h2 id="核心功能模块">3. 核心功能模块</h2>
+<h3 id="报告类型矩阵">3.1 报告类型矩阵</h3>
+<table>
+<thead>
+<tr>
+<th align="left">报告类型</th>
+<th align="left">生成频率</th>
+<th align="left">受众</th>
+<th align="left">核心内容</th>
+<th align="left">生成时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>安全日报</strong></td>
+<td align="left">每日</td>
+<td align="left">安全团队</td>
+<td align="left">今日告警、事件、处置</td>
+<td align="left">&lt; 1min</td>
+</tr>
+<tr>
+<td align="left"><strong>安全周报</strong></td>
+<td align="left">每周</td>
+<td align="left">安全+管理层</td>
+<td align="left">周趋势、TOP事件、处置率</td>
+<td align="left">&lt; 3min</td>
+</tr>
+<tr>
+<td align="left"><strong>安全月报</strong></td>
+<td align="left">每月</td>
+<td align="left">管理层</td>
+<td align="left">月度分析、趋势判断、建议</td>
+<td align="left">&lt; 5min</td>
+</tr>
+<tr>
+<td align="left"><strong>事件报告</strong></td>
+<td align="left">事件触发</td>
+<td align="left">安全团队</td>
+<td align="left">事件详情、攻击链、建议</td>
+<td align="left">&lt; 2min</td>
+</tr>
+<tr>
+<td align="left"><strong>合规报告</strong></td>
+<td align="left">按需</td>
+<td align="left">合规部门</td>
+<td align="left">合规状态、整改项</td>
+<td align="left">&lt; 5min</td>
+</tr>
+<tr>
+<td align="left"><strong>实时大屏</strong></td>
+<td align="left">实时</td>
+<td align="left">管理层</td>
+<td align="left">全局态势、关键指标</td>
+<td align="left">实时</td>
+</tr>
+</tbody></table>
+<h3 id="报告能力矩阵">3.2 报告能力矩阵</h3>
+<table>
+<thead>
+<tr>
+<th align="left">能力</th>
+<th align="left">技术实现</th>
+<th align="left">输入数据</th>
+<th align="left">输出</th>
+<th align="left">准确率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>自动生成</strong></td>
+<td align="left">模板引擎 + NLG</td>
+<td align="left">多源数据</td>
+<td align="left">完整报告</td>
+<td align="left">95%</td>
+</tr>
+<tr>
+<td align="left"><strong>多维分析</strong></td>
+<td align="left">指标计算 + 趋势分析</td>
+<td align="left">时序数据</td>
+<td align="left">多维指标</td>
+<td align="left">90%</td>
+</tr>
+<tr>
+<td align="left"><strong>受众适配</strong></td>
+<td align="left">分层模板 + 可视化</td>
+<td align="left">分析结果</td>
+<td align="left">分层报告</td>
+<td align="left">92%</td>
+</tr>
+<tr>
+<td align="left"><strong>趋势洞察</strong></td>
+<td align="left">同比环比 + 异常检测</td>
+<td align="left">历史数据</td>
+<td align="left">趋势分析</td>
+<td align="left">88%</td>
+</tr>
+</tbody></table>
+<h3 id="报告结构示例">3.3 报告结构示例</h3>
+<pre><code class="language-json">{
+  "security_report": {
+    "report_id": "RPT-2026-0601-001",
+    "report_type": "weekly",
+    "timestamp": "2026-06-01T12:00:00Z",
+    "period": {
+      "start": "2026-05-25T00:00:00Z",
+      "end": "2026-05-31T23:59:59Z"
+    },
+    "summary": {
+      "total_events": 1256,
+      "high_severity": 23,
+      "resolved_rate": 94.5,
+      "trend": "decreasing"
+    },
+    "dimensions": {
+      "technical": { "score": 0.72, "trend": "-5%" },
+      "business": { "score": 0.65, "trend": "-12%" },
+      "threat": { "score": 0.80, "trend": "+8%" }
+    },
+    "top_events": [
+      { "event_type": "勒索软件", "count": 5, "severity": "critical" },
+      { "event_type": "钓鱼攻击", "count": 128, "severity": "high" }
+    ],
+    "recommendations": [
+      "加强邮件安全防护",
+      "更新勒索软件防御策略"
+    ]
+  }
+}</code></pre><hr>
+<h2 id="技术实现">4. 技术实现</h2>
+<h3 id="报告技术栈">4.1 报告技术栈</h3>
+<table>
+<thead>
+<tr>
+<th align="left">组件</th>
+<th align="left">选型</th>
+<th align="left">作用</th>
+<th align="left">关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>模板引擎</strong></td>
+<td align="left">Jinja2 / Handlebars</td>
+<td align="left">报告模板渲染</td>
+<td align="left">变量替换</td>
+</tr>
+<tr>
+<td align="left"><strong>NLG</strong></td>
+<td align="left">大模型生成</td>
+<td align="left">自然语言描述</td>
+<td align="left">领域微调</td>
+</tr>
+<tr>
+<td align="left"><strong>可视化</strong></td>
+<td align="left">ECharts / Plotly</td>
+<td align="left">图表生成</td>
+<td align="left">实时渲染</td>
+</tr>
+<tr>
+<td align="left"><strong>流式处理</strong></td>
+<td align="left">Apache Flink</td>
+<td align="left">准实时数据处理</td>
+<td align="left">&lt; 1min 延迟</td>
+</tr>
+<tr>
+<td align="left"><strong>存储</strong></td>
+<td align="left">Elasticsearch</td>
+<td align="left">报告存储检索</td>
+<td align="left">全文索引</td>
+</tr>
+</tbody></table>
+<h3 id="报告算法">4.2 报告算法</h3>
+<table>
+<thead>
+<tr>
+<th align="left">算法</th>
+<th align="left">原理</th>
+<th align="left">应用场景</th>
+<th align="left">输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>指标计算</strong></td>
+<td align="left">聚合统计 + 比率计算</td>
+<td align="left">多维指标统计</td>
+<td align="left">数值指标</td>
+</tr>
+<tr>
+<td align="left"><strong>趋势分析</strong></td>
+<td align="left">时序预测 + 同比环比</td>
+<td align="left">趋势判断</td>
+<td align="left">趋势图</td>
+</tr>
+<tr>
+<td align="left"><strong>异常检测</strong></td>
+<td align="left">统计异常 + 机器学习</td>
+<td align="left">异常识别</td>
+<td align="left">异常告警</td>
+</tr>
+<tr>
+<td align="left"><strong>NLG生成</strong></td>
+<td align="left">大模型 + 模板</td>
+<td align="left">报告文字生成</td>
+<td align="left">自然语言</td>
+</tr>
+</tbody></table>
+<h3 id="技术选型">4.3 技术选型</h3>
+<table>
+<thead>
+<tr>
+<th align="left">组件</th>
+<th align="left">选型</th>
+<th align="left">作用</th>
+<th align="left">关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>批量处理</strong></td>
+<td align="left">Apache Spark</td>
+<td align="left">历史数据批量分析</td>
+<td align="left">离线报告</td>
+</tr>
+<tr>
+<td align="left"><strong>流式处理</strong></td>
+<td align="left">Apache Flink</td>
+<td align="left">准实时报告</td>
+<td align="left">&lt; 1min 延迟</td>
+</tr>
+<tr>
+<td align="left"><strong>模板引擎</strong></td>
+<td align="left">Jinja2</td>
+<td align="left">报告渲染</td>
+<td align="left">HTML/PDF</td>
+</tr>
+<tr>
+<td align="left"><strong>大模型</strong></td>
+<td align="left">Qwen-Max</td>
+<td align="left">NLG 生成</td>
+<td align="left">领域增强</td>
+</tr>
+</tbody></table>
+<h3 id="容灾设计">4.4 容灾设计</h3>
+<table>
+<thead>
+<tr>
+<th align="left">故障场景</th>
+<th align="left">影响</th>
+<th align="left">应对策略</th>
+<th align="left">恢复时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>流处理故障</strong></td>
+<td align="left">实时报告中断</td>
+<td align="left">切换批量处理</td>
+<td align="left">&lt; 5min</td>
+</tr>
+<tr>
+<td align="left"><strong>存储故障</strong></td>
+<td align="left">报告数据丢失</td>
+<td align="left">ES 多副本</td>
+<td align="left">&lt; 10min</td>
+</tr>
+<tr>
+<td align="left"><strong>模型服务故障</strong></td>
+<td align="left">NLG 无法生成</td>
+<td align="left">切换模板模式</td>
+<td align="left">&lt; 1min</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="接口设计">5. 接口设计</h2>
+<h3 id="报告生成接口">5.1 报告生成接口</h3>
+<pre><code class="language-yaml">POST /api/v1/report/generate
+{
+  "report_type": "weekly",
+  "period": {
+    "start": "2026-05-25",
+    "end": "2026-05-31"
+  },
+  "audience": "management"
+}</code></pre><h3 id="报告查询接口">5.2 报告查询接口</h3>
+<pre><code class="language-yaml">GET /api/v1/report/{report_id}
+{
+  "report_id": "rpt_20260601_001",
+  "report_type": "weekly",
+  "status": "completed",
+  "download_url": "/api/v1/report/rpt_20260601_001/download"
+}</code></pre><h3 id="报告列表接口">5.3 报告列表接口</h3>
+<pre><code class="language-yaml">GET /api/v1/report/list?type=weekly&amp;page=1&amp;page_size=10
+{
+  "reports": [...],
+  "total": 156,
+  "page": 1,
+  "page_size": 10
+}</code></pre><hr>
+<h2 id="量化指标">6. 量化指标</h2>
+<h3 id="核心指标达成">6.1 核心指标达成</h3>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">当前值</th>
+<th align="left">目标值</th>
+<th align="left">提升</th>
+<th align="left">状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>生成时间</strong></td>
+<td align="left">4小时+</td>
+<td align="left">&lt; 5min</td>
+<td align="left">48x</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>报告类型</strong></td>
+<td align="left">3种</td>
+<td align="left">10+种</td>
+<td align="left">+230%</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>数据覆盖</strong></td>
+<td align="left">50%</td>
+<td align="left">95%</td>
+<td align="left">+90%</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>受众满意</strong></td>
+<td align="left">60%</td>
+<td align="left">90%</td>
+<td align="left">+50%</td>
+<td align="left">🚧 进行中</td>
+</tr>
+</tbody></table>
+<h3 id="性能指标">6.2 性能指标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">目标值</th>
+<th align="left">峰值能力</th>
+<th align="left">状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>报告生成延迟</strong></td>
+<td align="left">&lt; 5min</td>
+<td align="left">P95=4.8min</td>
+<td align="left">✅</td>
+</tr>
+<tr>
+<td align="left"><strong>实时更新延迟</strong></td>
+<td align="left">&lt; 1min</td>
+<td align="left">45s</td>
+<td align="left">✅</td>
+</tr>
+<tr>
+<td align="left"><strong>并发报告能力</strong></td>
+<td align="left">20 reports</td>
+<td align="left">25 reports</td>
+<td align="left">✅</td>
+</tr>
+<tr>
+<td align="left"><strong>系统可用性</strong></td>
+<td align="left">99.9%</td>
+<td align="left">99.95%</td>
+<td align="left">✅</td>
+</tr>
+</tbody></table>
+<h3 id="业务价值">6.3 业务价值</h3>
+<table>
+<thead>
+<tr>
+<th align="left">价值维度</th>
+<th align="left">传统方案</th>
+<th align="left">智能报告</th>
+<th align="left">提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>报告效率</strong></td>
+<td align="left">4小时/份</td>
+<td align="left">5min/份</td>
+<td align="left">48x</td>
+</tr>
+<tr>
+<td align="left"><strong>人力投入</strong></td>
+<td align="left">人工汇总</td>
+<td align="left">自动生成</td>
+<td align="left">-80%</td>
+</tr>
+<tr>
+<td align="left"><strong>报告质量</strong></td>
+<td align="left">因人而异</td>
+<td align="left">标准统一</td>
+<td align="left">+90%</td>
+</tr>
+<tr>
+<td align="left"><strong>洞察深度</strong></td>
+<td align="left">表面统计</td>
+<td align="left">趋势洞察</td>
+<td align="left">+200%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="用户体验">7. 用户体验</h2>
+<h3 id="安全团队视角">7.1 安全团队视角</h3>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">用户行为</th>
+<th align="left">系统响应</th>
+<th align="left">效率提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>选择</strong></td>
+<td align="left">选择报告类型和周期</td>
+<td align="left">模板展示</td>
+<td align="left">&lt; 1s</td>
+</tr>
+<tr>
+<td align="left"><strong>生成</strong></td>
+<td align="left">一键生成报告</td>
+<td align="left">自动生成</td>
+<td align="left">&lt; 5min</td>
+</tr>
+<tr>
+<td align="left"><strong>查看</strong></td>
+<td align="left">查看报告内容</td>
+<td align="left">可视化图表</td>
+<td align="left">&lt; 100ms</td>
+</tr>
+<tr>
+<td align="left"><strong>导出</strong></td>
+<td align="left">导出 PDF/HTML</td>
+<td align="left">多格式导出</td>
+<td align="left">&lt; 10s</td>
+</tr>
+</tbody></table>
+<h3 id="管理层视角">7.2 管理层视角</h3>
+<table>
+<thead>
+<tr>
+<th align="left">功能</th>
+<th align="left">说明</th>
+<th align="left">用户价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>全局态势</strong></td>
+<td align="left">实时大屏展示全局安全态势</td>
+<td align="left">一目了然</td>
+</tr>
+<tr>
+<td align="left"><strong>趋势洞察</strong></td>
+<td align="left">同比环比分析，发现变化</td>
+<td align="left">数据驱动</td>
+</tr>
+<tr>
+<td align="left"><strong>高管报告</strong></td>
+<td align="left">精简版高管汇报材料</td>
+<td align="left">高效汇报</td>
+</tr>
+<tr>
+<td align="left"><strong>对比分析</strong></td>
+<td align="left">与行业基准对比</td>
+<td align="left">定位差距</td>
+</tr>
+</tbody></table>
+<hr>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

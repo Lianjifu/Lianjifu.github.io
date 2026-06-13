@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Observable Ops — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/06/13/observable-ops-02-10-auto-execution/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Observable Ops — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Observable Ops 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-13T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/06/13/observable-ops-02-10-auto-execution/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 10 · 自动执行 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/06/13/observable-ops-02-10-auto-execution/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 10 · 自动执行
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-ops/" itemprop="url" rel="index"><span
+                          itemprop="name">Observable Ops</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+        <h1>模块 10 · 自动执行</h1>
+<blockquote>
+<p>自动执行是 Observable Ops 的「执行手臂」——接收智能决策输出的动作计划，通过审批门控验证后执行修复动作，提供回滚控制和安全护栏，确保执行过程可靠、可控、可追溯。</p>
+</blockquote>
+<hr>
+<h2>📑 目录</h2>
+<h3>章节导航</h3>
+<ul>
+<li><a href="#1">1. 模块定位与职责</a></li>
+<li><a href="#2">2. 自动执行模型</a></li>
+<li><a href="#3">3. 核心功能分解</a></li>
+<li><a href="#4">4. API 设计规范</a></li>
+<li><a href="#5">5. 数据流架构</a></li>
+<li><a href="#6">6. 模块协作关系</a></li>
+<li><a href="#7">7. 量化指标体系</a></li>
+<li><a href="#8">8. 部署架构</a></li>
+<li><a href="#9">9. 本章小结</a></li>
+</ul>
+<hr>
+<h2>1. 模块定位与职责</h2>
+<h3>1.1 在 4 层架构中的位置</h3>
+<p>自动执行属于<strong>能力层</strong>核心模块，接收智能决策的动作计划，经过审批门控后执行修复动作，并监控执行过程，是 Observable Ops 自动化的最终执行环节。</p>
+<div class="mermaid">flowchart LR
+    subgraph 能力层["能力层 Capability Layer"]
+        ID[09 智能决策]
+        AE[10 自动执行]
+        KE[11 知识进化]
+    end
+
+    subgraph 执行层["执行层 Execution Layer"]
+        K8S[K8s API]
+        CMD[CMDB API]
+        APM[APM API]
+    end
+
+    ID -->|动作计划| AE
+    AE -->|执行完成| KE
+    AE -->|K8s/CMDB| 执行层
+
+    style AE fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style 能力层 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style 执行层 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style ID fill:#c8e6c9
+    style KE fill:#c8e6c9</div><h3>1.2 核心职责</h3>
+<table>
+<thead>
+<tr>
+<th>职责</th>
+<th>描述</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>动作执行</strong></td>
+<td>执行智能决策输出的修复动作（重启/扩容/切换流量等）</td>
+<td>执行结果</td>
+</tr>
+<tr>
+<td><strong>审批门控</strong></td>
+<td>验证动作计划的合规性和安全性，决定是否自动放行或转人工</td>
+<td>审批结论</td>
+</tr>
+<tr>
+<td><strong>回滚控制</strong></td>
+<td>执行失败或异常时自动回滚到执行前状态</td>
+<td>回滚结果</td>
+</tr>
+<tr>
+<td><strong>执行追踪</strong></td>
+<td>记录执行过程日志、耗时、状态变更，供事后复盘</td>
+<td>执行追踪记录</td>
+</tr>
+<tr>
+<td><strong>安全护栏</strong></td>
+<td>危险操作拦截、黑名单检查、最大影响范围限制</td>
+<td>护栏拦截事件</td>
+</tr>
+</tbody></table>
+<h3>1.3 核心设计原则</h3>
+<div class="mermaid">flowchart LR
+    P1[Safe First
+安全优先] --> P2[Idempotent
+幂等性]
+    P2 --> P3[Observable
+可观测]
+    P3 --> P4[Rollback Ready
+随时回滚]
+    P4 -.-> P1
+    style P1 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style P2 fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style P3 fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style P4 fill:#e8f5e9,stroke:#388e3c,stroke-width:3px</div><ul>
+<li><strong>安全优先（Safe First）</strong>：所有动作必须通过安全护栏检查，高风险动作强制人工审批</li>
+<li><strong>幂等性（Idempotent）</strong>：动作可重复执行而不产生副作用，支持失败重试</li>
+<li><strong>可观测（Observable）</strong>：执行过程全程可观测，状态变更实时通知</li>
+<li><strong>随时回滚（Rollback Ready）</strong>：每个动作执行前保存回滚上下文，失败时快速回滚</li>
+</ul>
+<h3>1.4 子模块划分</h3>
+<table>
+<thead>
+<tr>
+<th>子模块</th>
+<th>职责</th>
+<th>技术选型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Executor</strong> 动作执行器</td>
+<td>对接 K8s/CMDB 等执行层 API，实际执行修复动作</td>
+<td>Python / K8s Client</td>
+</tr>
+<tr>
+<td><strong>GateKeeper</strong> 审批门控</td>
+<td>安全检查、合规验证、审批流程控制</td>
+<td>Python / 规则引擎</td>
+</tr>
+<tr>
+<td><strong>RollbackController</strong> 回滚控制器</td>
+<td>保存回滚上下文、执行回滚操作、验证回滚结果</td>
+<td>Python / State Machine</td>
+</tr>
+<tr>
+<td><strong>ExecutionTracker</strong> 执行追踪器</td>
+<td>记录执行日志、状态变更、时间线追踪</td>
+<td>Python / Elasticsearch</td>
+</tr>
+<tr>
+<td><strong>SafetyGuard</strong> 安全护栏</td>
+<td>危险操作拦截、黑名单检查、最大影响限制</td>
+<td>Python / 规则引擎</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 自动执行模型</h2>
+<h3>2.1 动作执行模型（Action Execution Model）</h3>
+<p>动作执行模型描述每个动作的执行上下文、状态和结果。</p>
+<h4>2.1.1 执行记录</h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>execution_id</code></td>
+<td>String (UUID)</td>
+<td>执行记录唯一标识</td>
+<td><code>exe-20260607-001</code></td>
+</tr>
+<tr>
+<td><code>action_id</code></td>
+<td>String</td>
+<td>对应的动作 ID</td>
+<td><code>act-20260607-001</code></td>
+</tr>
+<tr>
+<td><code>action_type</code></td>
+<td>Enum</td>
+<td>动作类型</td>
+<td><code>RESTART</code></td>
+</tr>
+<tr>
+<td><code>target_node_id</code></td>
+<td>String</td>
+<td>目标节点 ID</td>
+<td><code>svc-001</code></td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Enum</td>
+<td>执行状态：PENDING/APPROVED/EXECUTING/SUCCESS/FAILED/ROLLED_BACK</td>
+<td><code>EXECUTING</code></td>
+</tr>
+<tr>
+<td><code>start_time</code></td>
+<td>Timestamp</td>
+<td>开始执行时间</td>
+<td><code>2026-06-07T08:17:30Z</code></td>
+</tr>
+<tr>
+<td><code>end_time</code></td>
+<td>Timestamp</td>
+<td>执行结束时间</td>
+<td><code>2026-06-07T08:18:00Z</code></td>
+</tr>
+<tr>
+<td><code>result</code></td>
+<td>Object</td>
+<td>执行结果详情</td>
+<td><code>{&quot;message&quot;: &quot;Restart successful&quot;, &quot;health_check_passed&quot;: true}</code></td>
+</tr>
+<tr>
+<td><code>rollback_context</code></td>
+<td>Object</td>
+<td>回滚所需上下文（如重启前的配置快照）</td>
+<td><code>{&quot;config_snapshot&quot;: &quot;...&quot;, &quot;replicas_before&quot;: 3}</code></td>
+</tr>
+</tbody></table>
+<h4>2.1.2 执行状态机</h4>
+<div class="mermaid">stateDiagram-v2
+    [*] --> PENDING: 接收动作计划
+    PENDING --> APPROVED: GateKeeper 通过
+    PENDING --> MANUAL_REVIEW: 高风险动作
+    PENDING --> REJECTED: GateKeeper 拒绝
+    MANUAL_REVIEW --> APPROVED: 人工审批通过
+    MANUAL_REVIEW --> REJECTED: 人工审批拒绝
+    APPROVED --> EXECUTING: 开始执行
+    EXECUTING --> SUCCESS: 执行成功
+    EXECUTING --> FAILED: 执行失败
+    FAILED --> ROLLING_BACK: 触发回滚
+    ROLLING_BACK --> ROLLED_BACK: 回滚成功
+    ROLLING_BACK --> ROLLBACK_FAILED: 回滚失败
+    SUCCESS --> [*]
+    REJECTED --> [*]
+    ROLLED_BACK --> [*]
+    ROLLBACK_FAILED --> MANUAL_INTERVENTION</div><h3>2.2 审批工作流模型（Approval Workflow Schema）</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>workflow_id</code></td>
+<td>String (UUID)</td>
+<td>工作流唯一标识</td>
+</tr>
+<tr>
+<td><code>plan_id</code></td>
+<td>String</td>
+<td>关联的动作计划 ID</td>
+</tr>
+<tr>
+<td><code>steps</code></td>
+<td>List[ApprovalStep]</td>
+<td>审批步骤序列</td>
+</tr>
+<tr>
+<td><code>current_step</code></td>
+<td>Integer</td>
+<td>当前审批步骤索引</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Enum</td>
+<td>PENDING/APPROVED/REJECTED</td>
+</tr>
+<tr>
+<td><code>timeout_seconds</code></td>
+<td>Integer</td>
+<td>审批超时时间（超时不通过则拒绝）</td>
+</tr>
+</tbody></table>
+<h3>2.3 回滚策略模型（Rollback Strategy Schema）</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rollback_id</code></td>
+<td>String (UUID)</td>
+<td>回滚记录唯一标识</td>
+</tr>
+<tr>
+<td><code>execution_id</code></td>
+<td>String</td>
+<td>关联的执行记录 ID</td>
+</tr>
+<tr>
+<td><code>rollback_type</code></td>
+<td>Enum</td>
+<td>回滚类型：CONFIG_RESTORE/REPLICA_RESTORE/TRAFFIC_RESTORE/VERSION_ROLLBACK</td>
+</tr>
+<tr>
+<td><code>rollback_steps</code></td>
+<td>List[RollbackStep]</td>
+<td>回滚操作步骤</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Enum</td>
+<td>PENDING/IN_PROGRESS/SUCCESS/FAILED</td>
+</tr>
+<tr>
+<td><code>trigger_condition</code></td>
+<td>String</td>
+<td>触发回滚的条件（如执行超时、健康检查失败）</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. 核心功能分解</h2>
+<h3>3.1 动作执行器（Action Executor）</h3>
+<h4>3.1.1 执行器类型</h4>
+<table>
+<thead>
+<tr>
+<th>执行器</th>
+<th>对应动作类型</th>
+<th>执行 API</th>
+<th>健康检查方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>K8s Executor</strong></td>
+<td>RESTART/SCALE_OUT/ISOLATE</td>
+<td>K8s API（kubectl/pod management）</td>
+<td>K8s readiness/liveness probe</td>
+</tr>
+<tr>
+<td><strong>CMDB Executor</strong></td>
+<td>CONFIG_FIX/SWITCH_TRAFFIC</td>
+<td>CMDB REST API</td>
+<td>HTTP health check / telnet</td>
+</tr>
+<tr>
+<td><strong>LoadBalancer Executor</strong></td>
+<td>SWITCH_TRAFFIC</td>
+<td>LB API（nginx/HAProxy/云 LB）</td>
+<td>TCP port check</td>
+</tr>
+<tr>
+<td><strong>Script Executor</strong></td>
+<td>自定义修复脚本</td>
+<td>SSH 执行远程脚本</td>
+<td>脚本返回码 + 输出</td>
+</tr>
+</tbody></table>
+<h4>3.1.2 执行流程</h4>
+<div class="mermaid">flowchart LR
+    subgraph 输入["输入：动作计划"]
+        AP[动作计划
+Action Plan]
+    end
+
+    subgraph 执行管道["执行管道"]
+        GK[GateKeeper
+审批门控]
+        EX[Executor
+执行器]
+        HC[Health Check
+健康检查]
+        TR[Tracker
+追踪器]
+    end
+
+    subgraph 输出["输出"]
+        ER[执行结果]
+        KC[知识进化
+反馈]
+    end
+
+    AP --> GK --> EX --> HC --> TR --> ER --> KC
+
+    style 执行管道 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 输入 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 输出 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px</div><h3>3.2 审批门控（Approval Gate）</h3>
+<h4>3.2.1 门控检查项</h4>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>描述</th>
+<th>检查方式</th>
+<th>失败处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>安全护栏</strong></td>
+<td>检查动作是否在黑名单中（危险操作）</td>
+<td>规则匹配</td>
+<td>强制人工审批</td>
+</tr>
+<tr>
+<td><strong>权限检查</strong></td>
+<td>验证执行账号是否有权限操作目标节点</td>
+<td>RBAC 检查</td>
+<td>拒绝执行</td>
+</tr>
+<tr>
+<td><strong>资源检查</strong></td>
+<td>检查目标节点资源是否足够执行动作</td>
+<td>查询监控数据</td>
+<td>拒绝或降级</td>
+</tr>
+<tr>
+<td><strong>影响范围检查</strong></td>
+<td>检查动作影响节点数是否超过阈值</td>
+<td>查询拓扑</td>
+<td>强制人工审批</td>
+</tr>
+<tr>
+<td><strong>业务窗口检查</strong></td>
+<td>检查当前是否在禁止操作的业务窗口</td>
+<td>时间窗口规则</td>
+<td>延迟执行</td>
+</tr>
+<tr>
+<td><strong>前置条件检查</strong></td>
+<td>验证动作的 prerequisites 是否满足</td>
+<td>状态查询</td>
+<td>等待或跳过</td>
+</tr>
+</tbody></table>
+<h4>3.2.2 审批规则配置</h4>
+<table>
+<thead>
+<tr>
+<th>风险等级</th>
+<th>动作类型</th>
+<th>审批要求</th>
+<th>自动放行条件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>低风险</td>
+<td>RESTART（非核心服务）、SCALE_OUT</td>
+<td>无需审批，自动执行</td>
+<td>——</td>
+</tr>
+<tr>
+<td>中风险</td>
+<td>RESTART（核心服务）、SWITCH_TRAFFIC</td>
+<td>自动执行，事后通知</td>
+<td>影响节点 &lt; 5</td>
+</tr>
+<tr>
+<td>高风险</td>
+<td>ISOLATE、ROLLBACK（生产环境）、CONFIG_FIX</td>
+<td>强制人工审批</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<h3>3.3 回滚控制器（Rollback Controller）</h3>
+<h4>3.3.1 回滚触发条件</h4>
+<table>
+<thead>
+<tr>
+<th>触发条件</th>
+<th>描述</th>
+<th>处理策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>执行超时</strong></td>
+<td>动作执行超过预设超时时间</td>
+<td>自动触发回滚</td>
+</tr>
+<tr>
+<td><strong>健康检查失败</strong></td>
+<td>执行后健康检查持续失败超过阈值</td>
+<td>自动触发回滚</td>
+</tr>
+<tr>
+<td><strong>执行报错</strong></td>
+<td>执行 API 返回错误</td>
+<td>自动触发回滚</td>
+</tr>
+<tr>
+<td><strong>人工触发</strong></td>
+<td>运维人员手动触发回滚</td>
+<td>人工触发</td>
+</tr>
+</tbody></table>
+<h4>3.3.2 回滚执行流程</h4>
+<div class="mermaid">flowchart TB
+    R1[触发回滚] --> R2[读取 rollback_context]
+    R2 --> R3[执行回滚步骤]
+    R3 --> R4[健康检查验证]
+    R4 --> R5{检查通过?}
+    R5 -->|是| R6[回滚成功]
+    R5 -->|否| R7[重试或升级人工]
+    R6 --> R8[记录回滚日志]
+    R7 --> R8
+
+    style R1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style R6 fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style R7 fill:#fff9c4,stroke:#f9a825,stroke-width:2px</div><h3>3.4 执行追踪器（Execution Tracker）</h3>
+<h4>3.4.1 追踪记录内容</h4>
+<table>
+<thead>
+<tr>
+<th>记录类型</th>
+<th>描述</th>
+<th>记录时机</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>开始记录</strong></td>
+<td>记录动作开始执行的时间、参数、环境</td>
+<td>执行开始时</td>
+</tr>
+<tr>
+<td><strong>状态变更记录</strong></td>
+<td>记录每个状态变更（APPROVED → EXECUTING → SUCCESS）</td>
+<td>状态变更时</td>
+</tr>
+<tr>
+<td><strong>日志记录</strong></td>
+<td>记录执行过程中的详细日志（stdout/stderr）</td>
+<td>实时</td>
+</tr>
+<tr>
+<td><strong>指标记录</strong></td>
+<td>记录执行耗时、资源使用、吞吐量变化</td>
+<td>执行中/完成后</td>
+</tr>
+<tr>
+<td><strong>结果记录</strong></td>
+<td>记录执行结果（成功/失败）、返回数据、影响范围</td>
+<td>执行完成时</td>
+</tr>
+</tbody></table>
+<h3>3.5 安全护栏（Safety Guard）</h3>
+<h4>3.5.1 护栏规则</h4>
+<table>
+<thead>
+<tr>
+<th>护栏类型</th>
+<th>规则描述</th>
+<th>拦截动作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>黑名单拦截</strong></td>
+<td>禁止执行 rm -rf /、drop database 等危险操作</td>
+<td>所有匹配黑名单的操作</td>
+</tr>
+<tr>
+<td><strong>最大影响范围</strong></td>
+<td>单次操作影响节点数不能超过 20 个</td>
+<td>超过阈值的批量操作</td>
+</tr>
+<tr>
+<td><strong>并发执行限制</strong></td>
+<td>同一节点同时只能有 1 个执行任务</td>
+<td>冲突的并发任务</td>
+</tr>
+<tr>
+<td><strong>冷却时间</strong></td>
+<td>同一动作在同一节点需要间隔 5 分钟才能再次执行</td>
+<td>冷却期内的重复动作</td>
+</tr>
+<tr>
+<td><strong>执行时间窗口</strong></td>
+<td>生产环境变更只能在维护窗口（02:00-06:00）执行</td>
+<td>窗口外的生产变更</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. API 设计规范</h2>
+<h3>4.1 REST API（同步查询）</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>描述</th>
+<th>请求体</th>
+<th>响应</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td><code>/api/v1/execution/execute</code></td>
+<td>接收并执行动作计划</td>
+<td>ActionPlan</td>
+<td>ExecutionResponse</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/execution/status/{execution_id}</code></td>
+<td>查询执行状态</td>
+<td>——</td>
+<td>ExecutionStatus</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/execution/logs/{execution_id}</code></td>
+<td>查询执行日志</td>
+<td><code>?tail=100</code></td>
+<td>LogEntry[]</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/execution/rollback/{execution_id}</code></td>
+<td>触发回滚</td>
+<td>RollbackRequest</td>
+<td>RollbackResponse</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/execution/history</code></td>
+<td>查询执行历史</td>
+<td><code>?plan_id=&amp;start_time=</code></td>
+<td>ExecutionRecord[]</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/execution/approve/{workflow_id}</code></td>
+<td>人工审批通过</td>
+<td>ApprovalRequest</td>
+<td>200 OK</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/execution/reject/{workflow_id}</code></td>
+<td>人工审批拒绝</td>
+<td>RejectionRequest</td>
+<td>200 OK</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/v1/execution/safety-rules</code></td>
+<td>更新安全护栏规则</td>
+<td>SafetyRuleConfig</td>
+<td>200 OK</td>
+</tr>
+</tbody></table>
+<h3>4.2 gRPC API（高性能场景）</h3>
+<table>
+<thead>
+<tr>
+<th>服务</th>
+<th>方法</th>
+<th>适用场景</th>
+<th>性能要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ExecutionService</code></td>
+<td><code>ExecuteAction(ActionRequest)</code></td>
+<td>执行单个动作</td>
+<td>P99 &lt; 30s（取决于动作类型）</td>
+</tr>
+<tr>
+<td><code>ExecutionService</code></td>
+<td><code>GetExecutionStatus(StatusRequest)</code></td>
+<td>查询执行状态</td>
+<td>P99 &lt; 100ms</td>
+</tr>
+<tr>
+<td><code>ExecutionService</code></td>
+<td><code>StreamExecutionLog(LogRequest)</code></td>
+<td>流式推送执行日志</td>
+<td>&lt; 100ms 延迟</td>
+</tr>
+</tbody></table>
+<h3>4.3 Kafka 事件（异步通知）</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>事件类型</th>
+<th>发布者</th>
+<th>订阅者</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>execution.started</code></td>
+<td>动作开始执行</td>
+<td>自动执行模块</td>
+<td>Dashboard/知识进化</td>
+<td>推送执行开始事件</td>
+</tr>
+<tr>
+<td><code>execution.completed</code></td>
+<td>动作执行完成</td>
+<td>自动执行模块</td>
+<td>智能决策/知识进化</td>
+<td>推送执行结果</td>
+</tr>
+<tr>
+<td><code>execution.failed</code></td>
+<td>动作执行失败</td>
+<td>自动执行模块</td>
+<td>智能决策/告警系统</td>
+<td>推送失败原因</td>
+</tr>
+<tr>
+<td><code>execution.rollback.triggered</code></td>
+<td>触发回滚</td>
+<td>自动执行模块</td>
+<td>Dashboard/告警系统</td>
+<td>推送回滚事件</td>
+</tr>
+<tr>
+<td><code>execution.approval.required</code></td>
+<td>需要人工审批</td>
+<td>自动执行模块</td>
+<td>告警系统/值班人员</td>
+<td>推送审批请求</td>
+</tr>
+</tbody></table>
+<h3>4.4 API 质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>执行成功率</strong></td>
+<td>&gt; 95%</td>
+<td>&lt; 90%</td>
+<td>动作成功执行的比例</td>
+</tr>
+<tr>
+<td><strong>回滚成功率</strong></td>
+<td>&gt; 98%</td>
+<td>&lt; 95%</td>
+<td>回滚操作成功的比例</td>
+</tr>
+<tr>
+<td><strong>审批延迟</strong></td>
+<td>&lt; 30s</td>
+<td>&gt; 60s</td>
+<td>人工审批平均延迟</td>
+</tr>
+<tr>
+<td><strong>可用率</strong></td>
+<td>99.9%</td>
+<td>&lt; 99.5%</td>
+<td>月度可用率</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. 数据流架构</h2>
+<h3>5.1 整体数据流</h3>
+<div class="mermaid">flowchart LR
+    subgraph 输入["输入"]
+        PLAN[动作计划
+智能决策]
+    end
+
+    subgraph 执行管道["执行管道"]
+        GK[GateKeeper
+审批门控]
+        EX[Executor
+执行器]
+        HC[Health Check
+健康检查]
+        TR[Tracker
+追踪器]
+    end
+
+    subgraph 执行层["执行层"]
+        K8S[K8s API]
+        CMDB[CMDB API]
+    end
+
+    subgraph 输出["输出"]
+        EVT[执行事件
+Kafka]
+        LOG[执行日志
+Elasticsearch]
+        KC[反馈
+知识进化]
+    end
+
+    PLAN --> GK --> EX --> HC --> TR
+    EX -->|执行 API| K8S
+    EX -->|执行 API| CMDB
+    TR --> EVT
+    TR --> LOG
+    EVT --> KC
+
+    style 执行管道 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 输入 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 输出 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style 执行层 fill:#fce4ec,stroke:#c62828,stroke-width:2px</div><h3>5.2 执行-回滚流程</h3>
+<div class="mermaid">flowchart TB
+    subgraph 开始["接收动作计划"]
+        S1[开始执行]
+    end
+
+    subgraph 检查["审批门控"]
+        S2[安全护栏检查]
+        S3{通过?}
+        S3 -->|否| S4[拦截/转人工]
+        S3 -->|是| S5[执行动作]
+    end
+
+    subgraph 执行["执行"]
+        S6[调用 K8s/CMDB API]
+        S7[健康检查]
+        S8{通过?}
+    end
+
+    subgraph 结果["结果"]
+        S9[执行成功]
+        S10[执行失败]
+    end
+
+    subgraph 回滚["回滚"]
+        S11[触发回滚]
+        S12[读取 rollback_context]
+        S13[执行回滚步骤]
+        S14[验证回滚结果]
+    end
+
+    S1 --> S2 --> S3 --> S5 --> S6 --> S7 --> S8
+    S8 -->|是| S9
+    S8 -->|否| S10 --> S11 --> S12 --> S13 --> S14
+
+    style 检查 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 执行 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 结果 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style 回滚 fill:#fce4ec,stroke:#c62828,stroke-width:2px</div><h3>5.3 执行-知识进化闭环</h3>
+<div class="mermaid">flowchart LR
+    subgraph 决策["09 智能决策"]
+        D1[生成动作计划]
+    end
+
+    subgraph 执行["10 自动执行"]
+        E1[执行动作]
+        E2[记录执行结果]
+    end
+
+    subgraph 知识["11 知识进化"]
+        K1[记录执行结果]
+        K2[更新知识图谱]
+        K3[优化决策模型]
+    end
+
+    D1 --> E1 --> E2 --> K1 --> K2 --> K3 -.-> D1
+
+    style 决策 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 执行 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style 知识 fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px</div><hr>
+<h2>6. 模块协作关系</h2>
+<h3>6.1 依赖矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>依赖自动执行的什么</th>
+<th>依赖类型</th>
+<th>接口方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>09 智能决策</strong></td>
+<td>动作计划输出到自动执行模块执行</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>11 知识进化</strong></td>
+<td>执行结果反馈到知识进化模块学习</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>Dashboard</strong></td>
+<td>执行状态实时展示、执行日志查询</td>
+<td>数据依赖</td>
+<td>REST 查询</td>
+</tr>
+<tr>
+<td><strong>告警系统</strong></td>
+<td>执行失败/回滚触发时发送告警</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+</tbody></table>
+<h3>6.2 输出接口契约</h3>
+<h4>6.2.1 执行结果格式</h4>
+<pre><code>{
+  "execution_id": "exe-20260607-001",
+  "action_id": "act-20260607-001",
+  "status": "SUCCESS",
+  "start_time": "2026-06-07T08:17:30Z",
+  "end_time": "2026-06-07T08:18:00Z",
+  "duration_seconds": 30,
+  "result": {
+    "message": "Service restarted successfully",
+    "health_check_passed": true,
+    "replicas_after": 3
+  },
+  "impact": {
+    "affected_nodes": ["svc-001"],
+    "traffic_impact": "minimal"
+  },
+  "execution_log_url": "/api/v1/execution/logs/exe-20260607-001"
+}</code></pre><h4>6.2.2 回滚结果格式</h4>
+<pre><code>{
+  "rollback_id": "rb-20260607-001",
+  "execution_id": "exe-20260607-001",
+  "status": "SUCCESS",
+  "rollback_type": "REPLICA_RESTORE",
+  "trigger_condition": "health_check_failed",
+  "start_time": "2026-06-07T08:18:30Z",
+  "end_time": "2026-06-07T08:19:00Z",
+  "result": {
+    "message": "Replicas restored to 3",
+    "health_check_passed": true
+  }
+}</code></pre><hr>
+<h2>7. 量化指标体系</h2>
+<h3>7.1 执行质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>基线（当前）</th>
+<th>目标</th>
+<th>测量方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>执行成功率</strong></td>
+<td>动作成功执行的比例</td>
+<td>88%</td>
+<td>&gt; 95%</td>
+<td>执行结果统计</td>
+</tr>
+<tr>
+<td><strong>回滚次数</strong></td>
+<td>需要回滚的执行次数</td>
+<td>12%</td>
+<td>&lt; 5%</td>
+<td>执行记录统计</td>
+</tr>
+<tr>
+<td><strong>回滚成功率</strong></td>
+<td>回滚操作成功的比例</td>
+<td>90%</td>
+<td>&gt; 98%</td>
+<td>回滚记录统计</td>
+</tr>
+<tr>
+<td><strong>护栏拦截次数</strong></td>
+<td>安全护栏拦截危险操作的次数</td>
+<td>统计</td>
+<td>保持</td>
+<td>护栏日志统计</td>
+</tr>
+</tbody></table>
+<h3>7.2 性能质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>平均执行时间</strong></td>
+<td>动作从开始到完成的平均时间</td>
+<td>&lt; 60s</td>
+<td>&gt; 120s</td>
+</tr>
+<tr>
+<td><strong>审批延迟</strong></td>
+<td>人工审批平均延迟时间</td>
+<td>&lt; 30s</td>
+<td>&gt; 60s</td>
+</tr>
+<tr>
+<td><strong>并发执行能力</strong></td>
+<td>同时执行的动作数</td>
+<td>20</td>
+<td>&lt; 10</td>
+</tr>
+<tr>
+<td><strong>日志完整性</strong></td>
+<td>执行日志记录完整率</td>
+<td>100%</td>
+<td>&lt; 99%</td>
+</tr>
+</tbody></table>
+<h3>7.3 业务价值指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>当前</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>自动化执行覆盖率</strong></td>
+<td>无需人工干预的执行比例</td>
+<td>65%</td>
+<td>&gt; 85%</td>
+</tr>
+<tr>
+<td><strong>执行可靠性提升</strong></td>
+<td>自动执行减少人工错误的比例</td>
+<td>基准</td>
+<td>+30%</td>
+</tr>
+<tr>
+<td><strong>平均恢复时间缩短</strong></td>
+<td>自动执行提升故障恢复速度</td>
+<td>基准</td>
+<td>-40%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. 部署架构</h2>
+<h3>8.1 K8s 部署拓扑</h3>
+<div class="mermaid">flowchart LR
+    subgraph 控制面["控制面"]
+        API[API Server]
+    end
+
+    subgraph 计算层["计算层"]
+        subgraph 服务["Execution 服务 StatefulSet"]
+            EX1[Execution Service x2]
+        end
+        subgraph 工作器["Executor Worker"]
+            EW1[Executor x3]
+        end
+    end
+
+    subgraph 存储层["存储层"]
+        RD[(Redis
+状态缓存)]
+        ES[(Elasticsearch
+日志存储)]
+        KF[(Kafka
+事件总线)]
+    end
+
+    ID[09 智能决策] -->|Kafka| EX1
+    EX1 -->|写入| RD
+    EX1 -->|日志| ES
+    EX1 -->|事件| KF
+    KF -->|订阅| 11 知识进化
+
+    style 计算层 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 存储层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style EX1 fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><h3>8.2 资源配置</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>副本数</th>
+<th>CPU</th>
+<th>内存</th>
+<th>存储</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Execution Service</strong></td>
+<td>2（主备）</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>StatefulSet，接收执行请求</td>
+</tr>
+<tr>
+<td><strong>Executor Worker</strong></td>
+<td>3（并行）</td>
+<td>2 核</td>
+<td>4 GB</td>
+<td>——</td>
+<td>执行实际修复动作</td>
+</tr>
+<tr>
+<td><strong>GateKeeper</strong></td>
+<td>2</td>
+<td>2 核</td>
+<td>4 GB</td>
+<td>——</td>
+<td>审批门控检查</td>
+</tr>
+<tr>
+<td><strong>Redis Cluster</strong></td>
+<td>3 节点</td>
+<td>2 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>执行状态缓存</td>
+</tr>
+<tr>
+<td><strong>Elasticsearch</strong></td>
+<td>3 节点</td>
+<td>4 核</td>
+<td>16 GB</td>
+<td>500 GB SSD</td>
+<td>执行日志存储</td>
+</tr>
+</tbody></table>
+<h3>8.3 高可用设计</h3>
+<ul>
+<li><strong>服务多副本</strong>：Execution Service 部署 2 副本，Kubernetes 自动负载均衡</li>
+<li><strong>执行器并行</strong>：Executor Worker 3 副本，并行执行不同动作</li>
+<li><strong>状态持久化</strong>：执行状态存储 Redis，Elasticsearch 存储完整日志</li>
+<li><strong>幂等执行</strong>：所有动作设计为幂等操作，支持失败重试</li>
+<li><strong>回滚保障</strong>：每个动作执行前保存回滚上下文，确保可回滚</li>
+</ul>
+<hr>
+<h2>9. 本章小结</h2>
+<h3>9.1 核心要点</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>核心要点</th>
+<th>量化目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>定位</strong></td>
+<td>能力层执行终端，智能决策的执行手臂，安全可靠的修复执行者</td>
+<td>——</td>
+</tr>
+<tr>
+<td><strong>模型</strong></td>
+<td>执行记录模型 + 审批工作流模型 + 回滚策略模型，支撑安全执行</td>
+<td>执行成功率 &gt; 95%</td>
+</tr>
+<tr>
+<td><strong>能力</strong></td>
+<td>动作执行 + 审批门控 + 回滚控制 + 执行追踪 + 安全护栏 5 大能力</td>
+<td>回滚成功率 &gt; 98%</td>
+</tr>
+<tr>
+<td><strong>接口</strong></td>
+<td>REST + gRPC + Kafka，对接 K8s/CMDB 执行，输出执行结果</td>
+<td>平均执行 &lt; 60s</td>
+</tr>
+<tr>
+<td><strong>质量</strong></td>
+<td>执行成功率 / 回滚成功率 / 审批延迟 / 并发能力</td>
+<td>自动化执行覆盖 &gt; 85%</td>
+</tr>
+</tbody></table>
+<h3>9.2 关键成功要素</h3>
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>优先级</th>
+<th>实施策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>安全护栏完善</strong></td>
+<td>P0</td>
+<td>完善黑名单规则和影响范围限制，确保执行安全</td>
+</tr>
+<tr>
+<td><strong>幂等性保证</strong></td>
+<td>P0</td>
+<td>所有动作支持幂等执行，失败可重试不产生副作用</td>
+</tr>
+<tr>
+<td><strong>回滚机制验证</strong></td>
+<td>P1</td>
+<td>定期演练回滚操作，确保回滚成功率达到目标</td>
+</tr>
+<tr>
+<td><strong>执行日志完整性</strong></td>
+<td>P1</td>
+<td>确保执行过程全程可追溯，为复盘提供依据</td>
+</tr>
+<tr>
+<td><strong>对接执行层</strong></td>
+<td>P2</td>
+<td>打通知 K8s/CMDB 等执行层 API，丰富执行器类型</td>
+</tr>
+</tbody></table>
+<h3>9.3 与其他模块的边界</h3>
+<table>
+<thead>
+<tr>
+<th>边界</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>vs 09 智能决策</strong></td>
+<td>智能决策负责「制定计划」，自动执行负责「执行计划」，智能决策输出是自动执行的输入，自动执行反馈执行结果给智能决策</td>
+</tr>
+<tr>
+<td><strong>vs 11 知识进化</strong></td>
+<td>自动执行提供执行结果数据，知识进化学习这些数据优化决策模型，形成闭环</td>
+</tr>
+<tr>
+<td><strong>vs K8s/CMDB 执行层</strong></td>
+<td>自动执行是执行层的统一抽象，对上承接动作计划，对下调用具体执行层 API</td>
+</tr>
+</tbody></table>
+<p><strong>记忆口诀：</strong></p>
+<blockquote>
+<p><strong>动作计划接在手，审批门控先过问；安全护栏不放松，幂等执行保平安；健康检查通过后，执行日志记得全；回滚上下文保存好，随时可回退。</strong></p>
+</blockquote>
+<hr>
+<blockquote>
+<p>本章定义了模块 10 自动执行的详细功能设计规范。自动执行作为能力层的执行终端，承接智能决策的动作计划，通过安全护栏和审批门控确保执行可靠，是 Observable Ops 自动化的最终保障。</p>
+</blockquote>
+<p><em>文档版本：V1.0 | 更新日期：2026-06-07</em></p>
+
+      
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

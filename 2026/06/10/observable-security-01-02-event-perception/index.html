@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 02 event perception<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-01-02-event-perception/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-01-02-event-perception/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>业务 02 · 多维事件感知 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-01-02-event-perception/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          业务 02 · 多维事件感知
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>业务 02 · 多维事件感知</h1>
+<blockquote>
+<p>AI 驱动感知，让威胁无所遁形——从海量告警中精准识别真正风险，误报率降低 7 倍，响应速度提升 6 倍。</p>
+</blockquote>
+<h2 id="痛点问题">1. 痛点问题</h2>
+<blockquote>
+<p><strong>核心理念：</strong> 在 AISOC 体系中，安全事件感知从&quot;规则匹配&quot;演进为&quot;AI 认知&quot;——机器理解攻击上下文，自动判断威胁真伪，让安全分析师从告警疲劳中解放。</p>
+<p><strong>核心定位：</strong> 安全事件感知是智能体系的&quot;感知神经&quot;，AI Agent 作为核心感知引擎，自主完成降噪、聚类、分类、优先级排序，让安全分析师从告警疲劳中解放。</p>
+<p><strong>核心目标：</strong> 从&quot;人看告警&quot;到&quot;AI 预判&quot;，从&quot;70% 误报&quot;到&quot;10% 以内&quot;，从&quot;30min 响应&quot;到&quot;5min 内处置&quot;，实现 90%+ 的感知任务自动化。</p>
+</blockquote>
+<hr>
+<h3 id="告警风暴现状">1.1 告警风暴现状</h3>
+<p>企业在安全运营过程中面临的最严重挑战是<strong>告警疲劳</strong>。传统安全架构下，SIEM、SOC、安全设备产生大量告警，但真正有意义的事件被淹没在噪音中。</p>
+<p><strong>真实场景举例：</strong></p>
+<p>当 SOC 值班员遇到告警风暴时，他需要面对：</p>
+<table>
+<thead>
+<tr>
+<th align="left">问题</th>
+<th align="left">现状</th>
+<th align="left">影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>误报率高</strong></td>
+<td align="left">传统规则告警，误报率 70%+</td>
+<td align="left">安全人员疲于应对，真实威胁被淹没</td>
+</tr>
+<tr>
+<td align="left"><strong>告警孤岛</strong></td>
+<td align="left">各安全设备独立告警，同一攻击被报告10+次</td>
+<td align="left">重复处理，效率低下</td>
+</tr>
+<tr>
+<td align="left"><strong>滞后检测</strong></td>
+<td align="left">基于事后日志分析，攻击已在横向扩散</td>
+<td align="left">错过最佳阻断时机</td>
+</tr>
+<tr>
+<td align="left"><strong>上下文缺失</strong></td>
+<td align="left">单点告警，无关联信息</td>
+<td align="left">无法判断真伪和影响范围</td>
+</tr>
+</tbody></table>
+<p><strong>告警风暴的后果：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 告警风暴
+        direction LR
+        A1["海量告警\\n10,000+/天"]
+        A2["70%+误报率"]
+        A3["重复告警\\n同攻击10+次"]
+        A4["上下文断裂"]
+    end
+    
+    subgraph 结果
+        direction LR
+        R1["分析师疲于应对"]
+        R2["真实威胁被淹没"]
+        R3["响应时间>30min"]
+        R4["安全态势不可见"]
+    end
+    
+    A1 --> R1
+    A2 --> R2
+    A3 --> R3
+    A4 --> R4
+    
+    style A1 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A2 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A3 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style A4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style R1 fill:#fff3e0,stroke:#e65100
+    style R2 fill:#fff3e0,stroke:#e65100
+    style R3 fill:#fff3e0,stroke:#e65100
+    style R4 fill:#fff3e0,stroke:#e65100</div><h3 id="感知的核心挑战">1.2 感知的核心挑战</h3>
+<p>安全事件感知面临五大核心技术挑战：</p>
+<table>
+<thead>
+<tr>
+<th align="left">挑战</th>
+<th align="left">具体表现</th>
+<th align="left">根因分析</th>
+<th align="left">实际影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>海量数据</strong></td>
+<td align="left">每天数亿条日志，产生数百个告警</td>
+<td align="left">安全设备过度敏感，阈值设置不当</td>
+<td align="left">告警溢出，分析师无从下手</td>
+</tr>
+<tr>
+<td align="left"><strong>信号模糊</strong></td>
+<td align="left">攻击行为隐藏在正常流量中</td>
+<td align="left">缺乏基线学习，无法区分异常</td>
+<td align="left">误报率高，真实攻击被忽略</td>
+</tr>
+<tr>
+<td align="left"><strong>时序混乱</strong></td>
+<td align="left">跨设备告警时间戳不同步</td>
+<td align="left">NTP 未同步，时区混乱</td>
+<td align="left">攻击时序错乱，溯源困难</td>
+</tr>
+<tr>
+<td align="left"><strong>上下文断裂</strong></td>
+<td align="left">告警与资产、用户、业务关联困难</td>
+<td align="left">数据孤岛，缺乏统一数据模型</td>
+<td align="left">单点告警，无法判断影响</td>
+</tr>
+<tr>
+<td align="left"><strong>响应滞后</strong></td>
+<td align="left">攻击已在横向扩散才发现</td>
+<td align="left">缺乏实时检测能力</td>
+<td align="left">错过最佳阻断时机</td>
+</tr>
+</tbody></table>
+<h3 id="感知的商业价值">1.3 感知的商业价值</h3>
+<table>
+<thead>
+<tr>
+<th align="left">痛点</th>
+<th align="left">传统方式</th>
+<th align="left">智能感知后</th>
+<th align="left">价值提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>日均告警数量</strong></td>
+<td align="left">10,000+</td>
+<td align="left">&lt; 500</td>
+<td align="left"><strong>压缩 95%</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>误报率</strong></td>
+<td align="left">70%+</td>
+<td align="left">&lt; 10%</td>
+<td align="left"><strong>降低 7x</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>告警响应时间</strong></td>
+<td align="left">30min+</td>
+<td align="left">&lt; 5min</td>
+<td align="left"><strong>提升 6x</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>单事件关联上下文</strong></td>
+<td align="left">3个</td>
+<td align="left">20+个</td>
+<td align="left"><strong>提升 6.7x</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 痛点问题小结：</strong></p>
+<ul>
+<li>告警风暴是安全运营效率低下的核心原因，70%+ 误报率让分析师疲于应对</li>
+<li>五大挑战（海量、模糊、时序、断裂、滞后）相互交织，形成感知的技术壁垒</li>
+<li>智能感知的商业价值巨大，可将告警数量压缩 95%，响应时间提升 6 倍</li>
+</ul>
+<hr>
+<h2 id="业务目标">2. 业务目标</h2>
+<blockquote>
+<p><strong>核心目标：</strong> 构建 AI 驱动的感知引擎，实现从&quot;规则匹配&quot;到&quot;智能认知&quot;的升级，让 AI Agent 自主完成 90%+ 的感知任务，人类只需处理真正复杂的高价值事件。</p>
+</blockquote>
+<hr>
+<h3 id="核心目标">2.1 核心目标</h3>
+<p>构建<strong>智能事件感知引擎</strong>，实现多维感知 + 智能归并 + 异常检测：</p>
+<table>
+<thead>
+<tr>
+<th align="left">核心能力</th>
+<th align="left">说明</th>
+<th align="left">关键指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>降噪</strong></td>
+<td align="left">误报率从 70% 降至 10% 以下</td>
+<td align="left">误报率 &lt; 10%</td>
+</tr>
+<tr>
+<td align="left"><strong>归并</strong></td>
+<td align="left">多源告警智能归并，压缩比 90%+</td>
+<td align="left">日均事件 &lt; 500</td>
+</tr>
+<tr>
+<td align="left"><strong>分级</strong></td>
+<td align="left">事件分级，聚焦高危事件</td>
+<td align="left">P0 事件 100% 检出</td>
+</tr>
+<tr>
+<td align="left"><strong>关联</strong></td>
+<td align="left">自动关联上下文，还原攻击链</td>
+<td align="left">单事件 20+ 上下文</td>
+</tr>
+</tbody></table>
+<p><strong>目标架构图：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 多维感知层
+        direction TB
+        P1["流量异常检测"]
+        P2["行为基线检测"]
+        P3["威胁情报匹配"]
+        P4["资产关联检测"]
+        P5["知识网络赋能"]
+    end
+    
+    subgraph 智能处理层
+        direction TB
+        M1["事件归并引擎"]
+        M2["智能分级引擎"]
+        M3["上下文补全引擎"]
+    end
+    
+    subgraph 事件输出层
+        direction TB
+        O1["P0 紧急事件\\n立即响应"]
+        O2["P1 高危事件\\n4小时内处理"]
+        O3["P2 中危事件\\n24小时内处理"]
+        O4["P3 低危事件\\n按需处理"]
+    end
+    
+    P1 & P2 & P3 & P4 & P5 --> M1 --> M2 --> M3 --> O1 & O2 & O3 & O4
+    
+    style P1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style P4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style P5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style M1 fill:#fff,stroke:#1565c0,stroke-width:3px
+    style M2 fill:#fff,stroke:#e65100,stroke-width:3px
+    style M3 fill:#fff,stroke:#2e7d32,stroke-width:2px
+    style O1 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style O2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style O3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style O4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px</div><hr>
+<h3 id="量化指标">2.2 量化指标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">当前状态</th>
+<th align="left">目标值</th>
+<th align="left">提升幅度</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>日均告警数量</strong></td>
+<td align="left">10,000+</td>
+<td align="left">&lt; 500</td>
+<td align="left">-95%</td>
+<td align="left">从告警到事件压缩</td>
+</tr>
+<tr>
+<td align="left"><strong>误报率</strong></td>
+<td align="left">70%+</td>
+<td align="left">&lt; 10%</td>
+<td align="left">-60%</td>
+<td align="left">AI 识别误报</td>
+</tr>
+<tr>
+<td align="left"><strong>告警响应时间</strong></td>
+<td align="left">30min+</td>
+<td align="left">&lt; 5min</td>
+<td align="left">6x</td>
+<td align="left">智能分级+快速溯源</td>
+</tr>
+<tr>
+<td align="left"><strong>单事件关联上下文</strong></td>
+<td align="left">3个</td>
+<td align="left">20+个</td>
+<td align="left">6.7x</td>
+<td align="left">自动补全上下文</td>
+</tr>
+</tbody></table>
+<p><strong>指标可视化：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">维度</th>
+<th align="left">当前</th>
+<th align="left">目标</th>
+<th align="left">改善效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">日均告警</td>
+<td align="left">████████████ 10,000+</td>
+<td align="left">█ 500</td>
+<td align="left">-95%</td>
+</tr>
+<tr>
+<td align="left">误报率</td>
+<td align="left">████████████ 70%+</td>
+<td align="left">█ 10%</td>
+<td align="left">-60%</td>
+</tr>
+<tr>
+<td align="left">响应时间</td>
+<td align="left">████████████ 30min+</td>
+<td align="left">█ 5min</td>
+<td align="left">6x</td>
+</tr>
+<tr>
+<td align="left">关联上下文</td>
+<td align="left">███░░░░░░░ 3个</td>
+<td align="left">████████████████████ 20+</td>
+<td align="left">6.7x</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="阶段性里程碑">2.3 阶段性里程碑</h3>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">时间</th>
+<th align="left">目标</th>
+<th align="left">关键成果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>Phase 1</strong></td>
+<td align="left">第1-3月</td>
+<td align="left">基础感知能力</td>
+<td align="left">完成5种感知维度接入，误报率降至 30%</td>
+</tr>
+<tr>
+<td align="left"><strong>Phase 2</strong></td>
+<td align="left">第4-6月</td>
+<td align="left">智能归并能力</td>
+<td align="left">实现事件归并，告警压缩 80%，误报率降至 15%</td>
+</tr>
+<tr>
+<td align="left"><strong>Phase 3</strong></td>
+<td align="left">第7-12月</td>
+<td align="left">全面智能感知</td>
+<td align="left">AI 分级 + 上下文关联，误报率 &lt; 10%，响应时间 &lt; 5min</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 业务目标小结：</strong></p>
+<ul>
+<li><strong>核心目标：</strong> 智能事件感知引擎 = 多维感知 + 智能归并 + 异常检测 + 上下文关联</li>
+<li><strong>量化指标：</strong> 日均事件 &lt; 500，误报率 &lt; 10%，响应时间 &lt; 5min</li>
+<li><strong>里程碑：</strong> 12 个月分三阶段实现目标</li>
+</ul>
+<hr>
+<h2 id="关键能力">3. 关键能力</h2>
+<blockquote>
+<p><strong>核心定位：</strong> 关键能力是安全事件感知的核心竞争力，通过多维感知网络、智能归并算法、上下文关联三大核心能力实现精准事件发现。</p>
+</blockquote>
+<hr>
+<h3 id="多维感知网络">3.1 多维感知网络</h3>
+<p><strong>感知架构：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 数据采集层
+        direction TB
+        C1["网络流量\\nFlow/NetFlow"]
+        C2["主机日志\\nHIDS/EDR"]
+        C3["应用日志\\nAPM/WAF"]
+        C4["身份日志\\nIAM/IDaaS"]
+        C5["威胁情报\\nSTIX/OTX"]
+    end
+    
+    subgraph 感知维度层
+        direction TB
+        P1["流量异常检测"]
+        P2["行为基线检测"]
+        P3["威胁情报匹配"]
+        P4["资产拓扑关联"]
+        P5["知识图谱赋能"]
+    end
+    
+    subgraph 感知输出层
+        direction TB
+        O1["网络异常事件"]
+        O2["主机异常事件"]
+        O3["应用异常事件"]
+        O4["身份异常事件"]
+    end
+    
+    C1 & C2 & C3 & C4 & C5 --> P1 & P2 & P3 & P4 & P5 --> O1 & O2 & O3 & O4
+    
+    style C1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style C3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style C4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style C5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style P1 fill:#fff,stroke:#1565c0
+    style P2 fill:#fff,stroke:#e65100
+    style P3 fill:#fff,stroke:#2e7d32
+    style P4 fill:#fff,stroke:#c62828
+    style P5 fill:#fff,stroke:#7b1fa2
+    style O1 fill:#e1f5fe,stroke:#01579b
+    style O2 fill:#e1f5fe,stroke:#01579b
+    style O3 fill:#e1f5fe,stroke:#01579b
+    style O4 fill:#e1f5fe,stroke:#01579b</div><p><strong>感知能力矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">感知维度</th>
+<th align="left">技术手段</th>
+<th align="left">输入数据</th>
+<th align="left">输出事件</th>
+<th align="left">检测率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>网络层</strong></td>
+<td align="left">流量基线、连接图谱、DGA检测</td>
+<td align="left">Flow/NetFlow</td>
+<td align="left">网络异常事件</td>
+<td align="left">92%</td>
+</tr>
+<tr>
+<td align="left"><strong>主机层</strong></td>
+<td align="left">进程行为、文件变更、权限提升</td>
+<td align="left">HIDS/EDR日志</td>
+<td align="left">主机异常事件</td>
+<td align="left">95%</td>
+</tr>
+<tr>
+<td align="left"><strong>应用层</strong></td>
+<td align="left">API调用异常、认证异常、注入检测</td>
+<td align="left">APM/WAF日志</td>
+<td align="left">应用异常事件</td>
+<td align="left">88%</td>
+</tr>
+<tr>
+<td align="left"><strong>身份层</strong></td>
+<td align="left">账号被盗、暴力破解、横向移动</td>
+<td align="left">IAM/IDaaS日志</td>
+<td align="left">身份异常事件</td>
+<td align="left">90%</td>
+</tr>
+<tr>
+<td align="left"><strong>威胁情报</strong></td>
+<td align="left">IOC匹配、战术技术匹配(ATT&amp;CK)</td>
+<td align="left">STIX/OTX Feed</td>
+<td align="left">情报命中事件</td>
+<td align="left">85%</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>💡 <strong>设计原则：</strong> 多维感知互补，单一维度检测率有限，多维度融合可提升至 99%+。</p>
+</blockquote>
+<hr>
+<h3 id="智能归并算法">3.2 智能归并算法</h3>
+<p><strong>归并流程：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 输入
+        direction LR
+        I["海量告警\\n10,000+/天"]
+    end
+    
+    subgraph 归并阶段
+        direction LR
+        M1["① 时间窗口归并\\n5分钟内"]
+        M2["② 攻击链阶段归并\\n同阶段"]
+        M3["③ 资产拓扑归并\\n同资产/同网段"]
+        M4["④ 上下文补全\\n关联资产+用户"]
+    end
+    
+    subgraph 输出
+        direction LR
+        O1["精准事件\\n< 500/天"]
+        O2["事件卡片\\n完整上下文"]
+    end
+    
+    I --> M1 --> M2 --> M3 --> M4 --> O1 & O2
+    
+    style I fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style M1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style M2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style M3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style O1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style O2 fill:#e3f2fd,stroke:#1565c0</div><p><strong>归并算法伪代码：</strong></p>
+<pre><code class="language-python"># 事件归并伪代码
+def merge_events(events):
+    # Step 1: 时间窗口归并（5分钟内）
+    time_grouped = group_by_window(events, 5*60)
+    
+    # Step 2: 攻击链阶段归并（按 Kill Chain 阶段）
+    chain_grouped = group_by_killchain(time_grouped)
+    
+    # Step 3: 资产拓扑归并（同资产/同网段）
+    asset_grouped = group_by_asset_topology(chain_grouped)
+    
+    # Step 4: 上下文补全（关联资产信息、用户信息、业务信息）
+    enriched = enrich_context(asset_grouped)
+    
+    # Step 5: 生成事件卡片
+    return [create_event_card(e) for e in enriched]</code></pre><p><strong>归并效果：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">归并阶段</th>
+<th align="left">输入数量</th>
+<th align="left">输出数量</th>
+<th align="left">压缩比</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>时间窗口归并</strong></td>
+<td align="left">10,000</td>
+<td align="left">6,000</td>
+<td align="left">40%</td>
+</tr>
+<tr>
+<td align="left"><strong>攻击链归并</strong></td>
+<td align="left">6,000</td>
+<td align="left">2,000</td>
+<td align="left">67%</td>
+</tr>
+<tr>
+<td align="left"><strong>资产拓扑归并</strong></td>
+<td align="left">2,000</td>
+<td align="left">800</td>
+<td align="left">60%</td>
+</tr>
+<tr>
+<td align="left"><strong>上下文补全</strong></td>
+<td align="left">800</td>
+<td align="left">500</td>
+<td align="left">37.5%</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="上下文关联">3.3 上下文关联</h3>
+<p><strong>上下文关联能力：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">上下文维度</th>
+<th align="left">关联数据源</th>
+<th align="left">关联字段</th>
+<th align="left">价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>资产上下文</strong></td>
+<td align="left">CMDB、资产清单</td>
+<td align="left">asset_id、资产类型、重要性</td>
+<td align="left">判断影响范围</td>
+</tr>
+<tr>
+<td align="left"><strong>用户上下文</strong></td>
+<td align="left">AD、IAM、4A</td>
+<td align="left">user、department、role</td>
+<td align="left">判断责任人</td>
+</tr>
+<tr>
+<td align="left"><strong>业务上下文</strong></td>
+<td align="left">业务系统清单</td>
+<td align="left">service、business_criticality</td>
+<td align="left">判断业务影响</td>
+</tr>
+<tr>
+<td align="left"><strong>攻击链上下文</strong></td>
+<td align="left">Kill Chain模型</td>
+<td align="left">tactic、technique、procedure</td>
+<td align="left">判断攻击阶段</td>
+</tr>
+<tr>
+<td align="left"><strong>战术上下文</strong></td>
+<td align="left">ATT&amp;CK矩阵</td>
+<td align="left">technique_id、procedure</td>
+<td align="left">判断攻击者意图</td>
+</tr>
+</tbody></table>
+<p><strong>上下文关联示例：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">告警字段</th>
+<th align="left">原始值</th>
+<th align="left">关联补全</th>
+<th align="left">关联后</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">src_ip</td>
+<td align="left">192.168.1.100</td>
+<td align="left">→ 用户 <a href="mailto:zhangsan@corp.com">zhangsan@corp.com</a></td>
+<td align="left">192.168.1.100 (zhangsan)</td>
+</tr>
+<tr>
+<td align="left">asset_id</td>
+<td align="left">HOST-001</td>
+<td align="left">→ 资产类型 Server</td>
+<td align="left">HOST-001 (Server)</td>
+</tr>
+<tr>
+<td align="left">target_port</td>
+<td align="left">443</td>
+<td align="left">→ 业务 e-commerce</td>
+<td align="left">443 (e-commerce)</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 关键能力小结：</strong></p>
+<ul>
+<li><strong>多维感知网络：</strong> 5个感知维度，覆盖网络/主机/应用/身份/情报，检测率 90%+</li>
+<li><strong>智能归并算法：</strong> 4阶段归并，从 10,000 压缩到 &lt; 500，压缩比 95%+</li>
+<li><strong>上下文关联：</strong> 5个关联维度，20+ 上下文信息，还原完整攻击链</li>
+</ul>
+<hr>
+<h2 id="核心技术">4. 核心技术</h2>
+<blockquote>
+<p><strong>核心定位：</strong> 核心技术是安全事件感知的技术底座，通过流式异常检测、事件标准化、实时计算框架三大技术支柱，实现实时精准的事件发现。</p>
+</blockquote>
+<hr>
+<h3 id="流式异常检测">4.1 流式异常检测</h3>
+<p><strong>异常检测技术栈：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">技术</th>
+<th align="left">原理</th>
+<th align="left">应用场景</th>
+<th align="left">检测率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>统计基线</strong></td>
+<td align="left">历史数据学习正常分布，检测偏离</td>
+<td align="left">流量异常、访问异常</td>
+<td align="left">85%</td>
+</tr>
+<tr>
+<td align="left"><strong>时序预测</strong></td>
+<td align="left">ARIMA/LSTM 预测下一时刻，检测异常</td>
+<td align="left">性能异常、趋势预警</td>
+<td align="left">88%</td>
+</tr>
+<tr>
+<td align="left"><strong>图异常检测</strong></td>
+<td align="left">GNN 学习正常图结构，检测异常子图</td>
+<td align="left">横向移动、账号横向</td>
+<td align="left">92%</td>
+</tr>
+<tr>
+<td align="left"><strong>NLP 语义分析</strong></td>
+<td align="left">大模型判断告警语义相关性</td>
+<td align="left">误报识别、事件研判</td>
+<td align="left">90%</td>
+</tr>
+</tbody></table>
+<p><strong>异常检测架构：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 数据输入
+        direction TB
+        D1["实时流数据"]
+        D2["历史基线数据"]
+    end
+    
+    subgraph 检测引擎
+        direction TB
+        E1["统计基线检测"]
+        E2["时序预测检测"]
+        E3["图异常检测"]
+        E4["NLP语义检测"]
+    end
+    
+    subgraph 检测输出
+        direction TB
+        O1["异常事件\\n置信度评分"]
+        O2["异常类型\\n正常/可疑/恶意"]
+        O3["异常解释\\n为什么异常"]
+    end
+    
+    D1 & D2 --> E1 & E2 & E3 & E4 --> O1 & O2 & O3
+    
+    style D1 fill:#e3f2fd,stroke:#1565c0
+    style D2 fill:#fff3e0,stroke:#e65100
+    style E1 fill:#fff,stroke:#1565c0
+    style E2 fill:#fff,stroke:#e65100
+    style E3 fill:#fff,stroke:#2e7d32
+    style E4 fill:#fff,stroke:#c62828
+    style O1 fill:#fce4ec,stroke:#c62828
+    style O2 fill:#f3e5f5,stroke:#7b1fa2
+    style O3 fill:#e1f5fe,stroke:#01579b</div><blockquote>
+<p>💡 <strong>最佳实践：</strong> 多技术融合，不同场景使用不同检测方法，互补提升检测率。</p>
+</blockquote>
+<hr>
+<h3 id="事件标准化">4.2 事件标准化</h3>
+<p><strong>STIX/TAXII 标准采用：</strong></p>
+<p>采用 <strong>STIX（Structured Threat Information Expression）</strong> 进行事件标准化：</p>
+<table>
+<thead>
+<tr>
+<th align="left">STIX 组件</th>
+<th align="left">用途</th>
+<th align="left">字段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>Observable</strong></td>
+<td align="left">可观察对象（IP、域名、文件等）</td>
+<td align="left">type, value, hashes</td>
+</tr>
+<tr>
+<td align="left"><strong>Indicator</strong></td>
+<td align="left">威胁指标（检测规则）</td>
+<td align="left">pattern, valid_from, malware</td>
+</tr>
+<tr>
+<td align="left"><strong>Incident</strong></td>
+<td align="left">安全事件（实际发生）</td>
+<td align="left">confidence, source, affected_asset</td>
+</tr>
+<tr>
+<td align="left"><strong>Attack Pattern</strong></td>
+<td align="left">攻击模式（MITRE ATT&amp;CK）</td>
+<td align="left">name, kill_chain_phases</td>
+</tr>
+</tbody></table>
+<p><strong>事件标准化格式：</strong></p>
+<pre><code class="language-json">{
+  "event": {
+    "type": "incident",
+    "id": "incident-2026-05-31-001",
+    "timestamp": "2026-05-31T09:00:00Z",
+    "confidence": 0.85,
+    "severity": "high",
+    "pattern": {
+      "type": "attack-pattern",
+      "name": "Exploitation of Web Vulnerability",
+      "kill_chain": "reconnaissance → initial_access → execution"
+    },
+    "observable": {
+      "src_ip": "192.168.1.100",
+      "dst_ip": "10.0.0.50",
+      "dst_port": 443
+    },
+    "evidence": [
+      "src_ip from threat_actor_db",
+      "target has CVE-2024-1234"
+    ],
+    "affected_asset": {
+      "asset_id": "HOST-001",
+      "asset_type": "Web Server",
+      "business_impact": "high"
+    }
+  }
+}</code></pre><blockquote>
+<p>💡 <strong>标准化价值：</strong> 统一格式便于跨系统关联、跨团队共享、长期归档分析。</p>
+</blockquote>
+<hr>
+<h3 id="实时计算框架">4.3 实时计算框架</h3>
+<p><strong>技术选型：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">组件</th>
+<th align="left">选型</th>
+<th align="left">作用</th>
+<th align="left">关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>流处理引擎</strong></td>
+<td align="left">Apache Flink</td>
+<td align="left">实时流处理，支持状态管理</td>
+<td align="left">100 并行度，Checkpoint</td>
+</tr>
+<tr>
+<td align="left"><strong>规则引擎</strong></td>
+<td align="left">Drools</td>
+<td align="left">复杂事件处理，支持复杂逻辑</td>
+<td align="left">规则热更新</td>
+</tr>
+<tr>
+<td align="left"><strong>机器学习</strong></td>
+<td align="left">TensorFlow/PyTorch</td>
+<td align="left">在线学习，模型实时更新</td>
+<td align="left">模型 A/B 测试</td>
+</tr>
+<tr>
+<td align="left"><strong>消息队列</strong></td>
+<td align="left">Apache Kafka</td>
+<td align="left">告警缓冲，事件分发</td>
+<td align="left">3 Broker，副本因子 3</td>
+</tr>
+</tbody></table>
+<p><strong>实时计算架构：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 数据输入
+        direction LR
+        D["告警数据\\n多源输入"]
+    end
+    
+    subgraph 实时处理
+        direction LR
+        F1["Flink 流处理"]
+        F2["规则引擎\\nDrools"]
+        F3["ML 模型\\n在线推理"]
+    end
+    
+    subgraph 事件输出
+        direction LR
+        E1["事件卡片\\n归并后事件"]
+        E2["告警\\n原始告警"]
+        E3["情报\\n命中的IOC"]
+    end
+    
+    D --> F1 --> F2 --> F3 --> E1 & E2 & E3
+    
+    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style F1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style F2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style F3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style E1 fill:#fce4ec,stroke:#c62828
+    style E2 fill:#f3e5f5,stroke:#7b1fa2
+    style E3 fill:#e1f5fe,stroke:#01579b</div><hr>
+<p><strong>📌 核心技术小结：</strong></p>
+<ul>
+<li><strong>流式异常检测：</strong> 4种检测技术（统计/时序/图/NLP），检测率 90%+</li>
+<li><strong>事件标准化：</strong> STIX/TAXII 标准，统一格式便于关联分析</li>
+<li><strong>实时计算框架：</strong> Flink + Drools + ML，支撑 100K events/min 处理</li>
+</ul>
+<hr>
+<h2 id="用户体验">5. 用户体验</h2>
+<blockquote>
+<p><strong>核心定位：</strong> 用户体验是安全事件感知的最终衡量标准，通过极简操作、智能辅助、透明可见三大体验支柱，让安全团队专注于事件研判，而非工具操作。</p>
+</blockquote>
+<hr>
+<h3 id="安全分析师视角">5.1 安全分析师视角</h3>
+<p><strong>核心体验：</strong> 安全分析师关注的是事件信息的完整性和研判效率。</p>
+<p><strong>用户旅程：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">用户行为</th>
+<th align="left">系统响应</th>
+<th align="left">体验指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>发现阶段</strong></td>
+<td align="left">查看事件列表</td>
+<td align="left">智能分级，聚焦高危</td>
+<td align="left">P0 事件优先展示</td>
+</tr>
+<tr>
+<td align="left"><strong>研判阶段</strong></td>
+<td align="left">点击事件查看详情</td>
+<td align="left">自动还原攻击链</td>
+<td align="left">&lt; 30s 完成研判</td>
+</tr>
+<tr>
+<td align="left"><strong>处置阶段</strong></td>
+<td align="left">执行处置动作</td>
+<td align="left">一键处置剧本</td>
+<td align="left">&lt; 1min 完成处置</td>
+</tr>
+<tr>
+<td align="left"><strong>记录阶段</strong></td>
+<td align="left">记录研判结论</td>
+<td align="left">AI 自动生成摘要</td>
+<td align="left">&lt; 10s 生成报告</td>
+</tr>
+</tbody></table>
+<p><strong>关键功能：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">功能</th>
+<th align="left">说明</th>
+<th align="left">用户价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>单屏可见</strong></td>
+<td align="left">所有感知结果一屏展示，无需切换</td>
+<td align="left">提升研判效率</td>
+</tr>
+<tr>
+<td align="left"><strong>一键溯源</strong></td>
+<td align="left">点击告警，自动还原攻击链</td>
+<td align="left">减少溯源时间</td>
+</tr>
+<tr>
+<td align="left"><strong>智能摘要</strong></td>
+<td align="left">AI 自动生成事件摘要</td>
+<td align="left">减少报告时间</td>
+</tr>
+<tr>
+<td align="left"><strong>协同研判</strong></td>
+<td align="left">多人在线协同研判</td>
+<td align="left">提升团队效率</td>
+</tr>
+</tbody></table>
+<p><strong>体验优化设计：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 用户操作
+        direction LR
+        U1["查看事件列表"]
+        U2["点击事件详情"]
+        U3["执行处置动作"]
+        U4["生成研判报告"]
+    end
+    
+    subgraph 系统响应
+        direction LR
+        S1["智能分级展示\\nP0优先"]
+        S2["攻击链还原\\n上下文补全"]
+        S3["一键处置\\n剧本执行"]
+        S4["AI摘要生成\\n自动归档"]
+    end
+    
+    U1 --> S1
+    U2 --> S2
+    U3 --> S3
+    U4 --> S4
+    
+    style U1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style U2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style U3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style U4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style S1 fill:#fff,stroke:#1565c0
+    style S2 fill:#fff,stroke:#e65100
+    style S3 fill:#fff,stroke:#2e7d32
+    style S4 fill:#fff,stroke:#c62828</div><blockquote>
+<p>💡 <strong>设计原则：</strong> 安全分析师需要&quot;一键操作&quot;而非&quot;多步配置&quot;，系统应该&quot;简单到无需学习&quot;。</p>
+</blockquote>
+<hr>
+<h3 id="soc-值班员视角">5.2 SOC 值班员视角</h3>
+<p><strong>核心体验：</strong> SOC 值班员关注的是值班期间的效率和信息完整性。</p>
+<p><strong>用户旅程：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">用户行为</th>
+<th align="left">系统响应</th>
+<th align="left">体验指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>接班阶段</strong></td>
+<td align="left">查看待办事件</td>
+<td align="left">今日待处理清单</td>
+<td align="left">&lt; 1min 了解情况</td>
+</tr>
+<tr>
+<td align="left"><strong>处置阶段</strong></td>
+<td align="left">处理高危事件</td>
+<td align="left">内置处置剧本</td>
+<td align="left">&lt; 5min 完成</td>
+</tr>
+<tr>
+<td align="left"><strong>交班阶段</strong></td>
+<td align="left">生成值班报告</td>
+<td align="left">AI 自动生成</td>
+<td align="left">&lt; 2min 完成</td>
+</tr>
+<tr>
+<td align="left"><strong>复盘阶段</strong></td>
+<td align="left">查看处置历史</td>
+<td align="left">事件时间线</td>
+<td align="left">&lt; 30s 查看</td>
+</tr>
+</tbody></table>
+<p><strong>关键功能：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">功能</th>
+<th align="left">说明</th>
+<th align="left">用户价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>分级展示</strong></td>
+<td align="left">严重/高/中/低四级事件</td>
+<td align="left">聚焦高危</td>
+</tr>
+<tr>
+<td align="left"><strong>待办清单</strong></td>
+<td align="left">今日待处理事件清单</td>
+<td align="left">有序处置</td>
+</tr>
+<tr>
+<td align="left"><strong>一键处置</strong></td>
+<td align="left">内置常见处置剧本</td>
+<td align="left">快速响应</td>
+</tr>
+<tr>
+<td align="left"><strong>值班报告</strong></td>
+<td align="left">自动生成值班报告</td>
+<td align="left">高效交班</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="用户体验指标">5.3 用户体验指标</h3>
+<p><strong>量化指标体系：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">指标类别</th>
+<th align="left">指标名称</th>
+<th align="left">目标值</th>
+<th align="left">当前值</th>
+<th align="left">差距</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>研判效率</strong></td>
+<td align="left">平均事件研判时间</td>
+<td align="left">&lt; 30s</td>
+<td align="left">2min</td>
+<td align="left">-90s</td>
+</tr>
+<tr>
+<td align="left"><strong>响应效率</strong></td>
+<td align="left">P0 事件响应时间</td>
+<td align="left">&lt; 5min</td>
+<td align="left">15min</td>
+<td align="left">-10min</td>
+</tr>
+<tr>
+<td align="left"><strong>报告效率</strong></td>
+<td align="left">事件报告生成时间</td>
+<td align="left">&lt; 10s</td>
+<td align="left">5min</td>
+<td align="left">-290s</td>
+</tr>
+<tr>
+<td align="left"><strong>用户满意度</strong></td>
+<td align="left">NPS 评分</td>
+<td align="left">&gt; 60</td>
+<td align="left">45</td>
+<td align="left">-15</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 用户体验小结：</strong></p>
+<ul>
+<li><strong>安全分析师：</strong> 单屏可见、一键溯源、智能摘要、协同研判，让研判更高效</li>
+<li><strong>SOC 值班员：</strong> 分级展示、待办清单、一键处置、值班报告，让值班更轻松</li>
+<li><strong>体验指标：</strong> 研判时间 &lt; 30s，响应时间 &lt; 5min，报告时间 &lt; 10s</li>
+</ul>
+<hr>
+<h2 id="系统质量">6. 系统质量</h2>
+<blockquote>
+<p><strong>核心定位（AISOC演进）：</strong> 系统质量从&quot;可用性保障&quot;升级为&quot;智能可靠性&quot;——AI 系统不仅要知道&quot;怎么做&quot;，还要知道&quot;什么时候做错&quot;并自动修正。</p>
+<p><strong>可靠性新内涵：</strong> 除了传统的可用性，更要保证 AI 感知的准确性、可解释性、可审计性。</p>
+</blockquote>
+<hr>
+<h3 id="感知性能指标">6.1 感知性能指标</h3>
+<p><strong>核心性能指标：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">目标值</th>
+<th align="left">当前值</th>
+<th align="left">差距</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>告警处理峰值</strong></td>
+<td align="left">100,000 events/min</td>
+<td align="left">80,000 events/min</td>
+<td align="left">+20K/min</td>
+<td align="left">需扩容</td>
+</tr>
+<tr>
+<td align="left"><strong>事件生成延迟</strong></td>
+<td align="left">&lt; 10s</td>
+<td align="left">15s</td>
+<td align="left">+5s</td>
+<td align="left">需优化管道</td>
+</tr>
+<tr>
+<td align="left"><strong>误报率</strong></td>
+<td align="left">&lt; 10%</td>
+<td align="left">15%</td>
+<td align="left">+5%</td>
+<td align="left">需优化模型</td>
+</tr>
+<tr>
+<td align="left"><strong>归并压缩比</strong></td>
+<td align="left">&gt; 90%</td>
+<td align="left">85%</td>
+<td align="left">+5%</td>
+<td align="left">需优化归并算法</td>
+</tr>
+</tbody></table>
+<p><strong>性能测试结果：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">测试场景</th>
+<th align="left">目标指标</th>
+<th align="left">实际结果</th>
+<th align="left">通过率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>告警处理峰值</strong></td>
+<td align="left">100K/min</td>
+<td align="left">105K/min</td>
+<td align="left">✅ 105%</td>
+</tr>
+<tr>
+<td align="left"><strong>事件生成延迟</strong></td>
+<td align="left">P99 &lt; 10s</td>
+<td align="left">P99 = 9s</td>
+<td align="left">✅ 90%</td>
+</tr>
+<tr>
+<td align="left"><strong>误报率</strong></td>
+<td align="left">&lt; 10%</td>
+<td align="left">9.5%</td>
+<td align="left">✅ 95%</td>
+</tr>
+<tr>
+<td align="left"><strong>归并压缩比</strong></td>
+<td align="left">&gt; 90%</td>
+<td align="left">91%</td>
+<td align="left">✅ 101%</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="可用性要求">6.2 可用性要求</h3>
+<p><strong>高可用架构设计：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">组件</th>
+<th align="left">可用性目标</th>
+<th align="left">设计方案</th>
+<th align="left">故障切换时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>感知引擎</strong></td>
+<td align="left">99.9%</td>
+<td align="left">多节点部署，自动故障转移</td>
+<td align="left">&lt; 30s</td>
+</tr>
+<tr>
+<td align="left"><strong>规则管理</strong></td>
+<td align="left">99.99%</td>
+<td align="left">规则热更新，无需重启</td>
+<td align="left">0（热更新）</td>
+</tr>
+<tr>
+<td align="left"><strong>模型更新</strong></td>
+<td align="left">99.9%</td>
+<td align="left">模型 A/B 测试，灰度发布</td>
+<td align="left">&lt; 1min</td>
+</tr>
+</tbody></table>
+<p><strong>容灾设计方案：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 感知层
+        direction TB
+        P1["感知节点-1"]
+        P2["感知节点-2"]
+        P3["感知节点-N"]
+    end
+    
+    subgraph 处理层
+        direction TB
+        F1["Flink-1"]
+        F2["Flink-2"]
+    end
+    
+    subgraph 输出层
+        direction TB
+        O1["事件输出-1"]
+        O2["事件输出-2"]
+    end
+    
+    P1 & P2 & P3 -->|负载均衡| F1 & F2 --> O1 & O2
+    
+    style P1 fill:#e3f2fd,stroke:#1565c0
+    style P2 fill:#fff3e0,stroke:#e65100
+    style P3 fill:#e8f5e9,stroke:#2e7d32
+    style F1 fill:#fce4ec,stroke:#c62828
+    style F2 fill:#fce4ec,stroke:#c62828
+    style O1 fill:#f3e5f5,stroke:#7b1fa2
+    style O2 fill:#f3e5f5,stroke:#7b1fa2</div><p><strong>故障场景与应对：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">故障场景</th>
+<th align="left">影响范围</th>
+<th align="left">应对策略</th>
+<th align="left">恢复时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>感知节点宕机</strong></td>
+<td align="left">单节点数据采集中断</td>
+<td align="left">自动切换到备用节点</td>
+<td align="left">&lt; 30s</td>
+</tr>
+<tr>
+<td align="left"><strong>Flink 任务失败</strong></td>
+<td align="left">实时处理中断</td>
+<td align="left">Checkpoint 自动恢复</td>
+<td align="left">&lt; 1min</td>
+</tr>
+<tr>
+<td align="left"><strong>规则加载失败</strong></td>
+<td align="left">新规则无法生效</td>
+<td align="left">回滚到上一版本规则</td>
+<td align="left">&lt; 10s</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="扩展性">6.3 扩展性</h3>
+<p><strong>扩展性架构设计：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">扩展维度</th>
+<th align="left">扩展方式</th>
+<th align="left">扩展能力</th>
+<th align="left">配置方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>感知维度扩展</strong></td>
+<td align="left">插件式接入</td>
+<td align="left">无限扩展</td>
+<td align="left">配置文件声明</td>
+</tr>
+<tr>
+<td align="left"><strong>处理能力扩展</strong></td>
+<td align="left">Flink 任务弹性伸缩</td>
+<td align="left">100K events/min</td>
+<td align="left">基于负载自动扩容</td>
+</tr>
+<tr>
+<td align="left"><strong>存储扩展</strong></td>
+<td align="left">分层存储</td>
+<td align="left">PB 级事件存储</td>
+<td align="left">自动分层策略</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="监控与告警">6.4 监控与告警</h3>
+<p><strong>系统监控指标：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">监控维度</th>
+<th align="left">指标名称</th>
+<th align="left">目标值</th>
+<th align="left">告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>感知</strong></td>
+<td align="left">感知节点存活率</td>
+<td align="left">&gt; 99%</td>
+<td align="left">&lt; 95%</td>
+</tr>
+<tr>
+<td align="left"><strong>处理</strong></td>
+<td align="left">Flink 处理延迟</td>
+<td align="left">&lt; 100ms</td>
+<td align="left">&gt; 500ms</td>
+</tr>
+<tr>
+<td align="left"><strong>输出</strong></td>
+<td align="left">事件生成成功率</td>
+<td align="left">&gt; 99.9%</td>
+<td align="left">&lt; 99%</td>
+</tr>
+<tr>
+<td align="left"><strong>归并</strong></td>
+<td align="left">归并压缩比</td>
+<td align="left">&gt; 90%</td>
+<td align="left">&lt; 80%</td>
+</tr>
+</tbody></table>
+<p><strong>告警等级定义：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">告警等级</th>
+<th align="left">触发条件</th>
+<th align="left">通知方式</th>
+<th align="left">处理时效</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>P0 紧急</strong></td>
+<td align="left">感知引擎不可用</td>
+<td align="left">电话+短信+邮件</td>
+<td align="left">15分钟内响应</td>
+</tr>
+<tr>
+<td align="left"><strong>P1 高</strong></td>
+<td align="left">事件生成延迟 &gt; 30s</td>
+<td align="left">短信+邮件</td>
+<td align="left">1小时内响应</td>
+</tr>
+<tr>
+<td align="left"><strong>P2 中</strong></td>
+<td align="left">归并压缩比 &lt; 80%</td>
+<td align="left">邮件</td>
+<td align="left">4小时内响应</td>
+</tr>
+<tr>
+<td align="left"><strong>P3 低</strong></td>
+<td align="left">轻微性能下降</td>
+<td align="left">邮件</td>
+<td align="left">次日内响应</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 系统质量小结：</strong></p>
+<ul>
+<li><strong>性能指标：</strong> 100K events/min 处理，&lt; 10s 延迟，&lt; 10% 误报率，&gt; 90% 压缩比</li>
+<li><strong>可用性设计：</strong> 99.9% 可用性，&lt; 30s 故障切换，Checkpoint 自动恢复</li>
+<li><strong>扩展性架构：</strong> 感知维度扩展、处理能力弹性伸缩、PB 级存储</li>
+</ul>
+<hr>
+<h2 id="特性运营">7. 特性运营</h2>
+<blockquote>
+<p><strong>核心定位：</strong> 特性运营是安全事件感知的持续保障，通过感知规则管理、运营指标监控、持续优化三大运营支柱，确保感知能力持续提升。</p>
+</blockquote>
+<hr>
+<h3 id="感知规则管理">7.1 感知规则管理</h3>
+<p><strong>规则生命周期管理：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 生命周期
+        direction LR
+        L1["规则创建\\n需求评审"]
+        L2["规则测试\\n离线验证"]
+        L3["规则上线\\n灰度发布"]
+        L4["规则监控\\n效果评估"]
+        L5["规则优化\\n阈值调优"]
+        L6["规则下线\\n归档保留"]
+    end
+    
+    L1 --> L2 --> L3 --> L4 --> L5 --> L6
+    
+    style L1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L6 fill:#fce4ec,stroke:#c62828,stroke-width:2px</div><p><strong>规则有效性评估：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">规则名称</th>
+<th align="left">检出数/天</th>
+<th align="left">确认攻击数</th>
+<th align="left">有效率</th>
+<th align="left">状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>暴力破解检测</strong></td>
+<td align="left">50</td>
+<td align="left">5</td>
+<td align="left">10%</td>
+<td align="left">需优化</td>
+</tr>
+<tr>
+<td align="left"><strong>横向移动检测</strong></td>
+<td align="left">30</td>
+<td align="left">8</td>
+<td align="left">26.7%</td>
+<td align="left">正常</td>
+</tr>
+<tr>
+<td align="left"><strong>异常外连检测</strong></td>
+<td align="left">80</td>
+<td align="left">12</td>
+<td align="left">15%</td>
+<td align="left">正常</td>
+</tr>
+<tr>
+<td align="left"><strong>数据外泄检测</strong></td>
+<td align="left">20</td>
+<td align="left">2</td>
+<td align="left">10%</td>
+<td align="left">需优化</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="感知运营指标">7.2 感知运营指标</h3>
+<p><strong>运营效果量化：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">运营指标</th>
+<th align="left">目标值</th>
+<th align="left">当前值</th>
+<th align="left">差距</th>
+<th align="left">优化计划</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>日均感知事件数</strong></td>
+<td align="left">&lt; 100</td>
+<td align="left">150</td>
+<td align="left">+50</td>
+<td align="left">优化归并算法</td>
+</tr>
+<tr>
+<td align="left"><strong>高危事件检出率</strong></td>
+<td align="left">&gt; 95%</td>
+<td align="left">92%</td>
+<td align="left">-3%</td>
+<td align="left">增加检测规则</td>
+</tr>
+<tr>
+<td align="left"><strong>误报率</strong></td>
+<td align="left">&lt; 10%</td>
+<td align="left">12%</td>
+<td align="left">+2%</td>
+<td align="left">优化模型阈值</td>
+</tr>
+<tr>
+<td align="left"><strong>平均响应时间</strong></td>
+<td align="left">&lt; 5min</td>
+<td align="left">8min</td>
+<td align="left">+3min</td>
+<td align="left">简化处置流程</td>
+</tr>
+</tbody></table>
+<p><strong>感知运营指标体系：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">指标类别</th>
+<th align="left">指标名称</th>
+<th align="left">计算公式</th>
+<th align="left">目标</th>
+<th align="left">当前</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>检测效果</strong></td>
+<td align="left">高危事件检出率</td>
+<td align="left">确认攻击数/总事件数</td>
+<td align="left">&gt; 95%</td>
+<td align="left">92%</td>
+</tr>
+<tr>
+<td align="left"><strong>检测效果</strong></td>
+<td align="left">误报率</td>
+<td align="left">误报数/总告警数</td>
+<td align="left">&lt; 10%</td>
+<td align="left">12%</td>
+</tr>
+<tr>
+<td align="left"><strong>响应效率</strong></td>
+<td align="left">平均响应时间</td>
+<td align="left">事件处理时长</td>
+<td align="left">&lt; 5min</td>
+<td align="left">8min</td>
+</tr>
+<tr>
+<td align="left"><strong>运营效率</strong></td>
+<td align="left">规则有效率</td>
+<td align="left">有效规则数/总规则数</td>
+<td align="left">&gt; 80%</td>
+<td align="left">75%</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="持续优化机制">7.3 持续优化机制</h3>
+<p><strong>持续优化流程：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 数据输入
+        direction LR
+        D["告警数据\\n每日汇聚"]
+    end
+    
+    subgraph 分析
+        direction LR
+        A1["误报分析\\nAI自动识别"]
+        A2["漏报分析\\n回溯确认"]
+        A3["趋势分析\\n模式识别"]
+    end
+    
+    subgraph 优化
+        direction LR
+        O1["规则调优\\n阈值优化"]
+        O2["模型更新\\n增量学习"]
+        O3["规则新增\\n场景补充"]
+    end
+    
+    subgraph 输出
+        direction LR
+        O4["感知能力提升\\n持续迭代"]
+    end
+    
+    D --> A1 & A2 & A3 --> O1 & O2 & O3 --> O4
+    
+    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A1 fill:#fff3e0,stroke:#e65100
+    style A2 fill:#fff3e0,stroke:#e65100
+    style A3 fill:#fff3e0,stroke:#e65100
+    style O1 fill:#e8f5e9,stroke:#2e7d32
+    style O2 fill:#e8f5e9,stroke:#2e7d32
+    style O3 fill:#e8f5e9,stroke:#2e7d32
+    style O4 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px</div><p><strong>优化迭代机制：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">优化类型</th>
+<th align="left">优化频率</th>
+<th align="left">优化内容</th>
+<th align="left">效果评估</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>规则调优</strong></td>
+<td align="left">每周</td>
+<td align="left">根据误报数据调整阈值</td>
+<td align="left">误报率下降</td>
+</tr>
+<tr>
+<td align="left"><strong>模型更新</strong></td>
+<td align="left">每月</td>
+<td align="left">增量学习新攻击模式</td>
+<td align="left">检出率提升</td>
+</tr>
+<tr>
+<td align="left"><strong>规则新增</strong></td>
+<td align="left">按需</td>
+<td align="left">新发现攻击模式及时补充</td>
+<td align="left">覆盖面扩大</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 特性运营小结：</strong></p>
+<ul>
+<li><strong>规则管理：</strong> 规则生命周期管理（创建→测试→上线→监控→优化→下线）</li>
+<li><strong>运营指标：</strong> 日均事件 &lt; 100，检出率 &gt; 95%，误报率 &lt; 10%</li>
+<li><strong>持续优化：</strong> 误报分析 + 漏报分析 + 趋势分析，持续迭代提升</li>
+</ul>
+<hr>
+<h2 id="本章小结">8. 本章小结</h2>
+<blockquote>
+<p><strong>核心理念：</strong> 安全事件感知是&quot;发现问题&quot;的关键环节。从&quot;看到告警&quot;到&quot;看清事件&quot;，让安全团队专注于真正重要的事件。</p>
+</blockquote>
+<hr>
+<h3 id="核心成果">核心成果</h3>
+<p><strong>感知架构：</strong></p>
+<div class="mermaid">graph TB
+    subgraph 多维感知层
+        direction TB
+        P1["网络层感知"]
+        P2["主机层感知"]
+        P3["应用层感知"]
+        P4["身份层感知"]
+        P5["情报层感知"]
+    end
+    
+    subgraph 智能处理层
+        direction TB
+        M1["事件归并引擎"]
+        M2["智能分级引擎"]
+        M3["上下文关联引擎"]
+    end
+    
+    subgraph 事件输出层
+        direction TB
+        O1["P0 紧急\\n立即响应"]
+        O2["P1 高危\\n4小时处理"]
+        O3["P2 中危\\n24小时处理"]
+        O4["P3 低危\\n按需处理"]
+    end
+    
+    P1 & P2 & P3 & P4 & P5 --> M1 --> M2 --> M3 --> O1 & O2 & O3 & O4
+    
+    style P1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style P4 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style P5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style M1 fill:#fff,stroke:#1565c0,stroke-width:3px
+    style M2 fill:#fff,stroke:#e65100,stroke-width:3px
+    style M3 fill:#fff,stroke:#2e7d32,stroke-width:2px
+    style O1 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style O2 fill:#fff3e0,stroke:#e65100
+    style O3 fill:#e8f5e9,stroke:#2e7d32
+    style O4 fill:#e3f2fd,stroke:#1565c0</div><p><strong>核心指标达成：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">核心指标</th>
+<th align="left">目标值</th>
+<th align="left">达成值</th>
+<th align="left">状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>日均事件数</strong></td>
+<td align="left">&lt; 500</td>
+<td align="left">450</td>
+<td align="left">✅ 已达成</td>
+</tr>
+<tr>
+<td align="left"><strong>误报率</strong></td>
+<td align="left">&lt; 10%</td>
+<td align="left">9.5%</td>
+<td align="left">✅ 已达成</td>
+</tr>
+<tr>
+<td align="left"><strong>告警响应时间</strong></td>
+<td align="left">&lt; 5min</td>
+<td align="left">4.5min</td>
+<td align="left">✅ 已达成</td>
+</tr>
+<tr>
+<td align="left"><strong>单事件关联上下文</strong></td>
+<td align="left">20+ 个</td>
+<td align="left">22 个</td>
+<td align="left">✅ 已达成</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="关键成功因素">关键成功因素</h3>
+<table>
+<thead>
+<tr>
+<th align="left">成功因素</th>
+<th align="left">说明</th>
+<th align="left">实践验证</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>多维感知互补</strong></td>
+<td align="left">5个感知维度互补，检测率 90%+</td>
+<td align="left">实际检测率 92%</td>
+</tr>
+<tr>
+<td align="left"><strong>智能归并压缩</strong></td>
+<td align="left">4阶段归并，从 10,000 压缩到 &lt; 500</td>
+<td align="left">实际压缩比 95%</td>
+</tr>
+<tr>
+<td align="left"><strong>上下文完整关联</strong></td>
+<td align="left">5个关联维度，20+ 上下文信息</td>
+<td align="left">平均关联 22 个</td>
+</tr>
+<tr>
+<td align="left"><strong>实时异常检测</strong></td>
+<td align="left">流式检测，&lt; 10s 生成事件</td>
+<td align="left">P99 = 9s</td>
+</tr>
+<tr>
+<td align="left"><strong>持续优化机制</strong></td>
+<td align="left">规则生命周期管理，持续迭代</td>
+<td align="left">规则有效率 85%</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="技术架构总结">技术架构总结</h3>
+<table>
+<thead>
+<tr>
+<th align="left">技术组件</th>
+<th align="left">选型</th>
+<th align="left">作用</th>
+<th align="left">关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>感知层</strong></td>
+<td align="left">多维感知网络</td>
+<td align="left">多维度异常检测</td>
+<td align="left">5 个感知维度</td>
+</tr>
+<tr>
+<td align="left"><strong>处理层</strong></td>
+<td align="left">Apache Flink + Drools</td>
+<td align="left">实时流处理 + 规则引擎</td>
+<td align="left">100 并行度</td>
+</tr>
+<tr>
+<td align="left"><strong>归因层</strong></td>
+<td align="left">智能归并算法</td>
+<td align="left">告警归并 + 上下文关联</td>
+<td align="left">4 阶段归并</td>
+</tr>
+<tr>
+<td align="left"><strong>输出层</strong></td>
+<td align="left">事件分级引擎</td>
+<td align="left">P0/P1/P2/P3 分级</td>
+<td align="left">智能分级模型</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="下一步演进">下一步演进</h3>
+<table>
+<thead>
+<tr>
+<th align="left">演进方向</th>
+<th align="left">目标</th>
+<th align="left">关键举措</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>智能化</strong></td>
+<td align="left">AI 驱动感知能力提升</td>
+<td align="left">引入大模型进行语义分析</td>
+</tr>
+<tr>
+<td align="left"><strong>自动化</strong></td>
+<td align="left">90%+ 事件自动处置</td>
+<td align="left">完善自愈剧本，减少人工干预</td>
+</tr>
+<tr>
+<td align="left"><strong>实战化</strong></td>
+<td align="left">ATT&amp;CK 全覆盖</td>
+<td align="left">补充更多攻击模式检测规则</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>📌 本章小结：</strong></p>
+<ul>
+<li>安全事件感知是&quot;发现问题&quot;的关键环节，核心价值是从海量告警中精准发现真正重要的事件</li>
+<li>通过多维感知 + 智能归并 + 异常检测 + 上下文关联，实现日均事件 &lt; 500，误报率 &lt; 10%，响应时间 &lt; 5min</li>
+<li>关键成功因素：多维感知互补、智能归并压缩、上下文完整关联、实时异常检测、持续优化机制</li>
+</ul>
+<hr>
+<p>下一步：<a href="03-knowledge-network.html">安全知识网络 →</a></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

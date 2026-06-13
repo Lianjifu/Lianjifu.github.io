@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Observable Ops — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/06/13/observable-ops-02-05-cognitive-network/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Observable Ops — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Observable Ops 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-13T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/06/13/observable-ops-02-05-cognitive-network/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 05 · 认知网络 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/06/13/observable-ops-02-05-cognitive-network/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 05 · 认知网络
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-ops/" itemprop="url" rel="index"><span
+                          itemprop="name">Observable Ops</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+        <h1>模块 05 · 认知网络</h1>
+<blockquote>
+<p>认知网络是 Observable Ops 的「知识大脑」——通过构建和推理运维知识图谱，将分散的拓扑结构、实时事件、历史案例转化为可查询、可推理的结构化知识网络，为根因分析、智能决策提供深层语义理解能力。</p>
+</blockquote>
+<hr>
+<p>##📑 目录</p>
+<h3>章节导航</h3>
+<ul>
+<li><ol>
+<li>模块定位与职责</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>认知图谱模型</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>核心功能分解</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>API 设计规范</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>数据流架构</li>
+</ol>
+</li>
+<li><ol start="6">
+<li>模块协作关系</li>
+</ol>
+</li>
+<li><ol start="7">
+<li>量化指标体系</li>
+</ol>
+</li>
+<li><ol start="8">
+<li>部署架构</li>
+</ol>
+</li>
+<li><ol start="9">
+<li>本章小结</li>
+</ol>
+</li>
+</ul>
+<hr>
+<h2>1. 模块定位与职责</h2>
+<h3>1.1 在 4 层架构中的位置</h3>
+<p>认知网络属于<strong>能力层</strong>核心模块，负责构建和维护运维知识图谱，并提供图推理和查询能力：接收来自拓扑建模、智能感知和知识进化的多源异构数据，输出推理结果和知识查询服务给根因分析、智能决策模块。</p>
+<div class="mermaid">flowchart LR
+    subgraph 数据层["数据层"]
+        T[02 拓扑建模]
+        F[03 数据融合]
+    end
+
+    subgraph 知识层["能力层 · 认知网络"]
+        COG[05 认知网络
+Cognitive Network]
+    end
+
+    subgraph 知识来源["知识来源"]
+        S4[04 智能感知
+Events]
+        S11[11 知识进化
+History]
+    end
+
+    subgraph 消费层["下游能力模块"]
+        RCA[07 根因分析]
+        DEC[09 智能决策]
+        DIA[06 故障研判]
+    end
+
+    T -->|拓扑子图| COG
+    F -->|实体快照| COG
+    S4 -->|事件流| COG
+    S11 -->|历史案例| COG
+    COG -->|推理结果| RCA
+    COG -->|知识查询| DEC
+    COG -->|诊断上下文| DIA
+
+    style COG fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style 数据层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 知识来源 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 消费层 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+
+    style T fill:#c8e6c9
+    style F fill:#c8e6c9
+    style S4 fill:#bbdefb
+    style S11 fill:#bbdefb
+    style COG fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style RCA fill:#c8e6c9
+    style DEC fill:#c8e6c9
+    style DIA fill:#c8e6c9</div><h3>1.2 核心职责</h3>
+<table>
+<thead>
+<tr>
+<th>职责</th>
+<th>描述</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>知识图谱构建</strong></td>
+<td>将拓扑结构、事件数据、历史案例统一构建为知识图谱</td>
+<td>知识图谱（Neo4j）</td>
+</tr>
+<tr>
+<td><strong>实体消解</strong></td>
+<td>跨数据源的实体模糊匹配、属性链接、共现分析，实现实体消歧</td>
+<td>Canonical 实体</td>
+</tr>
+<tr>
+<td><strong>关系推理</strong></td>
+<td>通过传递推理、归纳推理、时序因果推理，发现隐含关系</td>
+<td>Inferred Edges</td>
+</tr>
+<tr>
+<td><strong>时序推理</strong></td>
+<td>时间窗口查询、有效性区间追踪、变更追踪</td>
+<td>Temporal Query</td>
+</tr>
+<tr>
+<td><strong>知识查询</strong></td>
+<td>提供低延迟图查询、推理查询、路径查询</td>
+<td>Query Result</td>
+</tr>
+</tbody></table>
+<h3>1.3 核心设计原则</h3>
+<div class="mermaid">flowchart LR
+    P1[Graph Native
+图原生] --> P2[Uncertainty Aware
+不确定性感知]
+    P2 --> P3[Temporal First
+时序优先]
+    P3 --> P4[Incremental Update
+增量更新]
+    P4 -.-> P1
+    style P1 fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style P2 fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style P3 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style P4 fill:#e8f5e9,stroke:#388e3c,stroke-width:3px</div><ul>
+<li><strong>图原生（Graph Native）</strong>：所有数据以图结构存储和查询，避免关系型数据库的 JOIN 开销</li>
+<li><strong>不确定性感知（Uncertainty Aware）</strong>：每条边都有 confidence 评分，推理结果明确标注置信度</li>
+<li><strong>时序优先（Temporal First）</strong>：时间维度是图谱的一等公民，支持时间窗口查询和变更追踪</li>
+<li><strong>增量更新（Incremental Update）</strong>：图谱实时增量更新，无需全量重建</li>
+</ul>
+<h3>1.4 子模块划分</h3>
+<table>
+<thead>
+<tr>
+<th>子模块</th>
+<th>职责</th>
+<th>技术选型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Builder</strong> 图谱构建器</td>
+<td>接收多源数据，构建节点和边，支持增量写入</td>
+<td>Python / Neo4j Cypher</td>
+</tr>
+<tr>
+<td><strong>Resolver</strong> 实体消解器</td>
+<td>模糊匹配、属性链接、共现分析，实现实体消歧</td>
+<td>Python / Redis Graph</td>
+</tr>
+<tr>
+<td><strong>Reasoner</strong> 推理引擎</td>
+<td>传递/归纳/时序推理，发现隐含关系</td>
+<td>Neo4j GDS / Python</td>
+</tr>
+<tr>
+<td><strong>Query</strong> 查询服务</td>
+<td>图查询 API、Cypher 查询、路径发现</td>
+<td>Flask / Neo4j</td>
+</tr>
+<tr>
+<td><strong>Temporal</strong> 时序管理器</td>
+<td>时间窗口、有效性区间、变更追踪</td>
+<td>Neo4j / Python</td>
+</tr>
+<tr>
+<td><strong>Visualizer</strong> 可视化导出</td>
+<td>D3.js JSON 导出，子图可视化</td>
+<td>Python / D3.js</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 认知图谱模型</h2>
+<h3>2.1 知识图谱 Schema</h3>
+<h4>2.1.1 节点类型体系</h4>
+<table>
+<thead>
+<tr>
+<th>节点类型</th>
+<th>Label</th>
+<th>描述</th>
+<th>核心属性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>概念节点</strong></td>
+<td><code>Concept</code></td>
+<td>抽象概念（服务类型、故障类型、指标类型）</td>
+<td>name, description, category</td>
+</tr>
+<tr>
+<td><strong>实体节点</strong></td>
+<td><code>Entity</code></td>
+<td>具体 IT 实体（服务、主机、数据库）</td>
+<td>id, name, type, labels, properties</td>
+</tr>
+<tr>
+<td><strong>事件节点</strong></td>
+<td><code>Event</code></td>
+<td>运维事件（告警、变更、故障）</td>
+<td>event_id, type, timestamp, severity</td>
+</tr>
+<tr>
+<td><strong>指标节点</strong></td>
+<td><code>Metric</code></td>
+<td>指标快照（时间序列聚合点）</td>
+<td>metric_name, entity_id, value, timestamp</td>
+</tr>
+<tr>
+<td><strong>案例节点</strong></td>
+<td><code>Case</code></td>
+<td>历史故障案例（来自知识进化）</td>
+<td>case_id, title, root_cause, resolution</td>
+</tr>
+</tbody></table>
+<h4>2.1.2 边类型体系</h4>
+<table>
+<thead>
+<tr>
+<th>边类型</th>
+<th>Edge Type</th>
+<th>描述</th>
+<th>方向</th>
+<th>属性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>属性边</strong></td>
+<td><code>HAS_ATTRIBUTE</code></td>
+<td>实体拥有某属性</td>
+<td>Entity → Attribute</td>
+<td>value, confidence</td>
+</tr>
+<tr>
+<td><strong>因果边</strong></td>
+<td><code>CAUSED_BY</code></td>
+<td>事件 A 导致事件 B</td>
+<td>Event → Event</td>
+<td>confidence, lag_ms</td>
+</tr>
+<tr>
+<td><strong>相似边</strong></td>
+<td><code>SIMILAR_TO</code></td>
+<td>两实体/事件高度相似</td>
+<td>Bidirectional</td>
+<td>similarity_score</td>
+</tr>
+<tr>
+<td><strong>时序边</strong></td>
+<td><code>FOLLOWS</code></td>
+<td>事件 A 在事件 B 之后发生</td>
+<td>Event → Event</td>
+<td>time_gap_ms, confidence</td>
+</tr>
+<tr>
+<td><strong>关联边</strong></td>
+<td><code>CORRELATES_WITH</code></td>
+<td>两指标/实体存在关联</td>
+<td>Bidirectional</td>
+<td>correlation_score, type</td>
+</tr>
+<tr>
+<td><strong>实例化边</strong></td>
+<td><code>INSTANCE_OF</code></td>
+<td>实体是概念的实例</td>
+<td>Entity → Concept</td>
+<td>——</td>
+</tr>
+<tr>
+<td><strong>组成边</strong></td>
+<td><code>PART_OF</code></td>
+<td>实体是另一实体的组成部分</td>
+<td>Entity → Entity</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<h3>2.2 时间维度模型</h3>
+<h4>2.2.1 双时间戳模型</h4>
+<table>
+<thead>
+<tr>
+<th>时间类型</th>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>有效时间</strong></td>
+<td><code>valid_time_start / valid_time_end</code></td>
+<td>实体/关系在业务上的有效时间区间（如服务 A 在 2026-01-01 到 2026-03-01 属于某集群）</td>
+</tr>
+<tr>
+<td><strong>事务时间</strong></td>
+<td><code>tx_time</code></td>
+<td>实体/关系被写入图谱的时间（用于审计和回溯）</td>
+</tr>
+</tbody></table>
+<h3>2.3 置信度评分模型</h3>
+<p>认知网络的每条边和推理结果都有 <code>confidence</code> 评分：</p>
+<table>
+<thead>
+<tr>
+<th>置信度区间</th>
+<th>含义</th>
+<th>下游处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>0.9 - 1.0</strong></td>
+<td>确定性知识（直接观测）</td>
+<td>直接使用，无需验证</td>
+</tr>
+<tr>
+<td><strong>0.7 - 0.9</strong></td>
+<td>高置信度推断</td>
+<td>可使用，建议人工复核</td>
+</tr>
+<tr>
+<td><strong>0.5 - 0.7</strong></td>
+<td>中等置信度推断</td>
+<td>作为参考，需其他证据支持</td>
+</tr>
+<tr>
+<td><strong>0.0 - 0.5</strong></td>
+<td>低置信度假设</td>
+<td>仅展示，不参与计算</td>
+</tr>
+</tbody></table>
+<h3>2.4 知识三元组模型</h3>
+<pre><code>{
+  "triple_id": "triple-001",
+  "subject": {
+    "type": "Entity",
+    "id": "svc-payment-prod",
+    "name": "Payment Service"
+  },
+  "predicate": "CAUSED_BY",
+  "object": {
+    "type": "Entity",
+    "id": "db-mysql-primary",
+    "name": "MySQL Primary"
+  },
+  "confidence": 0.85,
+  "source": "topology-aware-inference",
+  "evidence": [
+    {"type": "metric_correlation", "score": 0.92},
+    {"type": "call_chain", "score": 0.78}
+  ],
+  "valid_time": {
+    "start": "2026-01-01T00:00:00Z",
+    "end": null
+  },
+  "tx_time": "2026-06-07T08:00:00Z"
+}</code></pre><hr>
+<h2>3. 核心功能分解</h2>
+<h3>3.1 图谱构建（Graph Construction）</h3>
+<h4>3.1.1 数据来源与构建方式</h4>
+<table>
+<thead>
+<tr>
+<th>数据来源</th>
+<th>数据类型</th>
+<th>节点生成</th>
+<th>边生成</th>
+<th>频率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>02 拓扑建模</strong></td>
+<td>拓扑子图</td>
+<td>Service / Host / Database 节点</td>
+<td>CALLS / ACCESSES / DEPLOYED_ON 边</td>
+<td>实时（变更事件）</td>
+</tr>
+<tr>
+<td><strong>04 智能感知</strong></td>
+<td>告警事件</td>
+<td>Alert 事件节点</td>
+<td>SIMILAR_TO（告警聚类）/ CAUSED_BY（传播推断）</td>
+<td>实时（告警流）</td>
+</tr>
+<tr>
+<td><strong>03 数据融合</strong></td>
+<td>指标快照</td>
+<td>Metric 节点</td>
+<td>CORRELATES_WITH（指标关联）</td>
+<td>每 5 分钟</td>
+</tr>
+<tr>
+<td><strong>11 知识进化</strong></td>
+<td>历史案例</td>
+<td>Case 案例节点</td>
+<td>SIMILAR_TO（案例相似）/ RESOLVED_BY（解决方案）</td>
+<td>每日批量</td>
+</tr>
+</tbody></table>
+<h3>3.2 实体消解（Entity Resolution）</h3>
+<h4>3.2.1 消解策略</h4>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>方法</th>
+<th>适用场景</th>
+<th>置信度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>模糊匹配</strong></td>
+<td>名称相似度（Jaro-Winkler &gt; 0.85）</td>
+<td>同一服务在不同数据源中命名略有差异</td>
+<td>0.8 - 0.95</td>
+</tr>
+<tr>
+<td><strong>属性链接</strong></td>
+<td>共享 IP / Port / Cluster 等属性</td>
+<td>主机/网络设备实体消歧</td>
+<td>0.85 - 0.98</td>
+</tr>
+<tr>
+<td><strong>共现分析</strong></td>
+<td>在相同调用链/告警中同时出现</td>
+<td>服务实体跨数据源对齐</td>
+<td>0.75 - 0.9</td>
+</tr>
+<tr>
+<td><strong>时序对齐</strong></td>
+<td>指标时序曲线相关性 &gt; 0.9</td>
+<td>同一服务的监控指标匹配</td>
+<td>0.8 - 0.92</td>
+</tr>
+</tbody></table>
+<h3>3.3 关系推理（Relation Inference）</h3>
+<h4>3.3.1 推理类型</h4>
+<table>
+<thead>
+<tr>
+<th>推理类型</th>
+<th>方法</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>传递推理</strong></td>
+<td>A→B, B→C → A→C</td>
+<td>已有的因果链</td>
+<td>推断的跨跳因果关系</td>
+</tr>
+<tr>
+<td><strong>归纳推理</strong></td>
+<td>频繁项挖掘 / 关联规则</td>
+<td>历史事件共现模式</td>
+<td>新发现的关联规则（如 A 类故障常伴随 B 指标异常）</td>
+</tr>
+<tr>
+<td><strong>时序因果推理</strong></td>
+<td>Granger Causality / 时序相关</td>
+<td>时序指标数据</td>
+<td>指标间的因果指向关系</td>
+</tr>
+</tbody></table>
+<h3>3.4 时序推理（Temporal Reasoning）</h3>
+<h4>3.4.1 时序查询能力</h4>
+<ul>
+<li><strong>有效性区间查询</strong>：查询某实体在指定时间点的所有有效关系</li>
+<li><strong>时间窗口查询</strong>：查询 [T1, T2] 时间窗口内的所有事件和关系变化</li>
+<li><strong>变更追踪</strong>：查询某实体的所有历史版本（tx_time 回溯）</li>
+<li><strong>快照比对</strong>：对比两个时间点的图谱子图差异</li>
+</ul>
+<h4>3.4.2 时间旅行查询示例</h4>
+<pre><code>// 查询 Payment Service 在 2026-06-01 的完整上下文
+MATCH (n {id: 'svc-payment-prod'})-[r]-(m)
+WHERE r.valid_time_start &lt;= datetime('2026-06-01')
+  AND (r.valid_time_end IS NULL OR r.valid_time_end &gt;= datetime('2026-06-01'))
+RETURN n, r, m</code></pre><hr>
+<h2>4. API 设计规范</h2>
+<h3>4.1 REST API</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>描述</th>
+<th>响应</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/cognitive/graph</code></td>
+<td>查询图谱子图（支持节点过滤）</td>
+<td><code>Graph</code></td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/cognitive/graph/node/{id}</code></td>
+<td>查询单个节点的完整上下文</td>
+<td><code>NodeContext</code></td>
+</tr>
+<tr>
+<td><strong>POST</strong></td>
+<td><code>/api/v1/cognitive/query</code></td>
+<td>执行 Cypher 查询或结构化查询</td>
+<td><code>QueryResult</code></td>
+</tr>
+<tr>
+<td><strong>POST</strong></td>
+<td><code>/api/v1/cognitive/reasoning</code></td>
+<td>执行推理查询（如路径发现、因果推理）</td>
+<td><code>ReasoningResult</code></td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/cognitive/inference/{node_id}</code></td>
+<td>查询某实体的所有推断关系</td>
+<td><code>InferenceResult[]</code></td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/cognitive/similar/{node_id}</code></td>
+<td>查询与某实体相似的其他实体</td>
+<td><code>SimilarEntity[]</code></td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/cognitive/visualize/{node_id}</code></td>
+<td>导出 D3.js 可视化 JSON</td>
+<td><code>D3JSGraph</code></td>
+</tr>
+</tbody></table>
+<h3>4.2 查询语言</h3>
+<h4>4.2.1 支持的查询类型</h4>
+<table>
+<thead>
+<tr>
+<th>查询类型</th>
+<th>语法</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Cypher 原生</strong></td>
+<td>Cypher</td>
+<td><code>MATCH (a)-[r:CAUSED_BY]-&gt;(b) WHERE a.severity=&#39;HIGH&#39; RETURN a, b</code></td>
+</tr>
+<tr>
+<td><strong>结构化查询</strong></td>
+<td>JSON DSL</td>
+<td><code>{&quot;type&quot;:&quot;path&quot;, &quot;from&quot;:&quot;svc-A&quot;, &quot;to&quot;:&quot;svc-B&quot;, &quot;max_hops&quot;:3}</code></td>
+</tr>
+<tr>
+<td><strong>时序查询</strong></td>
+<td>时间表达式</td>
+<td><code>{&quot;type&quot;:&quot;temporal&quot;, &quot;node&quot;:&quot;svc-A&quot;, &quot;at&quot;:&quot;2026-06-01&quot;}</code></td>
+</tr>
+<tr>
+<td><strong>推理查询</strong></td>
+<td>推理类型</td>
+<td><code>{&quot;type&quot;:&quot;inference&quot;, &quot;node&quot;:&quot;svc-A&quot;, &quot;mode&quot;:&quot;causal_chain&quot;}</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. 数据流架构</h2>
+<h3>5.1 整体数据流</h3>
+<div class="mermaid">flowchart LR
+    subgraph 知识来源["多源知识输入"]
+        T[02 拓扑建模]
+        S4[04 智能感知]
+        F[03 数据融合]
+        S11[11 知识进化]
+    end
+
+    subgraph 构建层["图谱构建层"]
+        BLD[Graph Builder
+节点/边构建]
+        RES[Entity Resolver
+实体消解]
+    end
+
+    subgraph 推理层["推理层"]
+        INFER[Reasoning Engine
+传递/归纳推理]
+        TEMP[Temporal Engine
+时序推理]
+    end
+
+    subgraph 存储层["知识存储层"]
+        NEO[(Neo4j
+Knowledge Graph)]
+        RD[(Redis
+Query Cache)]
+    end
+
+    subgraph 消费层["下游消费"]
+        RCA[07 根因分析]
+        DEC[09 智能决策]
+        DIA[06 故障研判]
+    end
+
+    T -->|拓扑子图| BLD
+    S4 -->|事件流| BLD
+    F -->|指标快照| BLD
+    S11 -->|历史案例| BLD
+    BLD -->|增量写入| NEO
+    NEO -->|图查询| RES
+    RES -->|消解结果| INFER
+    INFER -->|推理边| NEO
+    NEO -->|时序查询| TEMP
+    TEMP -->|时序结果| NEO
+    NEO -->|推理结果| RCA
+    NEO -->|知识查询| DEC
+    NEO -->|诊断上下文| DIA
+
+    style 知识来源 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 构建层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 推理层 fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
+    style 存储层 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style NEO fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><h3>5.2 增量更新流程</h3>
+<div class="mermaid">flowchart LR
+    EVENT[变更事件] --> PARSE[解析事件
+类型识别]
+    PARSE --> TYPE{事件
+类型}
+    TYPE -->|实体新增| NEW_N[新增节点]
+    TYPE -->|实体更新| UPD_N[更新节点
+属性/时间戳]
+    TYPE -->|关系新增| NEW_E[新增边]
+    TYPE -->|关系删除| DEL_E[软删除边
+valid_time_end]
+    TYPE -->|推理触发| INFER[触发推理引擎
+生成推断边]
+
+    NEW_N --> WRITE[写入 Neo4j]
+    UPD_N --> WRITE
+    NEW_E --> WRITE
+    DEL_E --> WRITE
+    INFER --> WRITE
+    WRITE --> CACHE[更新 Redis
+查询缓存]
+
+    style 构建层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style WRITE fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><h3>5.3 推理查询流程</h3>
+<div class="mermaid">flowchart LR
+    Q[推理查询
+请求] --> PARSE_Q[解析查询
+类型/参数]
+    PARSE_Q --> CACHE_H{缓存
+命中?}
+    CACHE_H -->|命中| RTN[直接返回
+Cached Result]
+    CACHE_H -->|未命中| NEO_Q[查询 Neo4j]
+    NEO_Q --> MODE{推理
+模式}
+    MODE -->|传递推理| TRANS[Transitive
+Closure]
+    MODE -->|归纳推理| INDUC[Association
+Rule Mining]
+    MODE -->|时序推理| TEMP_R[Temporal
+Reasoning]
+
+    TRANS --> SCORE[置信度
+评分]
+    INDUC --> SCORE
+    TEMP_R --> SCORE
+    SCORE --> FILTER[confidence
+阈值过滤]
+    FILTER --> WRITE_C[写入缓存
+TTL=5min]
+    FILTER --> RTN2[返回结果]
+
+    style NEO_Q fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style SCORE fill:#ede7f6,stroke:#7b1fa2,stroke-width:3px</div><hr>
+<h2>6. 模块协作关系</h2>
+<h3>6.1 依赖矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>依赖认知网络的什么</th>
+<th>依赖类型</th>
+<th>接口方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>02 拓扑建模</strong></td>
+<td>提供拓扑子图作为图谱初始结构</td>
+<td><strong>数据依赖</strong></td>
+<td>Neo4j 直接查询 / Kafka 事件</td>
+</tr>
+<tr>
+<td><strong>03 数据融合</strong></td>
+<td>提供融合后的实体快照和指标快照</td>
+<td><strong>数据依赖</strong></td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>04 智能感知</strong></td>
+<td>提供告警事件流作为图谱事件节点来源</td>
+<td><strong>数据依赖</strong></td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>07 根因分析</strong></td>
+<td>查询图谱进行传播路径推理和因果分析</td>
+<td><strong>数据依赖</strong></td>
+<td>REST / gRPC 查询</td>
+</tr>
+<tr>
+<td><strong>09 智能决策</strong></td>
+<td>查询图谱知识，辅助决策上下文</td>
+<td><strong>数据依赖</strong></td>
+<td>REST 查询</td>
+</tr>
+<tr>
+<td><strong>06 故障研判</strong></td>
+<td>查询图谱获取诊断上下文</td>
+<td><strong>数据依赖</strong></td>
+<td>REST 查询</td>
+</tr>
+<tr>
+<td><strong>11 知识进化</strong></td>
+<td>消费历史案例写入图谱，接收图谱统计信息</td>
+<td><strong>数据依赖</strong></td>
+<td>Kafka 双向通道</td>
+</tr>
+</tbody></table>
+<h3>6.2 输出接口契约</h3>
+<h4>6.2.1 推理结果输出格式</h4>
+<pre><code>{
+  "inference_id": "inf-20260607-001",
+  "type": "CAUSED_BY",
+  "subject": {
+    "id": "svc-payment-prod",
+    "name": "Payment Service",
+    "type": "Entity"
+  },
+  "object": {
+    "id": "db-mysql-primary",
+    "name": "MySQL Primary",
+    "type": "Entity"
+  },
+  "confidence": 0.82,
+  "reasoning_method": "transitive_inference",
+  "evidence": [
+    {"type": "direct_call", "from": "svc-payment", "to": "db-mysql", "confidence": 0.95},
+    {"type": "metric_correlation", "score": 0.78}
+  ],
+  "valid_time": {
+    "start": "2026-01-01T00:00:00Z",
+    "end": null
+  }
+}</code></pre><hr>
+<h2>7. 量化指标体系</h2>
+<h3>7.1 图谱质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>基线（当前）</th>
+<th>目标</th>
+<th>测量方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>图谱覆盖率</strong></td>
+<td>图谱节点占已知实体的比例</td>
+<td><strong>70%</strong></td>
+<td><strong>&gt; 90%</strong></td>
+<td>Neo4j 节点数 vs CMDB 实体数</td>
+</tr>
+<tr>
+<td><strong>推理准确率</strong></td>
+<td>推断边的准确性（人工抽检）</td>
+<td><strong>68%</strong></td>
+<td><strong>&gt; 80%</strong></td>
+<td>知识进化反馈验证</td>
+</tr>
+<tr>
+<td><strong>实体消解率</strong></td>
+<td>成功消解的跨源实体对比例</td>
+<td><strong>75%</strong></td>
+<td><strong>&gt; 90%</strong></td>
+<td>Redis 消解命中率</td>
+</tr>
+<tr>
+<td><strong>知识三元组增长率</strong></td>
+<td>每日新增的知识三元组数量</td>
+<td><strong>1000/天</strong></td>
+<td><strong>&gt; 5000/天</strong></td>
+<td>Neo4j 写入统计</td>
+</tr>
+</tbody></table>
+<h3>7.2 服务质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>查询延迟 P99</strong></td>
+<td>图查询和推理查询的 P99 延迟</td>
+<td><strong>&lt; 200ms</strong></td>
+<td><strong>&gt; 500ms</strong></td>
+</tr>
+<tr>
+<td><strong>图谱写入吞吐量</strong></td>
+<td>节点/边写入速率</td>
+<td><strong>&gt; 5000/s</strong></td>
+<td><strong>&lt; 2000/s</strong></td>
+</tr>
+<tr>
+<td><strong>Neo4j 可用率</strong></td>
+<td>图数据库月度可用率</td>
+<td><strong>99.95%</strong></td>
+<td><strong>&lt; 99.5%</strong></td>
+</tr>
+</tbody></table>
+<h3>7.3 容量规划指标</h3>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>当前使用</th>
+<th>规格上限</th>
+<th>扩容触发阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Neo4j 存储</strong></td>
+<td>100GB / 500GB</td>
+<td><strong>500GB</strong></td>
+<td><strong>80%</strong></td>
+</tr>
+<tr>
+<td><strong>图谱节点数</strong></td>
+<td>50,000</td>
+<td><strong>1,000,000</strong></td>
+<td><strong>&gt; 800,000</strong></td>
+</tr>
+<tr>
+<td><strong>图谱边数</strong></td>
+<td>200,000</td>
+<td><strong>5,000,000</strong></td>
+<td><strong>&gt; 4,000,000</strong></td>
+</tr>
+<tr>
+<td><strong>Redis 查询缓存</strong></td>
+<td>2GB / 8GB</td>
+<td><strong>8GB</strong></td>
+<td><strong>70%</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. 部署架构</h2>
+<h3>8.1 K8s 部署拓扑</h3>
+<div class="mermaid">flowchart LR
+    subgraph 计算层["计算层"]
+        subgraph 服务["Cognitive API 服务"]
+            COG[Cognitive Network
+API x2]
+        end
+
+        subgraph 推理["推理引擎"]
+            REAS[Reasoning Engine
+Python Process]
+        end
+    end
+
+    subgraph 存储层["存储层"]
+        NEO[(Neo4j
+Cluster x3)]
+        RD[(Redis
+Query Cache)]
+        GDS[GDS Library
+图算法库]
+    end
+
+    subgraph 数据输入["数据输入"]
+        T[02 拓扑建模]
+        S4[04 智能感知]
+        F[03 数据融合]
+    end
+
+    T -->|拓扑写入| NEO
+    S4 -->|事件写入| NEO
+    F -->|指标写入| NEO
+    COG -->|图查询| NEO
+    COG -->|推理调用| REAS
+    REAS -->|GDS 算法| GDS
+    GDS --> NEO
+    COG -->|查询缓存| RD
+
+    style 计算层 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 存储层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style NEO fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
+    style COG fill:#c8e6c9,stroke:#388e3c,stroke-width:2px</div><h3>8.2 资源配置</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>副本数</th>
+<th>CPU</th>
+<th>内存</th>
+<th>存储</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Cognitive API</strong></td>
+<td>2（主备）</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>StatefulSet，PDB</td>
+</tr>
+<tr>
+<td><strong>Reasoning Engine</strong></td>
+<td>2</td>
+<td>8 核</td>
+<td>16 GB</td>
+<td>——</td>
+<td>GDS 图算法计算</td>
+</tr>
+<tr>
+<td><strong>Neo4j Cluster</strong></td>
+<td>3 节点</td>
+<td>8 核</td>
+<td>32 GB</td>
+<td>500 GB SSD</td>
+<td>图数据存储 + GDS</td>
+</tr>
+<tr>
+<td><strong>Redis Query Cache</strong></td>
+<td>3 节点</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>查询结果缓存</td>
+</tr>
+</tbody></table>
+<h3>8.3 高可用设计</h3>
+<ul>
+<li><strong>Neo4j 因果集群</strong>：3 节点因果集群，写入通过主节点，读取可路由到任意节点</li>
+<li><strong>Redis 查询缓存</strong>：Cluster 模式，TTL 5 分钟，缓存穿透时降级查询 Neo4j</li>
+<li><strong>推理引擎无状态</strong>：推理引擎无状态，K8s 自动重启</li>
+<li><strong>图谱增量写入</strong>：变更事件驱动增量写入，无需全量重建</li>
+</ul>
+<hr>
+<h2>9. 本章小结</h2>
+<h3>9.1 核心要点</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>核心要点</th>
+<th>量化目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>定位</strong></td>
+<td>能力层核心模块，运维知识图谱的构建与推理引擎</td>
+<td>——</td>
+</tr>
+<tr>
+<td><strong>模型</strong></td>
+<td>图原生存储，Concept / Entity / Event / Metric 四类节点，6 种边类型</td>
+<td>覆盖率 &gt; 90%</td>
+</tr>
+<tr>
+<td><strong>能力</strong></td>
+<td>图谱构建 / 实体消解 / 关系推理 / 时序推理 / 知识查询 5 大能力</td>
+<td>推理准确率 &gt; 80%</td>
+</tr>
+<tr>
+<td><strong>接口</strong></td>
+<td>REST + Cypher DSL + D3.js 可视化导出，支持时序查询</td>
+<td>查询延迟 P99 &lt; 200ms</td>
+</tr>
+<tr>
+<td><strong>特点</strong></td>
+<td>不确定性感知（confidence 评分）、双时间戳模型（valid_time + tx_time）</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<p><strong>记忆口诀：</strong></p>
+<blockquote>
+<p><strong>图原生存储 Neo4j，节点四类边六型；拓扑事件融合来，知识图谱日日新；传递归纳时序推，置信评分量可信；时序双戳真变迁，增量更新无全量；查询缓存 P99 二百，推理准确八成目标。</strong></p>
+</blockquote>
+<hr>
+<blockquote>
+<p>本章定义了模块 05 认知网络的详细功能设计规范。后续章节将阐述根因分析（07）、智能决策（09）等模块的设计细节。</p>
+</blockquote>
+<p><em>文档版本：V1.0 | 更新日期：2026-06-07</em></p>
+
+      
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

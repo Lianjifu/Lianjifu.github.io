@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="02 01 data fusion<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-02-01-data-fusion/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-02-01-data-fusion/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 01 · 数据融合逻辑 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-02-01-data-fusion/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 01 · 数据融合逻辑
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>模块 1 - 数据融合</h1>
+<blockquote>
+<p><strong>核心定位：</strong> 数据融合是智能安全体系的&quot;数据基础层&quot;，通过多源异构数据的统一采集、实时汇聚、智能富化、弹性存储，为上层安全分析提供高质量数据底座。</p>
+</blockquote>
+<hr>
+<h2 id="功能概述">1. 功能概述</h2>
+<h3 id="业务背景">1.1 业务背景</h3>
+<p>传统安全运营中，企业部署了数十种安全设备（防火墙、WAF、IDS、HIDS、SIEM等），但各设备独立运行、数据孤立，形成严重的数据孤岛。安全分析师需要跨平台手动关联数据，耗时耗力且效果不佳。</p>
+<p><strong>核心问题：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">问题</th>
+<th align="left">现状</th>
+<th align="left">影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">数据格式不统一</td>
+<td align="left">100+ 种日志格式，互不兼容</td>
+<td align="left">人工解析成本高，扩展性差</td>
+</tr>
+<tr>
+<td align="left">数据孤岛严重</td>
+<td align="left">各安全设备独立运行</td>
+<td align="left">跨源关联困难，漏报率高</td>
+</tr>
+<tr>
+<td align="left">实时性差</td>
+<td align="left">分钟级延迟甚至小时级</td>
+<td align="left">错过最佳响应时机</td>
+</tr>
+<tr>
+<td align="left">上下文缺失</td>
+<td align="left">单点告警无关联信息</td>
+<td align="left">无法判断真伪和影响范围</td>
+</tr>
+</tbody></table>
+<h3 id="设计目标">1.2 设计目标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">目标</th>
+<th align="left">量化指标</th>
+<th align="left">价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>统一数据底座</strong></td>
+<td align="left">接入 100+ 数据源，格式标准化率 &gt; 95%</td>
+<td align="left">消除数据孤岛</td>
+</tr>
+<tr>
+<td align="left"><strong>实时数据汇聚</strong></td>
+<td align="left">端到端延迟 &lt; 10s</td>
+<td align="left">快速发现威胁</td>
+</tr>
+<tr>
+<td align="left"><strong>智能语义富化</strong></td>
+<td align="left">自动关联覆盖率 &gt; 85%</td>
+<td align="left">上下文完整</td>
+</tr>
+<tr>
+<td align="left"><strong>弹性存储扩展</strong></td>
+<td align="left">PB 级存储，180 天+历史追溯</td>
+<td align="left">支持深度溯源</td>
+</tr>
+</tbody></table>
+<h3 id="设计原则">1.3 设计原则</h3>
+<ol>
+<li><strong>标准化优先</strong> — 统一数据格式，建立规范的数据模型</li>
+<li><strong>实时性保障</strong> — 流式处理架构，保证数据时效性</li>
+<li><strong>智能化为辅</strong> — AI 解决人力密集型工作，释放分析师精力</li>
+<li><strong>可扩展架构</strong> — 插件式设计，支持快速接入新数据源</li>
+<li><strong>可靠性保证</strong> — 多级容灾，数据不丢失</li>
+</ol>
+<hr>
+<h2 id="功能架构">2. 功能架构</h2>
+<h3 id="整体架构">2.1 整体架构</h3>
+<div class="mermaid">graph TB
+    subgraph 数据源层
+        direction TB
+        DS1["网络设备\\n防火墙/交换机/IDS"]
+        DS2["主机系统\\nWindows/Linux/EDR"]
+        DS3["应用系统\\nWeb应用/数据库/API"]
+        DS4["身份认证\\nIAM/IDaaS/AD"]
+        DS5["威胁情报\\nSTIX/OTX/自产情报"]
+    end
+    
+    subgraph 采集接入层
+        direction TB
+        C1["OTEL Agent\\n标准化采集"]
+        C2["主机Agent\\n轻量代理"]
+        C3["API采集器\\nREST/Webhook"]
+        C4["Syslog收集\\n日志转发"]
+        C5["情报接口\\nTAXII/STIX"]
+    end
+    
+    subgraph 智能处理层
+        direction TB
+        P1["协议解析\\n多格式支持"]
+        P2["Smart Routing\\n智能分发"]
+        P3["语义映射\\n字段标准化"]
+        P4["知识网络\\n实体关联"]
+        P5["智能降噪\\n告警聚合"]
+    end
+    
+    subgraph 数据存储层
+        direction TB
+        S1["实时流数据\\nKafka/Flink"]
+        S2["结构化存储\\nElasticsearch"]
+        S3["向量存储\\nMilvus"]
+        S4["图数据库\\nNeo4j"]
+        S5["冷存储\\n对象存储"]
+    end
+    
+    subgraph 数据服务层
+        direction TB
+        SV1["统一查询接口"]
+        SV2["实时事件API"]
+        SV3["历史检索API"]
+        SV4["实体关系API"]
+    end
+    
+    DS1 & DS2 & DS3 & DS4 & DS5 --> C1 & C2 & C3 & C4 & C5
+    C1 & C2 & C3 & C4 & C5 --> P1 --> P2 --> P3 --> P4 --> P5
+    P1 & P2 & P3 & P4 & P5 --> S1 & S2 & S3 & S4 & S5
+    S1 & S2 & S3 & S4 & S5 --> SV1 & SV2 & SV3 & SV4
+    
+    style DS1 fill:#e3f2fd,stroke:#1565c0
+    style DS2 fill:#fff3e0,stroke:#e65100
+    style DS3 fill:#e8f5e9,stroke:#2e7d32
+    style DS4 fill:#fce4ec,stroke:#c62828
+    style DS5 fill:#f3e5f5,stroke:#7b1fa2
+    style C1 fill:#bbdefb,stroke:#1565c0
+    style P1 fill:#bbdefb,stroke:#1565c0
+    style S1 fill:#bbdefb,stroke:#1565c0
+    style SV1 fill:#e1f5fe,stroke:#01579b,stroke-width:3px</div><h3 id="数据流设计">2.2 数据流设计</h3>
+<div class="mermaid">sequenceDiagram
+    participant DS as 数据源
+    participant CA as 采集Agent
+    participant KB as Kafka
+    participant SR as Smart Router
+    participant L1 as L1规则层
+    participant L2 as L2轻量模型
+    participant L3 as L3大模型
+    participant EN as 实体网络
+    participant ST as 存储层
+    
+    DS->>CA: 原始日志
+    CA->>KB: 结构化事件
+    KB->>SR: 事件分发
+    SR->>L1: 规则匹配
+    alt L1 命中
+        L1-->>ST: 直接存储
+    else L1 未命中
+        SR->>L2: 语义分析
+        alt L2 可处理
+            L2-->>ST: 标准化事件
+        else L2 无法处理
+            L2->>L3: 深度推理
+            L3-->>EN: 实体关联
+            EN-->>ST: 富化事件
+        end
+    end
+    ST->>EN: 实体更新
+    EN-->>ST: 关联查询</div><hr>
+<h2 id="核心功能模块">3. 核心功能模块</h2>
+<h3 id="多源数据采集引擎">3.1 多源数据采集引擎</h3>
+<h4 id="功能描述">3.1.1 功能描述</h4>
+<p>统一接入网络设备、主机系统、应用系统、身份认证、威胁情报等 5 大类数据源，支持 100+ 种日志格式的自动解析与标准化。</p>
+<h4 id="采集类型矩阵">3.1.2 采集类型矩阵</h4>
+<table>
+<thead>
+<tr>
+<th align="left">数据源类型</th>
+<th align="left">采集方式</th>
+<th align="left">技术组件</th>
+<th align="left">数据格式</th>
+<th align="left">采集频率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>网络设备</strong></td>
+<td align="left">流量镜像/API</td>
+<td align="left">SPAN/TAP + Flow Generator</td>
+<td align="left">NetFlow/sFlow/IPFIX</td>
+<td align="left">实时</td>
+</tr>
+<tr>
+<td align="left"><strong>主机系统</strong></td>
+<td align="left">Agent/ Syslog</td>
+<td align="left">EDR/HIDS Agent</td>
+<td align="left">JSON/Syslog</td>
+<td align="left">实时</td>
+</tr>
+<tr>
+<td align="left"><strong>应用系统</strong></td>
+<td align="left">API/日志文件</td>
+<td align="left">REST Polling/Webhook</td>
+<td align="left">JSON/Plain Text</td>
+<td align="left">按需/实时</td>
+</tr>
+<tr>
+<td align="left"><strong>身份认证</strong></td>
+<td align="left">日志/API</td>
+<td align="left">IAM Connector</td>
+<td align="left">JSON/Syslog</td>
+<td align="left">实时</td>
+</tr>
+<tr>
+<td align="left"><strong>威胁情报</strong></td>
+<td align="left">TAXII/STIX</td>
+<td align="left">情报接口</td>
+<td align="left">STIX/CSV/JSON</td>
+<td align="left">定期/实时</td>
+</tr>
+</tbody></table>
+<h4 id="采集能力指标">3.1.3 采集能力指标</h4>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">目标值</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>并发采集源</strong></td>
+<td align="left">1000+</td>
+<td align="left">支持大规模部署</td>
+</tr>
+<tr>
+<td align="left"><strong>采集延迟</strong></td>
+<td align="left">&lt; 1s</td>
+<td align="left">从源到系统的延迟</td>
+</tr>
+<tr>
+<td align="left"><strong>吞吐量</strong></td>
+<td align="left">50,000 events/s</td>
+<td align="left">峰值处理能力</td>
+</tr>
+<tr>
+<td align="left"><strong>数据源类型</strong></td>
+<td align="left">100+ 种</td>
+<td align="left">覆盖主流设备</td>
+</tr>
+<tr>
+<td align="left"><strong>可用性</strong></td>
+<td align="left">99.9%</td>
+<td align="left">采集服务可用性</td>
+</tr>
+</tbody></table>
+<h4 id="采集流程">3.1.4 采集流程</h4>
+<div class="mermaid">graph LR
+    subgraph 发现
+    D1["数据源发现\\n自动识别"]
+    D2["格式检测\\n样本分析"]
+    end
+    
+    subgraph 配置
+    C1["采集配置\\n模板匹配"]
+    C2["字段映射\\n规则生成"]
+    end
+    
+    subgraph 执行
+    E1["数据采集\\n实时/定期"]
+    E2["协议解析\\n格式转换"]
+    E3["初步校验\\n数据清洗"]
+    end
+    
+    subgraph 输出
+    O1["标准化事件\\n结构化"]
+    O2["原始日志\\n归档存储"]
+    end
+    
+    D1 --> D2 --> C1 --> C2 --> E1 --> E2 --> E3 --> O1 & O2</div><h3 id="智能-pipeline-处理">3.2 智能 Pipeline 处理</h3>
+<h4 id="smart-routing-三层分治">3.2.1 Smart Routing 三层分治</h4>
+<p>为解决大模型处理海量日志的成本与效率问题，采用三层分治架构：</p>
+<table>
+<thead>
+<tr>
+<th align="left">层级</th>
+<th align="left">处理方式</th>
+<th align="left">日志占比</th>
+<th align="left">延迟</th>
+<th align="left">技术选型</th>
+<th align="left">成本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>L1 规则层</strong></td>
+<td align="left">正则/模板匹配</td>
+<td align="left">60-70%</td>
+<td align="left">&lt; 5ms</td>
+<td align="left">Redis + Lua</td>
+<td align="left">极低</td>
+</tr>
+<tr>
+<td align="left"><strong>L2 轻量模型</strong></td>
+<td align="left">语义分类（7B）</td>
+<td align="left">20-30%</td>
+<td align="left">&lt; 100ms</td>
+<td align="left">Qwen2-7B</td>
+<td align="left">中</td>
+</tr>
+<tr>
+<td align="left"><strong>L3 大模型</strong></td>
+<td align="left">深度推理（72B+）</td>
+<td align="left">1-5%</td>
+<td align="left">500ms-1s</td>
+<td align="left">Qwen-Max</td>
+<td align="left">高</td>
+</tr>
+</tbody></table>
+<p><strong>核心思想：</strong> 简单日志规则处理，复杂日志才调用大模型，实现成本降低 95%+</p>
+<h4 id="pipeline-处理阶段">3.2.2 Pipeline 处理阶段</h4>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">功能描述</th>
+<th align="left">智能化能力</th>
+<th align="left">处理能力</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>① 协议解析</strong></td>
+<td align="left">多格式协议解析</td>
+<td align="left">自动识别格式类型</td>
+<td align="left">50,000/s</td>
+</tr>
+<tr>
+<td align="left"><strong>② Smart Routing</strong></td>
+<td align="left">智能路由分发</td>
+<td align="left">L1/L2/L3 分层处理</td>
+<td align="left">30,000/s</td>
+</tr>
+<tr>
+<td align="left"><strong>③ 语义映射</strong></td>
+<td align="left">字段名标准化</td>
+<td align="left">语义理解自动映射</td>
+<td align="left">8,000/s</td>
+</tr>
+<tr>
+<td align="left"><strong>④ 实体关联</strong></td>
+<td align="left">跨源实体关联</td>
+<td align="left">知识网络图推理</td>
+<td align="left">5,000/s</td>
+</tr>
+<tr>
+<td align="left"><strong>⑤ 上下文富化</strong></td>
+<td align="left">上下文补全</td>
+<td align="left">自动补全资产/用户</td>
+<td align="left">10,000/s</td>
+</tr>
+<tr>
+<td align="left"><strong>⑥ 智能降噪</strong></td>
+<td align="left">告警聚合去重</td>
+<td align="left">语义聚合相似告警</td>
+<td align="left">20,000/s</td>
+</tr>
+</tbody></table>
+<h4 id="向量缓存机制">3.2.3 向量缓存机制</h4>
+<p>为减少大模型调用次数，引入向量缓存：</p>
+<table>
+<thead>
+<tr>
+<th align="left">缓存策略</th>
+<th align="left">命中率</th>
+<th align="left">效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>原始日志向量</strong></td>
+<td align="left">首次处理后缓存</td>
+<td align="left">相同日志 0ms</td>
+</tr>
+<tr>
+<td align="left"><strong>解析结果缓存</strong></td>
+<td align="left">格式+内容哈希</td>
+<td align="left">重复格式快速返回</td>
+</tr>
+<tr>
+<td align="left"><strong>关联结果缓存</strong></td>
+<td align="left">实体关系图缓存</td>
+<td align="left">关联查询加速</td>
+</tr>
+</tbody></table>
+<p><strong>效果：</strong> 大模型实际调用量从 100% 降至 1-5%，成本降低 95%+</p>
+<h3 id="知识网络实体关联">3.3 知识网络实体关联</h3>
+<h4 id="实体类型定义">3.3.1 实体类型定义</h4>
+<table>
+<thead>
+<tr>
+<th align="left">实体类型</th>
+<th align="left">标识字段</th>
+<th align="left">关联属性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>主机资产</strong></td>
+<td align="left">asset_id</td>
+<td align="left">IP、主机名、操作系统、业务系统</td>
+</tr>
+<tr>
+<td align="left"><strong>用户身份</strong></td>
+<td align="left">user_id</td>
+<td align="left">账号、部门、角色、认证方式</td>
+</tr>
+<tr>
+<td align="left"><strong>网络实体</strong></td>
+<td align="left">ip/mac</td>
+<td align="left">地理位置、归属组织、风险标签</td>
+</tr>
+<tr>
+<td align="left"><strong>应用服务</strong></td>
+<td align="left">service_id</td>
+<td align="left">端口、协议、依赖关系</td>
+</tr>
+<tr>
+<td align="left"><strong>安全设备</strong></td>
+<td align="left">device_id</td>
+<td align="left">设备类型、规则版本、告警阈值</td>
+</tr>
+<tr>
+<td align="left"><strong>威胁情报</strong></td>
+<td align="left">ioc_id</td>
+<td align="left">IOC类型、置信度、关联攻击队</td>
+</tr>
+</tbody></table>
+<h4 id="实体关系图谱">3.3.2 实体关系图谱</h4>
+<div class="mermaid">graph TB
+    subgraph 实体
+    H["主机资产\\nHOST-001"]
+    U["用户身份\\nzhangsan"]
+    N["网络实体\\n192.168.1.100"]
+    A["应用服务\\nAPI-Gateway"]
+    D["安全设备\\nWAF-01"]
+    I["威胁情报\\nmalicious.com"]
+    end
+    
+    subgraph 关系
+    H -->|运行| A
+    U -->|登录| H
+    N -->|属于| U
+    N -->|访问| A
+    D -->|监控| N
+    I -->|解析| N
+    end
+    
+    style H fill:#e3f2fd,stroke:#1565c0
+    style U fill:#fff3e0,stroke:#e65100
+    style N fill:#e8f5e9,stroke:#2e7d32
+    style A fill:#fce4ec,stroke:#c62828
+    style D fill:#f3e5f5,stroke:#7b1fa2
+    style I fill:#eceff1,stroke:#455a64</div><h4 id="关联能力指标">3.3.3 关联能力指标</h4>
+<table>
+<thead>
+<tr>
+<th align="left">关联维度</th>
+<th align="left">覆盖率</th>
+<th align="left">延迟</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>IP → 用户</strong></td>
+<td align="left">90%</td>
+<td align="left">&lt; 100ms</td>
+</tr>
+<tr>
+<td align="left"><strong>IP → 资产</strong></td>
+<td align="left">95%</td>
+<td align="left">&lt; 100ms</td>
+</tr>
+<tr>
+<td align="left"><strong>用户 → 行为</strong></td>
+<td align="left">85%</td>
+<td align="left">&lt; 500ms</td>
+</tr>
+<tr>
+<td align="left"><strong>跨源关联</strong></td>
+<td align="left">85%</td>
+<td align="left">&lt; 1s</td>
+</tr>
+</tbody></table>
+<h3 id="统一数据模型">3.4 统一数据模型</h3>
+<h4 id="事件数据结构">3.4.1 事件数据结构</h4>
+<pre><code class="language-json">{
+  "event": {
+    "metadata": {
+      "event_id": "evt_20260601_abc123",
+      "timestamp": "2026-06-01T12:33:00Z",
+      "event_type": "network_connection",
+      "source": "waf-01",
+      "source_type": "network_device"
+    },
+    "severity": {
+      "level": "high",
+      "confidence_score": 0.95,
+      "risk_level": "critical"
+    },
+    "actor": {
+      "ip": "192.168.1.100",
+      "port": 54321,
+      "user": "zhangsan@corp.com",
+      "asset_id": "HOST-001",
+      "process": "chrome.exe",
+      "entity_id": "entity_abc123"
+    },
+    "target": {
+      "ip": "10.0.0.50",
+      "port": 443,
+      "domain": "evil.com",
+      "service": "api-gateway"
+    },
+    "context": {
+      "session_id": "sess_abc123",
+      "geo_location": "CN",
+      "related_entities": ["entity_xyz789", "entity_def456"],
+      "kill_chain_phase": "command_and_control",
+      "mitre_attack": ["T1041", "T1071"]
+    },
+    "enrichment": {
+      "asset_info": {
+        "asset_type": "server",
+        "os": "Linux 4.19",
+        "department": "IT",
+        "criticality": "high"
+      },
+      "threat_intel": {
+        "threat_actor": "APT29",
+        "campaign": "SolarStorm",
+        "ttps": ["T1041", "T1071"]
+      }
+    }
+  }
+}</code></pre><h4 id="字段标准化规范">3.4.2 字段标准化规范</h4>
+<table>
+<thead>
+<tr>
+<th align="left">原始字段</th>
+<th align="left">标准字段</th>
+<th align="left">数据类型</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">src_ip / sip / source_ip</td>
+<td align="left">actor.ip</td>
+<td align="left">string</td>
+<td align="left">源IP</td>
+</tr>
+<tr>
+<td align="left">dst_ip / dip / dest_ip</td>
+<td align="left">target.ip</td>
+<td align="left">string</td>
+<td align="left">目标IP</td>
+</tr>
+<tr>
+<td align="left">user / username / account</td>
+<td align="left">actor.user</td>
+<td align="left">string</td>
+<td align="left">用户名</td>
+</tr>
+<tr>
+<td align="left">hostname / host / computer</td>
+<td align="left">actor.asset_id</td>
+<td align="left">string</td>
+<td align="left">主机标识</td>
+</tr>
+<tr>
+<td align="left">timestamp / time / datetime</td>
+<td align="left">metadata.timestamp</td>
+<td align="left">datetime</td>
+<td align="left">事件时间</td>
+</tr>
+<tr>
+<td align="left">severity / level / priority</td>
+<td align="left">severity.level</td>
+<td align="left">enum</td>
+<td align="left">严重级别</td>
+</tr>
+</tbody></table>
+<h3 id="智能降噪引擎">3.5 智能降噪引擎</h3>
+<h4 id="降噪策略">3.5.1 降噪策略</h4>
+<table>
+<thead>
+<tr>
+<th align="left">策略</th>
+<th align="left">原理</th>
+<th align="left">降噪效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>时间窗口聚合</strong></td>
+<td align="left">5分钟内同类告警合并</td>
+<td align="left">60% 压缩</td>
+</tr>
+<tr>
+<td align="left"><strong>攻击链关联</strong></td>
+<td align="left">同阶段告警归并</td>
+<td align="left">40% 压缩</td>
+</tr>
+<tr>
+<td align="left"><strong>上下文去重</strong></td>
+<td align="left">相同上下文去重</td>
+<td align="left">50% 压缩</td>
+</tr>
+<tr>
+<td align="left"><strong>语义相似聚合</strong></td>
+<td align="left">大模型理解语义相似合并</td>
+<td align="left">70% 压缩</td>
+</tr>
+</tbody></table>
+<h4 id="降噪效果指标">3.5.2 降噪效果指标</h4>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">降噪前</th>
+<th align="left">降噪后</th>
+<th align="left">压缩比</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>日均告警量</strong></td>
+<td align="left">10,000+</td>
+<td align="left">&lt; 500</td>
+<td align="left">95%</td>
+</tr>
+<tr>
+<td align="left"><strong>误报率</strong></td>
+<td align="left">70%+</td>
+<td align="left">&lt; 15%</td>
+<td align="left">79%</td>
+</tr>
+<tr>
+<td align="left"><strong>事件上下文</strong></td>
+<td align="left">3个</td>
+<td align="left">20+ 个</td>
+<td align="left">6.7x</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="技术实现">4. 技术实现</h2>
+<h3 id="技术选型">4.1 技术选型</h3>
+<table>
+<thead>
+<tr>
+<th align="left">组件</th>
+<th align="left">技术选型</th>
+<th align="left">作用</th>
+<th align="left">关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>消息队列</strong></td>
+<td align="left">Apache Kafka</td>
+<td align="left">事件缓冲与分发</td>
+<td align="left">3 Broker，副本因子 3</td>
+</tr>
+<tr>
+<td align="left"><strong>流处理</strong></td>
+<td align="left">Apache Flink</td>
+<td align="left">实时流计算</td>
+<td align="left">100 并行度，Checkpoint</td>
+</tr>
+<tr>
+<td align="left"><strong>规则引擎</strong></td>
+<td align="left">Redis + Lua</td>
+<td align="left">高速规则匹配</td>
+<td align="left">&lt; 5ms 响应</td>
+</tr>
+<tr>
+<td align="left"><strong>轻量模型</strong></td>
+<td align="left">Qwen2-7B</td>
+<td align="left">语义分类与解析</td>
+<td align="left">GPU 加速</td>
+</tr>
+<tr>
+<td align="left"><strong>大模型</strong></td>
+<td align="left">Qwen-Max</td>
+<td align="left">深度推理与富化</td>
+<td align="left">API 调用，缓存优化</td>
+</tr>
+<tr>
+<td align="left"><strong>图数据库</strong></td>
+<td align="left">Neo4j</td>
+<td align="left">实体关系存储</td>
+<td align="left">知识图谱查询</td>
+</tr>
+<tr>
+<td align="left"><strong>向量数据库</strong></td>
+<td align="left">Milvus</td>
+<td align="left">向量相似度检索</td>
+<td align="left">大模型结果缓存</td>
+</tr>
+<tr>
+<td align="left"><strong>搜索引擎</strong></td>
+<td align="left">Elasticsearch</td>
+<td align="left">日志存储与检索</td>
+<td align="left">6 节点集群</td>
+</tr>
+<tr>
+<td align="left"><strong>对象存储</strong></td>
+<td align="left">MinIO/S3</td>
+<td align="left">冷数据归档</td>
+<td align="left">180 天存储</td>
+</tr>
+</tbody></table>
+<h3 id="高可用架构">4.2 高可用架构</h3>
+<div class="mermaid">graph TB
+    subgraph 采集层
+    CA1["采集Agent-1"]
+    CA2["采集Agent-2"]
+    CA3["采集Agent-N"]
+    end
+    
+    subgraph 消息层
+    KB1["Kafka-1"]
+    KB2["Kafka-2"]
+    KB3["Kafka-3"]
+    end
+    
+    subgraph 处理层
+    FL1["Flink-1"]
+    FL2["Flink-2"]
+    end
+    
+    subgraph 存储层
+    ES1["ES-1"]
+    ES2["ES-2"]
+    ES3["ES-N"]
+    end
+    
+    CA1 & CA2 & CA3 -->|负载均衡| KB1 & KB2 & KB3
+    KB1 & KB2 & KB3 -->|流处理| FL1 & FL2
+    FL1 & FL2 -->|写入| ES1 & ES2 & ES3
+    
+    style CA1 fill:#e3f2fd,stroke:#1565c0
+    style KB1 fill:#fff3e0,stroke:#e65100
+    style FL1 fill:#e8f5e9,stroke:#2e7d32
+    style ES1 fill:#e1f5fe,stroke:#01579b</div><h3 id="容灾设计">4.3 容灾设计</h3>
+<table>
+<thead>
+<tr>
+<th align="left">故障场景</th>
+<th align="left">影响</th>
+<th align="left">应对策略</th>
+<th align="left">恢复时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>采集Agent宕机</strong></td>
+<td align="left">单源采集中断</td>
+<td align="left">自动切换备份Agent</td>
+<td align="left">&lt; 30s</td>
+</tr>
+<tr>
+<td align="left"><strong>Kafka Broker故障</strong></td>
+<td align="left">消息缓冲中断</td>
+<td align="left">副本自动切换</td>
+<td align="left">&lt; 10s</td>
+</tr>
+<tr>
+<td align="left"><strong>Flink任务失败</strong></td>
+<td align="left">实时处理中断</td>
+<td align="left">Checkpoint 自动恢复</td>
+<td align="left">&lt; 1min</td>
+</tr>
+<tr>
+<td align="left"><strong>ES节点故障</strong></td>
+<td align="left">存储可用性下降</td>
+<td align="left">副本自动补充</td>
+<td align="left">&lt; 5min</td>
+</tr>
+<tr>
+<td align="left"><strong>大模型服务不可用</strong></td>
+<td align="left">富化能力降级</td>
+<td align="left">降级为规则处理</td>
+<td align="left">自动切换</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="接口设计">5. 接口设计</h2>
+<h3 id="采集配置接口">5.1 采集配置接口</h3>
+<pre><code class="language-yaml">POST /api/v1/collection/config
+{
+  "source_name": "waf-01",
+  "source_type": "network_device",
+  "collect_method": "syslog",
+  "endpoint": "192.168.1.10:514",
+  "format": "json",
+  "template": "waf_json_v1",
+  "enabled": true
+}</code></pre><h3 id="事件查询接口">5.2 事件查询接口</h3>
+<pre><code class="language-yaml">GET /api/v1/events?start_time=2026-06-01T00:00:00Z&amp;end_time=2026-06-02T00:00:00Z&amp;severity=high&amp;limit=100
+{
+  "total": 1523,
+  "events": [
+    {
+      "event_id": "evt_20260601_abc123",
+      "timestamp": "2026-06-01T12:33:00Z",
+      "event_type": "network_connection",
+      "severity": "high",
+      "actor": { "ip": "192.168.1.100", "user": "zhangsan@corp.com" },
+      "target": { "ip": "10.0.0.50", "port": 443 }
+    }
+  ]
+}</code></pre><h3 id="实体关系接口">5.3 实体关系接口</h3>
+<pre><code class="language-yaml">GET /api/v1/entities/{entity_id}/relations?depth=2
+{
+  "entity_id": "entity_abc123",
+  "entity_type": "host",
+  "relations": [
+    {
+      "target": "entity_xyz789",
+      "relation": "communicated_with",
+      "direction": "outbound",
+      "last_seen": "2026-06-01T12:33:00Z"
+    }
+  ]
+}</code></pre><hr>
+<h2 id="量化指标">6. 量化指标</h2>
+<h3 id="核心指标达成">6.1 核心指标达成</h3>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">当前值</th>
+<th align="left">目标值</th>
+<th align="left">提升幅度</th>
+<th align="left">状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>数据采集覆盖率</strong></td>
+<td align="left">60%</td>
+<td align="left">95%</td>
+<td align="left">+35%</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>端到端延迟</strong></td>
+<td align="left">5-15min</td>
+<td align="left">&lt; 10s</td>
+<td align="left">-99%</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>多源关联自动化率</strong></td>
+<td align="left">20%</td>
+<td align="left">85%</td>
+<td align="left">+65%</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>日志存储周期</strong></td>
+<td align="left">30天</td>
+<td align="left">180天</td>
+<td align="left">+150天</td>
+<td align="left">✅ 已达成</td>
+</tr>
+<tr>
+<td align="left"><strong>新数据源接入时间</strong></td>
+<td align="left">2-3 天</td>
+<td align="left">&lt; 10min</td>
+<td align="left">350x</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>告警误报率</strong></td>
+<td align="left">70%+</td>
+<td align="left">&lt; 15%</td>
+<td align="left">降低 4.7x</td>
+<td align="left">🚧 进行中</td>
+</tr>
+</tbody></table>
+<h3 id="性能指标">6.2 性能指标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">目标值</th>
+<th align="left">峰值能力</th>
+<th align="left">状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>采集吞吐量</strong></td>
+<td align="left">50,000 events/s</td>
+<td align="left">80,000 events/s</td>
+<td align="left">✅</td>
+</tr>
+<tr>
+<td align="left"><strong>Pipeline 处理能力</strong></td>
+<td align="left">30,000 events/s</td>
+<td align="left">50,000 events/s</td>
+<td align="left">✅</td>
+</tr>
+<tr>
+<td align="left"><strong>查询响应时间</strong></td>
+<td align="left">P99 &lt; 1s</td>
+<td align="left">P99 = 500ms</td>
+<td align="left">✅</td>
+</tr>
+<tr>
+<td align="left"><strong>系统可用性</strong></td>
+<td align="left">99.9%</td>
+<td align="left">99.99%</td>
+<td align="left">🚧</td>
+</tr>
+</tbody></table>
+<h3 id="业务价值">6.3 业务价值</h3>
+<table>
+<thead>
+<tr>
+<th align="left">价值维度</th>
+<th align="left">传统方案</th>
+<th align="left">智能化方案</th>
+<th align="left">提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>数据源接入效率</strong></td>
+<td align="left">2-3 天/个</td>
+<td align="left">&lt; 10 分钟/个</td>
+<td align="left"><strong>350x</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>关联分析时间</strong></td>
+<td align="left">30min+</td>
+<td align="left">&lt; 30s</td>
+<td align="left"><strong>60x</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>告警处理效率</strong></td>
+<td align="left">100个/人天</td>
+<td align="left">500个/人天</td>
+<td align="left"><strong>5x</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>存储成本</strong></td>
+<td align="left">全量高成本存储</td>
+<td align="left">冷热分层存储</td>
+<td align="left"><strong>-60%</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="部署架构">7. 部署架构</h2>
+<h3 id="组件部署">7.1 组件部署</h3>
+<table>
+<thead>
+<tr>
+<th align="left">组件</th>
+<th align="left">部署模式</th>
+<th align="left">资源配置</th>
+<th align="left">数量</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>OTEL Agent</strong></td>
+<td align="left">DaemonSet</td>
+<td align="left">0.5CPU/512MB</td>
+<td align="left">每节点</td>
+</tr>
+<tr>
+<td align="left"><strong>主机Agent</strong></td>
+<td align="left">Host</td>
+<td align="left">0.2CPU/256MB</td>
+<td align="left">每主机</td>
+</tr>
+<tr>
+<td align="left"><strong>Kafka</strong></td>
+<td align="left">Cluster</td>
+<td align="left">4CPU/8GB</td>
+<td align="left">3节点</td>
+</tr>
+<tr>
+<td align="left"><strong>Flink</strong></td>
+<td align="left">Cluster</td>
+<td align="left">8CPU/16GB</td>
+<td align="left">5节点</td>
+</tr>
+<tr>
+<td align="left"><strong>Elasticsearch</strong></td>
+<td align="left">Cluster</td>
+<td align="left">8CPU/32GB</td>
+<td align="left">6节点</td>
+</tr>
+<tr>
+<td align="left"><strong>Neo4j</strong></td>
+<td align="left">Standalone</td>
+<td align="left">8CPU/32GB</td>
+<td align="left">1节点</td>
+</tr>
+<tr>
+<td align="left"><strong>Milvus</strong></td>
+<td align="left">Cluster</td>
+<td align="left">8CPU/16GB</td>
+<td align="left">3节点</td>
+</tr>
+</tbody></table>
+<h3 id="网络拓扑">7.2 网络拓扑</h3>
+<div class="mermaid">graph TB
+    subgraph DMZ
+    FW["防火墙"]
+    end
+    
+    subgraph Core
+    SW["核心交换机"]
+    end
+    
+    subgraph Security Zone
+    KB["Kafka集群"]
+    FL["Flink集群"]
+    ES["ES集群"]
+    end
+    
+    subgraph Data Zone
+    NG["Neo4j"]
+    MV["Milvus"]
+    MN["MinIO"]
+    end
+    
+    FW --> SW --> KB --> FL --> ES
+    FL --> NG & MV
+    ES --> MN
+    
+    style FW fill:#fce4ec,stroke:#c62828
+    style KB fill:#e3f2fd,stroke:#1565c0
+    style ES fill:#e1f5fe,stroke:#01579b</div><hr>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,2258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="03 01 mitre attack<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-03-01-mitre-attack/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-03-01-mitre-attack/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>MITRE ATT&CK 框架 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-03-01-mitre-attack/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          MITRE ATT&CK 框架
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>01. MITRE ATT&amp;CK® 框架</h1>
+<blockquote>
+<p>智能安全事件可观测性 · 战术技术参考</p>
+</blockquote>
+<hr>
+<h2 id="一框架概述">一、框架概述</h2>
+<h3 id="什么是-attampck">1.1 什么是 ATT&amp;CK</h3>
+<p><strong>MITRE ATT&amp;CK®</strong>（Adversarial Tactics, Techniques &amp; Common Knowledge）是一个基于真实世界观察的对抗性战术、技术和常识知识库。</p>
+<p><strong>官网：</strong> <a href="https://attack.mitre.org/">https://attack.mitre.org/</a><br><strong>中文版：</strong> <a href="https://seccmd.github.io/Attack_CN/">https://seccmd.github.io/Attack_CN/</a></p>
+<p><strong>框架演进历史：</strong></p>
+<table>
+<thead>
+<tr>
+<th>年份</th>
+<th>版本</th>
+<th>核心变化</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2013</td>
+<td>v1</td>
+<td>企业矩阵（Pre-ATT&amp;CK）发布</td>
+</tr>
+<tr>
+<td>2015</td>
+<td>v3</td>
+<td>正式命名 ATT&amp;CK</td>
+</tr>
+<tr>
+<td>2017</td>
+<td>v6</td>
+<td>移动矩阵加入</td>
+</tr>
+<tr>
+<td>2020</td>
+<td>v8</td>
+<td>ATT&amp;CK for Enterprise 2020 更新</td>
+</tr>
+<tr>
+<td>2022</td>
+<td>v12</td>
+<td>云矩阵全面重构</td>
+</tr>
+<tr>
+<td>2024</td>
+<td>v14</td>
+<td>AI-specific 威胁纳入</td>
+</tr>
+<tr>
+<td>2025</td>
+<td>v15</td>
+<td>ICS/OT 矩阵扩展</td>
+</tr>
+</tbody></table>
+<p><strong>框架核心价值：</strong></p>
+<div class="mermaid">graph LR
+    V1["统一语言
+描述攻击行为"] --> V2["攻击者 TTP 映射
+知己知彼"]
+    V2 --> V3["检测覆盖评估
+发现防御差距"]
+    V3 --> V4["红蓝对抗基础
+验证防御能力"]
+    V4 --> V5["安全运营指南
+指导防御建设"]
+    
+    style V1 fill:#e3f2fd,stroke:#1565c0
+    style V2 fill:#e8f5e9,stroke:#2e7d32
+    style V3 fill:#fff3e0,stroke:#e65100
+    style V4 fill:#fce4ec,stroke:#c62828
+    style V5 fill:#f3e5f5,stroke:#7b1fa2</div><hr>
+<h3 id="核心概念解析">1.2 核心概念解析</h3>
+<p><strong>战术 vs 技术 vs 子技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>定义</th>
+<th>类比</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>战术 (Tactic)</strong></td>
+<td>攻击者的目标（为什么）</td>
+<td>楼层（攻击目标楼层）</td>
+<td>获得初始访问</td>
+</tr>
+<tr>
+<td><strong>技术 (Technique)</strong></td>
+<td>实现战术的方法（怎么做）</td>
+<td>楼梯（爬楼梯的方式）</td>
+<td>钓鱼邮件</td>
+</tr>
+<tr>
+<td><strong>子技术 (Sub-technique)</strong></td>
+<td>技术的具体变种</td>
+<td>具体楼梯</td>
+<td>鱼叉式钓鱼附件</td>
+</tr>
+<tr>
+<td><strong>程序 (Procedure)</strong></td>
+<td>攻击者具体实现</td>
+<td>某人爬楼梯的方式</td>
+<td>使用 Emotet 木马</td>
+</tr>
+</tbody></table>
+<p><strong>ATT&amp;CK 矩阵结构：</strong></p>
+<pre><code>战术列 (Tactic)  ←  攻击者要达成的目标
+    │
+    ├── 技术 1 (Technique)
+    │     ├── 子技术 1.1
+    │     ├── 子技术 1.2
+    │     └── 子技术 1.3
+    │
+    ├── 技术 2 (Technique)
+    │     └── 子技术 2.1
+    │
+    └── 技术 3 (Technique)</code></pre><hr>
+<h2 id="二企业矩阵enterprise-attampck">二、企业矩阵（Enterprise ATT&amp;CK）</h2>
+<h3 id="战术全景图">2.1 战术全景图</h3>
+<p><strong>14 个战术按攻击链顺序：</strong></p>
+<div class="mermaid">graph LR
+    TA["TA0043 - 侦察"] --> TB["TA0042 - 资源开发"]
+    TB --> T1["TA0001 - 初始访问"]
+    T1 --> T2["TA0002 - 执行"]
+    T2 --> T3["TA0003 - 持久化"]
+    T3 --> T4["TA0004 - 权限提升"]
+    T4 --> T5["TA0005 - 防御规避"]
+    T5 --> T6["TA0006 - 凭据访问"]
+    T6 --> T7["TA0007 - 发现"]
+    T7 --> T8["TA0008 - 横向移动"]
+    T8 --> T9["TA0009 - 收集"]
+    T9 --> T10["TA0010 - 命令控制"]
+    T10 --> T11["TA0011 - 数据外传"]
+    T11 --> T12["TA0040 - 影响"]
+    
+    style TA fill:#fff3e0,stroke:#e65100
+    style T1 fill:#e3f2fd,stroke:#1565c0
+    style T12 fill:#fce4ec,stroke:#c62828</div><h3 id="检测优先级矩阵">2.2 检测优先级矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>战术</th>
+<th>技术数</th>
+<th>攻击阶段</th>
+<th>业务影响</th>
+<th>检测难度</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>TA0043 侦察</strong></td>
+<td>12</td>
+<td>前期</td>
+<td>低</td>
+<td>⭐⭐⭐</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td><strong>TA0042 资源开发</strong></td>
+<td>8</td>
+<td>前期</td>
+<td>低</td>
+<td>⭐⭐⭐⭐</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td><strong>TA0001 初始访问</strong></td>
+<td>16</td>
+<td>入侵</td>
+<td>极高</td>
+<td>⭐⭐⭐⭐</td>
+<td>🔴 极高</td>
+</tr>
+<tr>
+<td><strong>TA0002 执行</strong></td>
+<td>16</td>
+<td>入侵</td>
+<td>高</td>
+<td>⭐⭐</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>TA0003 持久化</strong></td>
+<td>20</td>
+<td>潜伏</td>
+<td>高</td>
+<td>⭐⭐⭐⭐</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>TA0004 权限提升</strong></td>
+<td>18</td>
+<td>扩散</td>
+<td>高</td>
+<td>⭐⭐⭐⭐</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>TA0005 防御规避</strong></td>
+<td>39</td>
+<td>潜伏</td>
+<td>中高</td>
+<td>⭐⭐⭐⭐⭐</td>
+<td>🟠 中高</td>
+</tr>
+<tr>
+<td><strong>TA0006 凭据访问</strong></td>
+<td>17</td>
+<td>扩散</td>
+<td>极高</td>
+<td>⭐⭐⭐⭐</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>TA0007 发现</strong></td>
+<td>21</td>
+<td>扩散</td>
+<td>中</td>
+<td>⭐⭐⭐</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td><strong>TA0008 横向移动</strong></td>
+<td>11</td>
+<td>扩散</td>
+<td>极高</td>
+<td>⭐⭐⭐⭐</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>TA0009 收集</strong></td>
+<td>17</td>
+<td>收集</td>
+<td>高</td>
+<td>⭐⭐⭐</td>
+<td>🟠 中高</td>
+</tr>
+<tr>
+<td><strong>TA0010 命令控制</strong></td>
+<td>18</td>
+<td>控制</td>
+<td>极高</td>
+<td>⭐⭐⭐⭐⭐</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>TA0011 数据外传</strong></td>
+<td>10</td>
+<td>达成</td>
+<td>极高</td>
+<td>⭐⭐⭐⭐</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>TA0040 影响</strong></td>
+<td>16</td>
+<td>达成</td>
+<td>极高</td>
+<td>⭐⭐⭐</td>
+<td>🔴 高</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="三战术技术详解">三、战术技术详解</h2>
+<h3 id="ta0001-初始访问initial-access">3.1 TA0001 - 初始访问（Initial Access）</h3>
+<p><strong>定义：</strong> 攻击者试图进入目标网络</p>
+<p><strong>核心入口技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术 ID</th>
+<th>技术名称</th>
+<th>子技术数</th>
+<th>描述</th>
+<th>入口场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1190</strong></td>
+<td>利用面向 Internet 的系统</td>
+<td>2</td>
+<td>利用对外服务漏洞</td>
+<td>Web服务器、VPN、邮箱</td>
+</tr>
+<tr>
+<td><strong>T1133</strong></td>
+<td>外部远程服务</td>
+<td>0</td>
+<td>利用远程服务</td>
+<td>RDP、SSH、VPN</td>
+</tr>
+<tr>
+<td><strong>T1566</strong></td>
+<td>钓鱼攻击</td>
+<td>2</td>
+<td>钓鱼获取访问权限</td>
+<td>邮件钓鱼、鱼叉钓鱼</td>
+</tr>
+<tr>
+<td><strong>T1078</strong></td>
+<td>有效账户</td>
+<td>4</td>
+<td>使用泄露凭据</td>
+<td>密码复用、撞库</td>
+</tr>
+<tr>
+<td><strong>T0856</strong></td>
+<td>恶意镜像</td>
+<td>1</td>
+<td>供应链投毒</td>
+<td>第三方组件</td>
+</tr>
+<tr>
+<td><strong>T1199</strong></td>
+<td>信任关系</td>
+<td>0</td>
+<td>利用信任关系</td>
+<td>MSSP、厂商连接</td>
+</tr>
+</tbody></table>
+<p><strong>钓鱼攻击子技术详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>子技术</th>
+<th>说明</th>
+<th>检测方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1566.001 鱼叉钓鱼附件</strong></td>
+<td>定向恶意附件</td>
+<td>附件沙箱、宏禁用</td>
+</tr>
+<tr>
+<td><strong>T1566.002 鱼叉钓鱼链接</strong></td>
+<td>定向恶意链接</td>
+<td>URL 分析、点击警告</td>
+</tr>
+<tr>
+<td><strong>T1566.003 鱼叉钓鱼邮件</strong></td>
+<td>BEC 欺诈</td>
+<td>邮件分析、发件人验证</td>
+</tr>
+</tbody></table>
+<p><strong>初始访问向量分布（常见攻击）：</strong></p>
+<pre><code>📊 初始访问向量统计
+
+🔴 钓鱼邮件攻击 ───────────────────── 45%
+🟠 远程服务弱口令 ─────────────────── 20%
+🟡 Web 应用漏洞 ──────────────────── 15%
+🟡 供应链攻击 ───────────────────── 10%
+🟢 物理访问 ───────────────────────── 5%
+🟢 其他 ──────────────────────────── 5%</code></pre><hr>
+<h3 id="ta0002-执行execution">3.2 TA0002 - 执行（Execution）</h3>
+<p><strong>定义：</strong> 攻击者尝试运行恶意代码</p>
+<p><strong>核心执行技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术 ID</th>
+<th>技术名称</th>
+<th>子技术数</th>
+<th>说明</th>
+<th>检测重点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1059</strong></td>
+<td>命令和脚本解释器</td>
+<td>7</td>
+<td>使用系统工具执行命令</td>
+<td>进程链、命令行</td>
+</tr>
+<tr>
+<td><strong>T1053</strong></td>
+<td>计划任务/作业</td>
+<td>5</td>
+<td>调度恶意代码执行</td>
+<td>任务创建、异常调度</td>
+</tr>
+<tr>
+<td><strong>T1106</strong></td>
+<td>原生 API 调用</td>
+<td>0</td>
+<td>直接调用系统 API</td>
+<td>Syscall、动态加载</td>
+</tr>
+<tr>
+<td><strong>T1204</strong></td>
+<td>用户执行</td>
+<td>2</td>
+<td>诱导用户执行</td>
+<td>文件执行、宏执行</td>
+</tr>
+<tr>
+<td><strong>T1047</strong></td>
+<td>Windows 管理 Instrumentation</td>
+<td>0</td>
+<td>使用 WMIC 执行</td>
+<td>WMI 命令监控</td>
+</tr>
+</tbody></table>
+<p><strong>T1059 命令和脚本解释器详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>子技术 ID</th>
+<th>子技术名称</th>
+<th>说明</th>
+<th>攻击示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1059.001</strong></td>
+<td>PowerShell</td>
+<td>使用 PowerShell</td>
+<td><code>Invoke-Mimikatz</code></td>
+</tr>
+<tr>
+<td><strong>T1059.002</strong></td>
+<td>Windows Command Shell</td>
+<td>使用 cmd.exe</td>
+<td><code>cmd /c powershell</code></td>
+</tr>
+<tr>
+<td><strong>T1059.003</strong></td>
+<td>Unix Shell</td>
+<td>使用 Bash/Sh</td>
+<td><code>curl | bash</code></td>
+</tr>
+<tr>
+<td><strong>T1059.004</strong></td>
+<td>Python</td>
+<td>使用 Python</td>
+<td><code>python -c &#39;import...&#39; </code></td>
+</tr>
+<tr>
+<td><strong>T1059.005</strong></td>
+<td>VBScript</td>
+<td>使用 VBS</td>
+<td>宏病毒</td>
+</tr>
+<tr>
+<td><strong>T1059.006</strong></td>
+<td>Python</td>
+<td>使用 Python</td>
+<td>下载并执行</td>
+</tr>
+</tbody></table>
+<p><strong>检测矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>数据源</th>
+<th>检测特征</th>
+<th>示例告警</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>进程监控</td>
+<td>异常父子进程</td>
+<td><code>explorer → powershell</code></td>
+</tr>
+<tr>
+<td>命令历史</td>
+<td>恶意命令执行</td>
+<td>encoded command</td>
+</tr>
+<tr>
+<td>注册表</td>
+<td>PowerShell 远程执行</td>
+<td><code>Set-ExecutionPolicy</code></td>
+</tr>
+<tr>
+<td>文件系统</td>
+<td>脚本文件创建</td>
+<td><code>.ps1</code>、<code>batch</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="ta0003-持久化persistence">3.3 TA0003 - 持久化（Persistence）</h3>
+<p><strong>定义：</strong> 攻击者试图保持长期访问</p>
+<p><strong>持久化技术树：</strong></p>
+<div class="mermaid">graph TB
+    P[持久化] --> P1[注册表]
+    P --> P2[计划任务]
+    P --> P3[服务]
+    P --> P4[WMI事件]
+    P --> P5[启动项]
+    P --> P6[恶意组件]
+    
+    P1 --> P1a[Run键]
+    P1 --> P1b[Services键]
+    P1 --> P1c[IFEO]
+    
+    P2 --> P2a[Scheduled Task]
+    P2 --> P2b[cron/at]
+    
+    P3 --> P3a[Windows服务]
+    P3 --> P3b[Systemd服务]
+    
+    P4 --> P4a[永久事件订阅]
+    
+    P5 --> P5a[Startup目录]
+    P5 --> P5b[rc.local]
+    
+    P6 --> P6a[COM对象]
+    P6 --> P6b[Bootkit]
+    
+    style P fill:#fce4ec,stroke:#c62828
+    style P1a fill:#fff,stroke:#c62828
+    style P2a fill:#fff,stroke:#c62828
+    style P4a fill:#fff,stroke:#c62828</div><p><strong>核心持久化技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术 ID</th>
+<th>技术名称</th>
+<th>子技术数</th>
+<th>Windows</th>
+<th>Linux</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1547</strong></td>
+<td>注册表运行键</td>
+<td>9</td>
+<td>✓</td>
+<td>-</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1053</strong></td>
+<td>计划任务</td>
+<td>5</td>
+<td>✓</td>
+<td>✓</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1543</strong></td>
+<td>创建服务</td>
+<td>3</td>
+<td>✓</td>
+<td>✓</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1546</strong></td>
+<td>事件触发执行</td>
+<td>12</td>
+<td>✓</td>
+<td>✓</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1505</strong></td>
+<td>服务器软件组件</td>
+<td>4</td>
+<td>✓</td>
+<td>✓</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>T1547 注册表运行键详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>子技术</th>
+<th>注册表路径</th>
+<th>说明</th>
+<th>检测</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1547.001</strong></td>
+<td><code>HKCU\...\Run</code></td>
+<td>用户级别自启动</td>
+<td>监控 Run 键写入</td>
+</tr>
+<tr>
+<td><strong>T1547.001</strong></td>
+<td><code>HKLM\...\Run</code></td>
+<td>系统级别自启动</td>
+<td>监控 Run 键写入</td>
+</tr>
+<tr>
+<td><strong>T1547.003</strong></td>
+<td><code>HKLM\...\RunOnce</code></td>
+<td>单次执行后删除</td>
+<td>监控 RunOnce</td>
+</tr>
+<tr>
+<td><strong>T1547.004</strong></td>
+<td>IFEO</td>
+<td>镜像劫持</td>
+<td>监控注册表修改</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="ta0004-权限提升privilege-escalation">3.4 TA0004 - 权限提升（Privilege Escalation）</h3>
+<p><strong>定义：</strong> 攻击者获取更高权限</p>
+<p><strong>提权技术分类：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>技术</th>
+<th>说明</th>
+<th>平台</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>漏洞利用</strong></td>
+<td>T1068</td>
+<td>利用漏洞提权</td>
+<td>Windows/Linux</td>
+</tr>
+<tr>
+<td><strong>令牌操纵</strong></td>
+<td>T1134</td>
+<td>令牌窃取/伪装</td>
+<td>Windows</td>
+</tr>
+<tr>
+<td><strong>UAC 绕过</strong></td>
+<td>T1548.002</td>
+<td>绕过用户账户控制</td>
+<td>Windows</td>
+</tr>
+<tr>
+<td><strong>计划任务</strong></td>
+<td>T1053.006</td>
+<td>利用计划任务提权</td>
+<td>Windows/Linux</td>
+</tr>
+<tr>
+<td><strong>sudo 滥用</strong></td>
+<td>T1548.003</td>
+<td>sudo 配置错误</td>
+<td>Linux</td>
+</tr>
+</tbody></table>
+<p><strong>Windows 提权技术详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>方法</th>
+<th>检测难度</th>
+<th>检测特征</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Bypass UAC</strong></td>
+<td>使用高权限进程执行</td>
+<td>⭐⭐⭐⭐</td>
+<td>进程创建、注册表</td>
+</tr>
+<tr>
+<td><strong>Token Manipulation</strong></td>
+<td>SeImpersonatePrivilege</td>
+<td>⭐⭐⭐⭐</td>
+<td>令牌窃取、RPC</td>
+</tr>
+<tr>
+<td><strong>DLL 劫持</strong></td>
+<td>系统 DLL 搜索顺序劫持</td>
+<td>⭐⭐⭐</td>
+<td>DLL 加载、日志</td>
+</tr>
+<tr>
+<td><strong>服务配置错误</strong></td>
+<td>服务权限配置错误</td>
+<td>⭐⭐⭐</td>
+<td>服务创建、配置</td>
+</tr>
+<tr>
+<td><strong>Registry 权限</strong></td>
+<td>注册表权限配置错误</td>
+<td>⭐⭐⭐</td>
+<td>ACL 变更</td>
+</tr>
+</tbody></table>
+<p><strong>Linux 提权技术详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>方法</th>
+<th>检测难度</th>
+<th>检测特征</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SUDO 滥用</strong></td>
+<td>sudo 配置错误</td>
+<td>⭐⭐⭐</td>
+<td>sudoers 配置</td>
+</tr>
+<tr>
+<td><strong>内核漏洞</strong></td>
+<td>Dirty Pipe/CVE</td>
+<td>⭐⭐⭐⭐</td>
+<td>内核模块加载</td>
+</tr>
+<tr>
+<td><strong>计划任务劫持</strong></td>
+<td>crontab 脚本劫持</td>
+<td>⭐⭐⭐</td>
+<td>cron 任务、权限</td>
+</tr>
+<tr>
+<td><strong>SUID 滥用</strong></td>
+<td>特殊权限文件</td>
+<td>⭐⭐⭐</td>
+<td>SUID 文件、bash</td>
+</tr>
+<tr>
+<td><strong>NFS root squashing</strong></td>
+<td>NFS 配置错误</td>
+<td>⭐⭐⭐</td>
+<td>NFS 挂载</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="ta0005-防御规避defense-evasion">3.5 TA0005 - 防御规避（Defense Evasion）</h3>
+<p><strong>定义：</strong> 攻击者避免被发现</p>
+<p><strong>防御规避技术矩阵：</strong></p>
+<div class="mermaid">graph LR
+    subgraph 规避类别
+        E1[禁用安全工具]
+        E2[清除日志]
+        E3[混淆]
+        E4[伪装]
+        E5[绕过]
+    end
+    
+    E1 --> E1a[T1562 禁用软件]
+    E2 --> E2a[T1070 清除日志]
+    E3 --> E3a[T1027 混淆]
+    E4 --> E4a[T1036 伪装]
+    E5 --> E5a[T1096 路径拼接]
+    
+    style E1 fill:#fce4ec,stroke:#c62828
+    style E2 fill:#fff3e0,stroke:#e65100
+    style E3 fill:#e3f2fd,stroke:#1565c0</div><p><strong>核心规避技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术 ID</th>
+<th>技术名称</th>
+<th>子技术数</th>
+<th>说明</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1562</strong></td>
+<td>禁用安全软件</td>
+<td>4</td>
+<td>关闭防病毒、EDR</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1070</strong></td>
+<td>清除日志</td>
+<td>5</td>
+<td>清除取证痕迹</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1027</strong></td>
+<td>混淆</td>
+<td>8</td>
+<td>代码混淆、编码</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1036</strong></td>
+<td>伪装</td>
+<td>7</td>
+<td>文件/进程伪装</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1096</strong></td>
+<td>路径拼接</td>
+<td>0</td>
+<td>NTFS 路径绕过</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1564</strong></td>
+<td>隐藏组件</td>
+<td>4</td>
+<td>隐藏文件/目录</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>T1070 清除日志详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>子技术</th>
+<th>说明</th>
+<th>Windows 事件</th>
+<th>检测方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1070.001</strong></td>
+<td>Clear Windows Event Logs</td>
+<td>安全、系统、应用</td>
+<td>Event Log 监控</td>
+</tr>
+<tr>
+<td><strong>T1070.002</strong></td>
+<td>Clear Linux Logs</td>
+<td>/var/log/*</td>
+<td>文件系统监控</td>
+</tr>
+<tr>
+<td><strong>T1070.003</strong></td>
+<td>Clear Command History</td>
+<td>history -c</td>
+<td>Shell 历史监控</td>
+</tr>
+<tr>
+<td><strong>T1070.004</strong></td>
+<td>Delete File</td>
+<td>文件删除</td>
+<td>文件完整性、备份</td>
+</tr>
+</tbody></table>
+<p><strong>反检测技术：</strong></p>
+<div class="mermaid">graph TB
+    D[防御规避] --> D1[无文件攻击]
+    D --> D2[DLL 侧加载]
+    D --> D3[合法工具滥用]
+    D --> D4[白名单绕过]
+    
+    D1 --> D1a[PowerShell/WScript]
+    D1 --> D1b[Registry 存储]
+    D1 --> D1c[内存执行]
+    
+    D3 --> D3a[PsExec/WMIC]
+    D3 --> D3b[Certutil/Wget]
+    
+    style D1 fill:#fce4ec,stroke:#c62828
+    style D2 fill:#fff3e0,stroke:#e65100
+    style D3 fill:#e8f5e9,stroke:#2e7d32</div><hr>
+<h3 id="ta0006-凭据访问credential-access">3.6 TA0006 - 凭据访问（Credential Access）</h3>
+<p><strong>定义：</strong> 攻击者窃取凭据</p>
+<p><strong>凭据窃取技术树：</strong></p>
+<div class="mermaid">graph TB
+    C["凭据访问"] --> C1["内存凭据"]
+    C --> C2["本地凭据"]
+    C --> C3["域凭据"]
+    C --> C4["浏览器凭据"]
+    
+    C1 --> C1a["LSASS 转储"]
+    C1 --> C1b["SAM 数据库"]
+    C1 --> C1c["Process Memory"]
+    
+    C2 --> C2a["/etc/passwd"]
+    C2 --> C2b["SSH Key"]
+    C2 --> C2c["配置文件"]
+    
+    C3 --> C3a["Kerberoasting"]
+    C3 --> C3b["黄金白银票"]
+    C3 --> C3c["AS-REP Roasting"]
+    
+    C4 --> C4a["浏览器 Cookie"]
+    C4 --> C4b["浏览器密码"]
+    
+    style C fill:#fce4ec,stroke:#c62828
+    style C1a fill:#fff,stroke:#c62828
+    style C3a fill:#fff,stroke:#c62828</div><p><strong>核心凭据窃取技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术 ID</th>
+<th>技术名称</th>
+<th>子技术数</th>
+<th>说明</th>
+<th>风险等级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1003</strong></td>
+<td>OS 凭据转储</td>
+<td>8</td>
+<td>操作系统凭据</td>
+<td>🔴🔴🔴</td>
+</tr>
+<tr>
+<td><strong>T1552</strong></td>
+<td>不安全凭据</td>
+<td>5</td>
+<td>配置文件凭据</td>
+<td>🔴🔴</td>
+</tr>
+<tr>
+<td><strong>T1558</strong></td>
+<td>窃取 Kerberos TGT</td>
+<td>3</td>
+<td>Kerberos 凭据</td>
+<td>🔴🔴🔴</td>
+</tr>
+<tr>
+<td><strong>T1110</strong></td>
+<td>暴力破解</td>
+<td>4</td>
+<td>密码暴力破解</td>
+<td>🔴🔴</td>
+</tr>
+<tr>
+<td><strong>T1056</strong></td>
+<td>输入捕获</td>
+<td>2</td>
+<td>键盘记录</td>
+<td>🔴🔴</td>
+</tr>
+</tbody></table>
+<p><strong>T1003 OS 凭据转储详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>子技术</th>
+<th>说明</th>
+<th>工具</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1003.001</strong></td>
+<td>LSASS 进程转储</td>
+<td>Mimikatz, procdump</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1003.002</strong></td>
+<td>安全账户管理器 (SAM)</td>
+<td>reg save, creddump</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1003.003</strong></td>
+<td>NTDS.dit</td>
+<td>ntdsutil, vssadmin</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1003.006</strong></td>
+<td>DCSync</td>
+<td>Mimikatz</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1003.008</strong></td>
+<td>/etc/passwd + /etc/shadow</td>
+<td>John, Hashcat</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>Kerberoasting 攻击详解：</strong></p>
+<pre><code>攻击流程:
+
+1. 侦察 ──▶ SPN 扫描 ──▶ 发现服务账户
+2. 请求 ──▶ TGS 请求 ──▶ 获取加密票据
+3. 离线 ──▶ 离线破解 ──▶ 获取明文密码
+
+防护措施:
+- 强密码策略
+- 账户属性限制
+- MDI 监控</code></pre><hr>
+<h3 id="ta0007-发现discovery">3.7 TA0007 - 发现（Discovery）</h3>
+<p><strong>定义：</strong> 攻击者了解环境</p>
+<p><strong>发现技术矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术 ID</th>
+<th>技术名称</th>
+<th>子技术数</th>
+<th>说明</th>
+<th>数据源</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1083</strong></td>
+<td>文件和目录发现</td>
+<td>0</td>
+<td>定位高价值文件</td>
+<td>文件系统</td>
+</tr>
+<tr>
+<td><strong>T1087</strong></td>
+<td>账户发现</td>
+<td>3</td>
+<td>枚举用户/组</td>
+<td>本地/域</td>
+</tr>
+<tr>
+<td><strong>T1018</strong></td>
+<td>远程系统发现</td>
+<td>0</td>
+<td>内网主机发现</td>
+<td>网络</td>
+</tr>
+<tr>
+<td><strong>T1046</strong></td>
+<td>网络服务扫描</td>
+<td>0</td>
+<td>端口/服务扫描</td>
+<td>网络</td>
+</tr>
+<tr>
+<td><strong>T1057</strong></td>
+<td>进程发现</td>
+<td>0</td>
+<td>查看运行进程</td>
+<td>进程</td>
+</tr>
+<tr>
+<td><strong>T1016</strong></td>
+<td>系统网络配置</td>
+<td>1</td>
+<td>网络配置</td>
+<td>系统</td>
+</tr>
+</tbody></table>
+<p><strong>主机发现命令：</strong></p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>系统</th>
+<th>说明</th>
+<th>检测</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>net view</code></td>
+<td>Windows</td>
+<td>域内主机发现</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><code>arp -a</code></td>
+<td>Windows/Linux</td>
+<td>ARP 表</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><code>nmap -sT -p-</code></td>
+<td>Linux</td>
+<td>端口扫描</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><code>nslookup</code></td>
+<td>Windows</td>
+<td>DNS 查询</td>
+<td>⭐</td>
+</tr>
+<tr>
+<td><code>ping</code></td>
+<td>Both</td>
+<td>主机探测</td>
+<td>⭐</td>
+</tr>
+</tbody></table>
+<p><strong>账户发现命令：</strong></p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>系统</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>net user /domain</code></td>
+<td>Windows</td>
+<td>域用户枚举</td>
+</tr>
+<tr>
+<td><code>net group &quot;Domain Admins&quot;</code></td>
+<td>Windows</td>
+<td>域管组枚举</td>
+</tr>
+<tr>
+<td><code>wmic useraccount get</code></td>
+<td>Windows</td>
+<td>本地用户</td>
+</tr>
+<tr>
+<td><code>getent passwd</code></td>
+<td>Linux</td>
+<td>系统用户</td>
+</tr>
+<tr>
+<td><code>cat /etc/sudoers</code></td>
+<td>Linux</td>
+<td>sudo 权限</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="ta0008-横向移动lateral-movement">3.8 TA0008 - 横向移动（Lateral Movement）</h3>
+<p><strong>定义：</strong> 攻击者进入其他系统</p>
+<p><strong>横向移动技术对比：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>所需权限</th>
+<th>是否需要凭据</th>
+<th>加密</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>PsExec</strong></td>
+<td>管理员</td>
+<td>明文</td>
+<td>SMB</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>WMI</strong></td>
+<td>用户</td>
+<td>明文</td>
+<td>DCOM</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>RDP</strong></td>
+<td>用户</td>
+<td>明文</td>
+<td>RDP</td>
+<td>⭐</td>
+</tr>
+<tr>
+<td><strong>SSH</strong></td>
+<td>用户</td>
+<td>密钥/密码</td>
+<td>SSH</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>SMB</strong></td>
+<td>用户</td>
+<td>哈希/明文</td>
+<td>SMB</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Pass-the-Hash</strong></td>
+<td>用户</td>
+<td>哈希</td>
+<td>NTLM</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>WinRM</strong></td>
+<td>用户</td>
+<td>明文</td>
+<td>HTTPS</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>Pass-the-Hash 攻击链：</strong></p>
+<div class="mermaid">graph LR
+    A[主机 A] -->|"凭据哈希"| B[主机 B]
+    B -->|"访问共享"| C[主机 C]
+    C -->|"获取更多哈希"| D[主机 D]
+    
+    style A fill:#e3f2fd,stroke:#1565c0
+    style D fill:#fce4ec,stroke:#c62828</div><hr>
+<h3 id="ta0009-收集collection">3.9 TA0009 - 收集（Collection）</h3>
+<p><strong>定义：</strong> 攻击者收集目标数据</p>
+<p><strong>收集技术矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术 ID</th>
+<th>技术名称</th>
+<th>子技术数</th>
+<th>说明</th>
+<th>数据类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1005</strong></td>
+<td>本地系统数据</td>
+<td>0</td>
+<td>收集本地文件</td>
+<td>文件</td>
+</tr>
+<tr>
+<td><strong>T1039</strong></td>
+<td>网络共享数据</td>
+<td>0</td>
+<td>枚举共享文件</td>
+<td>网络</td>
+</tr>
+<tr>
+<td><strong>T1074</strong></td>
+<td>数据归一化</td>
+<td>2</td>
+<td>压缩打包</td>
+<td>压缩文件</td>
+</tr>
+<tr>
+<td><strong>T1113</strong></td>
+<td>屏幕截图</td>
+<td>0</td>
+<td>屏幕截图</td>
+<td>图片</td>
+</tr>
+<tr>
+<td><strong>T1114</strong></td>
+<td>邮件收集</td>
+<td>2</td>
+<td>邮件数据</td>
+<td>邮件</td>
+</tr>
+<tr>
+<td><strong>T1185</strong></td>
+<td>浏览器会话劫持</td>
+<td>0</td>
+<td>Cookie 窃取</td>
+<td>浏览器</td>
+</tr>
+</tbody></table>
+<p><strong>数据收集阶段：</strong></p>
+<pre><code>定位文件 ──▶ 读取内容 ──▶ 打包压缩 ──▶ 准备外传
+   │          │           │          │
+   ▼          ▼           ▼          ▼
+ find命令   type命令    zip/rar    FTP/云盘</code></pre><hr>
+<h3 id="ta0010-命令控制command-and-control">3.10 TA0010 - 命令控制（Command and Control）</h3>
+<p><strong>定义：</strong> 攻击者与被控系统通信</p>
+<p><strong>C2 协议类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>协议</th>
+<th>特征</th>
+<th>端口</th>
+<th>检测方法</th>
+<th>难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>HTTP/S</strong></td>
+<td>伪装正常流量</td>
+<td>80/443</td>
+<td>JA3/JA4 指纹、TLS 指纹</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>DNS</strong></td>
+<td>低速、穿透防火墙</td>
+<td>53</td>
+<td>DNS 查询频率、编码特征</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>ICMP</strong></td>
+<td>隐蔽穿透</td>
+<td>-</td>
+<td>数据包大小、频率</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>SSH</strong></td>
+<td>加密隧道</td>
+<td>22</td>
+<td>会话特征、用户行为</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>SMB</strong></td>
+<td>横向通信</td>
+<td>445</td>
+<td>SMB 指纹</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>TCP/UDP</strong></td>
+<td>自定义协议</td>
+<td>多</td>
+<td>流量异常</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>C2 框架：</strong></p>
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>语言</th>
+<th>特点</th>
+<th>流行度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Cobalt Strike</strong></td>
+<td>Java</td>
+<td>完整 C2、强大功能</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Metasploit</strong></td>
+<td>Ruby</td>
+<td>框架+模块</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Mythic</strong></td>
+<td>Python</td>
+<td>跨平台、现代设计</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Covenant</strong></td>
+<td>C#</td>
+<td>.NET 生态</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Sliver</strong></td>
+<td>Go</td>
+<td>跨平台、EDR 规避</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Brute Ratel</strong></td>
+<td>C</td>
+<td>绕过 AV</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>JA3/JA4 指纹检测：</strong></p>
+<pre><code>JA3 计算流程:
+1. 客户端 Hello 提取
+2. TLS 版本
+3. 密码套件
+4. 扩展
+5. 椭圆曲线
+6. 签名算法
+7. 组合 → MD5 哈希
+
+示例:
+JA3: 4bf7e17d73f46c0e29c1a532ba8ed0e9</code></pre><hr>
+<h3 id="ta0011-数据外传exfiltration">3.11 TA0011 - 数据外传（Exfiltration）</h3>
+<p><strong>定义：</strong> 攻击者窃取数据</p>
+<p><strong>外传技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术 ID</th>
+<th>技术名称</th>
+<th>子技术数</th>
+<th>说明</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1041</strong></td>
+<td>通过 C2 信道</td>
+<td>0</td>
+<td>通过 C2 传输</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1567</strong></td>
+<td>通过 Web 服务</td>
+<td>2</td>
+<td>云盘、Git 外传</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1048</strong></td>
+<td>替代协议</td>
+<td>3</td>
+<td>FTP、SFTP</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1050</strong></td>
+<td>非自动方式</td>
+<td>0</td>
+<td>手动外传</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>T1029</strong></td>
+<td>定时传输</td>
+<td>0</td>
+<td>定时批量传输</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>数据外传检测窗口：</strong></p>
+<div class="mermaid">graph LR
+    C1[收集] --> C2[暂存]
+    C2 --> C3[压缩]
+    C3 --> C4[加密]
+    C4 --> C5[外传]
+    
+    C1 -.->|"检测点 1"| D1[大量读取]
+    C2 -.->|"检测点 2"| D2[可疑暂存]
+    C3 -.->|"检测点 3"| D3[压缩行为]
+    C5 -.->|"检测点 4"| D4[异常上传]</div><hr>
+<h3 id="ta0040-影响impact">3.12 TA0040 - 影响（Impact）</h3>
+<p><strong>定义：</strong> 攻击者破坏业务</p>
+<p><strong>影响技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术 ID</th>
+<th>技术名称</th>
+<th>子技术数</th>
+<th>说明</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>T1486</strong></td>
+<td>数据加密勒索</td>
+<td>0</td>
+<td>文件加密</td>
+<td>勒索</td>
+</tr>
+<tr>
+<td><strong>T1489</strong></td>
+<td>服务停止</td>
+<td>0</td>
+<td>停止服务</td>
+<td>破坏</td>
+</tr>
+<tr>
+<td><strong>T1490</strong></td>
+<td>阻止恢复</td>
+<td>3</td>
+<td>删除备份</td>
+<td>加大损失</td>
+</tr>
+<tr>
+<td><strong>T1485</strong></td>
+<td>数据销毁</td>
+<td>0</td>
+<td>磁盘擦除</td>
+<td>破坏</td>
+</tr>
+<tr>
+<td><strong>T1478</strong></td>
+<td>勒索赎金</td>
+<td>0</td>
+<td>索要赎金</td>
+<td>盈利</td>
+</tr>
+</tbody></table>
+<p><strong>勒索攻击阶段：</strong></p>
+<pre><code>1. 初始入侵 ──▶ 2. 权限获取 ──▶ 3. 内网扩散
+    │              │              │
+    ▼              ▼              ▼
+4. 数据打包 ──▶ 5. 文件加密 ──▶ 6. 勒索信息
+    │              │              │
+    ▼              ▼              ▼
+ 大量读取      AES+RSA        勒索页面</code></pre><hr>
+<h2 id="四attampck-navigator-使用指南">四、ATT&amp;CK Navigator 使用指南</h2>
+<h3 id="工具介绍">4.1 工具介绍</h3>
+<p><strong>ATT&amp;CK Navigator：</strong> <a href="https://attack.mitre.org/resources/navigator/">https://attack.mitre.org/resources/navigator/</a></p>
+<p><strong>功能：</strong></p>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>图层</strong></td>
+<td>可视化覆盖度</td>
+</tr>
+<tr>
+<td><strong>评分</strong></td>
+<td>基于矩阵评分</td>
+</tr>
+<tr>
+<td><strong>自定义</strong></td>
+<td>添加自定义技术</td>
+</tr>
+<tr>
+<td><strong>导出</strong></td>
+<td>SVG、JSON、Excel</td>
+</tr>
+</tbody></table>
+<h3 id="常见使用场景">4.2 常见使用场景</h3>
+<p><strong>场景一：红队评估</strong></p>
+<pre><code>1. 选择目标技术
+2. 导出攻击路径
+3. 执行对抗演练
+4. 评估检测能力</code></pre><p><strong>场景二：蓝队评估</strong></p>
+<pre><code>1. 选择技术子集
+2. 配置检测状态
+3. 生成覆盖报告
+4. 发现防御差距</code></pre><p><strong>场景三：威胁情报</strong></p>
+<pre><code>1. 导入 APT 组织 TTP
+2. 映射到 ATT&amp;CK
+3. 生成组织画像
+4. 预测攻击路径</code></pre><hr>
+<h2 id="五apt-组织-ttp-对照表">五、APT 组织 TTP 对照表</h2>
+<h3 id="中国背景-apt-组织">5.1 中国背景 APT 组织</h3>
+<table>
+<thead>
+<tr>
+<th>组织</th>
+<th>别名</th>
+<th>攻击目标</th>
+<th>主要战术</th>
+<th>常用工具</th>
+<th>活跃度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>APT41</strong></td>
+<td>Wicked Panda</td>
+<td>科技、游戏、医疗</td>
+<td>TA0001, TA0008, TA0010</td>
+<td>Cobalt Strike, PlugX</td>
+<td>🔴🔴🔴🔴</td>
+</tr>
+<tr>
+<td><strong>APT27</strong></td>
+<td>Zebrodite</td>
+<td>政府、制造</td>
+<td>TA0001, TA0002, TA0010</td>
+<td>PlugX, China Chopper</td>
+<td>🔴🔴🔴</td>
+</tr>
+<tr>
+<td><strong>APT10</strong></td>
+<td>MenuPass</td>
+<td>科技、电信</td>
+<td>TA0006, TA0008</td>
+<td>PlugX, Quasar</td>
+<td>🔴🔴</td>
+</tr>
+<tr>
+<td><strong>APT3</strong></td>
+<td>Gothic Panda</td>
+<td>政府、国防</td>
+<td>TA0001, TA0005</td>
+<td>Poison Ivy, PlugX</td>
+<td>🔴🔴</td>
+</tr>
+<tr>
+<td><strong>APT17</strong></td>
+<td>Axiom</td>
+<td>政府、媒体</td>
+<td>TA0001, TA0003</td>
+<td>定制后门</td>
+<td>🔴</td>
+</tr>
+</tbody></table>
+<h3 id="其他地区-apt-组织">5.2 其他地区 APT 组织</h3>
+<table>
+<thead>
+<tr>
+<th>组织</th>
+<th>来源</th>
+<th>攻击目标</th>
+<th>主要战术</th>
+<th>常用工具</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>APT28</strong></td>
+<td>俄罗斯</td>
+<td>政府、军队</td>
+<td>TA0001, TA0004, TA0010</td>
+<td>Sofacy, XAgent</td>
+</tr>
+<tr>
+<td><strong>APT29</strong></td>
+<td>俄罗斯</td>
+<td>政府、医疗</td>
+<td>TA0003, TA0005</td>
+<td>MiniDuke, Nobelium</td>
+</tr>
+<tr>
+<td><strong>Lazarus</strong></td>
+<td>朝鲜</td>
+<td>金融、加密货币</td>
+<td>TA0001, TA0004, TA0040</td>
+<td>HOPLIGHT, BADPATCH</td>
+</tr>
+<tr>
+<td><strong>FIN7</strong></td>
+<td>金融犯罪</td>
+<td>零售、餐饮</td>
+<td>TA0001, TA0002</td>
+<td>Carbanak, RESIDE</td>
+</tr>
+<tr>
+<td><strong>REvil</strong></td>
+<td>俄罗斯</td>
+<td>多行业</td>
+<td>TA0002, TA0040</td>
+<td>REvil ransomware</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="六检测覆盖评估">六、检测覆盖评估</h2>
+<h3 id="检测覆盖率自评表">6.1 检测覆盖率自评表</h3>
+<table>
+<thead>
+<tr>
+<th>战术</th>
+<th>关键技术</th>
+<th>当前覆盖</th>
+<th>目标覆盖</th>
+<th>差距</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>初始访问</strong></td>
+<td>T1190, T1133, T1566, T1078</td>
+<td>85%</td>
+<td>&gt;90%</td>
+<td>5%</td>
+</tr>
+<tr>
+<td><strong>执行</strong></td>
+<td>T1059, T1053, T1204</td>
+<td>90%</td>
+<td>&gt;95%</td>
+<td>5%</td>
+</tr>
+<tr>
+<td><strong>持久化</strong></td>
+<td>T1547, T1053, T1543</td>
+<td>75%</td>
+<td>&gt;90%</td>
+<td>15%</td>
+</tr>
+<tr>
+<td><strong>权限提升</strong></td>
+<td>T1068, T1548</td>
+<td>70%</td>
+<td>&gt;85%</td>
+<td>15%</td>
+</tr>
+<tr>
+<td><strong>防御规避</strong></td>
+<td>T1562, T1070, T1027</td>
+<td>65%</td>
+<td>&gt;80%</td>
+<td>15%</td>
+</tr>
+<tr>
+<td><strong>凭据访问</strong></td>
+<td>T1003, T1558</td>
+<td>85%</td>
+<td>&gt;90%</td>
+<td>5%</td>
+</tr>
+<tr>
+<td><strong>发现</strong></td>
+<td>T1083, T1018, T1046</td>
+<td>60%</td>
+<td>&gt;70%</td>
+<td>10%</td>
+</tr>
+<tr>
+<td><strong>横向移动</strong></td>
+<td>T1021, T1550</td>
+<td>80%</td>
+<td>&gt;90%</td>
+<td>10%</td>
+</tr>
+<tr>
+<td><strong>收集</strong></td>
+<td>T1005, T1039</td>
+<td>70%</td>
+<td>&gt;80%</td>
+<td>10%</td>
+</tr>
+<tr>
+<td><strong>命令控制</strong></td>
+<td>T1071, T1573</td>
+<td>85%</td>
+<td>&gt;95%</td>
+<td>10%</td>
+</tr>
+<tr>
+<td><strong>外传</strong></td>
+<td>T1041, T1567</td>
+<td>60%</td>
+<td>&gt;85%</td>
+<td>25%</td>
+</tr>
+<tr>
+<td><strong>影响</strong></td>
+<td>T1486, T1490</td>
+<td>75%</td>
+<td>&gt;95%</td>
+<td>20%</td>
+</tr>
+</tbody></table>
+<h3 id="检测规则示例">6.2 检测规则示例</h3>
+<pre><code class="language-yaml">规则名称: Suspicious_Run_Key_Modification
+战术: Persistence (TA0003)
+技术: T1547.001
+条件:
+  - 注册表写入 HKCU\...\Run
+  - 进程不是已知安装程序
+  - 值包含可疑路径
+严重级别: High
+检测数据源: Windows Registry
+
+规则名称: PowerShell_Encoded_Command
+战术: Execution (TA0002)
+技术: T1059.001
+条件:
+  - 进程是 powershell.exe
+  - 命令行包含 -enc 或 -encoded
+  - 父进程是 office/explorer
+严重级别: High
+检测数据源: Process Execution
+
+规则名称: LSASS_Access
+战术: Credential Access (TA0006)
+技术: T1003.001
+条件:
+  - 访问 LSASS 进程内存
+  - 使用特别权限
+严重级别: Critical
+检测数据源: Windows Security Event</code></pre><hr>
+<h2 id="七与-kill-chain-映射">七、与 Kill Chain 映射</h2>
+<h3 id="映射表">7.1 映射表</h3>
+<table>
+<thead>
+<tr>
+<th>Cyber Kill Chain</th>
+<th>ATT&amp;CK 战术</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>侦察</td>
+<td>TA0043 Reconnaissance</td>
+<td>收集目标信息</td>
+</tr>
+<tr>
+<td>武器化</td>
+<td>TA0042 Resource Development</td>
+<td>准备攻击资源</td>
+</tr>
+<tr>
+<td>投递</td>
+<td>TA0001 Initial Access</td>
+<td>送达攻击武器</td>
+</tr>
+<tr>
+<td>利用</td>
+<td>TA0002 Execution</td>
+<td>执行恶意代码</td>
+</tr>
+<tr>
+<td>安装</td>
+<td>TA0003 Persistence</td>
+<td>建立持久化</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>TA0010 Command and Control</td>
+<td>保持通信</td>
+</tr>
+<tr>
+<td>行动完成</td>
+<td>TA0009/TA0011/TA0040</td>
+<td>完成攻击意图</td>
+</tr>
+</tbody></table>
+<h3 id="检测时机矩阵">7.2 检测时机矩阵</h3>
+<div class="mermaid">graph LR
+    KC[Kill Chain] --> AT[ATT&CK 战术] --> DT[检测时机]
+    
+    KC1[侦察] --> AT1[TA0043] --> DT1[事前预防]
+    KC2[武器化] --> AT2[TA0042] --> DT2[事中检测]
+    KC3[投递] --> AT3[TA0001] --> DT3[边界检测]
+    KC4[利用] --> AT4[TA0002] --> DT4[终端检测]
+    KC5[安装] --> AT5[TA0003] --> DT5[终端检测]
+    KC6[C2] --> AT6[TA0010] --> DT6[网络检测]
+    KC7[行动] --> AT7[TA0040] --> DT7[端+网检测]</div><hr>
+<h2 id="八持续更新与订阅">八、持续更新与订阅</h2>
+<h3 id="版本更新追踪">8.1 版本更新追踪</h3>
+<p><strong>订阅更新：</strong> <a href="https://attack.mitre.org/subscribe/">https://attack.mitre.org/subscribe/</a></p>
+<p><strong>更新通知内容：</strong></p>
+<table>
+<thead>
+<tr>
+<th>更新类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>新技术添加</td>
+<td>新发现的攻击技术</td>
+</tr>
+<tr>
+<td>子技术扩展</td>
+<td>技术细化</td>
+</tr>
+<tr>
+<td>战术调整</td>
+<td>战术描述更新</td>
+</tr>
+<tr>
+<td>映射更新</td>
+<td>与其他框架映射更新</td>
+</tr>
+</tbody></table>
+<h3 id="版本历史">8.2 版本历史</h3>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>日期</th>
+<th>主要更新</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>v13</td>
+<td>2023-04</td>
+<td>新增云服务相关技术</td>
+</tr>
+<tr>
+<td>v14</td>
+<td>2024-04</td>
+<td>完善 ICS/IT 映射</td>
+</tr>
+<tr>
+<td>v15</td>
+<td>2025-01</td>
+<td>AI 威胁纳入、云原生技术扩展</td>
+</tr>
+<tr>
+<td>v16</td>
+<td>2025-07</td>
+<td>勒索软件专项矩阵</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="九参考链接">九、参考链接</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ATT&amp;CK 官网</td>
+<td><a href="https://attack.mitre.org/">https://attack.mitre.org/</a></td>
+</tr>
+<tr>
+<td>ATT&amp;CK Navigator</td>
+<td><a href="https://attack.mitre.org/resources/navigator/">https://attack.mitre.org/resources/navigator/</a></td>
+</tr>
+<tr>
+<td>ATT&amp;CK 订阅</td>
+<td><a href="https://attack.mitre.org/subscribe/">https://attack.mitre.org/subscribe/</a></td>
+</tr>
+<tr>
+<td>中文翻译版</td>
+<td><a href="https://sqli101.github.io/Attack/">https://sqli101.github.io/Attack/</a></td>
+</tr>
+<tr>
+<td>ATT&amp;CK 工作台</td>
+<td><a href="https://mitre-engenuity.github.io/attack-navigator/">https://mitre-engenuity.github.io/attack-navigator/</a></td>
+</tr>
+<tr>
+<td>MITRE Cyber Analytics Repository</td>
+<td><a href="https://car.mitre.org/">https://car.mitre.org/</a></td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Last updated: 2026-06-02</em></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

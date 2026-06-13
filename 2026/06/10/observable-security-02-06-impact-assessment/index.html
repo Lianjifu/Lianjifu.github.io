@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="02 06 impact assessment<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-02-06-impact-assessment/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-02-06-impact-assessment/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 06 · 影响评估逻辑 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-02-06-impact-assessment/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 06 · 影响评估逻辑
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>模块 6 - 影响评估</h1>
+<blockquote>
+<p><strong>核心定位：</strong> 安全影响评估是整个可观测性体系的&quot;战略官&quot;，通过多维影响评估模型 + 实时更新 + 预测分析，为安全决策提供量化依据。</p>
+</blockquote>
+<hr>
+<h2 id="功能概述">1. 功能概述</h2>
+<h3 id="业务背景">1.1 业务背景</h3>
+<p>当 SOC 分析师完成安全事件处置后，传统评估模式面临重重困境：影响评估依赖个人判断，同一事件不同人评估差异大；缺乏量化评估依据，评估结果偏差大；只看技术层面，不看业务影响，无法衡量真实损失；事件处置后未更新评估，影响范围扩大不自知。</p>
+<p><strong>核心问题矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">问题</th>
+<th align="left">现状</th>
+<th align="left">影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估靠经验</strong></td>
+<td align="left">影响评估依赖个人判断</td>
+<td align="left">同一事件评估差异大</td>
+</tr>
+<tr>
+<td align="left"><strong>数据缺失</strong></td>
+<td align="left">缺乏量化评估依据</td>
+<td align="left">评估结果偏差大</td>
+</tr>
+<tr>
+<td align="left"><strong>维度单一</strong></td>
+<td align="left">只看技术层面，不看业务</td>
+<td align="left">无法衡量真实损失</td>
+</tr>
+<tr>
+<td align="left"><strong>更新滞后</strong></td>
+<td align="left">事件处置后未更新评估</td>
+<td align="left">影响范围扩大不自知</td>
+</tr>
+</tbody></table>
+<h3 id="设计目标">1.2 设计目标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">目标</th>
+<th align="left">量化指标</th>
+<th align="left">价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>多维评估</strong></td>
+<td align="left">评估维度从 1维 → 5维</td>
+<td align="left">+400%</td>
+</tr>
+<tr>
+<td align="left"><strong>量化评估</strong></td>
+<td align="left">评估准确率从 60% → &gt; 90%</td>
+<td align="left">+30%</td>
+</tr>
+<tr>
+<td align="left"><strong>实时评估</strong></td>
+<td align="left">评估时间从 1小时+ → &lt; 5min</td>
+<td align="left">12x 提速</td>
+</tr>
+<tr>
+<td align="left"><strong>预测能力</strong></td>
+<td align="left">预测准确率从 0 → 80%</td>
+<td align="left">新能力</td>
+</tr>
+</tbody></table>
+<h3 id="设计原则">1.3 设计原则</h3>
+<ol>
+<li><strong>量化优先</strong> — 建立客观的量化评估标准，减少主观判断</li>
+<li><strong>多维覆盖</strong> — 技术+业务+声誉+合规+经济，五维全覆盖</li>
+<li><strong>实时更新</strong> — 事件演变过程中实时更新评估</li>
+<li><strong>预测前置</strong> — 预测事件潜在影响，支持前瞻性决策</li>
+<li><strong>损失量化</strong> — 估算事件可能造成的财务损失</li>
+</ol>
+<hr>
+<h2 id="功能架构">2. 功能架构</h2>
+<h3 id="整体架构">2.1 整体架构</h3>
+<div class="mermaid">graph TB
+    I1["技术指标\\n系统/日志"] & I2["业务指标\\n交易/服务"]
+    I3["舆情指标\\n媒体/社交"] & I4["合规记录\\n法规/合同"]
+    I5["财务数据\\n损失/成本"]
+    --> M1 & M2 & M3 & M4 & M5
+    M1["技术影响评分"] & M2["业务影响评分"] & M3["声誉影响评分"]
+    M4["合规影响评分"] & M5["经济影响评分"]
+    --> C["综合影响指数"] --> P["趋势预测"]
+    --> O1["评估报告"] & O2["损失估算"] & O3["决策建议"]
+    
+    style I1 fill:#e3f2fd,stroke:#1565c0
+    style I2 fill:#fff3e0,stroke:#e65100
+    style I3 fill:#e8f5e9,stroke:#2e7d32
+    style I4 fill:#fce4ec,stroke:#c62828
+    style I5 fill:#f3e5f5,stroke:#7b1fa2
+    style C fill:#fff,stroke:#1565c0,stroke-width:2px</div><h3 id="数据流设计">2.2 数据流设计</h3>
+<div class="mermaid">sequenceDiagram
+    participant EV as 安全事件
+    participant TM as 技术评估
+    participant BM as 业务评估
+    participant RM as 声誉评估
+    participant CM as 综合评估
+    participant RP as 评估报告
+    
+    EV->>TM: 技术指标输入
+    EV->>BM: 业务指标输入
+    TM & BM->>CM: 多维评分
+    CM->>RP: 综合影响指数
+    RP->>RP: 生成评估报告</div><hr>
+<h2 id="核心功能模块">3. 核心功能模块</h2>
+<h3 id="五维评估模型">3.1 五维评估模型</h3>
+<table>
+<thead>
+<tr>
+<th align="left">维度</th>
+<th align="left">评估内容</th>
+<th align="left">数据来源</th>
+<th align="left">权重</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>技术影响</strong></td>
+<td align="left">系统可用性、数据完整性、服务连续性</td>
+<td align="left">日志、监控、故障记录</td>
+<td align="left">25%</td>
+</tr>
+<tr>
+<td align="left"><strong>业务影响</strong></td>
+<td align="left">交易损失、服务中断、业务中断时长</td>
+<td align="left">业务系统、交易记录</td>
+<td align="left">25%</td>
+</tr>
+<tr>
+<td align="left"><strong>声誉影响</strong></td>
+<td align="left">品牌损失、媒体曝光、用户信任</td>
+<td align="left">舆情监控、客服反馈</td>
+<td align="left">20%</td>
+</tr>
+<tr>
+<td align="left"><strong>合规影响</strong></td>
+<td align="left">监管处罚、法律诉讼、合规违规</td>
+<td align="left">合规记录、审计日志</td>
+<td align="left">15%</td>
+</tr>
+<tr>
+<td align="left"><strong>经济影响</strong></td>
+<td align="left">直接损失、间接损失、恢复成本</td>
+<td align="left">财务系统、损失报告</td>
+<td align="left">15%</td>
+</tr>
+</tbody></table>
+<h3 id="评估能力矩阵">3.2 评估能力矩阵</h3>
+<table>
+<thead>
+<tr>
+<th align="left">能力</th>
+<th align="left">技术实现</th>
+<th align="left">输入数据</th>
+<th align="left">输出</th>
+<th align="left">准确率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>量化评估</strong></td>
+<td align="left">多维评分模型</td>
+<td align="left">多源数据</td>
+<td align="left">综合影响指数</td>
+<td align="left">90%</td>
+</tr>
+<tr>
+<td align="left"><strong>实时更新</strong></td>
+<td align="left">流式计算 + 事件驱动</td>
+<td align="left">实时事件流</td>
+<td align="left">更新后评分</td>
+<td align="left">95%</td>
+</tr>
+<tr>
+<td align="left"><strong>趋势预测</strong></td>
+<td align="left">时序分析 + 异常检测</td>
+<td align="left">历史数据</td>
+<td align="left">未来影响预测</td>
+<td align="left">80%</td>
+</tr>
+<tr>
+<td align="left"><strong>损失估算</strong></td>
+<td align="left">财务模型 + 统计推断</td>
+<td align="left">损失数据</td>
+<td align="left">财务损失估算</td>
+<td align="left">85%</td>
+</tr>
+</tbody></table>
+<h3 id="评估报告结构">3.3 评估报告结构</h3>
+<pre><code class="language-json">{
+  "impact_assessment_report": {
+    "report_id": "IMP-2026-0601-001",
+    "timestamp": "2026-06-01T12:00:00Z",
+    "event_id": "EVT-2026-0601-001",
+    "dimensions": {
+      "technical": { "score": 0.75, "weight": 0.25, "weighted_score": 0.1875 },
+      "business": { "score": 0.60, "weight": 0.25, "weighted_score": 0.15 },
+      "reputation": { "score": 0.45, "weight": 0.20, "weighted_score": 0.09 },
+      "compliance": { "score": 0.80, "weight": 0.15, "weighted_score": 0.12 },
+      "economic": { "score": 0.55, "weight": 0.15, "weighted_score": 0.0825 }
+    },
+    "composite_index": 0.632,
+    "trend_prediction": {
+      "current": 0.632,
+      "predicted_24h": 0.68,
+      "confidence": 0.78
+    },
+    "loss_estimation": {
+      "direct_loss": 125000,
+      "indirect_loss": 380000,
+      "recovery_cost": 95000,
+      "total_estimated_loss": 600000
+    },
+    "recommended_actions": ["启动业务连续性计划", "发布用户公告", "上报监管机构"]
+  }
+}</code></pre><hr>
+<h2 id="技术实现">4. 技术实现</h2>
+<h3 id="评估技术栈">4.1 评估技术栈</h3>
+<table>
+<thead>
+<tr>
+<th align="left">组件</th>
+<th align="left">选型</th>
+<th align="left">作用</th>
+<th align="left">关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>流式计算</strong></td>
+<td align="left">Apache Flink</td>
+<td align="left">实时数据处理</td>
+<td align="left">事件驱动</td>
+</tr>
+<tr>
+<td align="left"><strong>多维建模</strong></td>
+<td align="left">Python / scikit-learn</td>
+<td align="left">多维评分模型</td>
+<td align="left">权重可配</td>
+</tr>
+<tr>
+<td align="left"><strong>时序预测</strong></td>
+<td align="left">Prophet / ARIMA</td>
+<td align="left">趋势预测</td>
+<td align="left">时间序列</td>
+</tr>
+<tr>
+<td align="left"><strong>财务建模</strong></td>
+<td align="left">NumPy / Pandas</td>
+<td align="left">损失估算</td>
+<td align="left">统计推断</td>
+</tr>
+<tr>
+<td align="left"><strong>可视化</strong></td>
+<td align="left">ECharts / Grafana</td>
+<td align="left">评估仪表盘</td>
+<td align="left">实时刷新</td>
+</tr>
+</tbody></table>
+<h3 id="评估算法">4.2 评估算法</h3>
+<table>
+<thead>
+<tr>
+<th align="left">算法</th>
+<th align="left">原理</th>
+<th align="left">应用场景</th>
+<th align="left">输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>加权评分模型</strong></td>
+<td align="left">多维度加权汇总</td>
+<td align="left">综合影响指数计算</td>
+<td align="left">0-1 评分</td>
+</tr>
+<tr>
+<td align="left"><strong>时序预测</strong></td>
+<td align="left">基于历史数据的趋势预测</td>
+<td align="left">影响趋势预测</td>
+<td align="left">未来评分</td>
+</tr>
+<tr>
+<td align="left"><strong>异常检测</strong></td>
+<td align="left">统计异常 + 机器学习</td>
+<td align="left">异常影响识别</td>
+<td align="left">异常标记</td>
+</tr>
+<tr>
+<td align="left"><strong>损失回归模型</strong></td>
+<td align="left">基于历史损失数据回归</td>
+<td align="left">财务损失估算</td>
+<td align="left">损失金额</td>
+</tr>
+</tbody></table>
+<h3 id="技术选型">4.3 技术选型</h3>
+<table>
+<thead>
+<tr>
+<th align="left">组件</th>
+<th align="left">选型</th>
+<th align="left">作用</th>
+<th align="left">关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>实时计算</strong></td>
+<td align="left">Apache Flink</td>
+<td align="left">事件驱动的评估更新</td>
+<td align="left">&lt; 1min 延迟</td>
+</tr>
+<tr>
+<td align="left"><strong>批量计算</strong></td>
+<td align="left">Apache Spark</td>
+<td align="left">历史数据批量评估</td>
+<td align="left">离线分析</td>
+</tr>
+<tr>
+<td align="left"><strong>存储</strong></td>
+<td align="left">TimescaleDB + Redis</td>
+<td align="left">时序数据 + 实时状态</td>
+<td align="left">高性能读写</td>
+</tr>
+<tr>
+<td align="left"><strong>可视化</strong></td>
+<td align="left">Grafana</td>
+<td align="left">评估仪表盘</td>
+<td align="left">实时刷新</td>
+</tr>
+</tbody></table>
+<h3 id="容灾设计">4.4 容灾设计</h3>
+<table>
+<thead>
+<tr>
+<th align="left">故障场景</th>
+<th align="left">影响</th>
+<th align="left">应对策略</th>
+<th align="left">恢复时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>流计算故障</strong></td>
+<td align="left">实时评估中断</td>
+<td align="left">切换批量计算作为备份</td>
+<td align="left">&lt; 5min</td>
+</tr>
+<tr>
+<td align="left"><strong>存储故障</strong></td>
+<td align="left">评估数据丢失</td>
+<td align="left">Redis 持久化 + 定期备份</td>
+<td align="left">&lt; 10min</td>
+</tr>
+<tr>
+<td align="left"><strong>模型服务故障</strong></td>
+<td align="left">预测无法完成</td>
+<td align="left">切换备用模型实例</td>
+<td align="left">&lt; 1min</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="接口设计">5. 接口设计</h2>
+<h3 id="评估启动接口">5.1 评估启动接口</h3>
+<pre><code class="language-yaml">POST /api/v1/impact/start
+{
+  "event_id": "evt_20260601_abc123",
+  "assessment_type": "full",
+  "dimensions": ["technical", "business", "reputation", "compliance", "economic"]
+}</code></pre><h3 id="评估状态查询接口">5.2 评估状态查询接口</h3>
+<pre><code class="language-yaml">GET /api/v1/impact/{assessment_id}/status
+{
+  "assessment_id": "imp_20260601_001",
+  "status": "in_progress",
+  "completed_dimensions": ["technical", "business"],
+  "pending_dimensions": ["reputation", "compliance", "economic"],
+  "elapsed_time": "2m 30s"
+}</code></pre><h3 id="评估报告查询接口">5.3 评估报告查询接口</h3>
+<pre><code class="language-yaml">GET /api/v1/impact/{assessment_id}/report
+{
+  "assessment_id": "imp_20260601_001",
+  "composite_index": 0.632,
+  "dimensions": {...},
+  "trend_prediction": {...},
+  "loss_estimation": {...}
+}</code></pre><hr>
+<h2 id="量化指标">6. 量化指标</h2>
+<h3 id="核心指标达成">6.1 核心指标达成</h3>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">当前值</th>
+<th align="left">目标值</th>
+<th align="left">提升</th>
+<th align="left">状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估维度</strong></td>
+<td align="left">1维</td>
+<td align="left">5维</td>
+<td align="left">+400%</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>评估准确率</strong></td>
+<td align="left">60%</td>
+<td align="left">&gt; 90%</td>
+<td align="left">+30%</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>评估延迟</strong></td>
+<td align="left">1小时+</td>
+<td align="left">&lt; 5min</td>
+<td align="left">12x</td>
+<td align="left">🚧 进行中</td>
+</tr>
+<tr>
+<td align="left"><strong>预测准确率</strong></td>
+<td align="left">0</td>
+<td align="left">80%</td>
+<td align="left">新能力</td>
+<td align="left">🚧 进行中</td>
+</tr>
+</tbody></table>
+<h3 id="性能指标">6.2 性能指标</h3>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">目标值</th>
+<th align="left">峰值能力</th>
+<th align="left">状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估延迟</strong></td>
+<td align="left">&lt; 5min</td>
+<td align="left">P95=4.8min</td>
+<td align="left">✅</td>
+</tr>
+<tr>
+<td align="left"><strong>实时更新延迟</strong></td>
+<td align="left">&lt; 1min</td>
+<td align="left">45s</td>
+<td align="left">✅</td>
+</tr>
+<tr>
+<td align="left"><strong>并发评估能力</strong></td>
+<td align="left">50 events</td>
+<td align="left">55 events</td>
+<td align="left">✅</td>
+</tr>
+<tr>
+<td align="left"><strong>系统可用性</strong></td>
+<td align="left">99.9%</td>
+<td align="left">99.95%</td>
+<td align="left">✅</td>
+</tr>
+</tbody></table>
+<h3 id="业务价值">6.3 业务价值</h3>
+<table>
+<thead>
+<tr>
+<th align="left">价值维度</th>
+<th align="left">传统方案</th>
+<th align="left">智能评估</th>
+<th align="left">提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>评估质量</strong></td>
+<td align="left">主观判断</td>
+<td align="left">量化模型</td>
+<td align="left">+30% 准确率</td>
+</tr>
+<tr>
+<td align="left"><strong>评估效率</strong></td>
+<td align="left">1小时+</td>
+<td align="left">&lt; 5min</td>
+<td align="left">12x</td>
+</tr>
+<tr>
+<td align="left"><strong>决策支持</strong></td>
+<td align="left">模糊估计</td>
+<td align="left">精准预测</td>
+<td align="left">损失估算</td>
+</tr>
+<tr>
+<td align="left"><strong>维度覆盖</strong></td>
+<td align="left">1维</td>
+<td align="left">5维</td>
+<td align="left">+400%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="用户体验">7. 用户体验</h2>
+<h3 id="安全分析师视角">7.1 安全分析师视角</h3>
+<table>
+<thead>
+<tr>
+<th align="left">阶段</th>
+<th align="left">用户行为</th>
+<th align="left">系统响应</th>
+<th align="left">效率提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>启动</strong></td>
+<td align="left">选中事件，一键评估</td>
+<td align="left">自动触发评估流程</td>
+<td align="left">&lt; 1s</td>
+</tr>
+<tr>
+<td align="left"><strong>查看</strong></td>
+<td align="left">查看多维评分</td>
+<td align="left">五维雷达图可视化</td>
+<td align="left">&lt; 100ms</td>
+</tr>
+<tr>
+<td align="left"><strong>预测</strong></td>
+<td align="left">查看趋势预测</td>
+<td align="left">影响趋势折线图</td>
+<td align="left">&lt; 100ms</td>
+</tr>
+<tr>
+<td align="left"><strong>导出</strong></td>
+<td align="left">导出评估报告</td>
+<td align="left">PDF/HTML 格式</td>
+<td align="left">&lt; 10s</td>
+</tr>
+</tbody></table>
+<h3 id="管理层视角">7.2 管理层视角</h3>
+<table>
+<thead>
+<tr>
+<th align="left">功能</th>
+<th align="left">说明</th>
+<th align="left">用户价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>损失估算</strong></td>
+<td align="left">量化财务损失范围</td>
+<td align="left">预算决策支持</td>
+</tr>
+<tr>
+<td align="left"><strong>趋势预测</strong></td>
+<td align="left">预测未来影响</td>
+<td align="left">前瞻性决策</td>
+</tr>
+<tr>
+<td align="left"><strong>对比分析</strong></td>
+<td align="left">与历史事件对比</td>
+<td align="left">行业基准参照</td>
+</tr>
+<tr>
+<td align="left"><strong>报告导出</strong></td>
+<td align="left">高管汇报材料</td>
+<td align="left">汇报效率</td>
+</tr>
+</tbody></table>
+<hr>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

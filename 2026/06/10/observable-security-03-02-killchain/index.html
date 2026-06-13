@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="03 02 killchain<meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/05/21/observable-security-03-02-killchain/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Claude Code — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Claude Code 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-10T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/05/21/observable-security-03-02-killchain/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>网络攻击杀伤链 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/05/21/observable-security-03-02-killchain/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          网络攻击杀伤链
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-security/" itemprop="url" rel="index"><span
+                          itemprop="name">Claude Code</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+
+        <h1>02. Cyber Kill Chain® 模型</h1>
+<blockquote>
+<p>智能安全事件可观测性 · 攻击阶段参考</p>
+</blockquote>
+<hr>
+<h2 id="一模型概述">一、模型概述</h2>
+<h3 id="什么是-cyber-kill-chain">1.1 什么是 Cyber Kill Chain</h3>
+<p><strong>Cyber Kill Chain®</strong> 由 <strong>Lockheed Martin</strong> 公司于 2011 年开发，是描述网络攻击各个阶段的数学模型，最初用于描述有针对性的高级持续性威胁（APT）攻击的完整生命周期。</p>
+<p><strong>官网：</strong> <a href="https://www.lockheedmartin.com/en-us/capabilities/cyber/cyber-kill-chain.html">https://www.lockheedmartin.com/en-us/capabilities/cyber/cyber-kill-chain.html</a><br><strong>论文：</strong> 《Intelligence-Driven Computer Network Defense Supporting Coinfection with an Advanced Persistent Threat》</p>
+<p><strong>框架演进：</strong></p>
+<table>
+<thead>
+<tr>
+<th>年份</th>
+<th>版本</th>
+<th>核心变化</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2011</td>
+<td>v1.0</td>
+<td>原始 7 阶段模型</td>
+</tr>
+<tr>
+<td>2013</td>
+<td>v1.5</td>
+<td>增加 &quot;Weaponization&quot; 细化</td>
+</tr>
+<tr>
+<td>2015</td>
+<td>v2.0</td>
+<td>与 MITRE ATT&amp;CK 映射</td>
+</tr>
+<tr>
+<td>2017</td>
+<td>v2.5</td>
+<td>云环境攻击链扩展</td>
+</tr>
+<tr>
+<td>2020</td>
+<td>v3.0</td>
+<td>勒索软件专项攻击链</td>
+</tr>
+<tr>
+<td>2025</td>
+<td>v4.0</td>
+<td>AI 驱动攻击链</td>
+</tr>
+</tbody></table>
+<p><strong>核心价值：</strong></p>
+<div class="mermaid">graph LR
+    V1[理解攻击
+分解攻击过程] --> V2[识别弱点
+发现防御差距]
+    V2 --> V3[优化检测
+提升检测能力]
+    V3 --> V4[加速响应
+缩短响应时间]
+    V4 --> V5[持续改进
+形成防御闭环]
+    
+    style V1 fill:#e3f2fd,stroke:#1565c0
+    style V2 fill:#e8f5e9,stroke:#2e7d32
+    style V3 fill:#fff3e0,stroke:#e65100
+    style V4 fill:#fce4ec,stroke:#c62828
+    style V5 fill:#f3e5f5,stroke:#7b1fa2</div><hr>
+<h3 id="经典七阶段模型">1.2 经典七阶段模型</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────────────┐
+│                    Cyber Kill Chain® 完整攻击链                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐             │
+│  │ Stage 1 │   │ Stage 2 │   │ Stage 3 │   │ Stage 4 │             │
+│  │  侦察   │──▶│ 武器化  │──▶│  投递   │──▶│   利用  │             │
+│  │Reconnaissance│Weaponization│Delivery│Exploitation│             │
+│  └────┬────┘   └────┬────┘   └────┬────┘   └────┬────┘             │
+│       │              │              │              │                │
+│       │         ┌─────┴──────────────┘              │                │
+│       │         ▼                                   │                │
+│       │   ┌─────────┐   ┌─────────┐   ┌─────────┐   │                │
+│       └──▶│ Stage 6 │◀──│ Stage 5 │◀──│ Stage 7 │◀──┘                │
+│           │ 命令控制 │   │   安装   │   │ 行动完成 │                │
+│           │    C2    │   │Installation│Actions on Obj│             │
+│           └─────────┘   └─────────┘   └─────────┘              │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘</code></pre><h3 id="各阶段核心指标">1.3 各阶段核心指标</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>名称</th>
+<th>攻击者目标</th>
+<th>防御窗口</th>
+<th>业务影响</th>
+<th>检测优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Stage 1</strong></td>
+<td>侦察 Reconnaissance</td>
+<td>收集情报</td>
+<td>长</td>
+<td>低</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td><strong>Stage 2</strong></td>
+<td>武器化 Weaponization</td>
+<td>制作武器</td>
+<td>中</td>
+<td>低</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td><strong>Stage 3</strong></td>
+<td>投递 Delivery</td>
+<td>送达目标</td>
+<td>短</td>
+<td>高</td>
+<td>🔴 极高</td>
+</tr>
+<tr>
+<td><strong>Stage 4</strong></td>
+<td>利用 Exploitation</td>
+<td>执行代码</td>
+<td>极短</td>
+<td>高</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>Stage 5</strong></td>
+<td>安装 Installation</td>
+<td>建立持久化</td>
+<td>短</td>
+<td>高</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>Stage 6</strong></td>
+<td>命令控制 C2</td>
+<td>保持通信</td>
+<td>极短</td>
+<td>极高</td>
+<td>🔴 极高</td>
+</tr>
+<tr>
+<td><strong>Stage 7</strong></td>
+<td>行动完成 Actions on Objective</td>
+<td>达成目的</td>
+<td>无</td>
+<td>极高</td>
+<td>🔴🔴 紧急</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="二stage-1侦察reconnaissance">二、Stage 1：侦察（Reconnaissance）</h2>
+<h3 id="阶段定义">2.1 阶段定义</h3>
+<p><strong>攻击者目标：</strong> 收集目标组织的信息，了解防御薄弱点，为攻击做准备。</p>
+<p><strong>侦察本质：</strong> 知己知彼，百战不殆。攻击者花费大量时间在侦察阶段，优质的情报收集是成功攻击的关键。</p>
+<h3 id="被动侦察-vs-主动侦察">2.2 被动侦察 vs 主动侦察</h3>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>定义</th>
+<th>可检测性</th>
+<th>隐蔽性</th>
+<th>成本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>被动侦察</strong></td>
+<td>不直接接触目标，收集公开信息</td>
+<td>⭐⭐</td>
+<td>⭐⭐⭐⭐⭐</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>主动侦察</strong></td>
+<td>直接探测目标，发现开放端口/漏洞</td>
+<td>⭐⭐⭐⭐</td>
+<td>⭐⭐</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>社会工程侦察</strong></td>
+<td>利用人性弱点获取信息</td>
+<td>⭐⭐⭐</td>
+<td>⭐⭐⭐</td>
+<td>低</td>
+</tr>
+</tbody></table>
+<h3 id="被动侦察方法详解">2.3 被动侦察方法详解</h3>
+<p><strong>搜索引擎情报 (OSINT)：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>工具</th>
+<th>收集内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Google Hacking</td>
+<td>Google Search</td>
+<td>配置错误、敏感文件</td>
+</tr>
+<tr>
+<td>域名信息</td>
+<td>WHOIS、RDAP</td>
+<td>注册信息、DNS 服务器</td>
+</tr>
+<tr>
+<td>证书查询</td>
+<td>crt.sh、Censys</td>
+<td>子域名、指纹</td>
+</tr>
+<tr>
+<td>邮箱收集</td>
+<td>theHarvester、Hunter</td>
+<td>员工邮箱、组织结构</td>
+</tr>
+<tr>
+<td>社交媒体</td>
+<td>LinkedIn、Twitter</td>
+<td>员工信息、技术栈</td>
+</tr>
+</tbody></table>
+<p><strong>DNS 侦察技术：</strong></p>
+<pre><code class="language-bash"># 基础域名查询
+dig example.com NS
+dig example.com MX
+dig example.com TXT
+
+# 子域名枚举
+amass enum -passive -d example.com
+subfinder -d example.com
+
+# DNS 区域传送
+dig axfr example.com @ns1.example.com
+
+# 反向 DNS
+dig -x 192.0.2.1</code></pre><p><strong>GitHub 侦察：</strong></p>
+<table>
+<thead>
+<tr>
+<th>搜索内容</th>
+<th>GitHub Dork 示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>密码泄露</td>
+<td><code>filename:.env password= </code></td>
+</tr>
+<tr>
+<td>API Keys</td>
+<td><code>filename:config.json api_key</code></td>
+</tr>
+<tr>
+<td>数据库配置</td>
+<td><code>filename:database.yml mysql</code></td>
+</tr>
+<tr>
+<td>源代码</td>
+<td><code>path:appveyor.yml username</code></td>
+</tr>
+<tr>
+<td>内部文档</td>
+<td><code>org:target internal confidential</code></td>
+</tr>
+</tbody></table>
+<h3 id="主动侦察方法详解">2.4 主动侦察方法详解</h3>
+<p><strong>网络扫描：</strong></p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Nmap</strong></td>
+<td>端口扫描、服务发现</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Masscan</strong></td>
+<td>高速端口扫描</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>RustScan</strong></td>
+<td>现代端口扫描</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Zmap</strong></td>
+<td>互联网扫描</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>漏洞扫描：</strong></p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>覆盖范围</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Nessus</strong></td>
+<td>全面漏洞扫描</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>OpenVAS</strong></td>
+<td>开源漏洞扫描</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Nexpose</strong></td>
+<td>企业漏洞管理</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Nikto</strong></td>
+<td>Web 服务器扫描</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>典型扫描行为特征：</strong></p>
+<pre><code class="language-yaml">端口扫描特征:
+  - TCP SYN 扫描: 大量 SYN 包，不同端口
+  - TCP CONNECT: 完成三次握手
+  - UDP 扫描: 开放端口无响应
+  
+检测阈值:
+  - 15分钟内扫描 &gt; 100端口
+  - 来自单一源 IP 的高频扫描
+  - 扫描时间集中在夜间/周末</code></pre><h3 id="社会工程侦察">2.5 社会工程侦察</h3>
+<p><strong>常见手法：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+<th>目标信息</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>电话钓鱼</strong></td>
+<td>伪装 IT 人员索取密码</td>
+<td>凭据</td>
+</tr>
+<tr>
+<td><strong>LinkedIn 钓鱼</strong></td>
+<td>伪装猎头/合作方</td>
+<td>员工信息</td>
+</tr>
+<tr>
+<td><strong>现场侦察</strong></td>
+<td>物理进入、WiFi 嗅探</td>
+<td>物理安全</td>
+</tr>
+<tr>
+<td><strong>垃圾箱搜索</strong></td>
+<td>翻找垃圾文件</td>
+<td>敏感文件</td>
+</tr>
+</tbody></table>
+<h3 id="侦察阶段检测">2.6 侦察阶段检测</h3>
+<p><strong>检测矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>数据源</th>
+<th>检测特征</th>
+<th>阈值</th>
+<th>告警级别</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DNS 日志</td>
+<td>异常域名查询</td>
+<td>&gt; 100次/小时</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td>DNS 日志</td>
+<td>DNSSEC 失败查询</td>
+<td>持续出现</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td>NetFlow</td>
+<td>端口扫描模式</td>
+<td>&gt; 50端口/分钟</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td>WAF 日志</td>
+<td>扫描行为</td>
+<td>检测到扫描特征</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td>邮件网关</td>
+<td>钓鱼目标搜索</td>
+<td>异常邮件查询</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td>Proxy 日志</td>
+<td>Google Dorking</td>
+<td>搜索敏感词</td>
+<td>🟢 低</td>
+</tr>
+</tbody></table>
+<p><strong>防御建议：</strong></p>
+<pre><code>防御措施:
+├── 限制 DNS 查询频率
+├── 部署 IDS/IPS
+├── 配置蜜罐服务
+├── 员工安全意识培训
+└── 定期安全审计</code></pre><hr>
+<h2 id="三stage-2武器化weaponization">三、Stage 2：武器化（Weaponization）</h2>
+<h3 id="阶段定义-2">3.1 阶段定义</h3>
+<p><strong>攻击者目标：</strong> 将恶意代码与载体结合，制作可利用的攻击工具。</p>
+<p><strong>武器化本质：</strong> 把&quot;子弹&quot;装入&quot;枪膛&quot;，准备发射。</p>
+<h3 id="常见武器类型">3.2 常见武器类型</h3>
+<p><strong>恶意文档：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>格式</th>
+<th>利用方式</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Office 宏病毒</strong></td>
+<td>.docm, .xlsm</td>
+<td>VBA 宏执行</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Office 漏洞文档</strong></td>
+<td>.doc, .xls</td>
+<td>CVE 漏洞</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>PDF 恶意文件</strong></td>
+<td>.pdf</td>
+<td>JavaScript 漏洞</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>RTF 恶意文件</strong></td>
+<td>.rtf</td>
+<td>栈溢出</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>恶意软件类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>功能</th>
+<th>示例</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>远控木马 (RAT)</strong></td>
+<td>远程控制</td>
+<td>Cobalt Strike, PlugX</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>勒索软件</strong></td>
+<td>文件加密</td>
+<td>LockBit, REvil</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>窃密木马</strong></td>
+<td>凭据窃取</td>
+<td>RedLine, Raccoon</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>僵尸网络</strong></td>
+<td>DDoS/挖矿</td>
+<td>Mirai, Emotet</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>无文件恶意软件</strong></td>
+<td>内存驻留</td>
+<td>PowerShell 负载</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>Web Shell：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>语言</th>
+<th>特征</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Webshell</strong></td>
+<td>PHP/ASP/JSP</td>
+<td>后门文件</td>
+</tr>
+<tr>
+<td><strong>一句话木马</strong></td>
+<td>多种</td>
+<td>简短代码</td>
+</tr>
+<tr>
+<td><strong>冰蝎</strong></td>
+<td>Java</td>
+<td>加密通信</td>
+</tr>
+<tr>
+<td><strong>哥斯拉</strong></td>
+<td>ASP.NET</td>
+<td>加密通信</td>
+</tr>
+</tbody></table>
+<h3 id="武器化流程">3.3 武器化流程</h3>
+<div class="mermaid">graph LR
+    subgraph 武器化流水线
+        W1[漏洞研究] --> W2[Exploit 开发]
+        W2 --> W3[Payload 定制]
+        W3 --> W4[载体选择]
+        W4 --> W5[捆绑打包]
+        W5 --> W6[免杀处理]
+        W6 --> W7[测试验证]
+        W7 --> W8[交付部署]
+    end
+    
+    style W1 fill:#fff3e0,stroke:#e65100
+    style W6 fill:#fce4ec,stroke:#c62828
+    style W7 fill:#e3f2fd,stroke:#1565c0</div><h3 id="免杀技术详解">3.4 免杀技术详解</h3>
+<p><strong>常用免杀技术：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>说明</th>
+<th>检测绕过能力</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>加壳 (Packing)</strong></td>
+<td>UPX、AES 加密</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>代码混淆</strong></td>
+<td>变量混淆、控制流平坦化</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>内存混淆</strong></td>
+<td>进程注入、Module Stomping</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>数字签名</strong></td>
+<td>盗用签名、白签名</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>白名单绕过</strong></td>
+<td>Living Off the Land</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>无文件技术</strong></td>
+<td>WMI Event、PowerShell</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>常用免杀工具：</strong></p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>功能</th>
+<th>使用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Veil</strong></td>
+<td>生成免杀 Payload</td>
+<td>Cobalt Strike</td>
+</tr>
+<tr>
+<td><strong>Shellter</strong></td>
+<td>注入式加壳</td>
+<td>逃避 AV</td>
+</tr>
+<tr>
+<td><strong>Unicorn</strong></td>
+<td>PowerShell 混淆</td>
+<td>无文件攻击</td>
+</tr>
+<tr>
+<td><strong>Meta Twin</strong></td>
+<td>签名盗用</td>
+<td>白签名绕过</td>
+</tr>
+</tbody></table>
+<h3 id="武器化检测">3.5 武器化检测</h3>
+<p><strong>沙箱检测指标：</strong></p>
+<table>
+<thead>
+<tr>
+<th>行为</th>
+<th>检测特征</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>进程行为</strong></td>
+<td>创建可疑进程</td>
+<td>cmd.exe → powershell.exe</td>
+</tr>
+<tr>
+<td><strong>注册表</strong></td>
+<td>修改启动项</td>
+<td>Run 键写入</td>
+</tr>
+<tr>
+<td><strong>网络行为</strong></td>
+<td>连接 C2 服务器</td>
+<td>DNS/HTTP 请求</td>
+</tr>
+<tr>
+<td><strong>文件行为</strong></td>
+<td>创建可执行文件</td>
+<td>写入 System32</td>
+</tr>
+<tr>
+<td><strong>加密行为</strong></td>
+<td>检测反沙箱</td>
+<td>检测虚拟机</td>
+</tr>
+</tbody></table>
+<p><strong>样本特征检测：</strong></p>
+<pre><code class="language-yaml">高危样本特征:
+  - 熵值 &gt; 7.0 (加密/加壳)
+  - 包含可疑字符串: password, cmd.exe, powershell
+  - 导入表异常: LoadLibrary, GetProcAddress
+  - 资源节包含可执行代码</code></pre><hr>
+<h2 id="四stage-3投递delivery">四、Stage 3：投递（Delivery）</h2>
+<h3 id="阶段定义-3">4.1 阶段定义</h3>
+<p><strong>攻击者目标：</strong> 将攻击武器送达目标，这是攻击链中第一个与受害者直接交互的阶段。</p>
+<p><strong>关键统计：</strong> 65% 的初始访问通过钓鱼邮件实现。</p>
+<h3 id="投递方式分布">4.2 投递方式分布</h3>
+<pre><code>📊 初始访问向量统计 (Verizon DBIR 2024)
+
+🔴 钓鱼邮件攻击 ───────────────────── 45%
+🟠 恶意网站/水坑 ─────────────────── 20%
+🟠 远程服务弱口令 ─────────────────── 15%
+🟡 供应链攻击 ───────────────────── 10%
+🟢 物理访问 ───────────────────────── 5%
+🟢 其他 ──────────────────────────── 5%</code></pre><h3 id="钓鱼邮件投递详解">4.3 钓鱼邮件投递详解</h3>
+<p><strong>钓鱼邮件攻击链：</strong></p>
+<div class="mermaid">graph LR
+    A[攻击者] --> B[钓鱼邮件]
+    B --> C{邮件类型}
+    
+    C -->|附件| D1[恶意文档]
+    D1 --> E1[用户打开]
+    E1 --> F1[启用宏]
+    F1 --> G1[代码执行]
+    
+    C -->|链接| D2[钓鱼网站]
+    D2 --> E2[用户点击]
+    E2 --> F2[凭据输入]
+    F2 --> G2[凭证收割]
+    
+    C -->|BEC| D3[伪冒邮件]
+    D3 --> E3[转账指令]
+    E3 --> F3[财务欺诈]
+    
+    style G1 fill:#fce4ec,stroke:#c62828
+    style G2 fill:#fce4ec,stroke:#c62828
+    style F3 fill:#fce4ec,stroke:#c62828</div><p><strong>钓鱼邮件类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>说明</th>
+<th>检测难度</th>
+<th>危害程度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>群发钓鱼</strong></td>
+<td>广撒网式</td>
+<td>⭐</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>鱼叉钓鱼</strong></td>
+<td>定向目标</td>
+<td>⭐⭐⭐</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>商业邮件欺诈 (BEC)</strong></td>
+<td>伪冒高管</td>
+<td>⭐⭐⭐⭐</td>
+<td>极高</td>
+</tr>
+<tr>
+<td><strong>语音钓鱼 (Vishing)</strong></td>
+<td>电话诈骗</td>
+<td>⭐⭐⭐</td>
+<td>高</td>
+</tr>
+</tbody></table>
+<p><strong>钓鱼邮件检测特征：</strong></p>
+<pre><code class="language-yaml">检测规则: Phishing_Email_Detection
+条件:
+  - 发件人域名 ≠ 声称的域名
+  - 包含短链接 (&lt; 20 字符)
+  - 附件为可执行文件 (.exe, .js, .vbs)
+  - 正则匹配: "invoice|payment|urgent|account"
+  - SPF/DKIM/DMARC 验证失败
+严重级别: High
+动作:
+  - 隔离邮件
+  - 通知安全团队
+  - 创建事件工单</code></pre><h3 id="恶意网站投递">4.4 恶意网站投递</h3>
+<p><strong>水坑攻击 (Watering Hole)：</strong></p>
+<blockquote>
+<p>攻击者入侵目标组织经常访问的网站，等待目标访问时感染。</p>
+</blockquote>
+<p><strong>路过式下载 (Drive-by Download)：</strong></p>
+<blockquote>
+<p>用户访问恶意网站时，自动下载并执行恶意代码。</p>
+</blockquote>
+<p><strong>攻击流程：</strong></p>
+<pre><code>1. 侦察 ──▶ 发现目标常访问网站
+2. 入侵 ──▶ 篡改网站，植入恶意代码
+3. 等候 ──▶ 用户访问网站
+4. 感染 ──▶ 自动下载/浏览器漏洞利用
+5. 控制 ──▶ 建立持久化</code></pre><h3 id="usb-介质投递">4.5 USB 介质投递</h3>
+<p><strong>攻击场景：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>说明</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>恶意 U 盘</strong></td>
+<td>物理放置恶意 U 盘</td>
+<td>⭐</td>
+</tr>
+<tr>
+<td><strong>USB 充电攻击</strong></td>
+<td>仅充电却访问数据</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>BadUSB</strong></td>
+<td>USB 固件篡改</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>键盘注入器</strong></td>
+<td>伪装成键盘输入恶意命令</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<h3 id="供应链投递">4.6 供应链投递</h3>
+<p><strong>攻击路径：</strong></p>
+<pre><code>攻击者 ──▶ 第三方供应商 ──▶ 软件更新 ──▶ 用户系统
+              │
+              ▼
+        入侵开发环境
+        篡改源代码
+        发布恶意更新</code></pre><p><strong>著名案例：</strong></p>
+<table>
+<thead>
+<tr>
+<th>事件</th>
+<th>年份</th>
+<th>影响</th>
+<th>攻击手法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SolarWinds</strong></td>
+<td>2020</td>
+<td>18000+ 企业</td>
+<td>更新包植入后门</td>
+</tr>
+<tr>
+<td><strong>CCleaner</strong></td>
+<td>2017</td>
+<td>230万用户</td>
+<td>开发环境篡改</td>
+</tr>
+<tr>
+<td><strong>NotPetya</strong></td>
+<td>2017</td>
+<td>全球损失 $10B</td>
+<td>M.E.Doc 更新污染</td>
+</tr>
+<tr>
+<td><strong>3CX</strong></td>
+<td>2023</td>
+<td>数百企业</td>
+<td>供应链投毒</td>
+</tr>
+</tbody></table>
+<h3 id="投递阶段检测">4.7 投递阶段检测</h3>
+<p><strong>边界防护检测矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>设备</th>
+<th>检测内容</th>
+<th>技术手段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>邮件网关</strong></td>
+<td>恶意附件、钓鱼链接</td>
+<td>文件扫描、URL 分析、沙箱</td>
+</tr>
+<tr>
+<td><strong>WAF</strong></td>
+<td>Web 攻击、恶意上传</td>
+<td>签名匹配、行为分析</td>
+</tr>
+<tr>
+<td><strong>防火墙</strong></td>
+<td>可疑出站连接</td>
+<td>状态检测、IPS</td>
+</tr>
+<tr>
+<td><strong>DNS 过滤</strong></td>
+<td>恶意域名解析</td>
+<td>DNSRPZ、威胁情报</td>
+</tr>
+<tr>
+<td><strong>沙箱</strong></td>
+<td>可疑文件行为</td>
+<td>动态执行分析</td>
+</tr>
+<tr>
+<td><strong>浏览器隔离</strong></td>
+<td>Web 内容安全</td>
+<td>远程浏览器隔离 (RBI)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="五stage-4利用exploitation">五、Stage 4：利用（Exploitation）</h2>
+<h3 id="阶段定义-4">5.1 阶段定义</h3>
+<p><strong>攻击者目标：</strong> 利用漏洞或弱点执行恶意代码，获取系统访问权限。</p>
+<p><strong>利用本质：</strong> 打开攻击的&quot;大门&quot;，进入目标系统。</p>
+<h3 id="漏洞利用类型">5.2 漏洞利用类型</h3>
+<p><strong>按利用方式分类：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>说明</th>
+<th>示例</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>RCE</strong></td>
+<td>远程代码执行</td>
+<td>EternalBlue, Log4Shell</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>本地提权</strong></td>
+<td>提升当前权限</td>
+<td>Dirty Pipe, MS16-032</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>SQL 注入</strong></td>
+<td>数据库操作</td>
+<td>UNION 注入、盲注</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>XSS</strong></td>
+<td>前端脚本执行</td>
+<td>存储型 XSS</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>CSRF</strong></td>
+<td>跨站请求伪造</td>
+<td>状态更改操作</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>按攻击向量分类：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>说明</th>
+<th>示例</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>网络漏洞</strong></td>
+<td>远程利用</td>
+<td>RDP 漏洞、VPN 漏洞</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>客户端漏洞</strong></td>
+<td>用户触发</td>
+<td>浏览器漏洞、Office 漏洞</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>0-day</strong></td>
+<td>未知漏洞</td>
+<td>APT 组织独有漏洞</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>N-day</strong></td>
+<td>已公开漏洞</td>
+<td>补丁未修复</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<h3 id="漏洞利用流程">5.3 漏洞利用流程</h3>
+<div class="mermaid">graph LR
+    subgraph 利用流程
+        E1[漏洞发现] --> E2[漏洞分析]
+        E2 --> E3[PoC 开发]
+        E3 --> E4[Exploit 编写]
+        E4 --> E5[Payload 封装]
+        E5 --> E6[目标投递]
+        E6 --> E7[代码执行]
+    end
+    
+    style E7 fill:#fce4ec,stroke:#c62828</div><h3 id="无文件攻击fileless-attack">5.4 无文件攻击（Fileless Attack）</h3>
+<p><strong>定义：</strong> 不依赖文件落地，直接在内存中执行攻击代码。</p>
+<p><strong>技术类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>说明</th>
+<th>示例</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>PowerShell 攻击</strong></td>
+<td>使用 PowerShell 执行恶意代码</td>
+<td><code>Invoke-Mimikatz</code></td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>WMI 攻击</strong></td>
+<td>使用 WMI 执行代码</td>
+<td>WMI Event Consumer</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>HTA 攻击</strong></td>
+<td>HTML Application 执行</td>
+<td>恶意 HTA 文件</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Office 宏攻击</strong></td>
+<td>VBA 执行恶意代码</td>
+<td>恶意宏文档</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>内存注入</strong></td>
+<td>进程注入、 DLL 注入</td>
+<td>Process Hollowing</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>PowerShell 无文件攻击链：</strong></p>
+<pre><code>1. 混淆脚本 ──▶ Base64 编码
+2. 执行 ──▶ powershell -enc &lt;encoded&gt;
+3. 下载 ──▶ IEX DownloadString
+4. 内存执行 ──▶ 不落地执行</code></pre><h3 id="利用阶段检测">5.5 利用阶段检测</h3>
+<p><strong>检测矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>数据源</th>
+<th>检测特征</th>
+<th>告警级别</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>EDR</strong></td>
+<td>Office → PowerShell 进程链</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>EDR</strong></td>
+<td>异常进程创建、注入</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>HIDS</strong></td>
+<td>栈溢出、可疑 shellcode</td>
+<td>🔴🔴 极高</td>
+</tr>
+<tr>
+<td><strong>NIDS</strong></td>
+<td>漏洞利用特征流量</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td><strong>系统日志</strong></td>
+<td>认证异常、短时多次失败</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td><strong>应用日志</strong></td>
+<td>SQL 注入、XSS 攻击特征</td>
+<td>🟡 中</td>
+</tr>
+</tbody></table>
+<p><strong>EDR 检测规则示例：</strong></p>
+<pre><code class="language-yaml">规则名称: Exploitation_PowerShell_Detection
+条件:
+  - 进程是 powershell.exe
+  - 父进程是 office 或 explorer
+  - 命令行包含 encoded/base64
+严重级别: High
+检测数据源: EDR Process Events
+
+规则名称: Exploitation_Memory_Injection
+条件:
+  - 检测进程内存写入另一个进程
+  - 写入的代码段包含MZ头
+严重级别: Critical
+检测数据源: EDR Memory Events</code></pre><hr>
+<h2 id="六stage-5安装installation">六、Stage 5：安装（Installation）</h2>
+<h3 id="阶段定义-5">6.1 阶段定义</h3>
+<p><strong>攻击者目标：</strong> 建立持久化，保持对系统的长期控制，即使系统重启或凭据更改也能继续访问。</p>
+<p><strong>持久化本质：</strong> 在目标环境中&quot;扎根&quot;，实现长期潜伏。</p>
+<h3 id="windows-持久化技术">6.2 Windows 持久化技术</h3>
+<p><strong>注册表持久化：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>注册表路径</th>
+<th>说明</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Run 键</strong></td>
+<td><code>HKCU\...\Run</code></td>
+<td>用户登录执行</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>RunOnce</strong></td>
+<td><code>HKCU\...\RunOnce</code></td>
+<td>单次执行</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Services</strong></td>
+<td><code>HKLM\...\Services</code></td>
+<td>服务创建</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>IFEO</strong></td>
+<td><code>HKLM\...\FileOpenName</code></td>
+<td>镜像劫持</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>计划任务持久化：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>命令</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>schtasks</strong></td>
+<td><code>schtasks /create /tn</code></td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>at</strong></td>
+<td><code>at \\hostname time command</code> (旧)</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>cron</strong></td>
+<td>Linux 计划任务</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Systemd Timer</strong></td>
+<td>Linux 定时任务</td>
+<td>⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>服务持久化：</strong></p>
+<div class="mermaid">graph TB
+    S["服务持久化"] --> S1["Windows 服务"]
+    S --> S2["Linux 服务"]
+    S --> S3["驱动程序"]
+    
+    S1 --> S1a["sc create"]
+    S1 --> S1b["Regsvr32"]
+    
+    S2 --> S2a["systemd service"]
+    S2 --> S2b["/etc/init.d"]
+    
+    style S1a fill:#fff,stroke:#c62828
+    style S2a fill:#fff,stroke:#2e7d32</div><p><strong>WMI 持久化：</strong></p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>说明</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Permanent Event Consumer</strong></td>
+<td>永久 WMI 事件订阅</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>ActiveScriptEventConsumer</strong></td>
+<td>VBS/JS 执行</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>CommandLineEventConsumer</strong></td>
+<td>命令执行</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>启动文件夹持久化：</strong></p>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>路径</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>用户启动</strong></td>
+<td><code>%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup</code></td>
+<td>⭐</td>
+</tr>
+<tr>
+<td><strong>系统启动</strong></td>
+<td><code>%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup</code></td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Linux ~/.bashrc</strong></td>
+<td>Shell 初始化脚本</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<h3 id="linux-持久化技术">6.3 Linux 持久化技术</h3>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>路径/命令</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SSH Key</strong></td>
+<td><code>~/.ssh/authorized_keys</code></td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Cron</strong></td>
+<td><code>/etc/cron.d</code>, <code>crontab -e</code></td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>rc.local</strong></td>
+<td><code>/etc/rc.local</code></td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Systemd</strong></td>
+<td><code>/etc/systemd/system/</code></td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Startup</strong></td>
+<td><code>/etc/init.d/</code></td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>LD_PRELOAD</strong></td>
+<td>环境变量劫持</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Rootkit</strong></td>
+<td>内核模块</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<h3 id="持久化检测策略">6.4 持久化检测策略</h3>
+<p><strong>检测矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>检测点</th>
+<th>说明</th>
+<th>方法</th>
+<th>覆盖技术</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>服务创建</strong></td>
+<td>非预期服务</td>
+<td>服务创建监控</td>
+<td>Windows 服务</td>
+</tr>
+<tr>
+<td><strong>计划任务</strong></td>
+<td>异常调度任务</td>
+<td>任务调度审计</td>
+<td>schtasks</td>
+</tr>
+<tr>
+<td><strong>注册表</strong></td>
+<td>Run 键异常</td>
+<td>注册表监控</td>
+<td>Run 键、IFEO</td>
+</tr>
+<tr>
+<td><strong>后门文件</strong></td>
+<td>Webshell</td>
+<td>文件完整性</td>
+<td>Webshell</td>
+</tr>
+<tr>
+<td><strong>SSH Key</strong></td>
+<td>未授权 Key</td>
+<td>authorized_keys 监控</td>
+<td>SSH Key</td>
+</tr>
+<tr>
+<td><strong>异常进程</strong></td>
+<td>可疑持久化进程</td>
+<td>启动项审计</td>
+<td>各类持久化</td>
+</tr>
+</tbody></table>
+<p><strong>持久化检测命令：</strong></p>
+<pre><code class="language-bash"># Windows: 检查 Run 键
+reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Run
+
+# Windows: 检查计划任务
+schtasks /query /fo LIST /v
+
+# Windows: 检查服务
+sc query type= service state= all
+
+# Linux: 检查 cron
+cat /etc/crontab
+ls -la /etc/cron.d/
+
+# Linux: 检查 SSH Key
+cat ~/.ssh/authorized_keys
+
+# Linux: 检查启动项
+ls -la /etc/init.d/
+systemctl list-unit-files</code></pre><hr>
+<h2 id="七stage-6命令控制command-and-control">七、Stage 6：命令控制（Command and Control）</h2>
+<h3 id="阶段定义-6">7.1 阶段定义</h3>
+<p><strong>攻击者目标：</strong> 与被控系统保持通信，远程接收指令、发送数据，实现对目标的持续控制。</p>
+<p><strong>C2 本质：</strong> 攻击者的&quot;神经中枢&quot;，所有后续行动都依赖 C2 通信。</p>
+<h3 id="c2-协议类型详解">7.2 C2 协议类型详解</h3>
+<table>
+<thead>
+<tr>
+<th>协议</th>
+<th>端口</th>
+<th>特征</th>
+<th>检测难度</th>
+<th>隐蔽性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>HTTP/S</strong></td>
+<td>80/443</td>
+<td>伪装正常 Web 流量</td>
+<td>⭐⭐⭐</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>DNS</strong></td>
+<td>53</td>
+<td>低速、穿透防火墙</td>
+<td>⭐⭐⭐⭐</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>ICMP</strong></td>
+<td>-</td>
+<td>极隐蔽、慢速</td>
+<td>⭐⭐⭐⭐⭐</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>SSH</strong></td>
+<td>22</td>
+<td>加密隧道</td>
+<td>⭐⭐⭐</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>SMB</strong></td>
+<td>445</td>
+<td>横向通信</td>
+<td>⭐⭐</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>TCP/UDP</strong></td>
+<td>任意</td>
+<td>自定义协议</td>
+<td>⭐⭐⭐⭐</td>
+<td>⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>协议选择策略：</strong></p>
+<pre><code>选择依据:
+├── 出站限制: HTTP/S (80/443) 通常最开放
+├── 检测规避: DNS/ICMP 避开深度包检测
+├── 带宽需求: HTTP/S 支持大流量
+└── 隐蔽需求: DNS/ICMP 流量极小</code></pre><h3 id="c2-通信模式">7.3 C2 通信模式</h3>
+<p><strong>HTTP/S C2 通信：</strong></p>
+<pre><code>受害者 ──▶ HTTP POST ──▶ C2 服务器
+         ◀── 200 OK + 指令 ◀──
+
+特征:
+- 固定间隔心跳
+- 特定 User-Agent
+- JA3/JA4 指纹可识别</code></pre><p><strong>DNS C2 通信：</strong></p>
+<pre><code>受害者 ──▶ DNS 查询 (编码数据) ──▶ DNS 服务器 ──▶ C2 服务器
+         ◀── DNS 响应 (指令) ◀──
+
+数据编码方式:
+- 随机子域名
+- DNS TXT 记录
+- DNS-over-HTTPS</code></pre><p><strong>C2 心跳检测：</strong></p>
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>心跳间隔</th>
+<th>变化特征</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Cobalt Strike</strong></td>
+<td>60s (默认)</td>
+<td>可配置</td>
+</tr>
+<tr>
+<td><strong>Metasploit</strong></td>
+<td>30s</td>
+<td>固定</td>
+</tr>
+<tr>
+<td><strong>Mythic</strong></td>
+<td>随机</td>
+<td>Jitter 参数</td>
+</tr>
+<tr>
+<td><strong>Sliver</strong></td>
+<td>可配置</td>
+<td>随机变化</td>
+</tr>
+</tbody></table>
+<h3 id="知名-c2-框架">7.4 知名 C2 框架</h3>
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>语言</th>
+<th>特点</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Cobalt Strike</strong></td>
+<td>Java</td>
+<td>完整 C2、Aggressor 脚本</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Metasploit</strong></td>
+<td>Ruby</td>
+<td>框架+模块、MSF console</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Mythic</strong></td>
+<td>Python/Go</td>
+<td>跨平台、现代设计</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Covenant</strong></td>
+<td>C#</td>
+<td>.NET 生态、Web UI</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Sliver</strong></td>
+<td>Go</td>
+<td>跨平台、EDR 规避</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Brute Ratel</strong></td>
+<td>C</td>
+<td>绕过 AV、定制化 C2</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>PoshC2</strong></td>
+<td>Python/PowerShell</td>
+<td>纯 PowerShell</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<h3 id="ja3ja4-tls-指纹检测">7.5 JA3/JA4 TLS 指纹检测</h3>
+<p><strong>JA3 计算流程：</strong></p>
+<pre><code>TLS Client Hello 包含:
+├── TLS 版本
+├── 密码套件列表
+├── 扩展列表
+└── 椭圆曲线
+
+组合 → MD5 哈希 = JA3 指纹</code></pre><p><strong>JA3 示例：</strong></p>
+<pre><code class="language-yaml">正常浏览器:
+JA3: 4bf7e17d73f46c0e29c1a532ba8ed0e9
+
+Cobalt Strike:
+JA3: a0e9f5d64349fd1c5e7a5a5e7b5d1c5e
+
+检测规则:
+  - 白名单: 已知正常 JA3 列表
+  - 黑名单: 已知恶意 JA3 列表
+  - 异常: 不在白名单也非黑名单 → 告警</code></pre><h3 id="c2-检测策略">7.6 C2 检测策略</h3>
+<p><strong>检测矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>检测方法</th>
+<th>说明</th>
+<th>准确率</th>
+<th>覆盖协议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>JA3/JA4 指纹</strong></td>
+<td>TLS 客户端指纹</td>
+<td>&gt; 90%</td>
+<td>HTTP/S</td>
+</tr>
+<tr>
+<td><strong>DNS Tunnel 检测</strong></td>
+<td>查询频率、编码特征</td>
+<td>&gt; 85%</td>
+<td>DNS</td>
+</tr>
+<tr>
+<td><strong>心跳检测</strong></td>
+<td>C2 心跳间隔异常</td>
+<td>&gt; 80%</td>
+<td>所有</td>
+</tr>
+<tr>
+<td><strong>DGA 检测</strong></td>
+<td>随机域名生成算法</td>
+<td>&gt; 85%</td>
+<td>DNS</td>
+</tr>
+<tr>
+<td><strong>横向行为</strong></td>
+<td>SMB/RDP 异常</td>
+<td>&gt; 75%</td>
+<td>SMB/RDP</td>
+</tr>
+</tbody></table>
+<p><strong>C2 检测规则：</strong></p>
+<pre><code class="language-yaml">规则名称: C2_HTTP_Beaconing
+条件:
+  - 同一外部 IP 持续连接
+  - 请求间隔固定 (偏差 &lt; 10%)
+  - 请求大小相似 (偏差 &lt; 20%)
+  - JA3 不在白名单
+严重级别: Critical
+
+规则名称: DNS_Tunneling_Detection
+条件:
+  - DNS 查询频率 &gt; 50次/分钟
+  - 子域名长度 &gt; 50字符
+  - 查询非白名单域名
+  - TXT 记录查询异常
+严重级别: High</code></pre><hr>
+<h2 id="八stage-7行动完成actions-on-objective">八、Stage 7：行动完成（Actions on Objective）</h2>
+<h3 id="阶段定义-7">8.1 阶段定义</h3>
+<p><strong>攻击者目标：</strong> 完成最终攻击意图，可能是数据窃取、勒索、破坏或维持访问。</p>
+<p><strong>行动本质：</strong> 攻击的&quot;收获&quot;阶段，所有前期工作都是为了这一刻。</p>
+<h3 id="攻击意图分类">8.2 攻击意图分类</h3>
+<table>
+<thead>
+<tr>
+<th>意图</th>
+<th>说明</th>
+<th>检测难度</th>
+<th>业务影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>数据窃取</strong></td>
+<td>敏感数据外传</td>
+<td>⭐⭐⭐⭐</td>
+<td>极高</td>
+</tr>
+<tr>
+<td><strong>勒索加密</strong></td>
+<td>文件加密勒索</td>
+<td>⭐⭐</td>
+<td>极高</td>
+</tr>
+<tr>
+<td><strong>破坏性攻击</strong></td>
+<td>数据销毁、系统瘫痪</td>
+<td>⭐⭐</td>
+<td>灾难性</td>
+</tr>
+<tr>
+<td><strong>长期控制</strong></td>
+<td>建立长期据点</td>
+<td>⭐⭐⭐</td>
+<td>高</td>
+</tr>
+</tbody></table>
+<h3 id="数据窃取攻击链">8.3 数据窃取攻击链</h3>
+<div class="mermaid">graph LR
+    subgraph 数据窃取流程
+        T1[内部侦察] --> T2[数据定位]
+        T2 --> T3[权限提升]
+        T3 --> T4[数据收集]
+        T4 --> T5[数据打包]
+        T5 --> T6[数据外传]
+        T6 --> T7[痕迹清除]
+    end
+    
+    style T5 fill:#fff3e0,stroke:#e65100
+    style T6 fill:#fce4ec,stroke:#c62828</div><p><strong>数据窃取检测点：</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>检测特征</th>
+<th>告警级别</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>内部侦察</td>
+<td>异常文件访问、权限查询</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td>数据定位</td>
+<td>访问敏感目录、大量文件列举</td>
+<td>🟡 中</td>
+</tr>
+<tr>
+<td>权限提升</td>
+<td>获得高权限、访问敏感数据</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td>数据收集</td>
+<td>大量文件读取、压缩打包</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td>数据打包</td>
+<td>创建压缩文件、异常加密</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td>数据外传</td>
+<td>异常上传、非标准协议外传</td>
+<td>🔴🔴 极高</td>
+</tr>
+</tbody></table>
+<h3 id="勒索软件攻击链">8.4 勒索软件攻击链</h3>
+<p><strong>勒索攻击七阶段：</strong></p>
+<pre><code>Stage 1: 初始入侵 ──▶ 钓鱼邮件、RDP 弱口令
+Stage 2: 权限获取 ──▶ 凭据窃取、提权
+Stage 3: 内网扩散 ──▶ 横向移动、凭据重用
+Stage 4: 数据收集 ──▶ 敏感文件定位
+Stage 5: 数据打包 ──▶ 加密打包、准备外传
+Stage 6: 文件加密 ──▶ AES+RSA 双重加密
+Stage 7: 勒索信息 ──▶ 勒索页面、赎金要求</code></pre><p><strong>勒索加密检测：</strong></p>
+<pre><code class="language-yaml">规则名称: Ransomware_Encryption_Detection
+条件:
+  - 进程操作 &gt; 100 个文件/分钟
+  - 检测到卷影删除命令 (vssadmin, wbadmin)
+  - 检测到文件扩展名变更 (.encrypted, .locked)
+  - 检测到勒索信息文件 (READ_ME.txt, *.html)
+  - 进程尝试停止安全服务
+严重级别: Critical
+动作:
+  - 立即隔离主机
+  - 停止进程
+  - 备份当前状态
+  - 触发勒索响应预案</code></pre><h3 id="破坏性攻击">8.5 破坏性攻击</h3>
+<p><strong>攻击类型：</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>说明</th>
+<th>影响</th>
+<th>检测难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>数据销毁</strong></td>
+<td>磁盘擦除、文件删除</td>
+<td>数据永久丢失</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>系统瘫痪</strong></td>
+<td>停止关键服务</td>
+<td>业务中断</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>物理破坏</strong></td>
+<td>硬件损坏 (需物理访问)</td>
+<td>设备损坏</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<p><strong>NotPetya 攻击链：</strong></p>
+<pre><code>1. M.E.Doc 更新 ──▶ 初始感染
+2. WMExec ──▶ 本地扩散
+3. PsExec ──▶ 横向移动
+4. 凭据窃取 ──▶ 哈希传递
+5. 永恒之蓝 ──▶ 进一步扩散
+6. Disk wipe ──▶ MBT 覆写</code></pre><h3 id="行动阶段检测">8.6 行动阶段检测</h3>
+<p><strong>关键检测点：</strong></p>
+<table>
+<thead>
+<tr>
+<th>动作</th>
+<th>检测特征</th>
+<th>数据源</th>
+<th>告警级别</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>数据打包</td>
+<td>大量文件压缩、异常加密</td>
+<td>EDR</td>
+<td>🔴🔴 极高</td>
+</tr>
+<tr>
+<td>卷影删除</td>
+<td>vssadmin delete shadows</td>
+<td>Windows Event</td>
+<td>🔴🔴 极高</td>
+</tr>
+<tr>
+<td>文件加密</td>
+<td>大量文件操作、扩展名变更</td>
+<td>EDR</td>
+<td>🔴🔴 极高</td>
+</tr>
+<tr>
+<td>服务停止</td>
+<td>关键服务终止</td>
+<td>System Log</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td>凭据访问</td>
+<td>LSASS 进程访问、SAM 读取</td>
+<td>Security Log</td>
+<td>🔴 高</td>
+</tr>
+<tr>
+<td>数据外传</td>
+<td>异常上传流量、大文件外传</td>
+<td>NDR/DLP</td>
+<td>🔴🔴 极高</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="九防御阶段模型">九、防御阶段模型</h2>
+<h3 id="纵深防御架构">9.1 纵深防御架构</h3>
+<div class="mermaid">graph TB
+    subgraph 纵深防御矩阵
+        D1[边界层
+防火墙/WAF/邮件网关] --> D2[网络层
+分段/NDR/IDS]
+        D2 --> D3[终端层
+EDR/防病毒/应用控制]
+        D3 --> D4[应用层
+身份认证/权限控制]
+        D4 --> D5[数据层
+加密/备份/DLP]
+    end
+    
+    style D1 fill:#e3f2fd,stroke:#1565c0
+    style D5 fill:#fce4ec,stroke:#c62828</div><h3 id="各阶段防护措施">9.2 各阶段防护措施</h3>
+<table>
+<thead>
+<tr>
+<th>Kill Chain 阶段</th>
+<th>预防措施</th>
+<th>检测措施</th>
+<th>响应措施</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>侦察</strong></td>
+<td>最小化暴露面</td>
+<td>流量监控、威胁情报</td>
+<td>封锁源 IP</td>
+</tr>
+<tr>
+<td><strong>武器化</strong></td>
+<td>沙箱检测、代码签名</td>
+<td>样本分析、行为检测</td>
+<td>样本入库、规则更新</td>
+</tr>
+<tr>
+<td><strong>投递</strong></td>
+<td>邮件过滤、Web 过滤</td>
+<td>沙箱检测、URL 分析</td>
+<td>隔离邮件、封锁域名</td>
+</tr>
+<tr>
+<td><strong>利用</strong></td>
+<td>补丁管理、最小化攻击面</td>
+<td>EDR、漏洞扫描</td>
+<td>隔离主机、补丁推送</td>
+</tr>
+<tr>
+<td><strong>安装</strong></td>
+<td>应用白名单、权限控制</td>
+<td>注册表监控、计划任务审计</td>
+<td>清除后门、账号重置</td>
+</tr>
+<tr>
+<td><strong>C2</strong></td>
+<td>防火墙出站限制</td>
+<td>NDR、DNS 监控、JA3</td>
+<td>隔离主机、封锁 C2</td>
+</tr>
+<tr>
+<td><strong>行动</strong></td>
+<td>数据分类、加密、备份</td>
+<td>DLP、文件监控、流量分析</td>
+<td>隔离、取证、恢复</td>
+</tr>
+</tbody></table>
+<h3 id="响应时限矩阵">9.3 响应时限矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>检测窗口</th>
+<th>响应时限目标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>侦察</strong></td>
+<td>较长</td>
+<td>30 分钟</td>
+<td>攻击者试探，发现相对容易</td>
+</tr>
+<tr>
+<td><strong>武器化</strong></td>
+<td>中等</td>
+<td>15 分钟</td>
+<td>准备阶段，检测窗口较长</td>
+</tr>
+<tr>
+<td><strong>投递</strong></td>
+<td>短</td>
+<td>5 分钟</td>
+<td>边界防护重点</td>
+</tr>
+<tr>
+<td><strong>利用</strong></td>
+<td>极短</td>
+<td>1 分钟</td>
+<td>终端防护关键</td>
+</tr>
+<tr>
+<td><strong>安装</strong></td>
+<td>短</td>
+<td>1 分钟</td>
+<td>持久化前清除</td>
+</tr>
+<tr>
+<td><strong>C2</strong></td>
+<td>极短</td>
+<td>30 秒</td>
+<td>网络检测关键</td>
+</tr>
+<tr>
+<td><strong>行动</strong></td>
+<td>无</td>
+<td>立即</td>
+<td>尽可能减少损失</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="十与-attampck-映射">十、与 ATT&amp;CK 映射</h2>
+<h3 id="映射总表">10.1 映射总表</h3>
+<table>
+<thead>
+<tr>
+<th>Kill Chain 阶段</th>
+<th>ATT&amp;CK 战术</th>
+<th>ATT&amp;CK 技术</th>
+<th>检测重点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>侦察</strong></td>
+<td>TA0043 Reconnaissance</td>
+<td>T1595, T1593, T1597</td>
+<td>网络扫描、社交工程</td>
+</tr>
+<tr>
+<td><strong>武器化</strong></td>
+<td>TA0042 Resource Development</td>
+<td>T1587, T1588</td>
+<td>Exploit 开发、Payload 定制</td>
+</tr>
+<tr>
+<td><strong>投递</strong></td>
+<td>TA0001 Initial Access</td>
+<td>T1566, T1190, T1078</td>
+<td>钓鱼、漏洞利用、凭据</td>
+</tr>
+<tr>
+<td><strong>利用</strong></td>
+<td>TA0002 Execution</td>
+<td>T1059, T1204, T1106</td>
+<td>脚本执行、用户交互</td>
+</tr>
+<tr>
+<td><strong>安装</strong></td>
+<td>TA0003 Persistence</td>
+<td>T1547, T1053, T1543</td>
+<td>注册表、计划任务、服务</td>
+</tr>
+<tr>
+<td><strong>C2</strong></td>
+<td>TA0010 Command and Control</td>
+<td>T1071, T1573, T1095</td>
+<td>C2 协议、加密隧道</td>
+</tr>
+<tr>
+<td><strong>行动</strong></td>
+<td>TA0009 Collection</td>
+<td>T1005, T1039, T1074</td>
+<td>数据收集、打包</td>
+</tr>
+<tr>
+<td></td>
+<td>TA0011 Exfiltration</td>
+<td>T1041, T1567, T1048</td>
+<td>数据外传</td>
+</tr>
+<tr>
+<td></td>
+<td>TA0040 Impact</td>
+<td>T1486, T1489, T1490</td>
+<td>加密、破坏</td>
+</tr>
+</tbody></table>
+<h3 id="完整攻击链检测覆盖">10.2 完整攻击链检测覆盖</h3>
+<div class="mermaid">graph TB
+    KC[Kill Chain] --> AT[ATT&CK] --> DP[检测点] --> RS[响应策略]
+    
+    KC1[侦察] --> AT1[TA0043] --> DP1[流量异常] --> RS1[情报封锁]
+    KC2[武器化] --> AT2[TA0042] --> DP2[样本检测] --> RS2[规则更新]
+    KC3[投递] --> AT3[TA0001] --> DP3[边界告警] --> RS3[隔离阻断]
+    KC4[利用] --> AT4[TA0002] --> DP4[终端告警] --> RS4[进程终止]
+    KC5[安装] --> AT5[TA0003] --> DP5[持久化告警] --> RS5[清除后门]
+    KC6[C2] --> AT6[TA0010] --> DP6[网络告警] --> RS6[主机隔离]
+    KC7[行动] --> AT7[TA0040] --> DP7[数据告警] --> RS7[止损恢复]
+    
+    style KC7 fill:#fce4ec,stroke:#c62828
+    style RS7 fill:#fce4ec,stroke:#c62828</div><hr>
+<h2 id="十一攻击链重构案例">十一、攻击链重构案例</h2>
+<h3 id="solarwinds-攻击链2020">11.1 SolarWinds 攻击链（2020）</h3>
+<p><strong>攻击概述：</strong> 历史上最复杂的供应链攻击之一，影响 18000+  organizations。</p>
+<p><strong>攻击链重构：</strong></p>
+<pre><code>Stage 1: 侦察
+├── 目标: SolarWinds 开发人员
+├── 方法: 密码喷洒、社会工程
+└── 发现: VPN 凭据泄露
+
+Stage 2-3: 武器化 + 投递
+├── 植入代码: SUNSPOT
+├── 篡改: Orion 软件构建过程
+└── 投递: 官方更新包 (v2019.4 - v2020.2.1)
+
+Stage 4-5: 利用 + 安装
+├── 恶意代码: SUNBURST
+├── 持久化: 伪装成合法 Orion 进程
+└── 休眠: 延迟 12-14 天激活
+
+Stage 6: C2
+├── C2 服务器: avsvmcloud.com
+├── 通信: DNS TXT 记录
+└── 冒充: 合法 SolarWinds 通信
+
+Stage 7: 行动
+├── 横向移动: Azure/AD
+├── 数据窃取: 邮件、文档
+└── 次级攻击: 针对受害企业</code></pre><p><strong>关键检测点：</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>检测方法</th>
+<th>实际检测情况</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C2</td>
+<td>DNS 异常查询</td>
+<td>FireEye 内部发现</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>SUNBURST 特征</td>
+<td>多个安全厂商发现</td>
+</tr>
+<tr>
+<td>横向</td>
+<td>Azure AD 异常</td>
+<td>微软内部发现</td>
+</tr>
+<tr>
+<td>外传</td>
+<td>邮件系统异常</td>
+<td>部分受害企业发现</td>
+</tr>
+</tbody></table>
+<h3 id="notpetya-攻击链2017">11.2 NotPetya 攻击链（2017）</h3>
+<p><strong>攻击概述：</strong> 史上最具破坏性的勒索软件攻击之一，总损失超过 $10B。</p>
+<p><strong>攻击链重构：</strong></p>
+<pre><code>Stage 1: 初始入侵
+├── 入口: M.E.Doc 乌克兰会计软件
+└── 方法: 利用漏洞获取初始访问
+
+Stage 2-3: 武器化 + 投递
+├── 恶意更新包: 通过 M.E.Doc 自动更新
+├── 注入代码: ExPetr/Petya 变种
+└── 伪装: 勒索软件，实际是数据销毁
+
+Stage 4-5: 利用 + 安装
+├── 本地扩散: WMExec (WMI 执行)
+├── 横向移动: PsExec、永恒之蓝
+└── 凭据窃取: 内存明文密码
+
+Stage 6-7: C2 + 行动
+├── 加密: MBR 覆写 (MBT)
+├── 勒索: $300 比特币赎金
+└── 破坏: 数据不可恢复</code></pre><p><strong>教训：</strong></p>
+<pre><code>关键问题:
+├── 补丁未及时安装 (永恒之蓝 MS17-010)
+├── 域管理员凭据复用
+├── 网络分段不足
+└── 备份策略不完善
+
+改进措施:
+├── 及时打补丁
+├── 最小权限原则
+├── 网络分段隔离
+└── 离线备份</code></pre><hr>
+<h2 id="十二检测规则实战">十二、检测规则实战</h2>
+<h3 id="完整检测规则集">12.1 完整检测规则集</h3>
+<p><strong>钓鱼邮件投递检测：</strong></p>
+<pre><code class="language-yaml">规则名称: Phishing_Attachment_Detection
+战术: Delivery (Kill Chain Stage 3)
+条件:
+  - 邮件附件类型: exe/js/vbs/ps1/cpl
+  - 或 邮件包含短链接 &lt; 20 字符
+  - 或 发件人域名 ≠ SPF/DKIM 验证
+严重级别: High
+动作:
+  - 隔离邮件
+  - 创建事件工单
+  - 通知安全团队</code></pre><p><strong>恶意执行检测：</strong></p>
+<pre><code class="language-yaml">规则名称: Suspicious_Process_Execution
+战术: Execution (Kill Chain Stage 4)
+条件:
+  - 父进程: outlook, word, excel, iexplore
+  - 子进程: powershell, cmd, wscript
+  - 命令行包含: -enc, -encoded, DownloadString
+严重级别: Critical
+动作:
+  - 告警
+  - 保存进程链
+  - 触发调查</code></pre><p><strong>持久化检测：</strong></p>
+<pre><code class="language-yaml">规则名称: Persistence_Registry_Modification
+战术: Installation (Kill Chain Stage 5)
+条件:
+  - 注册表写入: HKCU\...\Run
+  - 进程不是已知的安装程序
+  - 写入的值包含 http:// 或 UNC 路径
+严重级别: High
+动作:
+  - 告警
+  - 备份注册表
+  - 触发响应</code></pre><p><strong>C2 检测：</strong></p>
+<pre><code class="language-yaml">规则名称: C2_Beaconing_Detection
+战术: Command and Control (Kill Chain Stage 6)
+条件:
+  - 同一外部 IP 持续连接 &gt; 10 次
+  - 请求间隔标准差 &lt; 5% (固定心跳)
+  - 请求大小标准差 &lt; 20%
+  - JA3 不在已知白名单
+严重级别: Critical
+动作:
+  - 隔离主机
+  - 保存网络流量
+  - 触发事件调查</code></pre><p><strong>数据外传检测：</strong></p>
+<pre><code class="language-yaml">规则名称: Data_Exfiltration_Detection
+战术: Actions on Objective (Kill Chain Stage 7)
+条件:
+  - 主机外传流量 &gt; 100MB 在 5 分钟内
+  - 目标端口非业务常用端口
+  - 数据目的地非已知业务 IP
+  - 异常协议: DNS、TFTP、ICMP
+严重级别: Critical
+动作:
+  - 告警
+  - 保存流量
+  - 阻断连接</code></pre><hr>
+<h2 id="十三防御成熟度评估">十三、防御成熟度评估</h2>
+<h3 id="防御能力自评表">13.1 防御能力自评表</h3>
+<table>
+<thead>
+<tr>
+<th>Kill Chain 阶段</th>
+<th>基础 (1)</th>
+<th>发展 (2)</th>
+<th>成熟 (3)</th>
+<th>优化 (4)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>侦察</strong></td>
+<td>日志保留</td>
+<td>流量监控</td>
+<td>威胁情报集成</td>
+<td>AI 异常检测</td>
+</tr>
+<tr>
+<td><strong>武器化</strong></td>
+<td>基础扫描</td>
+<td>沙箱部署</td>
+<td>动态行为分析</td>
+<td>自动化响应</td>
+</tr>
+<tr>
+<td><strong>投递</strong></td>
+<td>邮件过滤</td>
+<td>URL 过滤</td>
+<td>沙箱检测</td>
+<td>远程浏览器隔离</td>
+</tr>
+<tr>
+<td><strong>利用</strong></td>
+<td>防病毒</td>
+<td>EDR</td>
+<td>行为检测</td>
+<td>内存保护</td>
+</tr>
+<tr>
+<td><strong>安装</strong></td>
+<td>日志审计</td>
+<td>注册表监控</td>
+<td>完整性检测</td>
+<td>应用白名单</td>
+</tr>
+<tr>
+<td><strong>C2</strong></td>
+<td>FW 日志</td>
+<td>NDR</td>
+<td>JA3 指纹</td>
+<td>AI C2 检测</td>
+</tr>
+<tr>
+<td><strong>行动</strong></td>
+<td>备份</td>
+<td>DLP</td>
+<td>流量监控</td>
+<td>威胁狩猎</td>
+</tr>
+</tbody></table>
+<h3 id="成熟度特征">13.2 成熟度特征</h3>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>名称</th>
+<th>检测时间</th>
+<th>响应时间</th>
+<th>自动化程度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>L1</strong></td>
+<td>初始级</td>
+<td>&gt; 24 小时</td>
+<td>&gt; 1 天</td>
+<td>无</td>
+</tr>
+<tr>
+<td><strong>L2</strong></td>
+<td>基础级</td>
+<td>&lt; 24 小时</td>
+<td>&lt; 4 小时</td>
+<td>基础</td>
+</tr>
+<tr>
+<td><strong>L3</strong></td>
+<td>发展级</td>
+<td>&lt; 1 小时</td>
+<td>&lt; 1 小时</td>
+<td>部分</td>
+</tr>
+<tr>
+<td><strong>L4</strong></td>
+<td>成熟级</td>
+<td>&lt; 10 分钟</td>
+<td>&lt; 30 分钟</td>
+<td>大部分</td>
+</tr>
+<tr>
+<td><strong>L5</strong></td>
+<td>优化级</td>
+<td>&lt; 1 分钟</td>
+<td>&lt; 5 分钟</td>
+<td>全面</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="十四参考链接">十四、参考链接</h2>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Lockheed Martin 官网</td>
+<td><a href="https://www.lockheedmartin.com/en-us/capabilities/cyber/cyber-kill-chain.html">https://www.lockheedmartin.com/en-us/capabilities/cyber/cyber-kill-chain.html</a></td>
+</tr>
+<tr>
+<td>原始论文</td>
+<td>《Intelligence-Driven Computer Network Defense》</td>
+</tr>
+<tr>
+<td>MITRE ATT&amp;CK</td>
+<td><a href="https://attack.mitre.org/">https://attack.mitre.org/</a></td>
+</tr>
+<tr>
+<td>CISA 网络防御</td>
+<td><a href="https://www.cisa.gov/cyber-incident-response">https://www.cisa.gov/cyber-incident-response</a></td>
+</tr>
+<tr>
+<td>Verizon DBIR</td>
+<td><a href="https://www.verizon.com/business/resources/reports/dbir/">https://www.verizon.com/business/resources/reports/dbir/</a></td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Last updated: 2026-06-02</em></p>
+
+      
+  </div>
+
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

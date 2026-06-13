@@ -1,0 +1,2445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Observable Ops — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/06/13/observable-ops-02-01-module-architecture/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Observable Ops — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Observable Ops 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-13T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/06/13/observable-ops-02-01-module-architecture/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 01 · 模块架构 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/06/13/observable-ops-02-01-module-architecture/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 01 · 模块架构
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-ops/" itemprop="url" rel="index"><span
+                          itemprop="name">Observable Ops</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+        <h1>模块 01 · 总体架构</h1>
+<blockquote>
+<p>智能系统运维可观测性 · 功能逻辑层总体架构</p>
+</blockquote>
+<hr>
+<h2>0 目录</h2>
+<h3>章节导航</h3>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>章节</th>
+<th>核心内容</th>
+<th>篇幅</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><a href="#1-%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99">架构设计原则</a></td>
+<td>4 大哲学（简单/演进/可观测/AI 增强）· 5 大原则（分层解耦/模块自治/数据共享/能力编排/可观测内置）· 4 大关键取舍 · 4 层架构模型 · 6 类模块协作</td>
+<td>6 节</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="#2-%E5%8A%9F%E8%83%BD%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88">功能架构总览</a></td>
+<td>端到端 5 阶段数据流（采集→融合→分析→执行→反馈）· 11 模块职责边界</td>
+<td>2 节</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="#3-%E6%8A%80%E6%9C%AF%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1">技术架构设计</a></td>
+<td>React18+FastAPI+TSDB+Neo4j 技术栈 · 5 项选型原则 · K8s 9 组件部署架构</td>
+<td>3 节</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="#4-%E6%A8%A1%E5%9D%97%E8%AF%A6%E7%BB%86%E8%AE%BE%E8%AE%A1">模块详细设计</a></td>
+<td>4 层数据流架构 · L1-L5 能力成熟度 · 2024-2025 技术路线图</td>
+<td>3 节</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="#5-%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1%E8%A7%84%E8%8C%83">接口设计规范</a></td>
+<td>REST/gRPC/WS/Kafka 4 类协议 · 服务调用时序 · 9 项 SLO 指标</td>
+<td>3 节</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="#6-%E9%87%8F%E5%8C%96%E6%8C%87%E6%A0%87%E4%BD%93%E7%B3%BB">量化指标体系</a></td>
+<td>性能/准确/可用 9 项指标 · L1-L5 成熟度对照 · 容量规划 5 阈值</td>
+<td>3 节</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="#7-%E5%85%B8%E5%9E%8B%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF">典型业务场景</a></td>
+<td>DB 突发告警 · 慢查询链路超时 · 变更批量异常 3 大端到端剧本</td>
+<td>3 节</td>
+</tr>
+<tr>
+<td>8</td>
+<td><a href="#8-%E6%A8%A1%E5%9D%97%E9%97%B4%E4%BE%9D%E8%B5%96%E5%85%B3%E7%B3%BB">模块间依赖关系</a></td>
+<td>11 模块依赖矩阵 · 数据依赖关系图</td>
+<td>2 节</td>
+</tr>
+<tr>
+<td>9</td>
+<td><a href="#9-%E5%AE%89%E5%85%A8%E6%9E%B6%E6%9E%84">安全架构</a></td>
+<td>4 层安全模型（认证/授权/数据/审计）· 3 种多租户隔离方案</td>
+<td>2 节</td>
+</tr>
+<tr>
+<td>10</td>
+<td><a href="#10-%E6%9C%AC%E7%AB%A0%E5%B0%8F%E7%BB%93">本章小结</a></td>
+<td>5 关键认知 · 4 架构目标 · 4 成功要素 · 4 演进方向</td>
+<td>4 节</td>
+</tr>
+</tbody></table>
+<h3>文档结构图</h3>
+<div class="mermaid">flowchart LR
+    subgraph P1["第一部分：架构哲学 · WHY"]
+        S1[1. 架构设计原则]
+    end
+
+    subgraph P2["第二部分：架构设计 · WHAT"]
+        S2[2. 功能架构总览]
+        S3[3. 技术架构设计]
+        S4[4. 模块详细设计]
+        S5[5. 接口设计规范]
+        S2 --> S3 --> S4 --> S5
+    end
+
+    subgraph P3["第三部分：质量与落地 · HOW"]
+        S6[6. 量化指标体系]
+        S7[7. 典型业务场景]
+        S8[8. 模块间依赖]
+        S9[9. 安全架构]
+        S6 --> S7 --> S8 --> S9
+    end
+
+    subgraph P4["第四部分：总结 · SO WHAT"]
+        S10[10. 本章小结]
+    end
+
+    P1 --> P2 --> P3 --> P4
+
+    style P1 fill:#e3f2fd
+    style P2 fill:#fff9c4
+    style P3 fill:#ffccbc
+    style P4 fill:#d1e7dd</div><h3>阅读路径建议</h3>
+<table>
+<thead>
+<tr>
+<th>阅读方式</th>
+<th>推荐顺序</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>快速浏览</strong></td>
+<td>1 → 2 → 10</td>
+<td>5 分钟向他人讲清架构全貌（10 分钟）</td>
+</tr>
+<tr>
+<td><strong>技术深入</strong></td>
+<td>1 → 3 → 4 → 5</td>
+<td>学习技术架构 + 模块设计（60 分钟）</td>
+</tr>
+<tr>
+<td><strong>架构评审</strong></td>
+<td>1 → 5 → 6 → 8</td>
+<td>完成选型决策 + 依赖检查（45 分钟）</td>
+</tr>
+<tr>
+<td><strong>完整阅读</strong></td>
+<td>1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10</td>
+<td>系统掌握 + 可培训他人（120 分钟）</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>1. 架构设计原则</h2>
+<blockquote>
+<p>架构不是一蹴而就的设计图，而是支撑系统长期演进的「<strong>约束 + 自由</strong>」的平衡艺术。Observable Ops 的架构设计原则，既要解决当下 AIOps 系统的复杂性问题，又要为未来 5 年的演进留足空间。本章阐述平台架构的设计哲学、核心原则、关键取舍、分层模型与模块协作关系。</p>
+</blockquote>
+<h3>📖 本节导读</h3>
+<div class="section-callout"><blockquote>
+<p><strong>6 节 · 约 20 分钟</strong> · 从「<strong>哲学 → 原则 → 对比 → 取舍 → 分层 → 协作</strong>」递进</p>
+</blockquote>
+<p><strong>学完后你将能：</strong></p>
+<ol>
+<li>用 <strong>4 哲学 + 5 原则</strong> 解释 Observable Ops 架构的「<strong>为什么</strong>」</li>
+<li>在 4 大关键取舍上做出<strong>符合本平台价值观</strong>的判断</li>
+<li>区分 4 层架构的<strong>职责边界</strong>与<strong>层间契约</strong></li>
+<li>评审他人方案是否违反<strong>协作约束</strong>（反向依赖、跨层穿透、数据层穿透）</li>
+</ol>
+<p><strong>与其他章节的连接：</strong></p>
+<table>
+<thead>
+<tr>
+<th>本节输出</th>
+<th>后续章节应用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>4 哲学 + 5 原则</td>
+<td>→ 第 3 章「技术架构设计」的选型依据</td>
+</tr>
+<tr>
+<td>4 关键取舍</td>
+<td>→ 第 5 章「接口设计」、第 6 章「指标体系」的取舍基准</td>
+</tr>
+<tr>
+<td>4 层分层</td>
+<td>→ 第 4 章「模块详细设计」的层级落地</td>
+</tr>
+<tr>
+<td>11 模块协作</td>
+<td>→ 第 8 章「依赖关系」的完整图谱</td>
+</tr>
+</tbody></table>
+</div><hr>
+<h3>1.1 设计哲学：4 大底层认知</h3>
+<p>Observable Ops 的架构设计建立在 4 大底层认知之上，这些认知决定了我们为何选择这样的原则、为何采用这样的分层、为何坚持这样的协作方式：</p>
+<div class="mermaid">flowchart LR
+    subgraph 哲学["4 大设计哲学"]
+        direction TB
+        P1[01 简单性
+Simple First]
+        P2[02 演进性
+Evolutionary]
+        P3[03 可观测
+Observable by Design]
+        P4[04 智能增强
+AI Augmented]
+        P1 --> P2 --> P3 --> P4
+    end
+    
+    subgraph 原则["5 大核心原则"]
+        direction TB
+        R1[分层解耦]
+        R2[模块自治]
+        R3[数据共享]
+        R4[能力编排]
+        R5[可观测性内置]
+    end
+    
+    哲学 --> 原则
+    
+    style 哲学 fill:#e1bee7
+    style 原则 fill:#bbdefb</div><p><strong>4 大哲学详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>哲学</th>
+<th>核心认知</th>
+<th>解决的根本问题</th>
+<th>在架构中的体现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>01 简单性 (Simple First)</strong></td>
+<td>复杂是万恶之源，每增加一层抽象都要有充分理由</td>
+<td>AIOps 系统天然复杂（数据多、模型多、Agent 多）容易失控</td>
+<td>优先选择简单的方案、避免过度设计</td>
+</tr>
+<tr>
+<td><strong>02 演进性 (Evolutionary)</strong></td>
+<td>架构不是设计出来的，是演进出来的</td>
+<td>业务和技术都在快速变化，架构必须支持演进</td>
+<td>模块化、标准化接口、独立部署能力</td>
+</tr>
+<tr>
+<td><strong>03 可观测 (Observable by Design)</strong></td>
+<td>系统的可观测性必须从第一天就内置</td>
+<td>平台自身也是复杂系统，事后补做可观测成本极高</td>
+<td>全链路追踪、统一指标、Self-Monitoring</td>
+</tr>
+<tr>
+<td><strong>04 智能增强 (AI Augmented)</strong></td>
+<td>AI 是平台的「核心肌理」而非「外挂插件」</td>
+<td>AI Ops 不是传统监控 + AI 补丁，而是 AI Native 设计</td>
+<td>AI 推理路径纳入核心架构、模型可热更新</td>
+</tr>
+</tbody></table>
+<hr>
+<h3>1.2 5 大核心原则</h3>
+<p>Observable Ops 围绕 4 大哲学落地为 <strong>5 大核心架构原则</strong>，每个原则都有明确的「<strong>解决什么问题 + 实施策略 + 衡量指标</strong>」：</p>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>核心内涵</th>
+<th>解决什么问题</th>
+<th>实施策略</th>
+<th>衡量指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>分层解耦</strong></td>
+<td>数据层、能力层、应用层分离</td>
+<td>AIOps 系统天然分层混乱、AI 推理与业务逻辑纠缠不清</td>
+<td>严格分层契约、层间通过标准 API 通信</td>
+<td>层间依赖违规 &lt; 1%、层独立发布周期</td>
+</tr>
+<tr>
+<td><strong>模块自治</strong></td>
+<td>每个模块独立构建、测试、部署</td>
+<td>大泥球架构、变更影响面不可控</td>
+<td>模块拥有独立代码库、独立 CI/CD、独立版本</td>
+<td>模块独立发布频率、变更失败率 &lt; 5%</td>
+</tr>
+<tr>
+<td><strong>数据共享</strong></td>
+<td>统一数据模型、共享数据服务</td>
+<td>多模块重复定义实体、数据孤岛</td>
+<td>统一 Schema Registry、共享数据服务总线</td>
+<td>数据重复率 &lt; 5%、一致性 100%</td>
+</tr>
+<tr>
+<td><strong>能力编排</strong></td>
+<td>模块间通过标准接口协作</td>
+<td>AI 能力组合僵化、无法灵活支撑新场景</td>
+<td>能力插件化、动态路由、声明式编排</td>
+<td>新场景上线时间 &lt; 1 周、能力复用率 &gt; 80%</td>
+</tr>
+<tr>
+<td><strong>可观测性内置</strong></td>
+<td>整个平台自身可观测</td>
+<td>平台自身成为「黑盒」、故障难定位</td>
+<td>全链路 Trace、统一 Metric 体系、Self-Monitoring</td>
+<td>平台自身 MTTD &lt; 1min、平台可观测覆盖率 100%</td>
+</tr>
+</tbody></table>
+<p><strong>5 原则关系图：</strong></p>
+<div class="mermaid">flowchart LR
+    P1[分层解耦] --> P3[数据共享]
+    P1 --> P2[模块自治]
+    P2 --> P4[能力编排]
+    P3 --> P4
+    P4 --> P5[可观测性内置]
+    P1 --> P5
+    P2 --> P5
+    P3 --> P5
+    
+    style P1 fill:#bbdefb
+    style P2 fill:#c8e6c9
+    style P3 fill:#fff9c4
+    style P4 fill:#ffccbc
+    style P5 fill:#e1bee7</div><p><strong>原则协同说明：</strong></p>
+<ul>
+<li><strong>分层解耦</strong> 是基础：先有清晰的分层，才有其他原则的落地空间</li>
+<li><strong>模块自治</strong> + <strong>数据共享</strong> 是一对互补：自治避免耦合，共享避免冗余</li>
+<li><strong>能力编排</strong> 是上层应用：前 3 个原则都为灵活编排服务</li>
+<li><strong>可观测性内置</strong> 是横切关注点：贯穿前 4 个原则的每个细节</li>
+</ul>
+<hr>
+<h3>1.3 原则应用对比：传统监控架构 vs AIOps 智能架构</h3>
+<p>Observable Ops 的 5 大原则并非凭空设计，而是针对传统监控架构的痛点对症下药：</p>
+<div class="mermaid">flowchart LR
+    subgraph 传统["传统监控架构"]
+        direction TB
+        T1[烟囱式系统
+每个工具独立]
+        T2[大泥球代码
+模块边界模糊]
+        T3[数据各自定义
+指标不统一]
+        T4[能力硬编码
+无法灵活组合]
+        T5[平台不可观测
+故障难定位]
+        T1 --> T2 --> T3 --> T4 --> T5
+    end
+    
+    subgraph 智能["AIOps 智能架构"]
+        direction TB
+        A1[分层解耦
+清晰架构]
+        A2[模块自治
+独立演进]
+        A3[数据共享
+统一规范]
+        A4[能力编排
+灵活组合]
+        A5[可观测内置
+自我诊断]
+        A1 --> A2 --> A3 --> A4 --> A5
+    end
+    
+    传统 -- 架构升级 --> 智能
+    
+    T1 -.->|分层解耦| A1
+    T2 -.->|模块自治| A2
+    T3 -.->|数据共享| A3
+    T4 -.->|能力编排| A4
+    T5 -.->|可观测内置| A5
+    
+    style 传统 fill:#f8d7da
+    style 智能 fill:#d1e7dd</div><p><strong>维度对比表：</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>传统监控架构</th>
+<th>AIOps 智能架构</th>
+<th>提升效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>系统形态</strong></td>
+<td>烟囱式工具堆叠（Zabbix + ELK + Jaeger + 自研脚本）</td>
+<td>一体化平台（采集 + 存储 + AI + 应用）</td>
+<td>维护成本 -60%</td>
+</tr>
+<tr>
+<td><strong>模块边界</strong></td>
+<td>边界模糊、代码大泥球</td>
+<td>清晰分层、模块自治</td>
+<td>变更影响可控</td>
+</tr>
+<tr>
+<td><strong>数据规范</strong></td>
+<td>各系统数据格式各异、字段对不齐</td>
+<td>统一数据模型、共享数据服务</td>
+<td>一致性 100%</td>
+</tr>
+<tr>
+<td><strong>能力组合</strong></td>
+<td>能力硬编码、新场景需改底层代码</td>
+<td>能力插件化、声明式编排</td>
+<td>新场景上线 &lt; 1 周</td>
+</tr>
+<tr>
+<td><strong>平台可观测</strong></td>
+<td>平台自身不可观测、故障难定位</td>
+<td>自身可观测、自我诊断</td>
+<td>平台 MTTR -50%</td>
+</tr>
+<tr>
+<td><strong>演进方式</strong></td>
+<td>推倒重来（每 3-5 年大重构）</td>
+<td>渐进演进（模块独立升级）</td>
+<td>演进成本 -70%</td>
+</tr>
+</tbody></table>
+<p><strong>智能架构的 3 大核心创新：</strong></p>
+<table>
+<thead>
+<tr>
+<th>创新点</th>
+<th>传统架构没有</th>
+<th>AIOps 做法</th>
+<th>价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>统一数据底座</strong></td>
+<td>各系统数据孤岛</td>
+<td>共享时序/日志/图谱存储 + 统一 Schema</td>
+<td>一次采集、多处使用</td>
+</tr>
+<tr>
+<td><strong>AI 原生设计</strong></td>
+<td>AI 作为外挂插件</td>
+<td>推理路径纳入核心架构、模型可热更新</td>
+<td>AI 能力不被业务架构拖累</td>
+</tr>
+<tr>
+<td><strong>可观测自指</strong></td>
+<td>平台是「黑盒」</td>
+<td>平台观测自身、Self-Monitoring</td>
+<td>平台自身也可被运维</td>
+</tr>
+</tbody></table>
+<hr>
+<h3>1.4 架构设计的 4 个关键取舍</h3>
+<p>优秀的架构不是「什么都要」，而是「在矛盾中做对选择」。Observable Ops 在 4 大核心取舍上做出明确选择：</p>
+<div class="mermaid">flowchart LR
+    subgraph 取舍["4 个关键取舍"]
+        direction TB
+        D1[性能 vs 灵活性]
+        D2[自治 vs 协同]
+        D3[一致性 vs 可用性]
+        D4[标准化 vs 定制化]
+        D1 --> D2 --> D3 --> D4
+    end
+    
+    subgraph 决策["Observable Ops 选择"]
+        direction TB
+        C1[灵活性优先
+性能可控即可]
+        C2[自治为主
+协同为辅]
+        C3[最终一致
+AP 优先]
+        C4[80% 标准化
+20% 可扩展]
+        C1 --> C2 --> C3 --> C4
+    end
+    
+    取舍 --> 决策
+    
+    style 取舍 fill:#fff3e0
+    style 决策 fill:#d1e7dd</div><p><strong>取舍 1：性能 vs 灵活性</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>选择</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>✅ 选择</td>
+<td><strong>灵活性优先</strong></td>
+<td>AIOps 业务场景多变，灵活编排比极致性能更重要</td>
+</tr>
+<tr>
+<td>❌ 放弃</td>
+<td>极致性能</td>
+<td>通过架构优化和缓存，让「灵活性」下的性能也可控</td>
+</tr>
+<tr>
+<td><strong>策略</strong></td>
+<td>标准化接口 + 异步处理 + 智能缓存</td>
+<td>关键路径性能优化、次要路径容忍稍高延迟</td>
+</tr>
+</tbody></table>
+<p><strong>取舍 2：自治 vs 协同</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>选择</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>✅ 选择</td>
+<td><strong>模块自治为主，协作为辅</strong></td>
+<td>自治让模块独立演进，协同让系统保持整体性</td>
+</tr>
+<tr>
+<td>❌ 放弃</td>
+<td>完全自治（数据/接口完全无约束）</td>
+<td>需要统一的数据规范和接口契约</td>
+</tr>
+<tr>
+<td><strong>策略</strong></td>
+<td>强契约（Schema、API）+ 弱实现（具体实现模块自主）</td>
+<td>模块对外契约统一、对内实现自由</td>
+</tr>
+</tbody></table>
+<p><strong>取舍 3：一致性 vs 可用性</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>选择</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>✅ 选择</td>
+<td><strong>最终一致，AP 优先</strong></td>
+<td>监控场景对「不丢数据」比「实时一致」更敏感</td>
+</tr>
+<tr>
+<td>❌ 放弃</td>
+<td>强一致（CP）</td>
+<td>分布式监控系统中强一致成本过高、可用性受损</td>
+</tr>
+<tr>
+<td><strong>策略</strong></td>
+<td>Eventual Consistency + 幂等设计 + 数据补偿</td>
+<td>保证数据最终一致，关键操作幂等可重试</td>
+</tr>
+</tbody></table>
+<p><strong>取舍 4：标准化 vs 定制化</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>选择</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>✅ 选择</td>
+<td><strong>80% 标准化，20% 可扩展</strong></td>
+<td>标准化降低复杂度，定制化满足差异化需求</td>
+</tr>
+<tr>
+<td>❌ 放弃</td>
+<td>100% 标准化（无法满足特殊场景）</td>
+<td>客户场景千差万别，需要有限扩展点</td>
+</tr>
+<tr>
+<td><strong>策略</strong></td>
+<td>核心能力标准化 + 业务能力插件化</td>
+<td>通过插件机制允许 20% 的定制化扩展</td>
+</tr>
+</tbody></table>
+<hr>
+<h3>1.5 架构分层模型</h3>
+<p>基于「分层解耦」原则，Observable Ops 采用 <strong>4 层架构</strong>：采集层 → 数据层 → 能力层 → 应用层。每一层职责清晰、层间通过标准接口协作：</p>
+<div class="mermaid">flowchart TB
+    subgraph 应用层["应用层 Application Layer"]
+        direction LR
+        APP1[监控大屏
+Dashboard]
+        APP2[告警中心
+Alerting]
+        APP3[事件管理
+Incident]
+        APP4[工作台
+Workspace]
+    end
+    
+    subgraph 能力层["能力层 Capability Layer"]
+        direction LR
+        CAP1[智能感知
+Sensing]
+        CAP2[认知网络
+Cognition]
+        CAP3[故障研判
+Diagnosis]
+        CAP4[根因分析
+RCA]
+        CAP5[影响分析
+Impact]
+        CAP6[智能决策
+Decision]
+        CAP7[自动执行
+Execution]
+        CAP8[知识进化
+Learning]
+    end
+    
+    subgraph 数据层["数据层 Data Layer"]
+        direction LR
+        DATA1[数据融合
+Fusion]
+        DATA2[数据模型
+Model]
+        DATA3[知识图谱
+Knowledge]
+        DATA4[时序存储
+TSDB]
+        DATA5[日志存储
+LogStore]
+        DATA6[追踪存储
+TraceStore]
+    end
+    
+    subgraph 采集层["采集层 Collection Layer"]
+        direction LR
+        COL1[指标采集
+Metrics]
+        COL2[日志采集
+Logs]
+        COL3[链路追踪
+Traces]
+        COL4[事件采集
+Events]
+        COL5[拓扑采集
+Topology]
+    end
+    
+    应用层 --> 能力层
+    能力层 --> 数据层
+    数据层 --> 采集层
+    
+    style 应用层 fill:#e3f2fd
+    style 能力层 fill:#d1e7dd
+    style 数据层 fill:#fff9c4
+    style 采集层 fill:#ffccbc</div><p><strong>4 层职责详解：</strong></p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>核心职责</th>
+<th>关键能力</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>采集层</strong></td>
+<td>全量数据采集、协议适配</td>
+<td>指标/日志/追踪/事件/拓扑 5 类采集器</td>
+<td>各数据源原始数据</td>
+<td>标准化数据流</td>
+</tr>
+<tr>
+<td><strong>数据层</strong></td>
+<td>数据存储、融合、模型</td>
+<td>统一数据模型、6 类存储引擎</td>
+<td>标准化数据</td>
+<td>融合数据 + 知识图谱</td>
+</tr>
+<tr>
+<td><strong>能力层</strong></td>
+<td>AI 推理、智能分析</td>
+<td>8 大核心能力（感知→认知→决策→执行→学习）</td>
+<td>融合数据</td>
+<td>故障结论、决策方案、执行结果</td>
+</tr>
+<tr>
+<td><strong>应用层</strong></td>
+<td>用户交互、价值呈现</td>
+<td>4 类应用（Dashboard/告警/事件/工作台）</td>
+<td>能力输出</td>
+<td>用户可用的功能</td>
+</tr>
+</tbody></table>
+<p><strong>层间数据流：</strong></p>
+<div class="mermaid">flowchart LR
+    A1[采集层] -- 标准化数据 --> A2[数据层]
+    A2 -- 融合数据 + 知识 --> A3[能力层]
+    A3 -- 智能结论 --> A4[应用层]
+    A4 -- 用户反馈 --> A3
+    A3 -- 模型/知识更新 --> A2
+    
+    style A1 fill:#ffccbc
+    style A2 fill:#fff9c4
+    style A3 fill:#d1e7dd
+    style A4 fill:#e3f2fd</div><p><strong>层间契约原则：</strong></p>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>下层不知道上层</strong></td>
+<td>数据层不感知能力层和应用层，能力层不感知应用层</td>
+</tr>
+<tr>
+<td><strong>上层不绕过下层</strong></td>
+<td>应用层不直接访问数据层，必须经过能力层</td>
+</tr>
+<tr>
+<td><strong>层间接口稳定</strong></td>
+<td>层间契约一旦发布，向后兼容、版本化管理</td>
+</tr>
+<tr>
+<td><strong>层内自治</strong></td>
+<td>每层内部实现可自由替换（如更换时序数据库）</td>
+</tr>
+</tbody></table>
+<hr>
+<h3>1.6 模块协作关系</h3>
+<p>基于「模块自治 + 能力编排」原则，11 个模块通过标准接口协作，形成清晰的依赖关系：</p>
+<div class="mermaid">flowchart LR
+    M02[02 数据模型] --> M03[03 数据融合]
+    M03 --> M04[04 智能感知]
+    M03 --> M05[05 认知网络]
+    M04 --> M06[06 故障研判]
+    M05 --> M06
+    M04 --> M07[07 根因分析]
+    M05 --> M07
+    M06 --> M07
+    M05 --> M08[08 影响分析]
+    M06 --> M08
+    M07 --> M08
+    M06 --> M09[09 智能决策]
+    M07 --> M09
+    M08 --> M09
+    M09 --> M10[10 自动执行]
+    M04 --> M11[11 知识进化]
+    M06 --> M11
+    M07 --> M11
+    M09 --> M11
+    M10 --> M11
+    
+    style M02 fill:#e3f2fd
+    style M03 fill:#d1e7dd
+    style M04 fill:#d1e7dd
+    style M05 fill:#d1e7dd
+    style M06 fill:#fff9c4
+    style M07 fill:#fff9c4
+    style M08 fill:#fff9c4
+    style M09 fill:#ffccbc
+    style M10 fill:#ffccbc
+    style M11 fill:#e1bee7</div><p><strong>模块协作矩阵：</strong></p>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>输入依赖</th>
+<th>输出提供</th>
+<th>协作模块</th>
+<th>协作模式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>01 总体架构</td>
+<td>—</td>
+<td>架构规范</td>
+<td>所有模块</td>
+<td>规范提供方</td>
+</tr>
+<tr>
+<td>02 数据模型</td>
+<td>—</td>
+<td>数据规范</td>
+<td>所有模块</td>
+<td>规范提供方</td>
+</tr>
+<tr>
+<td>03 数据融合</td>
+<td>02 数据模型</td>
+<td>融合数据</td>
+<td>04/05/06/07/08</td>
+<td>数据生产者</td>
+</tr>
+<tr>
+<td>04 智能感知</td>
+<td>03 融合数据</td>
+<td>异常事件</td>
+<td>06/09/11</td>
+<td>事件生产者</td>
+</tr>
+<tr>
+<td>05 认知网络</td>
+<td>03 融合数据</td>
+<td>知识图谱</td>
+<td>06/07/08/11</td>
+<td>知识服务方</td>
+</tr>
+<tr>
+<td>06 故障研判</td>
+<td>03/04/05</td>
+<td>故障结论</td>
+<td>07/08/09</td>
+<td>分析协调方</td>
+</tr>
+<tr>
+<td>07 根因分析</td>
+<td>03/04/05/06</td>
+<td>根因路径</td>
+<td>08/09/11</td>
+<td>推理服务方</td>
+</tr>
+<tr>
+<td>08 影响分析</td>
+<td>03/05/06/07</td>
+<td>影响范围</td>
+<td>09/10</td>
+<td>评估服务方</td>
+</tr>
+<tr>
+<td>09 智能决策</td>
+<td>04/06/07/08</td>
+<td>决策方案</td>
+<td>10/11</td>
+<td>决策服务方</td>
+</tr>
+<tr>
+<td>10 自动执行</td>
+<td>09 决策</td>
+<td>执行结果</td>
+<td>08/11</td>
+<td>执行服务方</td>
+</tr>
+<tr>
+<td>11 知识进化</td>
+<td>04/06/07/09/10</td>
+<td>知识更新</td>
+<td>所有模块</td>
+<td>反馈闭环方</td>
+</tr>
+</tbody></table>
+<p><strong>3 大协作模式：</strong></p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>描述</th>
+<th>适用场景</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>同步调用</strong></td>
+<td>模块间通过 API 同步请求-响应</td>
+<td>强一致性场景</td>
+<td>故障研判 → 根因分析</td>
+</tr>
+<tr>
+<td><strong>异步事件</strong></td>
+<td>模块间通过事件总线异步通信</td>
+<td>解耦场景、高吞吐</td>
+<td>智能感知 → 故障研判</td>
+</tr>
+<tr>
+<td><strong>共享数据</strong></td>
+<td>模块间通过数据层共享数据</td>
+<td>数据复用场景</td>
+<td>知识图谱被多个模块使用</td>
+</tr>
+</tbody></table>
+<p><strong>协作约束：</strong></p>
+<ul>
+<li><strong>禁止反向依赖</strong>：下游模块不得直接调用上游模块（如 04 不得调用 07）</li>
+<li><strong>禁止跨层调用</strong>：能力层模块不得直接调用应用层（应用层调用能力层）</li>
+<li><strong>禁止数据层穿透</strong>：能力层必须通过数据层访问数据，不得直接操作存储</li>
+</ul>
+<h3>本节小结</h3>
+<blockquote>
+<p><strong>5 个核心速记 · 1 个评审 checklist · 1 个记忆口诀</strong></p>
+</blockquote>
+<p><strong>5 个核心速记：</strong></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>维度</th>
+<th>速记</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>哲学</td>
+<td>4 大哲学：<strong>简单</strong> / <strong>演进</strong> / <strong>可观测</strong> / <strong>AI 增强</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>原则</td>
+<td>5 大原则：分层解耦 / 模块自治 / 数据共享 / 能力编排 / 可观测性内置</td>
+</tr>
+<tr>
+<td>3</td>
+<td>取舍</td>
+<td>4 大取舍：灵活性优先 / 自治为主 / AP 优先 / 80-20</td>
+</tr>
+<tr>
+<td>4</td>
+<td>分层</td>
+<td>4 层架构：采集层 / 数据层 / 能力层 / 应用层</td>
+</tr>
+<tr>
+<td>5</td>
+<td>协作</td>
+<td>3 大模式：同步调用 / 异步事件 / 共享数据</td>
+</tr>
+</tbody></table>
+<p><strong>架构评审 checklist：</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 是否体现 4 大哲学中的<strong>至少 3 个</strong>？</li>
+<li><input disabled="" type="checkbox"> 是否触犯 5 原则中的「<strong>层间契约稳定</strong>」？</li>
+<li><input disabled="" type="checkbox"> 4 大取舍上是否给出<strong>明确选择 + 实施策略</strong>？</li>
+<li><input disabled="" type="checkbox"> 4 层职责是否<strong>清晰、无跨层穿透</strong>？</li>
+<li><input disabled="" type="checkbox"> 模块协作是否<strong>避免反向依赖 + 数据层穿透</strong>？</li>
+</ul>
+<p><strong>记忆口诀：</strong></p>
+<blockquote>
+<p><strong>4 哲 · 5 原 · 4 取 · 4 层 · 3 协</strong><br><em>(四个哲学 · 五个原则 · 四个取舍 · 四层架构 · 三种协作)</em></p>
+</blockquote>
+<hr>
+<h2>2. 功能架构总览</h2>
+<h3>2.1 端到端数据流</h3>
+<div class="mermaid">flowchart LR
+    subgraph 采集["数据采集"]
+        C1[基础设施
+Metrics]
+        C2[应用服务
+Logs]
+        C3[调用链路
+Traces]
+        C4[业务事件
+Events]
+    end
+    
+    subgraph 处理["数据处理"]
+        P1[数据融合]
+        P2[实体关联]
+        P3[时序对齐]
+        P4[异常检测]
+    end
+    
+    subgraph 分析["智能分析"]
+        A1[故障研判]
+        A2[根因分析]
+        A3[影响评估]
+        A4[决策推荐]
+    end
+    
+    subgraph 执行["自动执行"]
+        E1[策略匹配]
+        E2[执行计划]
+        E3[审批确认]
+        E4[事务执行]
+    end
+    
+    subgraph 知识["知识管理"]
+        K1[经验沉淀]
+        K2[知识图谱]
+        K3[模型更新]
+        K4[效果评估]
+    end
+    
+    C1 --> P1
+    C2 --> P1
+    C3 --> P1
+    C4 --> P1
+    P1 --> P2 --> P3 --> P4
+    P4 --> A1 --> A2 --> A3 --> A4
+    A4 --> E1 --> E2 --> E3 --> E4
+    E4 --> K1
+    A1 -.-> K2
+    A2 -.-> K2
+    K2 -.-> A1
+    K3 -.-> P4
+    K4 -.-> K3
+    
+    style 采集 fill:#e3f2fd
+    style 处理 fill:#d1e7dd
+    style 分析 fill:#fff9c4
+    style 执行 fill:#ffccbc
+    style 知识 fill:#e1bee7</div><h3>2.2 模块职责边界</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>职责</th>
+<th>边界定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>01 总体架构</strong></td>
+<td>顶层设计、模块划分、接口规范</td>
+<td>定义模块间交互契约，不涉及具体实现</td>
+</tr>
+<tr>
+<td><strong>02 数据模型</strong></td>
+<td>实体定义、关系建模、指标规范</td>
+<td>统一数据元数据，不存储实际数据</td>
+</tr>
+<tr>
+<td><strong>03 数据融合</strong></td>
+<td>多源汇聚、格式标准化、实体挂载</td>
+<td>数据汇聚到融合态，不做异常检测</td>
+</tr>
+<tr>
+<td><strong>04 智能感知</strong></td>
+<td>异常检测、模式识别、告警收敛</td>
+<td>检测异常并输出事件，不做根因分析</td>
+</tr>
+<tr>
+<td><strong>05 认知网络</strong></td>
+<td>知识抽取、关系推理、图存储</td>
+<td>构建知识图谱，不做故障研判</td>
+</tr>
+<tr>
+<td><strong>06 故障研判</strong></td>
+<td>故障判定、类型分类、上下文组织</td>
+<td>判断故障存在，不做根因定位</td>
+</tr>
+<tr>
+<td><strong>07 根因分析</strong></td>
+<td>因果推理、传播路径、DAG 构建</td>
+<td>定位根本原因，不做影响评估</td>
+</tr>
+<tr>
+<td><strong>08 影响分析</strong></td>
+<td>服务拓扑、影响评估、降级方案</td>
+<td>评估业务影响，不做决策生成</td>
+</tr>
+<tr>
+<td><strong>09 智能决策</strong></td>
+<td>方案生成、策略匹配、执行计划</td>
+<td>生成决策建议，不做实际执行</td>
+</tr>
+<tr>
+<td><strong>10 自动执行</strong></td>
+<td>策略执行、脚本运行、事务保障</td>
+<td>执行决策动作，不做知识沉淀</td>
+</tr>
+<tr>
+<td><strong>11 知识进化</strong></td>
+<td>知识沉淀、经验复用、模型迭代</td>
+<td>持续优化知识，不做独立分析</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. 技术架构设计</h2>
+<h3>3.1 技术栈总览</h3>
+<div class="mermaid">flowchart LR
+    subgraph 前端["前端展现"]
+        FE1[React18]
+        FE2[Ant Design5]
+        FE3[ECharts 5]
+        FE4[Mermaid]
+    end
+    
+    subgraph 后端["后端服务"]
+        BE1[Python 3.11]
+        BE2[FastAPI]
+        BE3[Celery]
+        BE4[Redis]
+    end
+    
+    subgraph 数据["数据存储"]
+        DB1[PostgreSQL]
+        DB2[TimescaleDB]
+        DB3[Elasticsearch]
+        DB4[Neo4j]
+        DB5[ClickHouse]
+    end
+    
+    subgraph智能["智能引擎"]
+        AI1[PyTorch]
+        AI2[scikit-learn]
+        AI3[SpaCy]
+        AI4[LangChain]
+    end
+    
+    subgraph 采集["采集层"]
+        CL1[Telegraf]
+        CL2[Fluentd]
+        CL3[Jaeger Agent]
+        CL4[vector]
+    end
+    
+    前端 --> 后端 --> 数据
+    后端 --> 智能
+   采集 --> 数据
+    
+    style 前端 fill:#e3f2fd
+    style 后端 fill:#d1e7dd
+    style 数据 fill:#fff9c4
+    style 智能 fill:#ffccbc
+    style 采集 fill:#e1bee7</div><h3>3.2 技术选型原则</h3>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>选型原则</th>
+<th>技术选型</th>
+<th>替代方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>前端</strong></td>
+<td>成熟生态、组件丰富</td>
+<td>React + Ant Design</td>
+<td>Vue + Element</td>
+</tr>
+<tr>
+<td><strong>后端</strong></td>
+<td>高性能、异步非阻塞</td>
+<td>FastAPI + asyncio</td>
+<td>Spring Boot</td>
+</tr>
+<tr>
+<td><strong>任务队列</strong></td>
+<td>可靠持久、分布式</td>
+<td>Celery + Redis</td>
+<td>RabbitMQ</td>
+</tr>
+<tr>
+<td><strong>时序存储</strong></td>
+<td>高压缩、时序优化</td>
+<td>TimescaleDB</td>
+<td>InfluxDB</td>
+</tr>
+<tr>
+<td><strong>图数据库</strong></td>
+<td>原生图、事务支持</td>
+<td>Neo4j</td>
+<td>NebulaGraph</td>
+</tr>
+<tr>
+<td><strong>日志存储</strong></td>
+<td>全文检索、聚合分析</td>
+<td>Elasticsearch</td>
+<td>OpenSearch</td>
+</tr>
+<tr>
+<td><strong>OLAP</strong></td>
+<td>列式存储、SQL 支持</td>
+<td>ClickHouse</td>
+<td>Druid</td>
+</tr>
+<tr>
+<td><strong>异常检测</strong></td>
+<td>可解释、增量学习</td>
+<td>PyTorch + LSTM</td>
+<td>sklearn</td>
+</tr>
+</tbody></table>
+<h3>3.3 部署架构</h3>
+<div class="mermaid">flowchart TB
+    subgraph K8s["Kubernetes 集群"]
+        subgraph 接入层["接入层 Ingress"]
+            ING[NGINX Ingress]
+        end
+        
+        subgraph 微服务层["微服务层"]
+            MS1[Gateway
+API 网关]
+            MS2[Fusion Svc
+数据融合]
+            MS3[Sensing Svc
+智能感知]
+            MS4[Cognition Svc
+认知网络]
+            MS5[Diagnosis Svc
+故障研判]
+            MS6[RCA Svc
+根因分析]
+            MS7[Impact Svc
+影响分析]
+            MS8[Decision Svc
+智能决策]
+            MS9[Execution Svc
+自动执行]
+            MS10[Learning Svc
+知识进化]
+        end
+        
+        subgraph 数据层["数据层 StatefulSet"]
+            PG[PostgreSQL
+元数据]
+            TS[TimescaleDB
+时序数据]
+            ES[Elasticsearch
+日志]
+            NB[Neo4j
+知识图谱]
+            CH[ClickHouse
+OLAP]
+            RD[Redis
+缓存/队列]
+        end
+        
+        subgraph 采集层["采集层 DaemonSet"]
+            AG[Vector Agent]
+            TJ[Telegraf]
+        end
+    end
+    
+    subgraph 外部["外部集成"]
+        EXT1[监控系统
+Prometheus]
+        EXT2[日志系统
+Loki]
+        EXT3[追踪系统
+Jaeger]
+    end
+    
+    ING --> MS1
+    MS1 --> MS2
+    MS1 --> MS3
+    MS1 --> MS4
+    MS1 --> MS5
+    MS1 --> MS6
+    MS1 --> MS7
+    MS1 --> MS8
+    MS1 --> MS9
+    MS1 --> MS10
+    
+    MS2 --> TS
+    MS3 --> TS
+    MS3 --> RD
+    MS4 --> NB
+    MS5 --> ES
+    MS6 --> CH
+    MS7 --> PG
+    MS8 --> RD
+    MS9 --> RD
+    MS10 --> PG
+    MS10 --> NB
+    
+    AG --> EXT2
+    TJ --> EXT1
+    
+    style K8s fill:#f0f9ff
+    style 接入层 fill:#e3f2fd
+    style 微服务层 fill:#d1e7dd
+    style 数据层 fill:#fff9c4
+    style 采集层 fill:#ffccbc
+    style 外部 fill:#fafafa</div><hr>
+<h2>4. 模块详细设计</h2>
+<h3>4.1 数据流架构</h3>
+<div class="mermaid">flowchart LR
+    subgraph 原始数据["原始数据层 Raw Data"]
+        RAW1[Prometheus Metrics]
+        RAW2[Container Logs]
+        RAW3[Jaeger Traces]
+        RAW4[K8s Events]
+    end
+    
+    subgraph 融合层["数据融合层 Data Fusion"]
+        FUS1[格式标准化]
+        FUS2[实体识别]
+        FUS3[时序对齐]
+        FUS4[关联存储]
+    end
+    
+    subgraph 分析层["智能分析层 Analytics"]
+        ANA1[异常检测
+Anomaly]
+        ANA2[故障研判
+Diagnosis]
+        ANA3[根因分析
+RCA]
+        ANA4[影响分析
+Impact]
+    end
+    
+    subgraph 应用层["应用层 Application"]
+        APP1[告警通知]
+        APP2[故障记录]
+        APP3[工单创建]
+        APP4[自动修复]
+    end
+    
+    RAW1 --> FUS1
+    RAW2 --> FUS1
+    RAW3 --> FUS1
+    RAW4 --> FUS1
+    FUS1 --> FUS2 --> FUS3 --> FUS4
+    FUS4 --> ANA1
+    ANA1 --> ANA2 --> ANA3 --> ANA4
+    ANA4 --> APP1
+    ANA4 --> APP2
+    ANA4 --> APP3
+    ANA4 --> APP4
+    
+    style 原始数据 fill:#e3f2fd
+    style 融合层 fill:#d1e7dd
+    style 分析层 fill:#fff9c4
+    style 应用层 fill:#ffccbc</div><h3>4.2 能力成熟度模型</h3>
+<table>
+<thead>
+<tr>
+<th>能力等级</th>
+<th>特征</th>
+<th>技术成熟度</th>
+<th>业务效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>L1 初始级</strong></td>
+<td>手工操作、烟囱式系统</td>
+<td>20%</td>
+<td>被动响应</td>
+</tr>
+<tr>
+<td><strong>L2 基础级</strong></td>
+<td>单一监控、告警规则</td>
+<td>40%</td>
+<td>快速发现</td>
+</tr>
+<tr>
+<td><strong>L3 规范级</strong></td>
+<td>数据融合、关联分析</td>
+<td>60%</td>
+<td>精准定位</td>
+</tr>
+<tr>
+<td><strong>L4 优化级</strong></td>
+<td>智能检测、自动决策</td>
+<td>80%</td>
+<td>自动处置</td>
+</tr>
+<tr>
+<td><strong>L5 卓越级</strong></td>
+<td>自我学习、持续进化</td>
+<td>95%</td>
+<td>预测预防</td>
+</tr>
+</tbody></table>
+<h3>4.3 技术成熟度评估</h3>
+<div class="mermaid">gantt
+    title 技术成熟度路线图
+    dateFormat YYYY-MM
+    section 采集层
+    指标采集    :done, m1, 2024-01, 3m
+    日志采集    :done, m2, 2024-01, 3m
+    链路追踪    :done, m3, 2024-04, 3m
+    事件采集    :done, m4, 2024-07, 3m
+    
+    section 数据层
+    数据模型    :done, d1, 2024-01, 2m
+    数据融合    :active, d2, 2024-03, 6m
+    时序存储    :done, d3, 2024-03, 3m
+    图谱存储    :done, d4, 2024-06, 3m
+    
+    section 能力层
+    异常检测    :active, a1, 2024-04, 6m
+    故障研判    :active, a2, 2024-06, 6m
+    根因分析    :active, a3, 2024-08, 6m
+    影响分析    :active, a4, 2024-10, 6m
+    
+    section 执行层
+    智能决策    :active, e1, 2024-10, 6m
+    自动执行    :active, e2, 2025-01, 6m
+    知识进化    :active, e3, 2025-04, 6m</div><hr>
+<h2>5. 接口设计规范</h2>
+<h3>5.1 API规范总览</h3>
+<table>
+<thead>
+<tr>
+<th>接口类型</th>
+<th>协议</th>
+<th>认证方式</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>REST API</strong></td>
+<td>HTTP/JSON</td>
+<td>JWT Token</td>
+<td>前后端交互、第三方集成</td>
+</tr>
+<tr>
+<td><strong>gRPC</strong></td>
+<td>HTTP/2</td>
+<td>mTLS</td>
+<td>微服务间通信</td>
+</tr>
+<tr>
+<td><strong>WebSocket</strong></td>
+<td>WS</td>
+<td>JWT Token</td>
+<td>实时推送、长连接</td>
+</tr>
+<tr>
+<td><strong>Event Bus</strong></td>
+<td>Kafka</td>
+<td>SASL/ACL</td>
+<td>跨服务事件传递</td>
+</tr>
+</tbody></table>
+<h3>5.2 服务间调用关系</h3>
+<div class="mermaid">sequenceDiagram
+    participant FE as 前端 Frontend
+    participant GW as API Gateway
+    participant FS as Fusion Svc
+    participant SS as Sensing Svc
+    participant CS as Cognition Svc
+    participant DS as Diagnosis Svc
+    participant RS as RCA Svc
+    participant IS as Impact Svc
+    participant DC as Decision Svc
+    participant EX as Execution Svc
+    participant LN as Learning Svc
+    participant NB as Neo4j
+    participant TS as TimescaleDB
+    participant RD as Redis
+    
+    FE->>GW: 用户请求
+    GW->>FS: 查询融合数据
+    FS->>TS: 时序查询
+    FS->>RD: 缓存查询
+    
+    GW->>SS: 异常检测
+    SS->>TS: 时序数据
+    SS->>RD: 模型推理
+    
+    GW->>CS: 知识查询
+    CS->>NB: 图谱查询
+    
+    GW->>DS: 故障研判
+    DS->>FS: 获取上下文
+    DS->>SS: 异常事件
+    DS->>CS: 知识检索
+    
+    GW->>RS: 根因分析
+    RS->>FS: 关联数据
+    RS->>DS: 故障上下文
+    RS->>NB: 因果路径
+    
+    GW->>IS: 影响评估
+    IS->>FS: 服务拓扑
+    IS->>CS: 实体关系
+    
+    GW->>DC: 决策生成
+    DC->>RS: 根因结论
+    DC->>IS: 影响评估
+    DC->>LN: 策略知识
+    
+    GW->>EX: 执行请求
+    EX->>DC: 获取方案
+    EX->>RD: 任务队列
+    
+    GW->>LN: 知识更新
+    LN->>NB: 图谱更新
+    LN->>RD: 经验缓存</div><h3>5.3 接口质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>SLO目标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>可用性</strong></td>
+<td>99.95%</td>
+<td>&lt; 99.9%</td>
+</tr>
+<tr>
+<td><strong>延迟 P99</strong></td>
+<td>&lt; 200ms</td>
+<td>&gt; 500ms</td>
+</tr>
+<tr>
+<td><strong>延迟 P95</strong></td>
+<td>&lt; 100ms</td>
+<td>&gt; 200ms</td>
+</tr>
+<tr>
+<td><strong>错误率</strong></td>
+<td>&lt; 0.1%</td>
+<td>&gt; 0.5%</td>
+</tr>
+<tr>
+<td><strong>吞吐量</strong></td>
+<td>&gt; 1000 QPS</td>
+<td>&lt; 500 QPS</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>6. 量化指标体系</h2>
+<h3>6.1 核心质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标类别</th>
+<th>指标名称</th>
+<th>当前基线</th>
+<th>目标值</th>
+<th>测量方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>性能</strong></td>
+<td>数据采集延迟</td>
+<td>P99 &lt; 5s</td>
+<td>P99 &lt; 1s</td>
+<td>日志时间戳差值</td>
+</tr>
+<tr>
+<td><strong>性能</strong></td>
+<td>异常检测延迟</td>
+<td>P99 &lt; 10s</td>
+<td>P99 &lt; 2s</td>
+<td>事件产生到检测</td>
+</tr>
+<tr>
+<td><strong>性能</strong></td>
+<td>根因分析延迟</td>
+<td>P99 &lt; 60s</td>
+<td>P99 &lt; 30s</td>
+<td>故障发生到根因输出</td>
+</tr>
+<tr>
+<td><strong>性能</strong></td>
+<td>API响应时间</td>
+<td>P99 &lt; 200ms</td>
+<td>P99 &lt; 100ms</td>
+<td>APM追踪</td>
+</tr>
+<tr>
+<td><strong>准确</strong></td>
+<td>异常检测准确率</td>
+<td>85%</td>
+<td>&gt; 92%</td>
+<td>人工标注验证</td>
+</tr>
+<tr>
+<td><strong>准确</strong></td>
+<td>根因定位准确率</td>
+<td>80%</td>
+<td>&gt; 90%</td>
+<td>人工标注验证</td>
+</tr>
+<tr>
+<td><strong>准确</strong></td>
+<td>影响评估准确率</td>
+<td>85%</td>
+<td>&gt; 95%</td>
+<td>与实际影响对比</td>
+</tr>
+<tr>
+<td><strong>可用</strong></td>
+<td>系统可用性</td>
+<td>99.5%</td>
+<td>99.95%</td>
+<td>正常运行时间</td>
+</tr>
+<tr>
+<td><strong>可用</strong></td>
+<td>数据完整性</td>
+<td>99%</td>
+<td>99.99%</td>
+<td>缺失数据比率</td>
+</tr>
+</tbody></table>
+<h3>6.2 能力成熟度指标</h3>
+<p>| 维度 | L1 初始级 | L2 基础级 | L3 规范级 | L4 优化级 | L5 卓越级 |<br>|------|----------|----------|----------|----------|----------|----------|<br>| <strong>接入率</strong> | &lt; 30% | 30-50% | 50-70% | 70-90% | &gt; 90% |<br>| <strong>自动化率</strong> | &lt; 10% | 10-30% | 30-50% | 50-70% | &gt; 70% |<br>| <strong>MTTD</strong> | &gt; 30min | 10-30min | 5-10min | 1-5min | &lt; 1min |<br>| <strong>MTTR</strong> | &gt; 4h | 2-4h | 1-2h | 30min-1h | &lt; 30min |<br>| <strong>误报率</strong> | &gt; 50% | 30-50% | 10-30% | 5-10% | &lt; 5% |</p>
+<h3>6.3 容量规划指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>规格</th>
+<th>阈值</th>
+<th>扩容策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>日增量数据</strong></td>
+<td>100GB</td>
+<td>80GB</td>
+<td>自动扩容</td>
+</tr>
+<tr>
+<td><strong>实时查询 QPS</strong></td>
+<td>1000</td>
+<td>800</td>
+<td>水平扩展</td>
+</tr>
+<tr>
+<td><strong>历史查询 QPS</strong></td>
+<td>100</td>
+<td>80</td>
+<td>读写分离</td>
+</tr>
+<tr>
+<td><strong>并发会话数</strong></td>
+<td>500</td>
+<td>400</td>
+<td>连接池优化</td>
+</tr>
+<tr>
+<td><strong>知识图谱规模</strong></td>
+<td>1000 万实体</td>
+<td>800 万</td>
+<td>分片集群</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. 典型业务场景</h2>
+<h3>7.1 场景一：突发流量导致的数据库告警</h3>
+<p><strong>场景描述：</strong><br>双十一零点秒杀活动，数据库 CPU 突然飙升至 90%，触发告警。</p>
+<p><strong>处理流程：</strong></p>
+<div class="mermaid">flowchart LR
+    A[告警触发
+CPU > 90%] --> B[智能感知
+异常检测]
+    B --> C{异常类型}
+    C -->|容量型| D[故障研判
+分析上下文]
+    C -->|攻击型| E[自动拦截]
+    D --> F[根因分析
+定位根因]
+    F --> G{根因结论}
+    G -->|数据库过载| H[影响分析
+评估影响]
+    G -->|上游服务| I[联动限流]
+    H --> J[智能决策
+生成方案]
+    J --> K[执行操作
+扩容/限流]
+    K --> L[知识沉淀
+记录经验]
+    
+    style A fill:#ffccbc
+    style B fill:#e3f2fd
+    style D fill:#d1e7dd
+    style F fill:#fff9c4
+    style H fill:#e1bee7
+    style K fill:#ffccbc</div><p><strong>关键指标：</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>指标</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>发现</td>
+<td>MTTD</td>
+<td>&lt; 1 min</td>
+</tr>
+<tr>
+<td>定位</td>
+<td>MTTR</td>
+<td>&lt; 15 min</td>
+</tr>
+<tr>
+<td>恢复</td>
+<td>MTTF</td>
+<td>&lt; 30 min</td>
+</tr>
+<tr>
+<td>总结</td>
+<td>知识沉淀</td>
+<td>自动化</td>
+</tr>
+</tbody></table>
+<h3>7.2 场景二：慢查询导致的链路超时</h3>
+<p><strong>场景描述：</strong><br>用户反馈接口响应慢，APM 显示多个服务 span 时间增加。</p>
+<p><strong>处理流程：</strong></p>
+<div class="mermaid">sequenceDiagram
+    participant U as 用户
+    participant GW as API Gateway
+    participant RC as RCA Svc
+    participant CS as Cognition Svc
+    participant FS as Fusion Svc
+    participant IS as Impact Svc
+    participant DC as Decision Svc
+    
+    U->>GW: 反馈慢
+    GW->>RC: 发起根因分析
+    RC->>FS: 查询调用链路
+    FS-->>RC: Trace 数据
+    RC->>CS: 查询依赖关系
+    CS-->>RC: 服务拓扑
+    RC->>RC: 分析传播路径
+    RC-->>GW: 根因：SQL 慢查询
+    GW->>IS: 评估影响范围
+    IS-->>GW: 影响 3 个服务
+    GW->>DC: 生成优化方案
+    DC-->>GW: 方案：限流+优化索引</div><p><strong>关键指标：</strong></p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>传统模式</th>
+<th>智能模式</th>
+<th>提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>问题定位</td>
+<td>45 min</td>
+<td>5 min</td>
+<td>9x</td>
+</tr>
+<tr>
+<td>影响评估</td>
+<td>20 min</td>
+<td>2 min</td>
+<td>10x</td>
+</tr>
+<tr>
+<td>方案生成</td>
+<td>30 min</td>
+<td>1 min</td>
+<td>30x</td>
+</tr>
+<tr>
+<td>总处理时间</td>
+<td>95 min</td>
+<td>8 min</td>
+<td>12x</td>
+</tr>
+</tbody></table>
+<h3>7.3 场景三：变更导致的批量服务异常</h3>
+<p><strong>场景描述：</strong><br>版本发布后，10 个微服务出现不同程度的异常，告警泛滥。</p>
+<p><strong>处理流程：</strong></p>
+<div class="mermaid">flowchart TB
+    A[变更发布] --> B[批量告警
+10+ 服务]
+    B --> C[智能感知
+告警收敛]
+    C --> D[故障研判
+分类聚合]
+    D --> E[识别为
+变更相关]
+    E --> F[根因分析
+关联变更]
+    F --> G[定位根因
+配置错误]
+    G --> H[影响分析
+影响范围]
+    H --> I[决策生成
+回滚方案]
+    I --> J[执行回滚
+自动执行]
+    J --> K[验证恢复]
+    K --> L[知识沉淀
+变更门禁]
+    
+    style A fill:#e3f2fd
+    style C fill:#d1e7dd
+    style G fill:#fff9c4
+    style J fill:#ffccbc
+    style L fill:#e1bee7</div><p><strong>关键能力：</strong></p>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>说明</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>告警收敛</td>
+<td>10+ 告警收敛为 1 个事件</td>
+<td>告警减少 90%</td>
+</tr>
+<tr>
+<td>变更关联</td>
+<td>自动关联变更记录</td>
+<td>定位时间减少 80%</td>
+</tr>
+<tr>
+<td>批量根因</td>
+<td>一次分析覆盖所有异常</td>
+<td>分析时间减少 70%</td>
+</tr>
+<tr>
+<td>自动回滚</td>
+<td>检测到异常自动回滚</td>
+<td>恢复时间减少 90%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. 模块间依赖关系</h2>
+<h3>8.1 依赖矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>依赖模块</th>
+<th>依赖类型</th>
+<th>接口方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>03 数据融合</td>
+<td>02 数据模型</td>
+<td>规范依赖</td>
+<td>Schema 定义</td>
+</tr>
+<tr>
+<td>04 智能感知</td>
+<td>03 数据融合</td>
+<td>数据依赖</td>
+<td>时序查询</td>
+</tr>
+<tr>
+<td>05 认知网络</td>
+<td>03 数据融合</td>
+<td>数据依赖</td>
+<td>实体查询</td>
+</tr>
+<tr>
+<td>06 故障研判</td>
+<td>03/04/05</td>
+<td>数据依赖</td>
+<td>上下文获取</td>
+</tr>
+<tr>
+<td>07 根因分析</td>
+<td>03/04/05/06</td>
+<td>数据依赖</td>
+<td>故障上下文</td>
+</tr>
+<tr>
+<td>08 影响分析</td>
+<td>03/05/06/07</td>
+<td>数据依赖</td>
+<td>拓扑+故障</td>
+</tr>
+<tr>
+<td>09 智能决策</td>
+<td>04/06/07/08</td>
+<td>数据依赖</td>
+<td>多维评估</td>
+</tr>
+<tr>
+<td>10 自动执行</td>
+<td>09 决策</td>
+<td>方案依赖</td>
+<td>执行指令</td>
+</tr>
+<tr>
+<td>11 知识进化</td>
+<td>04/06/07/09/10</td>
+<td>反馈依赖</td>
+<td>效果评估</td>
+</tr>
+</tbody></table>
+<h3>8.2 数据依赖图</h3>
+<div class="mermaid">flowchart LR
+    M02[02 数据模型] --> M03[03 数据融合]
+    M03 --> M04[04 智能感知]
+    M03 --> M05[05 认知网络]
+    M04 --> M06[06 故障研判]
+    M05 --> M06
+    M04 --> M07[07 根因分析]
+    M05 --> M07
+    M06 --> M07
+    M05 --> M08[08 影响分析]
+    M06 --> M08
+    M07 --> M08
+    M06 --> M09[09 智能决策]
+    M07 --> M09
+    M08 --> M09
+    M09 --> M10[10 自动执行]
+    M04 --> M11[11 知识进化]
+    M06 --> M11
+    M07 --> M11
+    M09 --> M11
+    M10 --> M11
+    
+    style M02 fill:#e3f2fd
+    style M03 fill:#d1e7dd
+    style M04 fill:#d1e7dd
+    style M05 fill:#d1e7dd
+    style M06 fill:#fff9c4
+    style M07 fill:#fff9c4
+    style M08 fill:#fff9c4
+    style M09 fill:#ffccbc
+    style M10 fill:#ffccbc
+    style M11 fill:#e1bee7</div><hr>
+<h2>9. 安全架构</h2>
+<h3>9.1 安全模型</h3>
+<div class="mermaid">flowchart TB
+    subgraph 身份认证["身份认证 Auth"]
+        AUTH1[JWT Token]
+        AUTH2[OAuth 2.0]
+        AUTH3[mTLS]
+    end
+    
+    subgraph 权限控制["权限控制 RBAC"]
+        PERM1[角色定义]
+        PERM2[资源权限]
+        PERM3[操作权限]
+    end
+    
+    subgraph 数据安全["数据安全 Data"]
+        DATA1[传输加密
+TLS 1.3]
+        DATA2[存储加密
+AES-256]
+        DATA3[脱敏处理
+数据脱敏]
+    end
+    
+    subgraph 审计追踪["审计追踪 Audit"]
+        AUD1[操作日志]
+        AUD2[API 调用]
+        AUD3[数据访问]
+    end
+    
+    AUTH1 --> PERM1
+    AUTH2 --> PERM2
+    AUTH3 --> PERM3
+    PERM1 --> DATA1
+    PERM2 --> DATA2
+    PERM3 --> DATA3
+    DATA1 --> AUD1
+    DATA2 --> AUD2
+    DATA3 --> AUD3
+    
+    style 身份认证 fill:#e3f2fd
+    style 权限控制 fill:#d1e7dd
+    style 数据安全 fill:#fff9c4
+    style 审计追踪 fill:#ffccbc</div><h3>9.2 多租户隔离</h3>
+<table>
+<thead>
+<tr>
+<th>隔离级别</th>
+<th>实现方式</th>
+<th>适用场景</th>
+<th>性能开销</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Schema 级</strong></td>
+<td>PostgreSQL Schema</td>
+<td>逻辑隔离</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>数据库级</strong></td>
+<td>独立数据库实例</td>
+<td>强隔离</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>集群级</strong></td>
+<td>K8s Namespace</td>
+<td>完全隔离</td>
+<td>高</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>10. 本章小结</h2>
+<h3>10.1 核心要点速记</h3>
+<p><strong>5 个关键认知：</strong></p>
+<ol>
+<li><strong>分层解耦</strong> — 数据层、能力层、应用层分离，独立演进</li>
+<li><strong>模块自治</strong> — 每个模块独立构建、测试、部署，降低耦合</li>
+<li><strong>数据共享</strong> — 统一数据模型、共享数据服务，消除数据孤岛</li>
+<li><strong>能力编排</strong> — 模块间通过标准接口协作，灵活组合</li>
+<li><strong>可观测性内置</strong> — 整个平台自身可观测，自我诊断</li>
+</ol>
+<p><strong>4 个架构目标：</strong></p>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>描述</th>
+<th>量化指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>高性能</strong></td>
+<td>端到端延迟 P99 &lt; 30s</td>
+<td>根因分析</td>
+</tr>
+<tr>
+<td><strong>高可用</strong></td>
+<td>系统可用性 99.95%</td>
+<td>任意时刻</td>
+</tr>
+<tr>
+<td><strong>可扩展</strong></td>
+<td>水平扩展支持10x 增长</td>
+<td>容量规划</td>
+</tr>
+<tr>
+<td><strong>可观测</strong></td>
+<td>自身指标全覆盖</td>
+<td>自我诊断</td>
+</tr>
+</tbody></table>
+<h3>10.2 与其他模块的接口</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>02 数据模型</td>
+<td>业务需求</td>
+<td>数据规范</td>
+</tr>
+<tr>
+<td>03 数据融合</td>
+<td>数据规范</td>
+<td>融合数据</td>
+</tr>
+<tr>
+<td>04-11</td>
+<td>架构规范</td>
+<td>模块协作</td>
+</tr>
+</tbody></table>
+<h3>10.3 关键成功要素</h3>
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>说明</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>统一数据模型</strong></td>
+<td>所有模块使用统一的数据规范</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>标准接口契约</strong></td>
+<td>模块间交互使用标准 API</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>独立部署能力</strong></td>
+<td>模块可独立构建和部署</td>
+<td>P1</td>
+</tr>
+<tr>
+<td><strong>可观测性内置</strong></td>
+<td>自身指标可监控、可追踪</td>
+<td>P1</td>
+</tr>
+</tbody></table>
+<h3>10.4 未来演进方向</h3>
+<table>
+<thead>
+<tr>
+<th>方向</th>
+<th>内容</th>
+<th>阶段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>服务网格</strong></td>
+<td>基于 Istio 的服务治理</td>
+<td>V2</td>
+</tr>
+<tr>
+<td><strong>多云适配</strong></td>
+<td>跨云统一架构</td>
+<td>V3</td>
+</tr>
+<tr>
+<td><strong>边缘计算</strong></td>
+<td>边缘节点轻量化</td>
+<td>V3</td>
+</tr>
+<tr>
+<td><strong>Serverless</strong></td>
+<td>函数即服务执行</td>
+<td>V4</td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p>本章定义了 Observable Ops 平台的总体架构规范。后续章节将详细阐述各模块的设计与实现。</p>
+</blockquote>
+<p><em>文档版本：V1.0 | 更新日期：2026-06-06</em></p>
+
+      
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Observable Ops — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/06/13/observable-ops-02-06-fault-diagnosis/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Observable Ops — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Observable Ops 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-13T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/06/13/observable-ops-02-06-fault-diagnosis/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 06 · 故障诊断 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/06/13/observable-ops-02-06-fault-diagnosis/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 06 · 故障诊断
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-ops/" itemprop="url" rel="index"><span
+                          itemprop="name">Observable Ops</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+        <h1>模块 06 · 故障研判</h1>
+<blockquote>
+<p>故障研判是 Observable Ops 的「故障分诊台」——接收智能感知输出的告警，结合拓扑上下文和知识图谱，对故障进行分类定级、评估严重程度、判断可恢复性，并生成故障假设，为后续根因分析提供结构化输入。</p>
+</blockquote>
+<hr>
+<h2>📑 目录</h2>
+<h3>章节导航</h3>
+<ul>
+<li><ol>
+<li>模块定位与职责</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>故障研判模型</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>核心功能分解</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>API 设计规范</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>数据流架构</li>
+</ol>
+</li>
+<li><ol start="6">
+<li>模块协作关系</li>
+</ol>
+</li>
+<li><ol start="7">
+<li>量化指标体系</li>
+</ol>
+</li>
+<li><ol start="8">
+<li>部署架构</li>
+</ol>
+</li>
+<li><ol start="9">
+<li>本章小结</li>
+</ol>
+</li>
+</ul>
+<hr>
+<h2>1. 模块定位与职责</h2>
+<h3>1.1 在 4 层架构中的位置</h3>
+<p>故障研判属于<strong>能力层</strong>核心模块，介于智能感知（告警生成）与根因分析（定位根因）之间：对告警进行结构化研判，输出故障假设给根因分析，同时输出给影响分析和智能决策模块。</p>
+<div class="mermaid">flowchart LR
+    subgraph 能力层-输入["能力层 · 输入"]
+        S4[04 智能感知
+告警事件]
+        T[02 拓扑建模
+拓扑上下文]
+        COG[05 认知网络
+知识图谱]
+    end
+
+    subgraph 能力层-核心["能力层 · 故障研判"]
+        DIA[06 故障研判
+Fault Diagnosis]
+    end
+
+    subgraph 能力层-输出["能力层 · 下游"]
+        RCA[07 根因分析]
+        IA[08 影响分析]
+        DEC[09 智能决策]
+        AUTO[10 自动执行]
+    end
+
+    S4 -->|alert.events| DIA
+    T -->|拓扑上下文| DIA
+    COG -->|知识推理结果| DIA
+    DIA -->|diagnosis.report| RCA
+    DIA -->|impact.estimate| IA
+    DIA -->|fault.context| DEC
+    DIA -->|recovery.task| AUTO
+
+    style S4 fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+    style T fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style COG fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
+    style DIA fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style RCA fill:#c8e6c9
+    style IA fill:#c8e6c9
+    style DEC fill:#c8e6c9
+    style AUTO fill:#c8e6c9</div><h3>1.2 核心职责</h3>
+<table>
+<thead>
+<tr>
+<th>职责</th>
+<th>描述</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>故障分类</strong></td>
+<td>根据告警症状将故障归类为性能类/错误类/可用性类/安全类/配置类/未知类</td>
+<td>Fault Type</td>
+</tr>
+<tr>
+<td><strong>严重程度评估</strong></td>
+<td>基于影响范围（用户/业务/恢复难度）评估故障 SEV 等级</td>
+<td>Severity Level</td>
+</tr>
+<tr>
+<td><strong>可恢复性分析</strong></td>
+<td>判断故障是否可自动化恢复，匹配合适的恢复动作</td>
+<td>Recovery Feasibility</td>
+</tr>
+<tr>
+<td><strong>故障假设生成</strong></td>
+<td>基于知识和拓扑生成多个候选故障假设，并评估置信度</td>
+<td>Hypothesis[]</td>
+</tr>
+<tr>
+<td><strong>证据收集</strong></td>
+<td>从拓扑和指标中收集支持/排除假设的证据</td>
+<td>Evidence[]</td>
+</tr>
+</tbody></table>
+<h3>1.3 核心设计原则</h3>
+<div class="mermaid">flowchart LR
+    P1[Classification Before RCA
+先分类再定位] --> P2[Severity Drives Response
+严重程度驱动响应]
+    P2 --> P3[Recovery Feasibility First
+可恢复性优先]
+    P3 --> P4[Evidence Driven
+证据驱动]
+    P4 -.-> P1
+    style P1 fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style P2 fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style P3 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style P4 fill:#e8f5e9,stroke:#388e3c,stroke-width:3px</div><ul>
+<li><strong>先分类再定位（Classification Before RCA）</strong>：先确定故障类型，再针对性调用根因分析逻辑</li>
+<li><strong>严重程度驱动响应（Scality Drives Response）</strong>：SEV1 立即触发应急响应，SEV3 允许人工确认后处理</li>
+<li><strong>可恢复性优先（Recovery Feasibility First）</strong>：优先判断是否能自动恢复，能恢先恢</li>
+<li><strong>证据驱动（Evidence Driven）</strong>：每个假设必须有证据支撑，证据不足时标注不确定度</li>
+</ul>
+<h3>1.4 子模块划分</h3>
+<table>
+<thead>
+<tr>
+<th>子模块</th>
+<th>职责</th>
+<th>技术选型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Classifier</strong> 故障分类器</td>
+<td>规则 + ML 分类模型，判断故障类型</td>
+<td>Python / Flask / TensorFlow</td>
+</tr>
+<tr>
+<td><strong>Severity Assessor</strong> 严重程度评估器</td>
+<td>影响评分 + 紧迫度评分，综合 SEV 判定</td>
+<td>Python / Redis</td>
+</tr>
+<tr>
+<td><strong>Recovery Checker</strong> 可恢复性分析器</td>
+<td>匹配恢复动作，检查前置条件，评估风险</td>
+<td>Python / Redis Hash</td>
+</tr>
+<tr>
+<td><strong>Hypothesis Generator</strong> 假设生成器</td>
+<td>基于知识库生成候选假设，证据收集与评分</td>
+<td>Python / Neo4j 查询</td>
+</tr>
+<tr>
+<td><strong>Evidence Collector</strong> 证据收集器</td>
+<td>从拓扑/指标/日志中收集证据，支持/排除假设</td>
+<td>Python / Elasticsearch</td>
+</tr>
+<tr>
+<td><strong>Session Manager</strong> 研判会话管理</td>
+<td>管理诊断会话状态，异步复杂诊断</td>
+<td>Redis / Flask</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 故障研判模型</h2>
+<h3>2.1 故障类型体系（Fault Type Taxonomy）</h3>
+<table>
+<thead>
+<tr>
+<th>故障类型</th>
+<th>描述</th>
+<th>典型指标特征</th>
+<th>常见根因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>性能类</strong></td>
+<td>响应时间变长、资源使用率过高</td>
+<td>latency ↑, cpu/mem ↑, throughput ↓</td>
+<td>负载过高、GC 停顿、连接池耗尽</td>
+</tr>
+<tr>
+<td><strong>错误类</strong></td>
+<td>请求错误率升高、服务异常退出</td>
+<td>error_rate ↑, 5xx ↑, crash ↑</td>
+<td>代码 bug、依赖不可用、配置错误</td>
+</tr>
+<tr>
+<td><strong>可用性类</strong></td>
+<td>服务不可访问、健康检查失败</td>
+<td>availability ↓, health_fail ↑</td>
+<td>进程挂掉、网络分区、依赖死锁</td>
+</tr>
+<tr>
+<td><strong>安全类</strong></td>
+<td>安全告警、异常访问、权限被拒</td>
+<td>auth_fail ↑, security_event ↑</td>
+<td>攻击、误配置、凭证泄露</td>
+</tr>
+<tr>
+<td><strong>配置类</strong></td>
+<td>配置变更导致的异常</td>
+<td>config_change, rollout ↑</td>
+<td>配置错误、版本不兼容</td>
+</tr>
+<tr>
+<td><strong>未知类</strong></td>
+<td>无法归类的异常</td>
+<td>——</td>
+<td>需要人工介入</td>
+</tr>
+</tbody></table>
+<h3>2.2 严重程度模型（Severity Model）</h3>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>名称</th>
+<th>定义</th>
+<th>影响范围</th>
+<th>响应时间</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SEV1</strong></td>
+<td>最高级</td>
+<td>核心业务完全不可用，影响 &gt; 50% 用户</td>
+<td>全量用户</td>
+<td>立即（&lt; 5min）</td>
+<td>全自动或一键应急</td>
+</tr>
+<tr>
+<td><strong>SEV2</strong></td>
+<td>高级</td>
+<td>核心业务部分受损，影响 20%-50% 用户</td>
+<td>大部分用户</td>
+<td>15min</td>
+<td>自动 + 值班确认</td>
+</tr>
+<tr>
+<td><strong>SEV3</strong></td>
+<td>中级</td>
+<td>非核心功能受损，影响 5%-20% 用户</td>
+<td>部分用户</td>
+<td>1h</td>
+<td>工单处理</td>
+</tr>
+<tr>
+<td><strong>SEV4</strong></td>
+<td>低级</td>
+<td>轻微异常，影响 &lt; 5% 用户，无业务影响</td>
+<td>少量用户</td>
+<td>24h</td>
+<td>计划内处理</td>
+</tr>
+</tbody></table>
+<h3>2.3 恢复动作模型（Recovery Action Schema）</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>action_type</code></td>
+<td>Enum</td>
+<td>动作类型：restart / scale / switch / rollback / drain / clear_cache / notify</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td>String</td>
+<td>动作目标（如 service_id, pod_name）</td>
+</tr>
+<tr>
+<td><code>params</code></td>
+<td>JSON</td>
+<td>动作参数字典（如 <code>{&quot;replicas&quot;: 3}</code>）</td>
+</tr>
+<tr>
+<td><code>estimated_duration</code></td>
+<td>Integer (秒)</td>
+<td>预计执行时长</td>
+</tr>
+<tr>
+<td><code>risk_level</code></td>
+<td>Enum</td>
+<td>风险等级：LOW / MEDIUM / HIGH / CRITICAL</td>
+</tr>
+<tr>
+<td><code>rollback_plan</code></td>
+<td>JSON</td>
+<td>回滚计划（如执行失败如何回退）</td>
+</tr>
+<tr>
+<td><code>preconditions</code></td>
+<td>String[]</td>
+<td>前置条件列表（如「当前副本数 &gt; 1」）</td>
+</tr>
+<tr>
+<td><code>success_rate</code></td>
+<td>Float [0-1]</td>
+<td>历史成功率</td>
+</tr>
+</tbody></table>
+<h3>2.4 故障假设模型（Fault Hypothesis Model）</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>hypothesis_id</code></td>
+<td>String</td>
+<td>假设唯一 ID</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>String</td>
+<td>假设描述（人类可读）</td>
+</tr>
+<tr>
+<td><code>confidence</code></td>
+<td>Float [0-1]</td>
+<td>置信度（综合证据评分）</td>
+</tr>
+<tr>
+<td><code>supporting_evidence</code></td>
+<td>Evidence[]</td>
+<td>支持该假设的证据列表</td>
+</tr>
+<tr>
+<td><code>ruled_out_evidence</code></td>
+<td>Evidence[]</td>
+<td>排除该假设的证据列表</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>Enum</td>
+<td>假设来源：knowledge_base / pattern_match / ml_inference / manual</td>
+</tr>
+<tr>
+<td><code>rank</code></td>
+<td>Integer</td>
+<td>优先级排序（1 为最可能）</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. 核心功能分解</h2>
+<h3>3.1 故障分类（Fault Classification）</h3>
+<h4>3.1.1 分类方法</h4>
+<table>
+<thead>
+<tr>
+<th>分类方法</th>
+<th>输入</th>
+<th>输出</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>规则分类器</strong></td>
+<td>告警 condition → type mapping</td>
+<td>fault_type</td>
+<td>已知故障模式（占 70%）</td>
+</tr>
+<tr>
+<td><strong>ML 分类器</strong></td>
+<td>症状向量（metrics + alerts）</td>
+<td>fault_type + confidence</td>
+<td>复杂/未知故障模式（占 30%）</td>
+</tr>
+</tbody></table>
+<h4>3.1.2 规则分类映射表</h4>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>故障类型</th>
+<th>置信度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>error_rate &gt; 5% AND latency &gt; 1000ms</code></td>
+<td><strong>错误类</strong></td>
+<td>0.95</td>
+</tr>
+<tr>
+<td><code>cpu_usage &gt; 90% AND latency &gt; 500ms</code></td>
+<td><strong>性能类</strong></td>
+<td>0.90</td>
+</tr>
+<tr>
+<td><code>health_check_fail == true AND availability &lt; 50%</code></td>
+<td><strong>可用性类</strong></td>
+<td>0.92</td>
+</tr>
+<tr>
+<td><code>auth_fail_rate &gt; 10% AND security_event == true</code></td>
+<td><strong>安全类</strong></td>
+<td>0.88</td>
+</tr>
+<tr>
+<td><code>config_version_change == true AND start_time within 10min</code></td>
+<td><strong>配置类</strong></td>
+<td>0.85</td>
+</tr>
+</tbody></table>
+<h3>3.2 严重程度评估（Severity Assessment）</h3>
+<h4>3.2.1 评估维度</h4>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>权重</th>
+<th>评分方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>影响用户数</strong></td>
+<td>40%</td>
+<td>根据告警涉及的 entity 关联到用户数估算</td>
+</tr>
+<tr>
+<td><strong>业务损失</strong></td>
+<td>30%</td>
+<td>根据 service 的业务优先级（tier）和收入影响估算</td>
+</tr>
+<tr>
+<td><strong>恢复难度</strong></td>
+<td>20%</td>
+<td>历史平均恢复时间越长评分越高</td>
+</tr>
+<tr>
+<td><strong>紧迫度</strong></td>
+<td>10%</td>
+<td>故障持续时间越长紧迫度越高</td>
+</tr>
+</tbody></table>
+<h3>3.3 可恢复性分析（Recovery Feasibility Analysis）</h3>
+<h4>3.3.1 分析流程</h4>
+<div class="mermaid">flowchart LR
+    ALERT[告警输入] --> MATCH[匹配恢复动作
+Action Catalog]
+    MATCH --> CHECK{前置条件
+满足?}
+    CHECK -->|满足| RISK[风险评估]
+    CHECK -->|不满足| RULE_OUT[排除假设
+更新 confidence]
+    RISK -->|LOW/MEDIUM| AUTO[可自动恢复]
+    RISK -->|HIGH/CRITICAL| MANUAL[需人工审批]
+    AUTO --> TASK[创建恢复任务
+→ 10 自动执行]
+    MANUAL --> ESC[升级人工
+→ 值班 On-Call]
+
+    style CHECK fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style AUTO fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
+    style RULE_OUT fill:#f8bbd0,stroke:#c62828,stroke-width:2px</div><h4>3.3.2 恢复动作目录</h4>
+<table>
+<thead>
+<tr>
+<th>故障类型</th>
+<th>恢复动作</th>
+<th>风险等级</th>
+<th>历史成功率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>性能类 - CPU 高</td>
+<td>Horizontal Pod Autoscaler 扩容</td>
+<td><strong>LOW</strong></td>
+<td>92%</td>
+</tr>
+<tr>
+<td>性能类 - 内存高</td>
+<td>Pod 重启（释放内存）</td>
+<td><strong>MEDIUM</strong></td>
+<td>85%</td>
+</tr>
+<tr>
+<td>可用性类 - 进程崩溃</td>
+<td>Pod 重调度</td>
+<td><strong>LOW</strong></td>
+<td>95%</td>
+</tr>
+<tr>
+<td>配置类 - 版本问题</td>
+<td>Rollback 到上一版本</td>
+<td><strong>MEDIUM</strong></td>
+<td>80%</td>
+</tr>
+<tr>
+<td>错误类 - 依赖超时</td>
+<td>等待自动恢复（熔断恢复）</td>
+<td><strong>LOW</strong></td>
+<td>90%</td>
+</tr>
+</tbody></table>
+<h3>3.4 假设生成（Hypothesis Generation）</h3>
+<h4>3.4.1 生成流程</h4>
+<div class="mermaid">flowchart LR
+    subgraph 输入["诊断上下文"]
+        A[告警信息]
+        T[拓扑上下文]
+        KG[知识图谱
+推理结果]
+    end
+
+    subgraph 生成["假设生成流程"]
+        CAND[候选生成
+Candidate Gen]
+        SCORE[置信度评分
+Scoring]
+        EVID[证据收集
+Evidence Collect]
+        RANK[排序输出
+Ranking]
+    end
+
+    subgraph 输出["诊断假设"]
+        H[Diagnosis Hypothesis]
+    end
+
+    A --> CAND
+    T --> CAND
+    KG --> CAND
+    CAND -->|候选列表| SCORE
+    SCORE -->|评分后| EVID
+    EVID -->|证据链| RANK
+    RANK --> H
+
+    style 生成 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style CAND fill:#bbdefb
+    style SCORE fill:#ede7f6
+    style EVID fill:#fff9c4
+    style RANK fill:#c8e6c9,stroke:#388e3c,stroke-width:2px</div><h4>3.4.2 假设来源</h4>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>方法</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>知识库检索</strong></td>
+<td>从知识图谱检索相似历史案例，提取根因</td>
+<td>已知故障模式</td>
+</tr>
+<tr>
+<td><strong>模式匹配</strong></td>
+<td>当前症状 vs 预定义故障模式库匹配</td>
+<td>典型故障</td>
+</tr>
+<tr>
+<td><strong>ML 推理</strong></td>
+<td>LSTM/Transformer 模型基于时序症状推理</td>
+<td>复杂/新型故障</td>
+</tr>
+<tr>
+<td><strong>拓扑传播</strong></td>
+<td>基于拓扑路径向上游传播，识别传播源</td>
+<td>级联故障</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. API 设计规范</h2>
+<h3>4.1 REST API</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>描述</th>
+<th>同步性</th>
+<th>响应</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>POST</strong></td>
+<td><code>/api/v1/diagnosis/analyze</code></td>
+<td>发起故障诊断分析</td>
+<td>同步（P99 &lt; 10s）</td>
+<td><code>DiagnosisReport</code></td>
+</tr>
+<tr>
+<td><strong>POST</strong></td>
+<td><code>/api/v1/diagnosis/analyze/async</code></td>
+<td>发起异步复杂诊断</td>
+<td>异步（返回 session_id）</td>
+<td><code>SessionID</code></td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/diagnosis/sessions/{session_id}</code></td>
+<td>查询异步诊断进度</td>
+<td>——</td>
+<td><code>SessionStatus</code></td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/diagnosis/hypotheses/{diagnosis_id}</code></td>
+<td>查询诊断假设列表</td>
+<td>——</td>
+<td><code>Hypothesis[]</code></td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/diagnosis/actions/{diagnosis_id}</code></td>
+<td>查询可用的恢复动作</td>
+<td>——</td>
+<td><code>RecoveryAction[]</code></td>
+</tr>
+<tr>
+<td><strong>GET</strong></td>
+<td><code>/api/v1/diagnosis/report/{diagnosis_id}</code></td>
+<td>获取完整诊断报告</td>
+<td>——</td>
+<td><code>FullReport</code></td>
+</tr>
+</tbody></table>
+<h3>4.2 性能要求</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>SLO 目标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>简单诊断（同步）</td>
+<td><strong>P99 &lt; 10s</strong></td>
+<td>单故障假设生成 + 证据收集</td>
+</tr>
+<tr>
+<td>复杂诊断（异步）</td>
+<td><strong>P99 &lt; 2min</strong></td>
+<td>多假设生成 + 深度证据收集</td>
+</tr>
+<tr>
+<td>诊断服务可用率</td>
+<td><strong>99.9%</strong></td>
+<td>月度可用率</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. 数据流架构</h2>
+<h3>5.1 整体数据流</h3>
+<div class="mermaid">flowchart LR
+    subgraph 输入["诊断输入"]
+        ALERT[04 智能感知
+告警事件]
+        TOPO[02 拓扑建模
+拓扑上下文]
+        COG[05 认知网络
+推理结果]
+    end
+
+    subgraph 研判流程["故障研判流程"]
+        CLASS[故障分类器
+Classifier]
+        SEV[严重程度
+评估器]
+        REC[可恢复性
+分析器]
+        HYP[假设
+生成器]
+        EVID[证据
+收集器]
+    end
+
+    subgraph 存储["会话存储"]
+        RD[Redis
+诊断会话]
+    end
+
+    subgraph 输出["诊断输出"]
+        REPORT[Diagnosis Report
+诊断报告]
+        RCA[07 根因分析]
+        DEC[09 智能决策]
+        AUTO[10 自动执行]
+    end
+
+    ALERT --> CLASS
+    TOPO --> CLASS
+    TOPO --> SEV
+    COG --> HYP
+    CLASS --> SEV --> REC --> HYP --> EVID
+    EVID --> REPORT
+    REPORT --> RCA
+    REPORT --> DEC
+    REPORT --> AUTO
+    RD -->|会话状态| HYP
+
+    style 输入 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 研判流程 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 存储 fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
+    style 输出 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style CLASS fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+    style SEV fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+    style REC fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style HYP fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style EVID fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><h3>5.2 同步诊断流程</h3>
+<div class="mermaid">flowchart LR
+    REQ[诊断请求] --> CLASS[分类]
+    CLASS --> SEV[SEV 评估]
+    SEV --> REC{可恢复?}
+    REC -->|是| MATCH[匹配恢复动作]
+    REC -->|否| HYP[生成假设]
+    MATCH --> GEN[生成诊断报告]
+    HYP --> EVID[收集证据]
+    EVID --> RANK[假设排序]
+    RANK --> GEN
+    GEN --> RESP[返回报告]
+
+    style CLASS fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style SEV fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style REC fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
+    style MATCH fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style HYP fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style GEN fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><h3>5.3 异步诊断流程</h3>
+<div class="mermaid">flowchart LR
+    ASYNC[异步诊断请求] --> SESSION[创建 Session
+Redis]
+    SESSION --> START[立即返回
+SessionID]
+    START --> BG[后台处理
+深度分析]
+    BG --> KB[知识库检索]
+    KB --> TOPO_AN[拓扑分析]
+    TOPO_AN --> ML_IN[ML 推理]
+    ML_IN --> HYP_G[多假设生成]
+    HYP_G --> EVID_C[深度证据收集]
+    EVID_C --> FINAL[最终报告
+写入 Redis]
+    FINAL --> DONE[诊断完成
+通知下游]
+
+    style SESSION fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
+    style BG fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style FINAL fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><hr>
+<h2>6. 模块协作关系</h2>
+<h3>6.1 依赖矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>依赖故障研判的什么</th>
+<th>依赖类型</th>
+<th>接口方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>04 智能感知</strong></td>
+<td>接收告警事件流作为诊断输入</td>
+<td><strong>数据依赖</strong></td>
+<td>Kafka 订阅 alert.events</td>
+</tr>
+<tr>
+<td><strong>02 拓扑建模</strong></td>
+<td>查询拓扑上下文，了解影响范围和传播路径</td>
+<td><strong>数据依赖</strong></td>
+<td>REST / gRPC 查询</td>
+</tr>
+<tr>
+<td><strong>05 认知网络</strong></td>
+<td>查询知识图谱进行推理，获取相似案例</td>
+<td><strong>数据依赖</strong></td>
+<td>REST 查询</td>
+</tr>
+<tr>
+<td><strong>07 根因分析</strong></td>
+<td>接收故障研判报告，进一步定位根因</td>
+<td><strong>数据依赖</strong></td>
+<td>Kafka 事件 / REST</td>
+</tr>
+<tr>
+<td><strong>08 影响分析</strong></td>
+<td>接收故障上下文，评估影响范围</td>
+<td><strong>数据依赖</strong></td>
+<td>Kafka 事件</td>
+</tr>
+<tr>
+<td><strong>09 智能决策</strong></td>
+<td>接收故障上下文，辅助决策</td>
+<td><strong>数据依赖</strong></td>
+<td>Kafka 事件</td>
+</tr>
+<tr>
+<td><strong>10 自动执行</strong></td>
+<td>接收可恢复性分析和恢复动作，执行自动化恢复</td>
+<td><strong>数据依赖</strong></td>
+<td>Kafka 事件</td>
+</tr>
+</tbody></table>
+<h3>6.2 输出接口契约</h3>
+<h4>6.2.1 诊断报告格式</h4>
+<pre><code>{
+  "diagnosis_id": "diag-20260607-001",
+  "alert_id": "alert-20260607-001",
+  "created_at": 1750000000000,
+  "completed_at": 1750000100000,
+  "fault_type": "performance",
+  "severity": "SEV2",
+  "summary": "Payment Service CPU 使用率过高导致延迟上升",
+  "hypotheses": [
+    {
+      "hypothesis_id": "hyp-001",
+      "description": "上游流量突增导致 CPU 过载",
+      "confidence": 0.82,
+      "rank": 1,
+      "source": "knowledge_base",
+      "supporting_evidence": [...],
+      "ruled_out_evidence": []
+    }
+  ],
+  "recovery_feasibility": {
+    "automatable": true,
+    "recommended_action": {
+      "action_type": "scale",
+      "target": "svc-payment-prod",
+      "params": {"replicas": 5},
+      "risk_level": "LOW",
+      "estimated_duration": 60
+    }
+  },
+  "impact_estimate": {
+    "affected_users": "20%-50%",
+    "estimated_revenue_loss_per_hour": "$10,000"
+  }
+}</code></pre><hr>
+<h2>7. 量化指标体系</h2>
+<h3>7.1 诊断效果指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>基线（当前）</th>
+<th>目标</th>
+<th>测量方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>分类准确率</strong></td>
+<td>故障类型分类正确的比例</td>
+<td><strong>80%</strong></td>
+<td><strong>&gt; 90%</strong></td>
+<td>人工标注验证集</td>
+</tr>
+<tr>
+<td><strong>SEV 评估准确率</strong></td>
+<td>严重程度判定正确的比例</td>
+<td><strong>75%</strong></td>
+<td><strong>&gt; 85%</strong></td>
+<td>事后复盘对比</td>
+</tr>
+<tr>
+<td><strong>诊断耗时（SEV1）</strong></td>
+<td>SEV1 故障从告警到完成研判的时间</td>
+<td><strong>5min</strong></td>
+<td><strong>&lt; 2min</strong></td>
+<td>diagnostic session 计时</td>
+</tr>
+<tr>
+<td><strong>假设准确率</strong></td>
+<td>Top-1 假设命中的比例</td>
+<td><strong>60%</strong></td>
+<td><strong>&gt; 75%</strong></td>
+<td>根因分析结果反馈</td>
+</tr>
+<tr>
+<td><strong>可恢复匹配率</strong></td>
+<td>可自动化恢复的故障中，成功匹配合适动作的比例</td>
+<td><strong>55%</strong></td>
+<td><strong>&gt; 70%</strong></td>
+<td>自动执行反馈统计</td>
+</tr>
+</tbody></table>
+<h3>7.2 服务质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>同步诊断 P99 延迟</strong></td>
+<td>简单诊断端到端延迟</td>
+<td><strong>&lt; 10s</strong></td>
+<td><strong>&gt; 30s</strong></td>
+</tr>
+<tr>
+<td><strong>异步诊断 P99 延迟</strong></td>
+<td>复杂诊断端到端延迟</td>
+<td><strong>&lt; 2min</strong></td>
+<td><strong>&gt; 5min</strong></td>
+</tr>
+<tr>
+<td><strong>诊断服务可用率</strong></td>
+<td>月度可用率</td>
+<td><strong>99.9%</strong></td>
+<td><strong>&lt; 99%</strong></td>
+</tr>
+<tr>
+<td><strong>并发诊断能力</strong></td>
+<td>同时处理的诊断会话数</td>
+<td><strong>&gt; 100</strong></td>
+<td><strong>&lt; 50</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. 部署架构</h2>
+<h3>8.1 K8s 部署拓扑</h3>
+<div class="mermaid">flowchart LR
+    subgraph 服务["Diagnosis 服务"]
+        DIA[Flask API
+x2]
+        WORK[Celery Worker
+x4 异步任务]
+    end
+
+    subgraph 存储["存储层"]
+        RD[(Redis
+Session Cache)]
+        NEO[(Neo4j
+知识图谱)]
+        ES[(Elasticsearch
+证据存储)]
+    end
+
+    subgraph 外部["外部依赖"]
+        TOPO[02 拓扑建模]
+        COG[05 认知网络]
+        KG[知识库 API]
+    end
+
+    ALERT[04 智能感知
+Kafka] --> DIA
+    DIA -->|同步诊断| WORK
+    DIA -->|会话存储| RD
+    WORK -->|知识查询| COG
+    WORK -->|拓扑查询| TOPO
+    WORK -->|证据查询| ES
+    WORK -->|会话结果| RD
+    RD -->|诊断报告| DIA
+
+    style 服务 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 存储 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style DIA fill:#c8e6c9,stroke:#388e3c,stroke-width:2px</div><h3>8.2 资源配置</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>副本数</th>
+<th>CPU</th>
+<th>内存</th>
+<th>存储</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Diagnosis Flask API</strong></td>
+<td>2（主备）</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>StatefulSet，PDB</td>
+</tr>
+<tr>
+<td><strong>Celery Worker</strong></td>
+<td>4</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>异步诊断任务处理</td>
+</tr>
+<tr>
+<td><strong>Redis Session Cache</strong></td>
+<td>3 节点</td>
+<td>4 核</td>
+<td>16 GB</td>
+<td>——</td>
+<td>诊断会话状态</td>
+</tr>
+<tr>
+<td><strong>Elasticsearch Evidence Store</strong></td>
+<td>3 节点</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>200 GB SSD</td>
+<td>证据数据存储</td>
+</tr>
+</tbody></table>
+<h3>8.3 高可用设计</h3>
+<ul>
+<li><strong>Redis 会话持久化</strong>：诊断会话状态定期快照到磁盘，Redis 故障可恢复</li>
+<li><strong>Celery 任务重试</strong>：异步诊断任务失败自动重试，最多 3 次</li>
+<li><strong>API 无状态</strong>：Flask API 无状态，K8s 自动重启，外部依赖故障有降级逻辑</li>
+<li><strong>超时降级</strong>：外部调用（拓扑/知识图谱）超过 5s 自动降级，返回不完整报告</li>
+</ul>
+<hr>
+<h2>9. 本章小结</h2>
+<h3>9.1 核心要点</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>核心要点</th>
+<th>量化目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>定位</strong></td>
+<td>能力层核心模块，告警到根因之间的「分诊台」</td>
+<td>——</td>
+</tr>
+<tr>
+<td><strong>流程</strong></td>
+<td>分类 → 定级 → 可恢复性 → 假设生成 → 证据收集，5 步结构化研判</td>
+<td>SEV1 &lt; 2min</td>
+</tr>
+<tr>
+<td><strong>输出</strong></td>
+<td>故障类型 + 严重程度 + 假设列表 + 证据链 + 推荐恢复动作</td>
+<td>分类准确率 &gt; 90%</td>
+</tr>
+<tr>
+<td><strong>性能</strong></td>
+<td>同步诊断 P99 &lt; 10s，异步诊断 P99 &lt; 2min</td>
+<td>SEV1 &lt; 2min</td>
+</tr>
+<tr>
+<td><strong>设计原则</strong></td>
+<td>先分类再定位 / 严重程度驱动响应 / 可恢复性优先 / 证据驱动</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<p><strong>记忆口诀：</strong></p>
+<blockquote>
+<p><strong>故障研判五步走，分类定级走在前；SEV 驱动响应急，可恢复性优先判；假设生成靠知识，证据链来作支撑；同步十秒异步两分，研判报告给下游。</strong></p>
+</blockquote>
+<hr>
+<blockquote>
+<p>本章定义了模块 06 故障研判的详细功能设计规范。后续章节将阐述根因分析（07）、智能决策（09）等模块的设计细节。</p>
+</blockquote>
+<p><em>文档版本：V1.0 | 更新日期：2026-06-07</em></p>
+
+      
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>

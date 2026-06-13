@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+  <link rel="stylesheet" href="/css/main.css">
+
+
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=4">
+
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = { "hostname": "lianjifu.cn", "root": "/", "scheme": "Pisces", "version": "7.8.0", "exturl": false, "sidebar": { "position": "right", "Pisces | Gemini": 240, "display": "post", "padding": 18, "offset": 12, "onmobile": false }, "copycode": { "enable": false, "show_result": false, "style": null }, "back2top": { "enable": true, "sidebar": false, "scrollpercent": false }, "fancybox": false, "mediumzoom": false, "lazyload": false, "pangu": false, "comments": { "style": "tabs", "active": null, "storage": true, "lazyload": false, "nav": null }, "algolia": { "hits": { "per_page": 10 }, "labels": { "input_placeholder": "Search for Posts", "hits_empty": "We didn't find any results for the search: ${query}", "hits_stats": "${hits} results found in ${time} ms" } }, "localsearch": { "enable": true, "trigger": "auto", "top_n_per_article": 1, "unescape": false, "preload": false }, "motion": { "enable": true, "async": false, "transition": { "post_block": "fadeIn", "post_header": "slideDownIn", "post_body": "slideDownIn", "coll_header": "slideLeftIn", "sidebar": "slideUpIn" } }, "path": "search.xml" };
+  </script>
+
+  <meta name="description"
+    content="01 00 intro brief<meta property="og:type" content="article">
+  <meta property="og:title" content="Observable Ops — 全景概览">
+  <meta property="og:url" content="http://lianjifu.cn/2026/06/13/observable-ops-02-09-decision/index.html">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description"
+    content="Observable Ops — 全景概览__DESCRIPTION__quot;理解一个大型系统，首先要站在足够高的地方俯瞰全局。__DESCRIPTION__quot;思考维度内容引导思考 展开它为什么存在读一个 49 万行的大型系统，最怕的就是一头扎进去迷失方向——这章就是你的全局地图先搞清楚 Observable Ops 整体长什么样，再深入到每个子系统——先整体后局部没有全局坐标系，后面 25 章的细节就只是零碎的知识点它解决什么问题大型系统学习最怕的就">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-06-13T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-06-10T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="claude-code">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+
+  <link rel="canonical" href="http://lianjifu.cn/2026/06/13/observable-ops-02-09-decision/">
+
+
+  <script id="page-configurations">
+    // https://hexo.io/docs/variables.html
+    CONFIG.page = {
+      sidebar: "",
+      isHome: false,
+      isPost: true,
+      lang: 'zh-CN'
+    };
+  </script>
+  <title>模块 09 · 智能决策 | LianJiFu'blogs</title>
+  <noscript>
+    <style>
+      .use-motion .brand,
+      .use-motion .menu-item,
+      .sidebar-inner,
+      .use-motion .post-block,
+      .use-motion .pagination,
+      .use-motion .comments,
+      .use-motion .post-header,
+      .use-motion .post-body,
+      .use-motion .collection-header {
+        opacity: initial;
+      }
+
+      .use-motion .site-title,
+      .use-motion .site-subtitle {
+        opacity: initial;
+        top: initial;
+      }
+
+      .use-motion .logo-line-before i {
+        left: initial;
+      }
+
+      .use-motion .logo-line-after i {
+        right: initial;
+      }
+    </style>
+  </noscript>
+
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+        <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle" style="display:none">
+    <div class="toggle"></div>
+  </div>
+  <div class="site-meta">
+    <a href="/" class="brand" rel="start">
+      <h1 class="site-title">LianJiFu'blogs</h1>
+    </a>
+  </div>
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+    <li class="menu-item menu-item-home">
+      <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    </li>
+    <li class="menu-item menu-item-about">
+      <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    </li>
+    <li class="menu-item menu-item-archives">
+      <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    </li>
+    <li class="menu-item menu-item-search">
+      <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a>
+    </li>
+  </ul>
+</nav>
+
+</div><div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon">
+                <i class="fa fa-search"></i>
+              </span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search"
+                  class="search-input">
+              </div>
+              <span class="popup-btn-close">
+                <i class="fa fa-times-circle"></i>
+              </span>
+            </div>
+            <div id="search-result">
+              <div id="no-result">
+                <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </header>
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+      <span>0%</span>
+    </div>
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+
+
+          <div class="content post posts-expand">
+            <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+              <link itemprop="mainEntityOfPage" href="http://lianjifu.cn/2026/06/13/observable-ops-02-09-decision/">
+
+              <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <meta itemprop="image" content="/uploads/avatar.png">
+                <meta itemprop="name" content="JiFuLian">
+                <meta itemprop="description" content="Record my study and life">
+              </span>
+
+              <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                <meta itemprop="name" content="LianJiFu'blogs">
+              </span>
+              <header class="post-header">
+                <h1 class="post-title" itemprop="name headline">
+          模块 09 · 智能决策
+        </h1>
+
+                <div class="post-meta">
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-calendar"></i>
+                    </span>
+                    <span class="post-meta-item-text">发表于</span>
+
+
+                    <time title="创建时间：2026-06-10 18:00:00 / 修改时间：20:00:00" itemprop="dateCreated datePublished"
+                      datetime="2026-06-10T18:00:00+08:00">2026-06-10</time>
+                  </span>
+                  <span class="post-meta-item">
+                    <span class="post-meta-item-icon">
+                      <i class="far fa-folder"></i>
+                    </span>
+                    <span class="post-meta-item-text">分类于</span>
+                    <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                      <a href="/categories/observable-ops/" itemprop="url" rel="index"><span
+                          itemprop="name">Observable Ops</span></a>
+                    </span>
+                  </span>
+
+                  <br>
+
+                </div>
+              </header>
+
+
+
+
+              <div class="post-body" itemprop="articleBody">
+
+        <h1>模块 09 · 智能决策</h1>
+<blockquote>
+<p>智能决策是 Observable Ops 的「决策大脑」——综合根因分析（RCA）、影响分析（Impact）和业务约束，生成最优修复动作计划，并传递给自动执行模块执行。</p>
+</blockquote>
+<hr>
+<h2>📑 目录</h2>
+<h3>章节导航</h3>
+<ul>
+<li><ol>
+<li>模块定位与职责</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>决策模型设计</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>核心功能分解</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>API 设计规范</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>数据流架构</li>
+</ol>
+</li>
+<li><ol start="6">
+<li>模块协作关系</li>
+</ol>
+</li>
+<li><ol start="7">
+<li>量化指标体系</li>
+</ol>
+</li>
+<li><ol start="8">
+<li>部署架构</li>
+</ol>
+</li>
+<li><ol start="9">
+<li>本章小结</li>
+</ol>
+</li>
+</ul>
+<hr>
+<h2>1. 模块定位与职责</h2>
+<h3>1.1 在 4 层架构中的位置</h3>
+<p>智能决策属于<strong>能力层</strong>核心模块，汇聚根因分析、影响分析、知识图谱的所有分析结论，在业务约束下生成最优修复动作计划，输出到自动执行模块。</p>
+<div class="mermaid">flowchart LR
+    subgraph 数据层["数据层 Data Layer"]
+        KG[07 知识图谱]
+    end
+
+    subgraph 能力层["能力层 Capability Layer"]
+        RCA[07 根因分析]
+        IA[08 影响分析]
+        ID[09 智能决策]
+        AE[10 自动执行]
+    end
+
+    RCA -->|RCA 结论| ID
+    IA -->|影响报告| ID
+    KG -->|知识/规则| ID
+    ID -->|动作计划| AE
+
+    style ID fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style 数据层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 能力层 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style RCA fill:#c8e6c9
+    style IA fill:#c8e6c9
+    style AE fill:#c8e6c9
+    style KG fill:#fff9c4</div><h3>1.2 核心职责</h3>
+<table>
+<thead>
+<tr>
+<th>职责</th>
+<th>描述</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>动作候选生成</strong></td>
+<td>基于 RCA 结论和知识图谱，生成可能的修复动作候选</td>
+<td>Action Candidate[]</td>
+</tr>
+<tr>
+<td><strong>多目标优化</strong></td>
+<td>在恢复速度、业务损失、风险之间做多目标优化</td>
+<td>Optimized Plan</td>
+</tr>
+<tr>
+<td><strong>风险评估</strong></td>
+<td>评估每个候选动作的风险（执行失败、副作用）</td>
+<td>Risk Score</td>
+</tr>
+<tr>
+<td><strong>动作计划排序</strong></td>
+<td>综合收益/风险/成本，对动作计划排序</td>
+<td>Ranked Action Plan</td>
+</tr>
+<tr>
+<td><strong>决策解释生成</strong></td>
+<td>生成可解释的决策理由，供人工审核</td>
+<td>Decision Rationale</td>
+</tr>
+</tbody></table>
+<h3>1.3 核心设计原则</h3>
+<div class="mermaid">flowchart LR
+    P1[Data Driven
+数据驱动] --> P2[Constraint Satisfied
+约束满足]
+    P2 --> P3[Risk Aware
+风险感知]
+    P3 --> P4[Explainable
+可解释]
+    P4 -.-> P1
+    style P1 fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style P2 fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style P3 fill:#fce4ec,stroke:#c62828,stroke-width:3px
+    style P4 fill:#e8f5e9,stroke:#388e3c,stroke-width:3px</div><ul>
+<li><strong>数据驱动（Data Driven）</strong>：所有决策基于 RCA + Impact 的分析数据，不拍脑袋</li>
+<li><strong>约束满足（Constraint Satisfied）</strong>：必须满足 SLA/业务策略/安全策略等约束条件</li>
+<li><strong>风险感知（Risk Aware）</strong>：每个动作评估风险，优先选择低风险高收益的动作</li>
+<li><strong>可解释（Explainable）</strong>：决策过程可追溯、可解释，供人工审核和事后复盘</li>
+</ul>
+<h3>1.4 子模块划分</h3>
+<table>
+<thead>
+<tr>
+<th>子模块</th>
+<th>职责</th>
+<th>技术选型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CandidateGenerator</strong> 动作候选生成器</td>
+<td>基于 RCA 和知识图谱生成修复动作候选</td>
+<td>Python / 规则引擎</td>
+</tr>
+<tr>
+<td><strong>Optimizer</strong> 多目标优化器</td>
+<td>在约束条件下做多目标优化（恢复速度/业务损失/风险）</td>
+<td>Python / OR-Tools / 强化学习</td>
+</tr>
+<tr>
+<td><strong>RiskAssessor</strong> 风险评估器</td>
+<td>评估候选动作的执行风险和副作用</td>
+<td>Python / ML 模型</td>
+</tr>
+<tr>
+<td><strong>Ranker</strong> 动作计划排序器</td>
+<td>综合收益/风险/成本排序，输出最优计划</td>
+<td>Python / XGBoost</td>
+</tr>
+<tr>
+<td><strong>RationaleGenerator</strong> 决策解释生成器</td>
+<td>生成可解释的决策理由文档</td>
+<td>Python / 模板引擎</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. 决策模型设计</h2>
+<h3>2.1 动作计划模型（Action Plan Schema）</h3>
+<p>动作计划是智能决策的核心输出，描述具体的修复动作、执行顺序和预期效果。</p>
+<h4>2.1.1 动作单元</h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>action_id</code></td>
+<td>String (UUID)</td>
+<td>动作唯一标识</td>
+<td><code>act-20260607-001</code></td>
+</tr>
+<tr>
+<td><code>action_type</code></td>
+<td>Enum</td>
+<td>动作类型：RESTART/SCALE_OUT/SWITCH_TRAFFIC/ROLLBACK/CONFIG_FIX/ISOLATE</td>
+<td><code>RESTART</code></td>
+</tr>
+<tr>
+<td><code>target_node_id</code></td>
+<td>String</td>
+<td>动作目标节点 ID</td>
+<td><code>svc-001</code></td>
+</tr>
+<tr>
+<td><code>parameters</code></td>
+<td>Object</td>
+<td>动作参数（如重启次数、扩缩容量）</td>
+<td><code>{&quot;restart_timeout&quot;: 120}</code></td>
+</tr>
+<tr>
+<td><code>expected_effect</code></td>
+<td>String</td>
+<td>预期效果描述</td>
+<td><code>服务恢复，延迟降低 80%</code></td>
+</tr>
+<tr>
+<td><code>expected_recovery_time_min</code></td>
+<td>Integer</td>
+<td>执行该动作预计恢复时间</td>
+<td><code>5</code></td>
+</tr>
+<tr>
+<td><code>risk_score</code></td>
+<td>Float [0-1]</td>
+<td>风险得分（0=无风险，1=高风险）</td>
+<td><code>0.15</code></td>
+</tr>
+<tr>
+<td><code>prerequisites</code></td>
+<td>List[String]</td>
+<td>前置条件（如服务已部署、健康检查通过）</td>
+<td><code>[&quot;service_deployed&quot;, &quot;health_check_ready&quot;]</code></td>
+</tr>
+</tbody></table>
+<h4>2.1.2 完整动作计划</h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>plan_id</code></td>
+<td>String (UUID)</td>
+<td>计划唯一标识</td>
+</tr>
+<tr>
+<td><code>incident_id</code></td>
+<td>String</td>
+<td>关联故障事件 ID</td>
+</tr>
+<tr>
+<td><code>priority</code></td>
+<td>Enum</td>
+<td>计划优先级：P0/P1/P2/P3</td>
+</tr>
+<tr>
+<td><code>actions</code></td>
+<td>List[Action]</td>
+<td>动作序列（按执行顺序排列）</td>
+</tr>
+<tr>
+<td><code>total_recovery_time_min</code></td>
+<td>Integer</td>
+<td>计划执行完毕预计总恢复时间</td>
+</tr>
+<tr>
+<td><code>total_risk_score</code></td>
+<td>Float [0-1]</td>
+<td>计划整体风险得分</td>
+</tr>
+<tr>
+<td><code>expected_impact_reduction</code></td>
+<td>Float [0-1]</td>
+<td>预计影响范围缩减比例</td>
+</tr>
+<tr>
+<td><code>approval_required</code></td>
+<td>Boolean</td>
+<td>是否需要人工审批</td>
+</tr>
+<tr>
+<td><code>decision_rationale</code></td>
+<td>String</td>
+<td>决策理由（可解释性）</td>
+</tr>
+</tbody></table>
+<h3>2.2 决策标准模型（Decision Criteria Model）</h3>
+<p>决策标准模型定义多目标优化的目标函数和约束条件。</p>
+<div class="mermaid">flowchart TB
+    subgraph 目标["优化目标"]
+        G1[恢复速度最快
+minimize recovery_time]
+        G2[业务损失最小
+minimize business_loss]
+        G3[执行风险最低
+minimize risk_score]
+    end
+
+    subgraph 约束["约束条件"]
+        C1[SLA 约束
+must meet SLA]
+        C2[安全策略约束
+no risky operations]
+        C3[资源约束
+resource available]
+    end
+
+    subgraph 优化器["多目标优化器"]
+        OPT[Multi-Objective
+Optimizer]
+    end
+
+    subgraph 输出["最优动作计划"]
+        PLAN[Action Plan]
+    end
+
+    G1 --> OPT
+    G2 --> OPT
+    G3 --> OPT
+    C1 --> OPT
+    C2 --> OPT
+    C3 --> OPT
+    OPT --> PLAN
+
+    style 优化器 fill:#fff9c4,stroke:#f9a825,stroke-width:3px
+    style 目标 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 约束 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style 输出 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px</div><h4>2.2.1 优化目标权重配置</h4>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>权重（默认）</th>
+<th>可配置范围</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>恢复速度</strong></td>
+<td>0.40</td>
+<td>[0.0, 1.0]</td>
+<td>优先快速恢复业务</td>
+</tr>
+<tr>
+<td><strong>业务损失</strong></td>
+<td>0.35</td>
+<td>[0.0, 1.0]</td>
+<td>最小化业务影响</td>
+</tr>
+<tr>
+<td><strong>执行风险</strong></td>
+<td>0.25</td>
+<td>[0.0, 1.0]</td>
+<td>避免高风险操作</td>
+</tr>
+</tbody></table>
+<h3>2.3 约束模型（Constraint Model）</h3>
+<table>
+<thead>
+<tr>
+<th>约束类型</th>
+<th>描述</th>
+<th>检查逻辑</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SLA 约束</strong></td>
+<td>动作执行后必须在 SLA 约定时间内恢复</td>
+<td>检查 estimated_recovery_time &lt; SLA_deadline</td>
+</tr>
+<tr>
+<td><strong>安全约束</strong></td>
+<td>高风险操作（如 rm -rf /）禁止执行，需人工审批</td>
+<td>检查 action_type 是否在黑名单中</td>
+</tr>
+<tr>
+<td><strong>资源约束</strong></td>
+<td>资源不足时不能执行扩容动作</td>
+<td>检查目标节点有足够 CPU/内存</td>
+</tr>
+<tr>
+<td><strong>业务约束</strong></td>
+<td>关键业务时段（如双11）禁止重启核心服务</td>
+<td>检查当前时间是否在禁止窗口</td>
+</tr>
+<tr>
+<td><strong>依赖约束</strong></td>
+<td>动作执行顺序必须满足依赖关系</td>
+<td>检查 action.prerequisites 全部满足</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. 核心功能分解</h2>
+<h3>3.1 动作候选生成（Action Candidate Generation）</h3>
+<h4>3.1.1 生成策略</h4>
+<ol>
+<li><strong>规则匹配</strong>：基于故障类型，从知识图谱规则库匹配对应修复动作</li>
+<li><strong>历史复用</strong>：查询历史同类故障的修复动作（知识图谱）</li>
+<li><strong>拓扑推导</strong>：根据故障节点类型和拓扑位置，推导可能的修复路径</li>
+<li><strong>ML 推荐</strong>：基于训练数据，ML 模型推荐最可能成功的动作</li>
+</ol>
+<h4>3.1.2 动作类型与适用场景</h4>
+<table>
+<thead>
+<tr>
+<th>动作类型</th>
+<th>适用故障场景</th>
+<th>预期效果</th>
+<th>风险等级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RESTART</code></td>
+<td>进程崩溃、内存泄漏、服务无响应</td>
+<td>服务恢复正常</td>
+<td>低风险</td>
+</tr>
+<tr>
+<td><code>SCALE_OUT</code></td>
+<td>容量不足、流量突增、资源耗尽</td>
+<td>吞吐量提升，延迟降低</td>
+<td>低风险</td>
+</tr>
+<tr>
+<td><code>SWITCH_TRAFFIC</code></td>
+<td>单节点故障、局部不可用</td>
+<td>流量切换到健康节点，服务不中断</td>
+<td>中风险</td>
+</tr>
+<tr>
+<td><code>ROLLBACK</code></td>
+<td>变更引入故障、配置错误</td>
+<td>回退到上一稳定版本</td>
+<td>中风险</td>
+</tr>
+<tr>
+<td><code>CONFIG_FIX</code></td>
+<td>配置错误、参数不当</td>
+<td>配置修正，服务恢复</td>
+<td>中风险</td>
+</tr>
+<tr>
+<td><code>ISOLATE</code></td>
+<td>故障扩散、异常节点</td>
+<td>隔离故障节点，防止扩散</td>
+<td>高风险</td>
+</tr>
+</tbody></table>
+<h3>3.2 多目标优化（Multi-Objective Optimization）</h3>
+<h4>3.2.1 优化算法选择</h4>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>算法</th>
+<th>适用条件</th>
+<th>优化目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>简单场景</strong></td>
+<td>加权求和法</td>
+<td>目标函数线性、约束简单</td>
+<td>min w1<em>T + w2</em>L + w3*R</td>
+</tr>
+<tr>
+<td><strong>中等复杂</strong></td>
+<td>Pareto 最优解</td>
+<td>多个冲突目标，需要 Pareto 前沿</td>
+<td>找到 Pareto 最优解集</td>
+</tr>
+<tr>
+<td><strong>复杂约束</strong></td>
+<td>约束规划（OR-Tools）</td>
+<td>大量约束条件，组合爆炸</td>
+<td>满足所有约束的最优解</td>
+</tr>
+<tr>
+<td><strong>大规模</strong></td>
+<td>强化学习（PPO）</td>
+<td>动作空间大，需长期优化</td>
+<td>最大化累计奖励</td>
+</tr>
+</tbody></table>
+<h4>3.2.2 优化输入输出</h4>
+<pre><code>// 输入
+{
+  "rca_conclusion": { "root_cause_node": "host-042", "confidence": 0.92 },
+  "impact_report": { "business_impact_score": 0.78, "affected_nodes": 23 },
+  "constraints": { "max_recovery_time_min": 15, "sla_tier": "P1" },
+  "available_actions": [
+    { "type": "RESTART", "target": "svc-001", "recovery_time": 5, "risk": 0.1 },
+    { "type": "SCALE_OUT", "target": "svc-001", "recovery_time": 8, "risk": 0.15 }
+  ]
+}
+
+// 输出
+{
+  "optimal_plan": {
+    "actions": [{ "type": "RESTART", "target": "svc-001", "order": 1 }],
+    "total_recovery_time_min": 5,
+    "total_risk_score": 0.1
+  }
+}</code></pre><h3>3.3 风险评估（Risk Assessment）</h3>
+<h4>3.3.1 风险维度</h4>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>评估内容</th>
+<th>评估方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>执行失败风险</strong></td>
+<td>动作执行本身可能失败的概率</td>
+<td>历史成功率统计 + ML 模型预测</td>
+</tr>
+<tr>
+<td><strong>副作用风险</strong></td>
+<td>执行后可能引发的二次故障</td>
+<td>拓扑影响分析 + 规则判断</td>
+</tr>
+<tr>
+<td><strong>业务中断风险</strong></td>
+<td>执行动作是否会导致业务短暂中断</td>
+<td>动作类型分析 + 业务约束</td>
+</tr>
+<tr>
+<td><strong>回滚成本</strong></td>
+<td>执行失败后回滚的难度和成本</td>
+<td>回滚路径分析</td>
+</tr>
+</tbody></table>
+<h4>3.3.2 风险评分计算</h4>
+<div class="mermaid">flowchart TB
+    subgraph 输入["输入特征"]
+        H[历史成功率]
+        T[动作类型]
+        C[约束满足度]
+        E[副作用概率]
+    end
+
+    subgraph 模型["风险评分模型"]
+        RF[Random Forest]
+    end
+
+    subgraph 输出["风险得分"]
+        R[Risk Score 0.0~1.0]
+        RB[风险等级
+LOW/MEDIUM/HIGH]
+    end
+
+    H --> RF
+    T --> RF
+    C --> RF
+    E --> RF
+    RF --> R --> RB
+
+    style RF fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style R fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><h3>3.4 动作计划排序（Action Plan Ranking）</h3>
+<h4>3.4.1 排序公式</h4>
+<pre><code>Score = w_recovery * RecoveryScore + w_business * BusinessScore - w_risk * RiskScore
+
+其中：
+RecoveryScore = 1 - (actual_recovery_time / max_acceptable_recovery_time)
+BusinessScore = impact_reduction_ratio
+RiskScore = action_risk_score</code></pre><h4>3.4.2 排序结果示例</h4>
+<table>
+<thead>
+<tr>
+<th>排名</th>
+<th>动作计划</th>
+<th>综合得分</th>
+<th>恢复时间</th>
+<th>风险</th>
+<th>决策理由</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>RESTART svc-001</td>
+<td>0.92</td>
+<td>5 分钟</td>
+<td>低</td>
+<td>根因节点重启，风险低，5分钟恢复</td>
+</tr>
+<tr>
+<td>2</td>
+<td>SCALE_OUT svc-001 → 3 replicas</td>
+<td>0.85</td>
+<td>8 分钟</td>
+<td>低</td>
+<td>扩容可快速提升容量，8分钟完成</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SWITCH_TRAFFIC to standby</td>
+<td>0.72</td>
+<td>3 分钟</td>
+<td>中</td>
+<td>切换快但有流量损失风险</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. API 设计规范</h2>
+<h3>4.1 REST API（同步查询）</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>描述</th>
+<th>请求体</th>
+<th>响应</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td><code>/api/v1/decision/decide</code></td>
+<td>发起决策请求</td>
+<td>DecisionContext</td>
+<td>ActionPlan</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/decision/plan/{plan_id}</code></td>
+<td>查询动作计划详情</td>
+<td>——</td>
+<td>ActionPlan</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/decision/candidates/{incident_id}</code></td>
+<td>查询候选动作列表</td>
+<td>——</td>
+<td>ActionCandidate[]</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/decision/rationale/{plan_id}</code></td>
+<td>查询决策理由</td>
+<td>——</td>
+<td>DecisionRationale</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/decision/approve/{plan_id}</code></td>
+<td>人工审批通过</td>
+<td>ApprovalContext</td>
+<td>200 OK</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/decision/reject/{plan_id}</code></td>
+<td>人工审批拒绝</td>
+<td>RejectionContext</td>
+<td>200 OK</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/v1/decision/constraints</code></td>
+<td>更新决策约束配置</td>
+<td>ConstraintConfig</td>
+<td>200 OK</td>
+</tr>
+</tbody></table>
+<h3>4.2 gRPC API（高性能场景）</h3>
+<table>
+<thead>
+<tr>
+<th>服务</th>
+<th>方法</th>
+<th>适用场景</th>
+<th>性能要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>DecisionService</code></td>
+<td><code>MakeDecision(DecisionRequest)</code></td>
+<td>实时决策（故障告警触发）</td>
+<td>P99 &lt; 1s</td>
+</tr>
+<tr>
+<td><code>DecisionService</code></td>
+<td><code>GetOptimalPlan(PlanRequest)</code></td>
+<td>获取最优动作计划</td>
+<td>P99 &lt; 500ms</td>
+</tr>
+<tr>
+<td><code>DecisionService</code></td>
+<td><code>StreamDecisionUpdate(StreamRequest)</code></td>
+<td>流式推送决策更新</td>
+<td>&lt; 100ms 延迟</td>
+</tr>
+</tbody></table>
+<h3>4.3 Kafka 事件（异步通知）</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>事件类型</th>
+<th>发布者</th>
+<th>订阅者</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>decision.plan.ready</code></td>
+<td>动作计划就绪</td>
+<td>智能决策模块</td>
+<td>自动执行/Dashboard</td>
+<td>推送动作计划到自动执行</td>
+</tr>
+<tr>
+<td><code>decision.approval.required</code></td>
+<td>需要人工审批</td>
+<td>智能决策模块</td>
+<td>告警系统/值班人员</td>
+<td>高风险动作需人工确认</td>
+</tr>
+<tr>
+<td><code>decision.executed.result</code></td>
+<td>执行结果反馈</td>
+<td>自动执行模块</td>
+<td>智能决策/知识进化</td>
+<td>执行结果回传，更新决策模型</td>
+</tr>
+</tbody></table>
+<h3>4.4 API 质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>P99 延迟</strong></td>
+<td>&lt; 1s</td>
+<td>&gt; 3s</td>
+<td>决策完成时间</td>
+</tr>
+<tr>
+<td><strong>决策准确率</strong></td>
+<td>&gt; 90%</td>
+<td>&lt; 80%</td>
+<td>动作计划执行后故障恢复比例</td>
+</tr>
+<tr>
+<td><strong>动作成功率</strong></td>
+<td>&gt; 95%</td>
+<td>&lt; 90%</td>
+<td>动作计划中动作成功执行比例</td>
+</tr>
+<tr>
+<td><strong>可用率</strong></td>
+<td>99.9%</td>
+<td>&lt; 99.5%</td>
+<td>月度可用率</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. 数据流架构</h2>
+<h3>5.1 整体数据流</h3>
+<div class="mermaid">flowchart LR
+    subgraph 输入["输入数据源"]
+        RCA[07 根因分析
+RCA 结论]
+        IA[08 影响分析
+影响报告]
+        KG[07 知识图谱
+修复规则/历史]
+        BC[业务约束
+SLA/策略]
+    end
+
+    subgraph 处理["智能决策处理管道"]
+        GEN[候选生成器
+Candidate Generator]
+        OPT[多目标优化器
+Optimizer]
+        RISK[风险评估器
+Risk Assessor]
+        RANK[计划排序器
+Ranker]
+        RAT[解释生成器
+Rationale Generator]
+    end
+
+    subgraph 输出["输出"]
+        PLAN[动作计划
+自动执行]
+        RATIO[决策理由
+Dashboard]
+        EVENT[执行结果
+知识进化]
+    end
+
+    RCA --> GEN
+    IA --> GEN
+    KG --> GEN
+    BC --> OPT
+    GEN --> OPT --> RISK --> RANK --> PLAN
+    RANK --> RATIO
+    PLAN --> EVENT
+
+    style 处理 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 输入 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 输出 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px</div><h3>5.2 决策流程</h3>
+<div class="mermaid">flowchart TB
+    subgraph S1["Step 1: 数据汇聚"]
+        D1[接收 RCA 结论
+接收影响报告
+获取业务约束]
+    end
+
+    subgraph S2["Step 2: 候选生成"]
+        D2[规则匹配修复动作
+历史案例复用
+拓扑推导候选动作]
+    end
+
+    subgraph S3["Step 3: 多目标优化"]
+        D3[构建优化目标函数
+施加约束条件
+求解最优解]
+    end
+
+    subgraph S4["Step 4: 风险评估"]
+        D4[执行失败风险评估
+副作用风险评估
+回滚成本评估]
+    end
+
+    subgraph S5["Step 5: 排序输出"]
+        D5[综合得分排序
+生成决策理由
+输出最优计划]
+    end
+
+    D1 --> D2 --> D3 --> D4 --> D5
+
+    style S1 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style S2 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style S3 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style S4 fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
+    style S5 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px</div><h3>5.3 决策-执行闭环</h3>
+<div class="mermaid">flowchart LR
+    subgraph 决策["09 智能决策"]
+        DEC1[生成动作计划]
+        DEC2[输出计划]
+    end
+
+    subgraph 执行["10 自动执行"]
+        EX1[执行动作]
+        EX2[反馈结果]
+    end
+
+    subgraph 学习["11 知识进化"]
+        LE1[记录执行结果]
+        LE2[更新决策模型]
+    end
+
+    DEC1 --> DEC2 --> EX1 --> EX2 --> LE1 --> LE2 -.-> DEC1
+
+    style 决策 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style 执行 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style 学习 fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px</div><hr>
+<h2>6. 模块协作关系</h2>
+<h3>6.1 依赖矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>依赖智能决策的什么</th>
+<th>依赖类型</th>
+<th>接口方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>07 根因分析</strong></td>
+<td>RCA 结论（根因节点、置信度）作为决策输入</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>08 影响分析</strong></td>
+<td>影响范围报告（业务损失、影响节点）作为决策输入</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>07 知识图谱</strong></td>
+<td>修复规则、历史案例作为动作候选来源</td>
+<td>数据依赖</td>
+<td>REST 查询</td>
+</tr>
+<tr>
+<td><strong>10 自动执行</strong></td>
+<td>动作计划输出到自动执行模块执行</td>
+<td>数据依赖</td>
+<td>Kafka 事件订阅</td>
+</tr>
+<tr>
+<td><strong>Dashboard</strong></td>
+<td>决策理由和动作计划展示</td>
+<td>数据依赖</td>
+<td>REST 查询</td>
+</tr>
+</tbody></table>
+<h3>6.2 输出接口契约</h3>
+<h4>6.2.1 动作计划格式</h4>
+<pre><code>{
+  "plan_id": "plan-20260607-001",
+  "incident_id": "inc-20260607-042",
+  "priority": "P1",
+  "actions": [
+    {
+      "action_id": "act-001",
+      "action_type": "RESTART",
+      "target_node_id": "svc-001",
+      "parameters": { "restart_timeout": 120, "health_check_interval": 10 },
+      "expected_effect": "服务恢复正常，延迟降低 80%",
+      "expected_recovery_time_min": 5,
+      "risk_score": 0.1,
+      "order": 1
+    }
+  ],
+  "total_recovery_time_min": 5,
+  "total_risk_score": 0.1,
+  "expected_impact_reduction": 0.95,
+  "approval_required": false,
+  "decision_rationale": "根因节点 svc-001 重启为最优选择，风险低（0.1），5分钟恢复，满足 P1 SLA 要求",
+  "generated_at": "2026-06-07T08:17:00Z"
+}</code></pre><h4>6.2.2 决策理由格式</h4>
+<pre><code>{
+  "rationale_id": "rat-20260607-001",
+  "plan_id": "plan-20260607-001",
+  "decision_factors": [
+    { "factor": "root_cause_confidence", "value": 0.92, "weight": 0.3 },
+    { "factor": "business_impact_score", "value": 0.78, "weight": 0.25 },
+    { "factor": "action_success_rate", "value": 0.95, "weight": 0.25 },
+    { "factor": "recovery_time", "value": "5min", "weight": 0.2 }
+  ],
+  "alternative_options": [
+    { "option": "SCALE_OUT", "rejected_reason": "恢复时间 8min &gt; RESTART 5min" },
+    { "option": "SWITCH_TRAFFIC", "rejected_reason": "风险评分 0.35 &gt; 阈值 0.2" }
+  ],
+  "knowledge_sources": ["kg-rule-042", "incident-history-20250315"]
+}</code></pre><hr>
+<h2>7. 量化指标体系</h2>
+<h3>7.1 准确性指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>基线（当前）</th>
+<th>目标</th>
+<th>测量方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>决策准确率</strong></td>
+<td>动作计划执行后故障恢复的比例</td>
+<td>78%</td>
+<td>&gt; 90%</td>
+<td>执行结果统计</td>
+</tr>
+<tr>
+<td><strong>动作成功率</strong></td>
+<td>动作计划中动作成功执行的比例</td>
+<td>85%</td>
+<td>&gt; 95%</td>
+<td>执行日志统计</td>
+</tr>
+<tr>
+<td><strong>恢复时间达标率</strong></td>
+<td>实际恢复时间不超过估算时间的比例</td>
+<td>70%</td>
+<td>&gt; 85%</td>
+<td>故障记录统计</td>
+</tr>
+<tr>
+<td><strong>决策延迟</strong></td>
+<td>从接收输入到输出计划的时间</td>
+<td>2s</td>
+<td>&lt; 1s</td>
+<td>系统测量</td>
+</tr>
+</tbody></table>
+<h3>7.2 性能质量指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>SLO 目标</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>P99 决策延迟</strong></td>
+<td>决策完成时间</td>
+<td>&lt; 1s</td>
+<td>&gt; 3s</td>
+</tr>
+<tr>
+<td><strong>并发决策能力</strong></td>
+<td>同时处理的决策任务数</td>
+<td>30</td>
+<td>&lt; 15</td>
+</tr>
+<tr>
+<td><strong>计划生成时间</strong></td>
+<td>生成动作计划的时间</td>
+<td>&lt; 500ms</td>
+<td>&gt; 1s</td>
+</tr>
+<tr>
+<td><strong>知识检索延迟</strong></td>
+<td>从知识图谱检索规则的时间</td>
+<td>&lt; 200ms</td>
+<td>&gt; 500ms</td>
+</tr>
+</tbody></table>
+<h3>7.3 业务价值指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>描述</th>
+<th>当前</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>自动化决策覆盖率</strong></td>
+<td>无需人工干预的决策比例</td>
+<td>60%</td>
+<td>&gt; 85%</td>
+</tr>
+<tr>
+<td><strong>故障平均恢复时间缩短</strong></td>
+<td>智能决策辅助减少 MTTR</td>
+<td>基准</td>
+<td>-35%</td>
+</tr>
+<tr>
+<td><strong>人工审核通过率</strong></td>
+<td>智能决策输出计划被人工直接通过的比例</td>
+<td>75%</td>
+<td>&gt; 90%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. 部署架构</h2>
+<h3>8.1 K8s 部署拓扑</h3>
+<div class="mermaid">flowchart LR
+    subgraph 控制面["控制面"]
+        API[API Server]
+    end
+
+    subgraph 计算层["计算层"]
+        subgraph 服务["Decision 服务 StatefulSet"]
+            DEC1[Decision Service x2]
+        end
+        subgraph 工作器["优化器 Worker"]
+            OPT1[Optimizer Worker x2]
+        end
+    end
+
+    subgraph 存储层["存储层"]
+        KG[(知识图谱
+规则/历史)]
+        RD[(Redis
+决策缓存)]
+        KF[(Kafka
+事件总线)]
+    end
+
+    RCA[07 根因分析] -->|Kafka| DEC1
+    IA[08 影响分析] -->|Kafka| DEC1
+    KG -->|REST| DEC1
+    DEC1 -->|写入| RD
+    DEC1 -->|发布| KF
+    KF -->|订阅| 10 自动执行
+
+    style 计算层 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style 存储层 fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style DEC1 fill:#c8e6c9,stroke:#388e3c,stroke-width:3px</div><h3>8.2 资源配置</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>副本数</th>
+<th>CPU</th>
+<th>内存</th>
+<th>存储</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Decision Service</strong></td>
+<td>2（主备）</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>StatefulSet，接收决策请求</td>
+</tr>
+<tr>
+<td><strong>Optimizer Worker</strong></td>
+<td>2（并行）</td>
+<td>4 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>执行多目标优化计算</td>
+</tr>
+<tr>
+<td><strong>RiskAssessor</strong></td>
+<td>2</td>
+<td>2 核</td>
+<td>4 GB</td>
+<td>——</td>
+<td>ML 模型推理</td>
+</tr>
+<tr>
+<td><strong>Redis Cluster</strong></td>
+<td>3 节点</td>
+<td>2 核</td>
+<td>8 GB</td>
+<td>——</td>
+<td>决策结果缓存</td>
+</tr>
+</tbody></table>
+<h3>8.3 高可用设计</h3>
+<ul>
+<li><strong>服务多副本</strong>：Decision Service 部署 2 副本，Kubernetes 自动负载均衡</li>
+<li><strong>优化器并行</strong>：Optimizer Worker 2 副本，并行处理不同决策</li>
+<li><strong>决策缓存</strong>：决策结果缓存 Redis，相同故障模式 5 分钟内直接返回</li>
+<li><strong>降级策略</strong>：ML 优化超时降级为规则优化，保证决策完成</li>
+<li><strong>人工兜底</strong>：高风险决策自动转人工审核，不完全依赖自动决策</li>
+</ul>
+<hr>
+<h2>9. 本章小结</h2>
+<h3>9.1 核心要点</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>核心要点</th>
+<th>量化目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>定位</strong></td>
+<td>能力层决策大脑，汇聚 RCA + Impact + 知识，输出最优动作计划</td>
+<td>——</td>
+</tr>
+<tr>
+<td><strong>模型</strong></td>
+<td>动作计划模型 + 决策标准模型 + 约束模型，支撑多目标优化</td>
+<td>决策准确率 &gt; 90%</td>
+</tr>
+<tr>
+<td><strong>能力</strong></td>
+<td>候选生成 + 多目标优化 + 风险评估 + 计划排序 + 解释生成</td>
+<td>动作成功率 &gt; 95%</td>
+</tr>
+<tr>
+<td><strong>接口</strong></td>
+<td>REST + gRPC + Kafka，输出动作计划到自动执行</td>
+<td>P99 &lt; 1s</td>
+</tr>
+<tr>
+<td><strong>质量</strong></td>
+<td>决策准确率 / 动作成功率 / 恢复时间达标率 / 决策延迟</td>
+<td>自动化决策覆盖 &gt; 85%</td>
+</tr>
+</tbody></table>
+<h3>9.2 关键成功要素</h3>
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>优先级</th>
+<th>实施策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>知识图谱集成</strong></td>
+<td>P0</td>
+<td>打通知识图谱，规则覆盖率达到 80%+，支撑候选生成</td>
+</tr>
+<tr>
+<td><strong>优化算法成熟</strong></td>
+<td>P0</td>
+<td>多目标优化算法调优，支持约束规划求解</td>
+</tr>
+<tr>
+<td><strong>风险评估模型</strong></td>
+<td>P1</td>
+<td>历史执行数据训练风险评估模型，降低高风险动作误判</td>
+</tr>
+<tr>
+<td><strong>可解释性增强</strong></td>
+<td>P1</td>
+<td>决策理由自动生成，提升人工审核通过率</td>
+</tr>
+<tr>
+<td><strong>执行结果反馈</strong></td>
+<td>P2</td>
+<td>打通知动执行结果反馈，形成决策-执行闭环</td>
+</tr>
+</tbody></table>
+<h3>9.3 与其他模块的边界</h3>
+<table>
+<thead>
+<tr>
+<th>边界</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>vs 07 根因分析</strong></td>
+<td>根因分析负责「找根因」，智能决策负责「决定怎么办」，根因分析输出是智能决策的关键输入</td>
+</tr>
+<tr>
+<td><strong>vs 08 影响分析</strong></td>
+<td>影响分析负责「评估影响」，智能决策负责「决定行动」，影响分析输出是智能决策的约束输入</td>
+</tr>
+<tr>
+<td><strong>vs 10 自动执行</strong></td>
+<td>智能决策负责「制定计划」，自动执行负责「执行计划」，智能决策输出是自动执行的输入</td>
+</tr>
+<tr>
+<td><strong>vs 07 知识图谱</strong></td>
+<td>知识图谱提供修复规则和历史案例，智能决策使用这些知识生成候选动作</td>
+</tr>
+</tbody></table>
+<p><strong>记忆口诀：</strong></p>
+<blockquote>
+<p><strong>RCA 加 Impact，输入决策大脑；候选动作规则生，多目标优化找最优；风险评估来兜底，决策理由要透明；动作计划输出后，自动执行来接力。</strong></p>
+</blockquote>
+<hr>
+<blockquote>
+<p>本章定义了模块 09 智能决策的详细功能设计规范。智能决策作为能力层的决策大脑，综合分析模块结论与业务约束，生成最优修复动作计划，是 Observable Ops 自动化的核心枢纽。</p>
+</blockquote>
+<p><em>文档版本：V1.0 | 更新日期：2026-06-07</em></p>
+
+      
+</article>
+
+
+
+
+          </div>
+
+
+          <script>
+            window.addEventListener('tabs:register', () => {
+              let { activeClass } = CONFIG.comments;
+              if (CONFIG.comments.storage) {
+                activeClass = localStorage.getItem('comments_active') || activeClass;
+              }
+              if (activeClass) {
+                let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+                if (activeTab) {
+                  activeTab.click();
+                }
+              }
+            });
+            if (CONFIG.comments.storage) {
+              window.addEventListener('tabs:click', event => {
+                if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+                let commentClass = event.target.classList[1];
+                localStorage.setItem('comments_active', commentClass);
+              });
+            }
+          </script>
+
+        </div>
+
+
+        <div class="toggle sidebar-toggle">
+          <span class="toggle-line toggle-line-first"></span>
+          <span class="toggle-line toggle-line-middle"></span>
+          <span class="toggle-line toggle-line-last"></span>
+        </div>
+
+        <aside class="sidebar">
+          <div class="sidebar-inner">
+
+            <ul class="sidebar-nav motion-element">
+              <li class="sidebar-nav-toc">
+                文章目录
+              </li>
+              <li class="sidebar-nav-overview">
+                站点概览
+              </li>
+            </ul>
+
+            <!--noindex-->
+            <div class="post-toc-wrap sidebar-panel">
+
+            </div>
+            <!--/noindex-->
+
+            <div class="site-overview-wrap sidebar-panel">
+              <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+                <img class="site-author-image" itemprop="image" alt="JiFuLian" src="/uploads/avatar.png">
+                <p class="site-author-name" itemprop="name">JiFuLian</p>
+                <div class="site-description" itemprop="description">全栈开发者 · AI Agent 研究员</div>
+              </div>
+              <div class="site-state-wrap motion-element">
+                <nav class="site-state">
+                  <div class="site-state-item site-state-posts">
+                    <a href="/archives/">
+
+                      <span class="site-state-item-count" id="site-state-posts">86</span>
+                      <span class="site-state-item-name">文章</span>
+                    </a>
+                  </div>
+                  <div class="site-state-item site-state-categories">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </div>
+                  <div class="site-state-item site-state-tags">
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  </div>
+                </nav>
+              </div>
+              <div class="links-of-author motion-element">
+                <span class="links-of-author-item">
+                  <a href="https://github.com/Lianjifu" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Lianjifu"
+                    rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://www.zhihu.com/people/lian-ji-fu" title="知乎" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>知乎</a>
+                </span>
+                <span class="links-of-author-item">
+                  <a href="https://blog.csdn.net/u011597049" title="CSDN" rel="noopener" target="_blank"><i class="fab fa-css3 fa-fw"></i>CSDN</a>
+                </span>
+              </div>
+
+
+
+            </div>
+
+          </div>
+        </aside>
+        <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+
+
+
+
+        <div class="home-footer">
+  <div class="home-footer-inner">
+    <div class="home-footer-top">
+      <div>
+        <span class="home-footer-site">LianJiFu'blogs</span>
+        <span class="home-footer-tagline">Deeply loves the life</span>
+      </div>
+      <div class="home-footer-meta">
+        <span class="home-footer-meta-item"><i class="fa fa-file-alt"></i> 86 篇文章</span>
+        <span class="home-footer-meta-item"><i class="fa fa-tags"></i> 技术博客</span>
+      </div>
+    </div>
+    <div class="home-footer-bottom">
+      <p class="home-footer-copy">&copy; 2017 – 2026 JiFuLian</p>
+      <div class="home-footer-visitors">
+        <span class="home-footer-visitor"><i class="fa fa-user-md"></i> 访客 <span id="busuanzi_value_site_uv"></span></span>
+        <span class="home-footer-visitor"><i class="fa fa-eye"></i> 访问 <span id="busuanzi_value_site_pv"></span></span>
+      </div>
+    </div>
+  </div>
+</div>
+  </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=3"></script>
+
+  <script async src="/lib/mermaid.min.js"></script>
+</body>
+
+</html>
