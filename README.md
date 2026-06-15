@@ -51,7 +51,7 @@
 | 静态站点 | [Hexo 5.4.0](https://hexo.io/) + [NexT 7.8.0](https://theme-next.js.org/) Pisces |
 | 部署 | GitHub Pages + 自定义域名（CNAME → lianjifu.cn） |
 | 搜索 | 本地全文搜索（`search.xml` + `local-search.js`） |
-| 图表 | Mermaid（异步加载，支持点击放大 / ESC 关闭） |
+| 图表 | Mermaid（jsDelivr CDN 按需加载，`/lib/mermaid.min.js` 备用；支持点击放大 / ESC 关闭） |
 | 动效 | Velocity.js（页面入场动画） |
 | 图标 | Font Awesome 5 |
 | 样式 | 自定义 CSS 设计系统（8 个 CSS 文件，CSS 变量体系） |
@@ -140,6 +140,7 @@ hexo clean && hexo generate && hexo deploy
 ## 维护提示
 
 - 修改 `search.xml` 时注意 XML 特殊字符转义（如 `MITRE ATT&amp;CK` 中的 `&`）
+- Mermaid 图表通过 jsDelivr CDN 加载；勿在 HTML 中直接引用本地 3MB+ 的 `mermaid.min.js`（GitHub Pages 传输过慢会导致图表空白）
 - 自定义页面样式改动后，记得 bump CSS/JS 的 `?v=` 版本号以避免浏览器缓存
 - 新增文章后，`search.xml`、`atom.xml` 需要重新生成
 - 页面若出现空白/无内容，检查 NexT `motion.js` 是否因缺少 DOM 元素而报错（常见于 `.site-nav-toggle` 被移除时）

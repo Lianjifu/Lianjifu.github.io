@@ -244,40 +244,101 @@
   });
 })();
 
-// Mermaid: wait for async-loaded library, then render
+// Mermaid: load from CDN (GitHub Pages 上本地 3MB+ 文件加载过慢), then render
 (function() {
+  var MERMAID_CDN = 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js';
+  var MERMAID_LOCAL = '/lib/mermaid.min.js?v=2';
   var mermaidDivs = document.querySelectorAll('.mermaid');
   if (mermaidDivs.length === 0) return;
 
+  mermaidDivs.forEach(function(div) {
+    if (!div.querySelector('svg') && !div.classList.contains('mermaid-loading')) {
+      div.classList.add('mermaid-loading');
+    }
+  });
+
+  function loadScript(src) {
+    return new Promise(function(resolve, reject) {
+      if (typeof mermaid !== 'undefined') {
+        resolve();
+        return;
+      }
+      var marker = 'script[data-mermaid-src="' + src + '"]';
+      var existing = document.querySelector(marker);
+      if (existing) {
+        if (existing.getAttribute('data-loaded') === '1') {
+          resolve();
+          return;
+        }
+        existing.addEventListener('load', function() { resolve(); }, { once: true });
+        existing.addEventListener('error', function() { reject(new Error('load failed: ' + src)); }, { once: true });
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.setAttribute('data-mermaid-src', src);
+      s.onload = function() {
+        s.setAttribute('data-loaded', '1');
+        resolve();
+      };
+      s.onerror = function() {
+        reject(new Error('load failed: ' + src));
+      };
+      document.head.appendChild(s);
+    });
+  }
+
+  function ensureMermaid() {
+    if (typeof mermaid !== 'undefined') return Promise.resolve();
+    // 移除页面内嵌的慢速本地 async 标签，避免重复加载
+    document.querySelectorAll('script[src*="mermaid.min.js"]').forEach(function(s) {
+      if (!s.getAttribute('data-mermaid-src')) s.remove();
+    });
+    return loadScript(MERMAID_CDN).catch(function() {
+      return loadScript(MERMAID_LOCAL);
+    });
+  }
+
   function initMermaid() {
     if (typeof mermaid === 'undefined') {
-      setTimeout(initMermaid, 200);
-      return;
+      throw new Error('mermaid is not available');
     }
     try {
       mermaid.initialize({
-        startOnLoad: false, theme: 'base',
+        startOnLoad: false,
+        theme: 'base',
         themeVariables: {
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
-          primaryColor: '#ffffff', primaryTextColor: '#1e293b', primaryBorderColor: '#e2e8f0',
-          lineColor: '#64748b', secondaryColor: '#f1f5f9', tertiaryColor: '#f8fafc',
+          primaryColor: '#ffffff',
+          primaryTextColor: '#1e293b',
+          primaryBorderColor: '#e2e8f0',
+          lineColor: '#64748b',
+          secondaryColor: '#f1f5f9',
+          tertiaryColor: '#f8fafc',
         },
         securityLevel: 'loose',
         flowchart: { curve: 'basis', padding: 15, nodeSpacing: 50, rankSpacing: 80 },
         maxTextSize: 50000,
       });
-      // Pass DOM nodes directly for reliable v10 compatibility
       var nodes = Array.from(mermaidDivs).filter(function(d) {
-        return !d.hasAttribute('data-processed');
+        return !d.hasAttribute('data-processed') && !d.querySelector('svg');
+      });
+      nodes.forEach(function(div) {
+        div.classList.remove('mermaid-loading');
       });
       if (nodes.length > 0) {
         mermaid.run({ nodes: nodes }).then(function() {
           mermaidDivs.forEach(wrapZoomable);
         }).catch(function(e) {
           console.error('Mermaid render error:', e);
+          nodes.forEach(function(div) {
+            div.classList.remove('mermaid-loading');
+            div.classList.add('mermaid-error');
+          });
         });
       }
-    } catch(e) {
+    } catch (e) {
       console.error('Mermaid init error:', e);
     }
   }
@@ -320,5 +381,14 @@
   }
   document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && modalInstance) { modalInstance.remove(); modalInstance = null; } });
 
-  initMermaid();
+  ensureMermaid().then(initMermaid).catch(function(err) {
+    console.error('Mermaid load failed:', err);
+    mermaidDivs.forEach(function(div) {
+      div.classList.remove('mermaid-loading');
+      if (!div.querySelector('svg')) {
+        div.classList.add('mermaid-error');
+        div.innerHTML = '<p>图表库加载失败，请检查网络后刷新页面。</p>';
+      }
+    });
+  });
 })();
