@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <meta name="description" content="五层系列 02·系统理解：吃透 AI Agent，从会说话到能闭环。机制地图与失败归因。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="02 · 吃透 AI Agent：从会说话到能闭环">
+  <meta property="og:url" content="http://lianjifu.cn/2026/08/08/llm-agent-principles/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="五层系列 02·系统理解：吃透 AI Agent，从会说话到能闭环。机制地图与失败归因。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="article:published_time" content="2026-08-08T00:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="AI Agent">
+  <link rel="canonical" href="http://lianjifu.cn/2026/08/08/llm-agent-principles/">
+  <title>02 · 吃透 AI Agent：从会说话到能闭环 | LianJiFu'blogs</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=6">
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <script id="page-configurations">
+    CONFIG.page = { sidebar: "", isHome: false, isPost: true, lang: "zh-CN" };
+  </script>
+  <noscript>
+    <style>
+      .use-motion .brand, .use-motion .menu-item, .sidebar-inner,
+      .use-motion .post-block, .use-motion .post-header, .use-motion .post-body { opacity: initial; }
+      .use-motion .site-title, .use-motion .site-subtitle { opacity: initial; top: initial; }
+    </style>
+  </noscript>
+  <style>
+    .ai-engineering-page { background: #f8fafc; }
+    .ai-engineering-page .post-block { max-width: 1180px; margin: 0 auto; }
+    .ai-engineering-page .post-body { color: #172554; }
+    .ai-engineering-page .post-body h2 { margin-top: 3.2rem; padding-bottom: .7rem; border-bottom: 2px solid #dbeafe; color: #123b8f; }
+    .ai-engineering-page .post-body h3 { color: #1d4ed8; }
+    .ai-engineering-page .section-kicker { display: inline-block; margin: 2.2rem 0 .35rem; color: #2563eb; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .ai-engineering-page .section-summary { margin: .9rem 0 1.5rem; padding: 1rem 1.2rem; border-left: 4px solid #2563eb; background: #eff6ff; color: #1e3a8a; font-weight: 600; }
+    .ai-engineering-page .content-block { margin: 1.25rem 0; }
+    .ai-engineering-page .content-block h3 { margin-bottom: .55rem; font-size: 1.12rem; }
+    .ai-engineering-page .callout { margin: 1.4rem 0; padding: 1rem 1.2rem; border: 1px solid #bfdbfe; border-radius: 10px; background: #f8fbff; }
+    .ai-engineering-page .callout strong { color: #1d4ed8; }
+    .ai-engineering-page .tip-box { margin: 1.2rem 0; padding: 1rem 1.15rem; border-left: 4px solid #f59e0b; background: #fffbeb; border-radius: 0 10px 10px 0; color: #78350f; }
+    .ai-engineering-page .tip-box strong { color: #b45309; }
+    .ai-engineering-page .warn-box { margin: 1.2rem 0; padding: 1rem 1.15rem; border-left: 4px solid #ef4444; background: #fef2f2; border-radius: 0 10px 10px 0; color: #7f1d1d; }
+    .ai-engineering-page .warn-box strong { color: #b91c1c; }
+    .ai-engineering-page .deliverables { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .8rem; margin: 1rem 0 1.5rem; }
+    .ai-engineering-page .deliverable { padding: .85rem 1rem; border: 1px solid #dbeafe; border-radius: 8px; background: #fff; }
+    .ai-engineering-page .deliverable strong { display: block; margin-bottom: .25rem; color: #1e40af; }
+    .ai-engineering-page .step-list { counter-reset: step; list-style: none; padding-left: 0; }
+    .ai-engineering-page .step-list li { counter-increment: step; position: relative; margin: .75rem 0; padding: .7rem .9rem .7rem 3rem; border: 1px solid #dbeafe; border-radius: 8px; background: #fff; }
+    .ai-engineering-page .step-list li::before { content: counter(step); position: absolute; left: .85rem; top: .65rem; width: 1.45rem; height: 1.45rem; border-radius: 50%; background: #2563eb; color: #fff; text-align: center; line-height: 1.45rem; font-weight: 700; }
+    .ai-engineering-page .comparison-table { width: 100%; margin: 1rem 0 1.5rem; border-collapse: collapse; font-size: .95rem; }
+    .ai-engineering-page .comparison-table th, .ai-engineering-page .comparison-table td { padding: .7rem .8rem; border: 1px solid #dbeafe; text-align: left; vertical-align: top; }
+    .ai-engineering-page .comparison-table th { background: #dbeafe; color: #1e3a8a; }
+    .ai-engineering-page .chapter-close { margin-top: 1.5rem; padding: .9rem 1.1rem; border-radius: 9px; background: #172554; color: #eff6ff; }
+    .ai-engineering-page .chapter-close strong { color: #93c5fd; }
+    .ai-engineering-page .chapter-image { display: block; width: 100%; height: auto; margin: 1rem auto 1.75rem; border: 1px solid #bfdbfe; border-radius: 12px; box-shadow: 0 12px 32px rgba(37, 99, 235, .12); }
+    .ai-engineering-page .overview-image { margin: 1.25rem auto 2rem; }
+    .ai-engineering-page .principles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.5rem 0; }
+    .ai-engineering-page .principle { padding: 1rem; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; }
+    .ai-engineering-page .principle strong { display: block; margin-bottom: .35rem; color: #1d4ed8; }
+    .ai-engineering-page .contract-template { margin: 1rem 0 1.5rem; padding: 1rem 1.1rem; border-radius: 10px; background: #0f172a; color: #e2e8f0; overflow-x: auto; font-size: .9rem; line-height: 1.55; }
+    .ai-engineering-page .contract-template code { color: inherit; background: transparent; }
+    .ai-engineering-page .chapter-nav { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 2rem 0 1rem; padding-top: 1.2rem; border-top: 1px solid #dbeafe; }
+    .ai-engineering-page .chapter-nav a { color: #2563eb; font-weight: 700; text-decoration: none; }
+    .ai-engineering-page .chapter-nav a:hover { text-decoration: underline; }
+    .ai-engineering-page hr { border: 0; border-top: 1px solid #dbeafe; margin: 2.4rem 0; }
+    .ai-engineering-page .comparison-table a { color: #1d4ed8; font-weight: 600; text-decoration: none; }
+    .ai-engineering-page .post-body > h2[id="intro"] { margin-top: 1.2rem; }
+    .ai-engineering-page .note-take { margin: 1.1rem 0 0; padding: .85rem 1.1rem; border: 1px dashed #93c5fd; border-radius: 8px; background: #f8fafc; color: #1e3a8a; font-size: .95rem; }
+    .ai-engineering-page .note-take strong { color: #1d4ed8; }
+    .ai-engineering-page .note-meta { margin: 0 0 1rem; color: #64748b; font-size: .9rem; }
+    .ai-engineering-page .series-path { margin: 1rem 0 1.5rem; padding: 1rem 1.15rem; border-radius: 10px; background: #0f172a; color: #e2e8f0; font-size: .92rem; line-height: 1.7; }
+    .ai-engineering-page .series-path strong { color: #93c5fd; }
+    .ai-engineering-page .series-path a { color: #93c5fd; }
+    .ai-engineering-page .layer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.25rem 0 1.5rem; }
+    .ai-engineering-page .layer-card { margin: 0; padding: 1rem 1.1rem; border: 1px solid #bfdbfe; border-radius: 10px; background: #fff; }
+    .ai-engineering-page .layer-card h3 { margin: 0 0 .55rem; font-size: 1.05rem; }
+    .ai-engineering-page .layer-card .layer-tag { display: inline-block; margin-bottom: .55rem; padding: .15rem .55rem; border-radius: 999px; background: #dbeafe; color: #1e40af; font-size: .75rem; font-weight: 700; letter-spacing: .04em; }
+    .ai-engineering-page .layer-card p { margin: .4rem 0; font-size: .95rem; line-height: 1.55; }
+    .ai-engineering-page .layer-card .wrong { color: #9f1239; }
+    .ai-engineering-page .layer-card .right { color: #166534; }
+    .ai-engineering-page .diag-flow { margin: 1rem 0 1.5rem; padding: 1rem 1.15rem; border-radius: 10px; background: #eff6ff; border: 1px solid #bfdbfe; }
+    .ai-engineering-page .diag-flow ol { margin: .5rem 0 0; padding-left: 1.2rem; }
+    .ai-engineering-page .diag-flow li { margin: .45rem 0; line-height: 1.55; }
+    @media (max-width: 700px) {
+      .ai-engineering-page .principles { grid-template-columns: 1fr 1fr; }
+      .ai-engineering-page .deliverables { grid-template-columns: 1fr; }
+      .ai-engineering-page .layer-grid { grid-template-columns: 1fr; }
+      .ai-engineering-page .comparison-table { display: block; overflow-x: auto; }
+      .ai-engineering-page .post-body { padding: 0 .75rem; }
+    }
+
+  </style>
+</head>
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post ai-engineering-page">
+  <div class="container use-motion">
+    <div class="headband"></div>
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner">
+        <div class="site-brand-container">
+          <div class="site-nav-toggle">
+            <div class="toggle" aria-label="切换导航栏">
+              <span class="toggle-line toggle-line-first"></span>
+              <span class="toggle-line toggle-line-middle"></span>
+              <span class="toggle-line toggle-line-last"></span>
+            </div>
+          </div>
+          <div class="site-meta">
+            <a href="/" class="brand" rel="start">
+              <span class="logo-line-before"><i></i></span>
+              <h1 class="site-title">LianJiFu'blogs</h1>
+              <span class="logo-line-after"><i></i></span>
+            </a>
+          </div>
+          <div class="site-nav-right">
+            <div class="toggle popup-trigger"><i class="fa fa-search fa-fw fa-lg"></i></div>
+          </div>
+        </div>
+        <nav class="site-nav">
+          <ul id="menu" class="main-menu menu">
+            <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+            <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+            <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-book fa-fw"></i>目录</a></li>
+            <li class="menu-item menu-item-search"><a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a></li>
+          </ul>
+        </nav>
+        <div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon"><i class="fa fa-search"></i></span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search" class="search-input">
+              </div>
+              <span class="popup-btn-close"><i class="fa fa-times-circle"></i></span>
+            </div>
+            <div id="search-result">
+              <div id="no-result"><i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <div class="back-to-top"><i class="fa fa-arrow-up"></i><span>0%</span></div>
+    <main class="main"><div class="main-inner"><div class="content-wrap"><div class="content post posts-expand">
+      <article class="post-block" itemscope itemtype="http://schema.org/Article">
+        <header class="post-header">
+          <h1 class="post-title" itemprop="name headline">02 · 吃透 AI Agent：从会说话到能闭环</h1>
+          
+          <div class="post-meta"><span class="post-meta-item"><i class="far fa-calendar"></i> 发表于 2026-08-08</span><span class="post-meta-item"><i class="far fa-folder"></i> 分类于 <a href="/categories/ai-agent/">AI Agent</a></span><span class="post-meta-item"><i class="fas fa-tags"></i> 学习笔记 · 02 吃透 · 系统理解</span></div>
+        </header>
+        <div class="post-body" itemprop="articleBody" data-toc-mode="h2">
+          <h2 id="intro" data-toc="开篇">开篇 · 真实案例：想让 Agent 自己跑完认证</h2>
+          <span class="section-kicker">00 / 案例背景</span>
+          <p class="section-summary">LLM 会说话；Agent 要能闭环。缺一层机制，认证交付就会停在「像那么回事」——方案漂亮，仓库与 CI 对不上。</p>
+          <img class="chapter-image overview-image" src="/images/llm-agent-principles/00-overview.png" alt="吃透 AI Agent 总览">
+
+          <div class="content-block">
+            <h3>承接上一层</h3>
+            <p>上一篇里，阿明用<strong>契约 · 证据包 · 工序 · 回流</strong>把 B 端控制台认证修到可合并。团队很快有了下一问：每次还要人盯着拆步、贴红证、写回流——能不能搭一个 Agent，<strong>自己把认证目标跑完</strong>：读现行代码、改 session、跑测、证明登出后 <code>GET /me</code> → 401？</p>
+            <p>负责内部工具的小周接下这个试点：目标不是再写一篇用法教程，而是做一个<strong>认证交付 Agent</strong>，输入 Spec v1.0，输出可复查的交付证据。</p>
+          </div>
+
+          <div class="content-block">
+            <h3>第一版：把 Spec 丢进「Agent 对话框」</h3>
+            <p>小周的第一版很诱人——本质是加强版聊天：把 Spec、几段代码说明贴进去，模型洋洋洒洒写出改造方案，甚至贴出「伪测试通过」和「登出后应为 401」的结论段落。演示会上大家觉得「差不多能自己干了」。</p>
+            <p>一接真实仓库与 CI，原形毕露：</p>
+            <table class="comparison-table">
+              <tr><th>时间线</th><th>发生了什么</th><th>暴露的机制缺口</th></tr>
+              <tr><td>周一上午</td><td>Spec v1.0 贴进对话框，十分钟出「完整方案」</td><td>只有语言，没有任务状态</td></tr>
+              <tr><td>周一中午</td><td>模型声称「已按 session 清理修好」</td><td>不能真改仓库，只会建议</td></tr>
+              <tr><td>周一下午</td><td>本地跑 <code>auth.session.spec</code> 仍红；登出后 <code>/me</code> 仍 200</td><td>不知现网/现行行为，验证靠自述</td></tr>
+              <tr><td>周一傍晚</td><td>多轮聊天后忘了 T02 是否已过、该从哪续</td><td>进度只活在上下文窗口里</td></tr>
+              <tr><td>周二复盘</td><td>结论：这不是 Agent，是会写方案的 LLM</td><td>缺事实、行动、状态、验证四层</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>转折：从「再换个更强模型」到「补机制」</h3>
+            <p>小周没有继续堆 Prompt。他和阿明对齐：上一篇解决的是<strong>人怎么用 AI 交付</strong>；本篇要解决的是<strong>系统缺什么才能闭环</strong>——Context 如何治理、Tool 如何契约、计划与状态如何外置、失败如何回证据、Harness / 路由 / 治理如何托底。</p>
+            <div class="callout">
+              <strong>本篇只干一件事：</strong>用认证交付这条线，把 Agent <strong>缺什么、补哪层、边界在哪</strong> 吃透。<br>
+              <strong>案例主线：</strong>四个缺口 → 闭环地图 → 推理核边界 → 依据包 → 工具契约 → ReAct 排障 → 计划对象 → 证据裁定 → 多角色协议 → 执行框架 → 风险路由 → 经验沉淀 → 运行治理 → 系统拼装 → 通往产品问题。<br>
+              不写 Spec 用法教程，不填产品设计卡。
+            </div>
+          </div>
+          <hr>
+
+          <h2 id="part-01" data-toc="四个缺口">Part 01 · 四个缺口：裸对话交不出认证</h2>
+          <span class="section-kicker">01 / 缺口诊断</span>
+          <p class="section-summary">小周第一版把 Spec 丢给裸 LLM——缺的不是文笔，是任务闭环的四块砖：事实、行动、状态、验证。缺一块，认证就停在「像那么回事」。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/01-why-not-agent.png" alt="LLM≠Agent">
+
+          <div class="content-block">
+            <h3>1. 为何「会说话」不等于「能闭环」</h3>
+            <p>演示会上，模型把 Spec v1.0 讲得很完整：登出清理思路、测试用例草案、甚至「预期 401」的段落。阿明问一句：仓库里改了吗？CI 绿了吗？——没有。</p>
+            <div class="warn-box">
+              <strong>关键误判：</strong>把「生成一段正确说明」当成「完成一次交付」。语言智能能规划与解释；闭环还要读真实系统、改外部世界、记住进度、用外部证据证明完成。
+            </div>
+            <p>四个缺口不是文风问题，是<strong>系统能力边界</strong>。后面各章，就是一块块把砖补上。</p>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 四缺口对照：小周现场怎么对上号</h3>
+            <p class="note-meta">每一层看三样：现场长什么样 · 裸对话只会怎样 · 系统要补什么</p>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">缺口 1 · 事实</span>
+                <h3>读不到现行真实状态</h3>
+                <p><strong>现场：</strong>不知登出后 <code>GET /me</code> 真实是 200 还是 401；不知 <code>session.ts</code> HEAD 长什么样。</p>
+                <p class="wrong"><strong>裸对话：</strong>用训练记忆与「应该如此」填空。</p>
+                <p class="right"><strong>系统要补：</strong>可追溯的实时依据（Context + 探针/读文件）。→ Part 04</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">缺口 2 · 行动</span>
+                <h3>动不了仓库与 runner</h3>
+                <p><strong>现场：</strong>只能「建议改 session 清理」；Diff 不进分支，测试跑不起来。</p>
+                <p class="wrong"><strong>裸对话：</strong>输出伪代码与「请你手动执行」。</p>
+                <p class="right"><strong>系统要补：</strong>受控外部操作（Tool 契约：读改测、权限、返回四态）。→ Part 05</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">缺口 3 · 状态</span>
+                <h3>进度只活在窗口里</h3>
+                <p><strong>现场：</strong>多轮后忘了 T02 是否已过、该从 T04 哪点续；刷新对话等于失忆。</p>
+                <p class="wrong"><strong>裸对话：</strong>靠上下文窗口「大概记得」。</p>
+                <p class="right"><strong>系统要补：</strong>进度外置、可恢复（计划对象 + Checkpoint + Harness）。→ Part 07 / 10</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">缺口 4 · 验证</span>
+                <h3>完成靠自述，不是证据</h3>
+                <p><strong>现场：</strong>自称「应该 401 了」「伪测试通过」；本地 <code>auth.session.spec</code> 仍红。</p>
+                <p class="wrong"><strong>裸对话：</strong>用更长、更自信的段落代替 runner 结果。</p>
+                <p class="right"><strong>系统要补：</strong>外部证据裁定（测试/探针 + Reflection 出口）。→ Part 08</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 一表速查</h3>
+            <table class="comparison-table">
+              <tr><th>缺口</th><th>系统要补什么</th><th>小周认证现场</th><th>后文展开</th></tr>
+              <tr><td><strong>事实</strong></td><td>可追溯的实时依据</td><td>不知 <code>/me</code> 登出后真实状态</td><td>依据包治理</td></tr>
+              <tr><td><strong>行动</strong></td><td>受控外部操作</td><td>只能建议改 session，改不了仓库</td><td>工具契约</td></tr>
+              <tr><td><strong>状态</strong></td><td>进度外置、可恢复</td><td>聊到 T04 忘了 T02 已通过</td><td>计划对象 / Harness</td></tr>
+              <tr><td><strong>验证</strong></td><td>外部证据证明完成</td><td>自称「应该 401」，测试仍红</td><td>证据裁定</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 何时不能只用裸 LLM（自检三问）</h3>
+            <div class="diag-flow">
+              <p><strong>有一问为「是」，就不能只用裸对话当 Agent：</strong></p>
+              <ol>
+                <li>要读<strong>真实系统</strong>的现行状态吗？（仓库 HEAD、接口实测、CI 日志）</li>
+                <li>要<strong>跨多步</strong>记住进度、失败后从检查点续跑吗？</li>
+                <li>要拿出<strong>可复查证明</strong>（测试绿、探针码、审计日志）才能算完成吗？</li>
+              </ol>
+            </div>
+            <div class="tip-box">
+              <strong>干货：</strong>认证交付三问全是「是」。所以小周第一版失败，不是模型不够强，是把 LLM 误当成了完整 Agent。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 补错层会长什么样</h3>
+            <table class="comparison-table">
+              <tr><th>误判</th><th>你实际在做的事</th><th>典型结果</th></tr>
+              <tr><td>缺事实，却猛换更强模型</td><td>同一片空白换引擎</td><td>方案更流畅，<code>/me</code> 仍不知真值</td></tr>
+              <tr><td>缺行动，却加长 Prompt</td><td>更细的「请手动改这里」</td><td>仍改不了仓库，交付悬空</td></tr>
+              <tr><td>缺状态，却开更多聊天窗口</td><td>多窗口并行「帮忙记」</td><td>进度分裂，更难续跑</td></tr>
+              <tr><td>缺验证，却让模型「再确认一遍」</td><td>又一次自述完成</td><td>CI 仍红，置信度虚高</td></tr>
+            </table>
+            <div class="callout">
+              <strong>与上一篇的分工：</strong>01 讲人侧用法（契约/证据/工序/回流）；本篇讲系统侧机制——四缺口是机制地图的入口，下一章先画「认证必须走完的五步环」。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>Agent 的价值，是把语言智能组织成可执行、可验证的任务闭环。四缺口先对上号，再往下补层。</div>
+          <hr>
+
+          <h2 id="part-02" data-toc="闭环地图">Part 02 · 闭环地图：认证必须走完的五步</h2>
+          <span class="section-kicker">02 / 运行地图</span>
+          <p class="section-summary">Agent 不是一次生成。验证失败必须回流，禁止「感觉做完」收工——闭环的默认失败动作必须画在图上。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/02-panorama.png" alt="全景闭环">
+
+          <div class="content-block">
+            <h3>1. 为何要先画闭环，再谈各层机制</h3>
+            <p>四个缺口告诉你「缺什么」。闭环地图告诉你「认证跑起来长什么样」——目标进来，必须能走到可复查的完成，或明确的回流，而不能停在一段漂亮说明上。</p>
+            <div class="warn-box">
+              <strong>小周第一版的形状：</strong>目标进 → 模型一次生成方案 → 自称完成。图上没有「观察 / 验证失败 / 回流」。系统没有画失败边，运行时就会用「再生成一次完整答案」冒充闭环。
+            </div>
+            <p>下面五步是认证交付 Agent 的最小运行地图；后文 Context、Tool、ReAct、Plan、Reflection、Harness 都挂在这条环上。</p>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 五步环（走读）</h3>
+            <p class="note-meta">每一步：要产出什么 · 缺了会断在哪 · 主要靠哪类机制托底</p>
+            <ol class="step-list">
+              <li><strong>目标与上下文</strong>：装载 Spec 验收句 + 现行 session/路由事实；缺了 → 事实缺口，后文乱猜。</li>
+              <li><strong>理解与规划</strong>：拆成可验证子目标（登录→鉴权→登出→错误体）；缺了 → 一步到位大 Diff，状态不可恢复。</li>
+              <li><strong>工具行动</strong>：读改测，留下 Diff 与日志；缺了 → 只有建议，仓库不动。</li>
+              <li><strong>观察与验证</strong>：单测 + 接口探测；失败则回流，禁止宣布完成；缺了 → 验证靠自述。</li>
+              <li><strong>经验沉淀</strong>：把「登出清理点遗漏」写入回归用例/规则，而不只留在聊天；缺了 → 同一坑下一轮重踩。</li>
+            </ol>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">步骤 1–2</span>
+                <h3>想清楚再动手</h3>
+                <p>契约与现行依据进系统；计划落成可验证子目标。对应后文：依据包、推理核边界、计划对象。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">步骤 3–4</span>
+                <h3>动手并证明</h3>
+                <p>工具真改真测；观察结果裁定过/不过。对应后文：工具契约、ReAct 排障、证据裁定。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">步骤 5</span>
+                <h3>写回系统资产</h3>
+                <p>失败模式进回归与规则，不进聊天坟墓。对应后文：经验沉淀。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">环上全程</span>
+                <h3>可恢复与可治理</h3>
+                <p>Checkpoint、超时重试、权限与人工闸托住整环。对应后文：Harness、路由、治理。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 认证一轮（失败必须回流）</h3>
+            <p class="note-meta">小周试点里，登出失效修复的典型一圈——验证失败时系统该怎么走</p>
+            <div class="contract-template"><code>认证一轮（示例）
+目标：登出后 /me → 401
+行动：patch session 清理 + 跑 auth.session.spec
+观察：实测仍 200
+验证：失败
+回流：补上下文（现行清理路径）或重规划，禁止宣布完成</code></div>
+            <table class="comparison-table">
+              <tr><th>环上节点</th><th>本轮事实</th><th>正确系统动作</th><th>错误动作（第一版）</th></tr>
+              <tr><td>目标</td><td>验收句：登出后 401</td><td>保持目标不变，进入行动</td><td>改写成「尽量安全」糊目标</td></tr>
+              <tr><td>行动</td><td>patch + 跑测</td><td>留下 Diff、run-id、日志</td><td>只输出「建议你改这里」</td></tr>
+              <tr><td>观察</td><td>实测仍 200</td><td>写入状态：FAIL + 证据</td><td>忽略，或让模型辩解</td></tr>
+              <tr><td>验证</td><td>未满足 Acceptance</td><td>触发回流边</td><td>自称「应该好了」收工</td></tr>
+              <tr><td>回流</td><td>缺清理路径依据</td><td>补 Context 或重规划后再行动</td><td>再生成一整篇新方案</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 闭环铁律</h3>
+            <div class="diag-flow">
+              <p><strong>画图时必须同时画上的三条边：</strong></p>
+              <ol>
+                <li><strong>验证通过 → 完成 / 沉淀</strong>：只有外部证据齐，才允许收工。</li>
+                <li><strong>验证失败 → 回流</strong>：回流目标只能是补上下文、重试、重规划或人工——不是「再写一篇总答案」。</li>
+                <li><strong>预算/风险触发 → 停或人工闸</strong>：超时、越权、高风险写操作，必须有退出，不能无限转圈。</li>
+              </ol>
+            </div>
+            <div class="tip-box">
+              <strong>干货：</strong>自检一句——若把「验证失败」从架构图上擦掉，系统行为会不会变成「再生成一次」？会，说明你还没有闭环，只有生成管道。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 一次生成 vs 五步环</h3>
+            <table class="comparison-table">
+              <tr><th>一次生成（小周 v0）</th><th>五步环（要建成的形状）</th></tr>
+              <tr><td>目标 → 长文方案 → 自称完成</td><td>目标 → 规划 → 行动 → 观察验证 → 沉淀 / 回流</td></tr>
+              <tr><td>失败靠人肉发现</td><td>失败是一等公民边，默认回流</td></tr>
+              <tr><td>进度在聊天里</td><td>进度在任务状态与 Checkpoint</td></tr>
+              <tr><td>经验留在对话</td><td>经验进回归用例与规则</td></tr>
+            </table>
+            <div class="callout">
+              <strong>下一章起按环拆开：</strong>先钉推理核边界（LLM 只想下一步），再补 Context 与 Tool——没有眼和手，环在「行动 / 观察」处必断。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>闭环的默认失败动作必须画在图上；没画，系统就会「再生成一次完整答案」。五步齐，才谈得上 Agent。</div>
+          <hr>
+
+          <h2 id="part-03" data-toc="推理内核">Part 03 · 推理内核：LLM 只想下一步，不裁定事实</h2>
+          <span class="section-kicker">03 / 推理核</span>
+          <p class="section-summary">让它输出意图、计划、工具参数；别让它代替测试报告、接口实测和数据库。模型是环上的脑子，不是整套系统。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/03-llm-fundamentals.png" alt="LLM 基础">
+
+          <div class="content-block">
+            <h3>1. 小周踩过的坑：把 LLM 当成整机</h3>
+            <p>第一版对话框里，模型同时扮演了规划师、测试报告和「现网真相」：写出清理方案，又自行宣布「登出后应为 401」「我测过了」。一接 runner，全是自述。</p>
+            <div class="warn-box">
+              <strong>定位错误：</strong>把 LLM 放在「完整 Agent」的位置，而不是「推理内核」。内核只负责想清楚下一步；事实查询与写操作必须交给工具和策略，完成裁定必须交给外部证据。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 交给它 vs 绝不交给它单独裁定</h3>
+            <table class="comparison-table">
+              <tr><th>交给 LLM（推理内核）</th><th>绝不交给 LLM 单独裁定</th></tr>
+              <tr><td>解析验收句、拆可验证步骤</td><td>「现网已经 401」</td></tr>
+              <tr><td>根据日志提出假设、填工具参数</td><td>「我测过了 / 伪测试通过」</td></tr>
+              <tr><td>在证据齐备时写交付摘要</td><td>「哈希可以换更安全的」（越权改禁区）</td></tr>
+              <tr><td>解读失败日志，建议回流类型</td><td>用更长段落代替 <code>run_tests</code> / <code>http_probe</code> 结果</td></tr>
+            </table>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">内核输出</span>
+                <h3>意图 · 计划 · 参数</h3>
+                <p class="right">例如：假设清理未调用 → 调用 <code>read_file(session.ts)</code> → 再决定是否 patch。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">内核禁区</span>
+                <h3>事实 · 写操作 · 完成声明</h3>
+                <p class="wrong">例如：未探针就宣布 401；未跑测就勾 Acceptance；口头改哈希算法。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 五条边界（认证里都会踩）</h3>
+            <ol class="step-list">
+              <li><strong>上下文有限</strong>——塞整仓会淹掉 session 关键路径；要靠依据包治理，不能靠「模型自己找」。</li>
+              <li><strong>知识过时</strong>——训练数据不知道你们仓库 HEAD；现行实现必须工具读入。</li>
+              <li><strong>输出非确定</strong>——同一失败可能给出不同假设；关键路径要靠检查点与状态机约束，不能靠一次抽卡。</li>
+              <li><strong>会幻觉</strong>——会编造「已调用清理函数」「测试已绿」；凡事实句必须可追溯到工具返回。</li>
+              <li><strong>无持久状态</strong>——对话一截断，进度就没；计划与 Checkpoint 必须外置（后文 Plan / Harness）。</li>
+            </ol>
+            <div class="diag-flow">
+              <p><strong>设计自检：</strong></p>
+              <ol>
+                <li>方案里是否出现「以模型陈述代替查询 / 测试结果」？有 → 仍把 LLM 当整机。</li>
+                <li>完成条件是否依赖模型说「好了」？是 → 验证缺口仍在。</li>
+                <li>写文件 / 跑命令是否必须经 Tool 且可审计？否 → 行动缺口仍在。</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 推理内核在五步环上的位置</h3>
+            <table class="comparison-table">
+              <tr><th>环上步骤</th><th>LLM 该做</th><th>LLM 不该单独做</th></tr>
+              <tr><td>目标与上下文</td><td>解析验收句、标出缺口问题</td><td>臆造现行 session 行为</td></tr>
+              <tr><td>理解与规划</td><td>拆子目标、标依赖</td><td>跳过检查点直接「全做完」</td></tr>
+              <tr><td>工具行动</td><td>选工具、填参数、解释冲突</td><td>假装已经 patch / 已跑测</td></tr>
+              <tr><td>观察与验证</td><td>解读日志、建议回流类型</td><td>裁定「已满足 Acceptance」</td></tr>
+              <tr><td>经验沉淀</td><td>归纳失败模式文案</td><td>不经评估就改生产策略</td></tr>
+            </table>
+            <div class="tip-box">
+              <strong>干货：</strong>换更强模型，只增强「想」的质量；不自动补上眼（Context/探针）、手（Tool）、记性（状态）和考官（外部验证）。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 正确接法（认证试点）</h3>
+            <div class="contract-template"><code>LLM 输出（允许）：
+  intent: 排查登出后 /me 仍 200
+  plan_step: S3-logout-401
+  tool_calls: [read_file(session.ts), run_tests(auth.session), http_probe(GET,/me)]
+
+系统裁定（禁止 LLM 单独说了算）：
+  observation ← 工具返回
+  verify ← 对照 Acceptance（401？）
+  next ← 策略机：retry | replan | enrich_context | human</code></div>
+            <div class="callout">
+              <strong>下一章：</strong>推理核要「想得准」，先得吃对依据——依据包如何被系统治理，而不是聊天里随便粘贴。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>模型负责想清楚下一步；事实、写操作与完成裁定交给工具和策略。LLM 是推理内核，不是整机。</div>
+          <hr>
+
+          <h2 id="part-04" data-toc="依据包">Part 04 · 依据包：系统如何治理当前 Context</h2>
+          <span class="section-kicker">04 / Context</span>
+          <p class="section-summary">Context 不是聊天窗口里的粘贴堆，而是带元数据的可控集合——从哪来、约束什么、过期没有、谁可读，答不清就默认不可进高风险路径。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/04-context.png" alt="Context">
+
+          <div class="content-block">
+            <h3>1. 为何「塞更多」补不了事实缺口</h3>
+            <p>小周第一版的本能是：把 Spec、半截代码、聊天结论一股脑贴进对话框。模型「看见」很多字，却 anchor 不住 <code>session.ts</code> 的 HEAD 与本轮红测日志——事实缺口还在，只是噪音更大。</p>
+            <div class="warn-box">
+              <strong>与 01 篇的分工：</strong>人侧「证据包」讲怎么挑文件给 AI；本篇讲<strong>系统如何治理依据</strong>——条目要有来源、版本、权限、时效，进入与驱逐都有规则，而不是靠人手每次粘贴。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 认证 T04：一包该长什么样</h3>
+            <p class="note-meta">登出失效排查轮次；每条都能回答元数据四问</p>
+            <table class="comparison-table">
+              <tr><th>条目</th><th>来源</th><th>版本 / 时效</th><th>权限</th></tr>
+              <tr><td>验收句「登出后 401」</td><td>任务契约</td><td>v1.0</td><td>全角色可读</td></tr>
+              <tr><td><code>session.ts</code> 现行实现</td><td>仓库 HEAD</td><td>commit 哈希</td><td>执行角色可读写限域</td></tr>
+              <tr><td>失败测试日志</td><td>CI / 本地 runner</td><td>本轮 run-id</td><td>可读</td></tr>
+              <tr><td>错误体规范（若涉及泄路径）</td><td>仓库文档</td><td>文档版本</td><td>可读</td></tr>
+              <tr><td>生产密钥 / <code>.env</code></td><td>—</td><td>—</td><td><strong>永不进入</strong></td></tr>
+            </table>
+            <div class="diag-flow">
+              <p><strong>元数据四问（每条必答）：</strong></p>
+              <ol>
+                <li><strong>从哪来？</strong>契约 / HEAD / run-id / 文档版本——无来源则不可信。</li>
+                <li><strong>约束什么？</strong>验收、实现、禁区，还是仅参考？</li>
+                <li><strong>过期没有？</strong>commit 是否仍是当前任务基线？日志是否本轮？</li>
+                <li><strong>谁可读可写？</strong>检索只读、执行限域写；密钥类永不进包。</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 粘贴堆 vs 受控依据包</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">粘贴堆</span>
+                <h3>小周 v0</h3>
+                <p class="wrong">整段 Spec + 随意代码片 +「上周有人说 JWT 更好」；无版本、无权限、无驱逐。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">受控包</span>
+                <h3>试点要建成的</h3>
+                <p class="right">按任务步骤装载最小集合；每条带来源/版本；越权路径与密钥进不了包。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">装载</span>
+                <h3>按步、按风险</h3>
+                <p>T04 装 session + 红测日志；不必把注册表单、前端样式一并塞入。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">驱逐</span>
+                <h3>过期与越权出局</h3>
+                <p>旧 run 日志、已废弃分支片段、越权文件——默认踢出高风险路径的上下文。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 治理规则（可落地）</h3>
+            <ol class="step-list">
+              <li><strong>最小充分</strong>——只装本步验收与行动所需；多一条就要能回答「缺了会猜错什么」。</li>
+              <li><strong>现行优先</strong>——HEAD / 本轮 run 优先于聊天记忆与外部博客结论。</li>
+              <li><strong>禁区硬拦</strong>——密钥、<code>.env</code>、生产配置：策略层拒绝进入，不只靠模型「注意」。</li>
+              <li><strong>变更可追</strong>——包内容变化写入任务日志（何时、因何步、增减了哪条）。</li>
+              <li><strong>答不清则降权</strong>——元数据四问答不上的条目，默认不可进入写操作路径。</li>
+            </ol>
+            <div class="contract-template"><code>context_item:
+  id: session-impl
+  source: repo:HEAD:src/auth/session.ts
+  version: commit:abc1234
+  purpose: constrain_logout_cleanup
+  acl: executor.read_write_limited
+  expires: when_task_baseline_moves
+
+never_load: [".env", "**/secrets/**", "prod-config/**"]</code></div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 依据包装错会长什么样</h3>
+            <table class="comparison-table">
+              <tr><th>错法</th><th>认证现场</th><th>纠正</th></tr>
+              <tr><td>整仓当 Context</td><td>关键清理函数被淹没</td><td>按 Tn 装载最小集合</td></tr>
+              <tr><td>无版本日志混用</td><td>用上轮绿测日志宣称本轮过</td><td>绑定本轮 run-id</td></tr>
+              <tr><td>闲聊结论进包</td><td>「JWT 更流行」冲击 session 方案</td><td>只收现行事实与已合并规范</td></tr>
+              <tr><td>密钥进窗口</td><td>泄漏进 Diff / 日志</td><td>策略永不装载 + 审计</td></tr>
+            </table>
+            <div class="tip-box">
+              <strong>干货：</strong>Context 工程的产出不是「更长的提示词」，而是<strong>可治理的依据集合</strong>。下一章补手：有了依据，还要通过 Tool 契约去读、去改、去测。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>依据包 = 带元数据的可控集合。答不清来源/版本/权限/时效的，默认不可进高风险路径。</div>
+          <hr>
+
+          <h2 id="part-05" data-toc="受控工具">Part 05 · 受控工具：感知与行动的接口契约</h2>
+          <span class="section-kicker">05 / Tool</span>
+          <p class="section-summary">没有工具，Agent 只能建议；有工具却无契约，等于把事故面交给幻觉。双手必须可描述、可授权、可审计、可验证。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/05-tool-calling.png" alt="Tool Calling">
+
+          <div class="content-block">
+            <h3>1. 行动缺口：只会建议，改不了仓库</h3>
+            <p>小周第一版没有真正的 Tool——模型输出「请在 session 清理函数里……」，人要自己改、自己跑测。接上「能执行」之后若放开无契约的 shell，问题会反转：什么都能动，却不知道谁授权、结果算不算数。</p>
+            <div class="warn-box">
+              <strong>两端都危险：</strong>无工具 = 行动缺口（交不出认证）；无契约的全能工具 = 把生产交给概率。本层要的是<strong>受控接口</strong>，不是更多自由。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 认证最小工具集</h3>
+            <p class="note-meta">感知（读/探）与行动（改/测）成对出现；每条都有明确返回</p>
+            <div class="contract-template"><code>read_file(path)       → 内容 | 失败
+apply_patch(diff)      → 成功 | 冲突 | 拒绝（越权路径）
+run_tests(selector)    → 绿/红 + 日志
+http_probe(method,url) → status + body摘要
+
+每个工具必须具备：
+  描述 · JSON Schema · 权限 · 返回四态
+返回四态：成功 / 业务失败 / 异常 / 可重试</code></div>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">感知</span>
+                <h3>read_file · http_probe</h3>
+                <p>补事实缺口：读 HEAD 实现、测登出后 <code>/me</code> 真值。返回进入依据包，不进「模型自述」。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">行动</span>
+                <h3>apply_patch · run_tests</h3>
+                <p>补行动与验证：限域改 session；用 runner 结果裁定，而不是「我测过了」。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 工具契约四件套</h3>
+            <table class="comparison-table">
+              <tr><th>件套</th><th>要写清什么</th><th>认证例</th></tr>
+              <tr><td><strong>描述</strong></td><td>做什么、不做什么</td><td><code>apply_patch</code> 只改白名单路径，不执行任意 shell</td></tr>
+              <tr><td><strong>Schema</strong></td><td>参数类型与必填</td><td><code>path</code> 必填；越界 path 直接拒</td></tr>
+              <tr><td><strong>权限</strong></td><td>谁在何种任务态可调</td><td>执行角色可 patch auth；检索角色只读</td></tr>
+              <tr><td><strong>返回四态</strong></td><td>成功/业务失败/异常/可重试</td><td>测红 = 业务失败（证据）；runner 崩溃 = 可重试</td></tr>
+            </table>
+            <div class="diag-flow">
+              <p><strong>调用前四检（过不了就不准调）：</strong></p>
+              <ol>
+                <li><strong>必要？</strong>本步验收是否真需要这次调用？</li>
+                <li><strong>参数完整？</strong>Schema 校验过了吗？</li>
+                <li><strong>当前角色授权？</strong>任务态与 ACL 允许吗？</li>
+                <li><strong>结果如何验证？</strong>返回将对照哪条 Acceptance / 检查点？</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 危险接法 vs 受控接法</h3>
+            <table class="comparison-table">
+              <tr><th>危险接法</th><th>后果</th><th>受控接法</th></tr>
+              <tr><td>无 Schema 全能 shell</td><td>任意命令、难审计、易越权</td><td>白名单工具 + Schema + 路径策略</td></tr>
+              <tr><td>只返回「成功/失败」一比特</td><td>无法归层、无法回流</td><td>返回四态 + 日志/摘要</td></tr>
+              <tr><td>模型声称已调用但未落审计</td><td>假行动、真幻觉</td><td>每次调用写 task 日志（谁、何时、参数、返回）</td></tr>
+              <tr><td>patch 无路径禁区</td><td>哈希 / <code>.env</code> 被改</td><td>拒绝越权路径；与依据包 never_load 对齐</td></tr>
+            </table>
+            <div class="tip-box">
+              <strong>干货：</strong>给「无 Schema 全能 shell」且无审计，不是赋能，是把生产交给概率。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 小周试点：一串合法调用</h3>
+            <div class="contract-template"><code># T04 登出失效 · 受控调用序列（示意）
+1) read_file("src/auth/session.ts")
+   → 成功：内容入依据包（commit 绑定）
+2) http_probe("GET", "/me")  # 登出后
+   → 业务失败语义：status=200（相对验收 401）
+3) apply_patch(diff_limited_to_session_cleanup)
+   → 成功 | 若改到哈希路径 → 拒绝
+4) run_tests("auth.session")
+   → 绿/红 + 日志（run-id 入包）
+5) 系统裁定：对照 Acceptance，决定下一跳
+   （禁止：LLM 口头宣布「已修好」）</code></div>
+            <div class="callout">
+              <strong>下一章：</strong>有了眼和手，局部不确定时如何边观察边行动——用 ReAct 排「登出仍 200」，但必须有退出条件，且长链路仍要 Plan 托底。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>工具契约 = 描述 · Schema · 权限 · 返回四态。写不清，Agent 的双手就会乱抓；无工具，则交不出认证。</div>
+          <hr>
+
+          <h2 id="part-06" data-toc="ReAct排障">Part 06 · ReAct 排障：登出仍 200 怎么查</h2>
+          <span class="section-kicker">06 / ReAct</span>
+          <p class="section-summary">局部不确定时，边观察边行动。ReAct 是探索器，不是整条认证交付的骨架——长链路仍要 Plan 托底，且必须有退出条件。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/06-react.png" alt="ReAct">
+
+          <div class="content-block">
+            <h3>1. 何时用 ReAct</h3>
+            <p>小周接到 T04：验收要求登出后 <code>/me</code> → 401，实测 200。此时<strong>根因不确定</strong>（没清 session？探针带旧 Cookie？测错环境？），适合短环：观察 → 推理 → 行动 → 再观察，而不是一次性写完「完整修复方案」。</p>
+            <div class="warn-box">
+              <strong>误用：</strong>整条认证（登录→鉴权→登出→错误体→PR）全靠 ReAct 裸转。步数一多，状态漂、预算爆、也没法从检查点恢复。ReAct 嵌在<strong>某一步内部</strong>；全局对齐交给下一章的计划对象。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 试点还原：T04 的一轮排障</h3>
+            <ol class="step-list">
+              <li><strong>观察</strong>：<code>auth.session.spec</code> 红；<code>http_probe</code> 登出后实际 200。</li>
+              <li><strong>推理</strong>：会话可能未清理，或探针仍带旧 Cookie。</li>
+              <li><strong>行动</strong>：<code>read_file(session.ts)</code>，定位清理函数与登出调用链。</li>
+              <li><strong>再观察</strong>：登出路径未调用清理——假设被证据收窄。</li>
+              <li><strong>调整</strong>：小 patch（限域）+ <code>run_tests</code>；步数封顶 8，超限升级重规划。</li>
+            </ol>
+            <table class="comparison-table">
+              <tr><th>环节</th><th>输入</th><th>输出</th><th>禁止</th></tr>
+              <tr><td>观察</td><td>工具返回 / 日志</td><td>可引用的事实句</td><td>模型臆造「应该 401」</td></tr>
+              <tr><td>推理</td><td>事实 + 验收句</td><td>可检验假设</td><td>同时开十个无关假设乱打</td></tr>
+              <tr><td>行动</td><td>假设 + 工具契约</td><td>一次限域调用</td><td>无 Schema shell；改哈希禁区</td></tr>
+              <tr><td>再观察</td><td>新工具返回</td><td>收窄或证伪假设</td><td>忽略红结果继续「感觉好了」</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 退出条件（必须写进系统）</h3>
+            <div class="diag-flow">
+              <p><strong>下列任一成立，结束本段 ReAct：</strong></p>
+              <ol>
+                <li><strong>证据充分</strong>——根因已由工具返回钉死，可进入限域修复或交回 Plan。</li>
+                <li><strong>目标达成</strong>——本步检查点转绿（如登出后 401）。</li>
+                <li><strong>风险触发</strong>——要动禁区、生产配置、越权路径 → 人工闸。</li>
+                <li><strong>预算用尽</strong>——步数 / token / 时间封顶 → 升级重规划，禁止空转。</li>
+              </ol>
+            </div>
+            <div class="tip-box">
+              <strong>干货：</strong>没有退出条件的 ReAct，就是预算粉碎机。小周试点把单步封顶设为 8；超限写入状态：<code>escalate_replan</code>。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. ReAct 与五步环、Plan 的关系</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">适合</span>
+                <h3>局部不确定</h3>
+                <p class="right">单步内根因不明、需交替读探与小改——如 T04 登出仍 200。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">不适合</span>
+                <h3>长交付骨架</h3>
+                <p class="wrong">用 ReAct 串完 S1–S5；进度只活在推理轨迹里，失败难回滚。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">嵌套</span>
+                <h3>步内短环</h3>
+                <p>Plan 的某一步 Execute 时可开短 ReAct；<strong>改全局步骤顺序必须显式重规划</strong>。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">证据</span>
+                <h3>每步可审计</h3>
+                <p>观察与行动都落工具日志；反思章再谈如何对照清单裁定出口。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>ReAct 是局部探索器——边观察边行动，且必须有退出条件。认证全链路仍要计划对象托底。</div>
+          <hr>
+
+          <h2 id="part-07" data-toc="计划对象">Part 07 · 计划对象：长任务先落成可执行计划</h2>
+          <span class="section-kicker">07 / Plan</span>
+          <p class="section-summary">运行时计划 ≠ 人的待办清单。它是系统内对象：下一步只能消费已确认输出；失败写入状态机，不擦除 Checkpoint。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/07-plan-execute.png" alt="Plan-and-Execute">
+
+          <div class="content-block">
+            <h3>1. 为何长任务不能只靠 ReAct</h3>
+            <p>认证交付跨登录、鉴权、登出、错误体、收束报告。若全程 ReAct，小周会遇到：说不清当前在哪一步、S3 失败却把 S1 的绿也冲掉、两个假设并行改同一文件。长任务要先有<strong>计划对象</strong>，再在步内按需开短 ReAct。</p>
+            <div class="warn-box">
+              <strong>关键区别：</strong>人的待办是备忘；运行时计划是带输入/输出/验证/恢复点的状态机素材。下一步<strong>只能</strong>消费上一步已确认的 Checkpoint。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 认证计划对象（系统内）</h3>
+            <div class="contract-template"><code>Task: auth-delivery
+Steps:
+  S1 login-ok     in:契约  out:Checkpoint(login-ok)  verify:登录测绿
+  S2 guard-401    in:S1    out:Checkpoint(guard)     verify:无会话/me→401
+  S3 logout-401   in:S2    out:Checkpoint(logout)    verify:登出后/me→401
+  S4 error-body   in:S2|S3 out:Checkpoint(err)       verify:快照测绿
+  S5 report       in:all   out:交付摘要
+规则：S3 不得在 S2 未确认时启动；失败写入状态机，不擦除 Checkpoint</code></div>
+            <table class="comparison-table">
+              <tr><th>步骤</th><th>依赖</th><th>验证（可否决）</th><th>失败时</th></tr>
+              <tr><td>S1 登录可用</td><td>契约</td><td>登录测绿</td><td>停在 S1；不进 S2</td></tr>
+              <tr><td>S2 受保护 401</td><td>S1</td><td>无会话 <code>/me</code>→401</td><td>回滚到 S1 Checkpoint</td></tr>
+              <tr><td>S3 登出 401</td><td>S2</td><td>登出后 <code>/me</code>→401</td><td>可嵌 ReAct；超限重规划</td></tr>
+              <tr><td>S4 错误体</td><td>S2|S3</td><td>快照测绿</td><td>不擦除 S2/S3 已确认点</td></tr>
+              <tr><td>S5 报告</td><td>全部相关 Checkpoint</td><td>交付摘要可复查</td><td>缺证则不准宣称完成</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 步骤六要素</h3>
+            <p>每一步开跑前，计划对象里至少具备这六项；缺一项，Execute 不准启动。</p>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">输入 · 输出</span>
+                <h3>消费与交付</h3>
+                <p>输入 = 已确认 Checkpoint / 依据包；输出 = 新 Checkpoint 或工件，供下一步消费。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">工具 · 完成条件</span>
+                <h3>怎么做、怎么算过</h3>
+                <p>允许哪些 Tool；完成条件必须可外部验证（测绿 / 探针码），不是模型自述。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">风险 · 恢复点</span>
+                <h3>炸了回哪</h3>
+                <p>标高风险（改 session）；恢复点 = 上一 Checkpoint，失败不从头聊天重来。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">Plan vs Execute</span>
+                <h3>分工</h3>
+                <p><strong>Plan</strong> 管全局对齐与依赖；<strong>Execute</strong> 管状态迁移、工具调用与失败写入。两者缺一，长任务必漂。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 重规划铁律</h3>
+            <ol class="step-list">
+              <li>步内 ReAct 可调假设与小 patch，<strong>不得偷偷删改</strong>全局 Steps 顺序。</li>
+              <li>需要改全局计划时，走显式 <code>replan</code>：写明原因、保留已确认 Checkpoint、生成新版本计划。</li>
+              <li>失败写入状态机（哪一步、何证据、下一出口）；<strong>禁止擦除</strong>已绿 Checkpoint 来「假装没发生」。</li>
+              <li>S3 不得在 S2 未确认时启动——依赖边与人侧工序（01 篇）同构，只是落在系统对象里。</li>
+            </ol>
+            <div class="diag-flow">
+              <p><strong>Plan-and-Execute 自检：</strong></p>
+              <ol>
+                <li>当前步骤的输入是否指向一个<strong>已确认</strong>的 Checkpoint？</li>
+                <li>完成条件是否可被 Tool 返回一票否决？</li>
+                <li>失败后恢复点是否明确？接手者能否不靠聊天续跑？</li>
+                <li>若要改步骤图，是否走了显式重规划而不是 ReAct 漂移？</li>
+              </ol>
+            </div>
+            <div class="callout">
+              <strong>下一章：</strong>步骤跑完或失败时，如何对照证据清单裁定——重试、重规划、补上下文还是人工。反思不是再生成一遍。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>Plan 管全局对齐；Execute 管状态与失败。下一步只消费已确认输出；改计划必须显式重规划。</div>
+          <hr>
+
+          <h2 id="part-08" data-toc="证据裁定">Part 08 · 证据裁定：反思不是再生成一遍</h2>
+          <span class="section-kicker">08 / Reflection</span>
+          <p class="section-summary">「我再生成一版」不是反思。反思 = 对照证据清单做裁定：过 / 不过，以及下一出口是重试、重规划、补上下文还是人工。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/08-reflection.png" alt="Reflection">
+
+          <div class="content-block">
+            <h3>1. 假反思长什么样</h3>
+            <p>S3（登出 401）跑完或失败后，小周第一版的习惯是：让模型「再想一想 / 再写一版修复」。输出更长、语气更稳，但没有对照 runner 与探针——验证缺口换皮重来。</p>
+            <div class="warn-box">
+              <strong>定义：</strong>没有外部依据的「反思」，只是又一次幻觉彩排。真正的 Reflection 是<strong>裁定程序</strong>：证据清单齐了吗？对照 Acceptance 过了吗？下一跳写进状态机了吗？
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. S3 结束后的证据清单</h3>
+            <p class="note-meta">每条必须可追溯到工具返回或规则引擎结果，不能来自模型自述</p>
+            <table class="comparison-table">
+              <tr><th>证据项</th><th>来源</th><th>通过标准</th></tr>
+              <tr><td>契约验收句</td><td>任务 Spec v1.0</td><td>本步目标仍是「登出后 /me → 401」</td></tr>
+              <tr><td><code>auth.session.spec</code></td><td><code>run_tests</code> + run-id</td><td>相关用例绿</td></tr>
+              <tr><td>登出后状态码</td><td><code>http_probe</code></td><td>实际 401（不是「应为 401」）</td></tr>
+              <tr><td>Diff 禁区校验</td><td>路径/规则引擎</td><td>未改哈希、<code>.env</code>、越权文件</td></tr>
+            </table>
+            <div class="diag-flow">
+              <p><strong>清单三问（全「是」才允许宣布本步完成）：</strong></p>
+              <ol>
+                <li>每条证据是否有<strong>来源 ID</strong>（run-id / commit / probe-id）？</li>
+                <li>是否存在任一否决项未过？有 → 本步未完成。</li>
+                <li>模型陈述是否被当成证据？是 → 剔除，补工具调用。</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 四个出口（裁定结果）</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">重试</span>
+                <h3>瞬时失败</h3>
+                <p>例如 runner 超时、网络闪断。证据指向环境抖动，不改计划假设，限次重跑同一工具。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">重规划</span>
+                <h3>步骤假设错</h3>
+                <p>例如清理策略需换方案。显式 <code>replan</code>，保留已确认 Checkpoint，不擦除 S1/S2 绿点。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">补上下文</span>
+                <h3>证据不足</h3>
+                <p>例如缺错误码规范、缺现行清理路径。先 enrich 依据包，再行动——对应开篇的事实缺口。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">人工</span>
+                <h3>高风险 / 僵局</h3>
+                <p>要动生产配置、禁区冲突、预算用尽仍无进展。停步并交接手简报，不靠模型硬闯。</p>
+              </div>
+            </div>
+            <table class="comparison-table">
+              <tr><th>出口</th><th>何时</th><th>认证例</th><th>写入状态</th></tr>
+              <tr><td>重试</td><td>瞬时失败</td><td>runner 超时</td><td><code>retry_count++</code></td></tr>
+              <tr><td>重规划</td><td>步骤假设错</td><td>清理策略需换方案</td><td><code>replan(reason)</code></td></tr>
+              <tr><td>补上下文</td><td>证据不足</td><td>缺错误码规范</td><td><code>enrich_context(items)</code></td></tr>
+              <tr><td>人工</td><td>高风险/僵局</td><td>要动生产配置</td><td><code>human_gate</code></td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 裁定流程（可落地）</h3>
+            <ol class="step-list">
+              <li><strong>收证</strong>——从本步工具日志与规则校验拉齐证据清单。</li>
+              <li><strong>对照</strong>——逐条对照 Acceptance / 本步 verify；任一条否决 = 未完成。</li>
+              <li><strong>归类</strong>——失败属于瞬时、假设错、证据不足，还是风险/僵局？</li>
+              <li><strong>选出口</strong>——重试 / 重规划 / 补上下文 / 人工；写进状态机，禁止口头「再试试」。</li>
+              <li><strong>通过则放行</strong>——打 Checkpoint，允许下一步消费；摘要可引用证据 ID。</li>
+            </ol>
+            <div class="contract-template"><code># S3 Reflection 裁定（示意）
+evidence:
+  - spec: auth.session.spec  run:r7  result: FAIL  expect:401 actual:200
+  - probe: GET /me after logout  id:p3  status:200
+  - diff_guard: hash_paths_untouched  ok:true
+decision: enrich_context | replan   # 非「再生成一版方案」
+next: load session cleanup path + retry S3 ReAct (budget=8)
+forbid: llm_self_declare_complete</code></div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 假反思 vs 真裁定</h3>
+            <table class="comparison-table">
+              <tr><th>假反思</th><th>真裁定</th></tr>
+              <tr><td>「再想一版 / 再生成完整修复」</td><td>对照清单 → 选四个出口之一</td></tr>
+              <tr><td>模型说「应该好了」</td><td>probe/test 返回说了算</td></tr>
+              <tr><td>失败原因留在聊天里</td><td>原因码写入状态机，可交接</td></tr>
+              <tr><td>通过与否含糊</td><td>Checkpoint 要么打上，要么明确未完成</td></tr>
+            </table>
+            <div class="tip-box">
+              <strong>干货：</strong>Reflection 的质量 = 证据清单的可追溯性 × 出口的可执行性。下一章若要多角色，审核者做的就是这套裁定——先统一状态与交接格式，再分工。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>没有外部依据的「反思」，只是又一次幻觉彩排。反思 = 收证 → 对照 → 选出口。</div>
+          <hr>
+
+          <h2 id="part-09" data-toc="多角色协议">Part 09 · 多角色协议：先统一状态，再分工</h2>
+          <span class="section-kicker">09 / 分工机制</span>
+          <p class="section-summary">多个聊天窗口 ≠ Multi-Agent。没有 Task ID、状态版本、交接 Schema，只是噪声倍增。先统一状态，再谈分工。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/09-multi-agent.png" alt="Multi-Agent">
+
+          <div class="content-block">
+            <h3>1. 假 Multi-Agent：多开窗口</h3>
+            <p>试点中期，有人建议「一个窗口写登录，一个窗口写登出，一个窗口跑测」。三个对话各有各的 Spec 片段与「进度」，合并时 <code>session.ts</code> 冲突，两边都说自己测绿——状态裂了。</p>
+            <div class="warn-box">
+              <strong>判定：</strong>没有共享 Task 状态的多窗口，不是 Multi-Agent，是并行幻觉。多角色的前提是<strong>同一任务对象、同一版本时钟、同一交接格式</strong>。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 先统一的三件套</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">Task ID</span>
+                <h3>同一任务身份</h3>
+                <p>例如 <code>auth-delivery</code>。所有角色读写的计划、Checkpoint、日志都挂在这个 ID 下。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">状态版本</span>
+                <h3>同一时钟</h3>
+                <p>计划版本、Checkpoint 集合有版本号；角色交接时校验「我基于的版本是否仍是当前」。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">交接 Schema</span>
+                <h3>同一报文</h3>
+                <p>交接必须带：阻塞点、证据 ID、禁区、下一允许动作——不是一段自由聊天。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">写锁</span>
+                <h3>同一文件单写者</h3>
+                <p class="wrong">两个执行同时改 <code>session.ts</code> → 状态必裂。</p>
+                <p class="right">同一时刻对同一路径只授一个执行写权限。</p>
+              </div>
+            </div>
+            <div class="contract-template"><code>handoff:
+  task_id: auth-delivery
+  state_version: 12
+  from: executor
+  to: reviewer
+  checkpoint: guard-401
+  evidence: [run:r7, probe:p3]
+  block: logout still 200
+  forbid: [hash_paths, .env]
+  ask: pass | fail+reason_code</code></div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 认证上的机制分工（不是岗位编制）</h3>
+            <p class="note-meta">角色是运行时职责切分；可以由同一模型不同提示 + 不同权限实现，不必等于四个人</p>
+            <table class="comparison-table">
+              <tr><th>角色</th><th>职责</th><th>交接产出</th><th>权限要点</th></tr>
+              <tr><td><strong>协调</strong></td><td>维护计划与状态版本；触发重规划</td><td>广播 Task 状态</td><td>改计划；不直接 patch 业务文件</td></tr>
+              <tr><td><strong>检索</strong></td><td>拉规范与现行代码，组装依据包</td><td>带来源/版本的上下文包</td><td>只读；不写仓库</td></tr>
+              <tr><td><strong>执行</strong></td><td>限域 patch + 跑测 / 探针</td><td>Diff + 日志 + run-id</td><td>白名单写；单写者锁</td></tr>
+              <tr><td><strong>审核</strong></td><td>对照证据清单裁定（Part 08）</td><td>通过 / 失败 + 原因码</td><td>只读证据；可打回不可偷改 Diff</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 小周试点：S3 上的一轮协作</h3>
+            <ol class="step-list">
+              <li><strong>协调</strong>：确认当前步 = S3，状态版本 = 12，S2 Checkpoint 已绿。</li>
+              <li><strong>检索</strong>：装载 <code>session.ts</code> HEAD + 本轮红测日志入依据包。</li>
+              <li><strong>执行</strong>：持写锁做限域 patch + <code>run_tests</code> / <code>http_probe</code>；交 Diff 与证据 ID。</li>
+              <li><strong>审核</strong>：对照清单裁定；未 401 → 打回 <code>enrich_context</code> 或 <code>replan</code>，不口头「再试试」。</li>
+              <li><strong>协调</strong>：根据原因码更新状态机；必要时显式重规划，版本号 +1。</li>
+            </ol>
+            <div class="diag-flow">
+              <p><strong>开多角色前自检：</strong></p>
+              <ol>
+                <li>是否只有一个 Task ID？</li>
+                <li>状态版本冲突时，是否拒绝过期交接？</li>
+                <li>同一文件是否保证单写者？</li>
+                <li>审核是否只基于证据 ID，而不是「看聊天感觉」？</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 多窗口噪声 vs 真多角色</h3>
+            <table class="comparison-table">
+              <tr><th>多窗口噪声</th><th>真多角色</th></tr>
+              <tr><td>各聊各的 Spec 片段</td><td>共享 Task 对象与计划版本</td></tr>
+              <tr><td>进度靠人肉同步</td><td>Checkpoint + 状态机广播</td></tr>
+              <tr><td>同时改同一文件</td><td>写锁 + 路径白名单</td></tr>
+              <tr><td>「帮我看看合不合理」</td><td>审核按证据清单出原因码</td></tr>
+              <tr><td>失败说不清谁负责</td><td>交接 Schema 可审计追责到角色</td></tr>
+            </table>
+            <div class="tip-box">
+              <strong>干货：</strong>先统一 Task ID、状态版本、交接 Schema，再谈多角色。下一章 Harness：把状态、Checkpoint、重试与交接落成可恢复的执行框架——单角色或多角色都靠它托底。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>多个聊天窗口 ≠ Multi-Agent。先统一状态与交接，再分工；同一文件同一时刻只能一个写者。</div>
+          <hr>
+
+          <h2 id="part-10" data-toc="执行框架">Part 10 · 执行框架：Harness 让认证可恢复</h2>
+          <span class="section-kicker">10 / Harness</span>
+          <p class="section-summary">会想、会调工具只够演示。进入工程要有执行控制框架——失败后能否不从头再来、接手者不靠聊天记录续上？不能，就还没有 Harness。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/10-harness.png" alt="Harness">
+
+          <div class="content-block">
+            <h3>1. 演示能跑 ≠ 工程可恢复</h3>
+            <p>小周补上 Context、Tool、ReAct、Plan、Reflection 之后，单次演示可以修好登出。进程一杀、人一换班、CI 一夜超时——若进度只活在对话里，第二天只能从头聊。Harness 要解决的是：<strong>任务状态外置、可回滚、可交接、可超时。</strong></p>
+            <div class="warn-box">
+              <strong>自检两问：</strong>① 失败后能否回到上一 Checkpoint 续跑，而不是重开聊天？② 接手者只凭 handoff 简报能否接着干，而不翻完整对话？有一问为否，Harness 未立住。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 认证 S3 的一次 Harness 快照</h3>
+            <p class="note-meta">登出失效步骤上的运行时切片；每字段都应可被系统读写，而不是写在聊天里</p>
+            <div class="contract-template"><code>task_id: auth-delivery
+state: verifying
+checkpoint: guard-401（可回滚）
+last_action: apply_patch(session.ts) + run_tests(auth.session)
+observation: GET /me after logout = 200 → FAIL
+next: retry_test | rollback_to_guard | replan
+handoff_brief: 阻塞点、日志路径、禁止动哈希</code></div>
+            <table class="comparison-table">
+              <tr><th>字段</th><th>含义</th><th>没有会怎样</th></tr>
+              <tr><td><code>task_id</code></td><td>任务身份（与多角色共享）</td><td>日志与状态对不上号</td></tr>
+              <tr><td><code>state</code></td><td>当前机态（规划/执行/验证/等待人工…）</td><td>不知该调工具还是该裁定</td></tr>
+              <tr><td><code>checkpoint</code></td><td>可回滚的已确认点</td><td>失败只能整任务重来</td></tr>
+              <tr><td><code>last_action</code> / <code>observation</code></td><td>最近行动与外部观察</td><td>Reflection 无输入</td></tr>
+              <tr><td><code>next</code></td><td>允许的下一出口集合</td><td>模型自由发挥「再生成」</td></tr>
+              <tr><td><code>handoff_brief</code></td><td>交接简报</td><td>换人靠翻聊天</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. Harness 五件套</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">① 任务状态</span>
+                <h3>外置状态机</h3>
+                <p>规划 / 执行 / 验证 / 回流 / 人工闸 / 完成。状态变迁写日志，不靠对话「我们到哪了」。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">② Checkpoint</span>
+                <h3>可回滚点</h3>
+                <p>S2 <code>guard-401</code> 已绿则可回。S3 失败滚回 guard，不擦除 S1/S2。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">③ 超时重试</span>
+                <h3>预算与次数</h3>
+                <p>工具调用有超时；瞬时失败限次重试；超限走 <code>replan</code> 或人工，禁止无限转。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">④⑤ 回滚 · 交接</span>
+                <h3>幂等与简报</h3>
+                <p>写操作尽量幂等、能回则回；交接带阻塞点、证据路径、禁区——对接 Part 09 Schema。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 写操作底线</h3>
+            <ol class="step-list">
+              <li><strong>幂等</strong>——同一 patch / 同一测试选择器，重复执行不制造第二份混乱状态。</li>
+              <li><strong>可审计</strong>——谁在何时对何路径做了何调用，进 task 日志。</li>
+              <li><strong>可超时</strong>——挂死的 runner 必须被 Harness 杀掉并记异常态。</li>
+              <li><strong>能回则回</strong>——优先回到 Checkpoint；不能回的高危写操作，路由到人工闸（下一章）。</li>
+            </ol>
+            <div class="diag-flow">
+              <p><strong>S3 失败时 Harness 允许的 next（示例）：</strong></p>
+              <ol>
+                <li><code>retry_test</code>——runner 超时类瞬时失败</li>
+                <li><code>rollback_to_guard</code>——patch 有害或状态脏了</li>
+                <li><code>replan</code>——清理策略假设错误</li>
+                <li><code>human_gate</code>——要动生产配置 / 预算用尽</li>
+              </ol>
+              <p style="margin:.6rem 0 0">不在集合内的动作（如「再生成完整认证方案」）一律拒绝。</p>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 有无 Harness 对照</h3>
+            <table class="comparison-table">
+              <tr><th>无 Harness（演示）</th><th>有 Harness（工程）</th></tr>
+              <tr><td>进度在聊天窗口</td><td>进度在 task 状态 + Checkpoint</td></tr>
+              <tr><td>失败后重开对话</td><td>从 guard-401 续跑或按 next 出口走</td></tr>
+              <tr><td>换人翻完整记录</td><td>handoff_brief 即可接手</td></tr>
+              <tr><td>工具挂死靠人发现</td><td>超时进入异常态并可选降级</td></tr>
+              <tr><td>写操作不可追溯</td><td>每次调用可审计、可限域回滚</td></tr>
+            </table>
+            <div class="tip-box">
+              <strong>干货：</strong>Harness 不替代推理，它<strong>约束执行</strong>。下一章风险路由：不同请求走不同控制强度——简单只读可以轻量，改生产必须人工审批前置。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>Harness 五件套 = 任务状态 · Checkpoint · 超时重试 · 幂等回滚 · 日志交接。可恢复，才算进入工程。</div>
+          <hr>
+
+          <h2 id="part-11" data-toc="风险路由">Part 11 · 风险路由：别让所有请求走同一条路</h2>
+          <span class="section-kicker">11 / 路由</span>
+          <p class="section-summary">风险决定控制强度。策略表可配置，别靠模型「感觉该不该自动干」。路由必须前置——出了事再补审批，是事故流程，不是架构。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/11-routing.png" alt="Dynamic Routing">
+
+          <div class="content-block">
+            <h3>1. 为何不能一条路走到底</h3>
+            <p>小周若把「解释错误码」和「合主干 / 改生产会话配置」丢进同一条自动执行管道：要么为了安全把简单问答也卡死，要么为了爽快把高危写操作也放行。Harness 管可恢复；路由管<strong>这条请求该用多强的控制</strong>。</p>
+            <div class="warn-box">
+              <strong>错误默认：</strong>让模型自己判断「这次要不要人工审批」。风险档位与路径必须是<strong>可配置策略表</strong>，在调用工具之前就定好，而不是生成到一半再「感觉」一下。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 五条路径速查</h3>
+            <table class="comparison-table">
+              <tr><th>路径</th><th>配置要点</th><th>认证例</th><th>控制强度</th></tr>
+              <tr><td><strong>简单</strong></td><td>轻量模型 + 只读工具</td><td>解释一个错误码</td><td>低：可全自动</td></tr>
+              <tr><td><strong>复杂</strong></td><td>强推理 + 多资料依据包</td><td>会话泄漏根因分析</td><td>中：自动但预算更紧</td></tr>
+              <tr><td><strong>敏感</strong></td><td>隔离上下文、脱敏</td><td>含用户标识的策略问答</td><td>中高：禁外泄、限工具</td></tr>
+              <tr><td><strong>高危</strong></td><td>人工审批 + 受控执行</td><td>改生产配置 / 合主干</td><td>高：先批后跑</td></tr>
+              <tr><td><strong>降级</strong></td><td>工具不可用转人工</td><td>CI 挂了人工跑测</td><td>强制：保交付不断</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 路径卡片（怎么配）</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">简单 / 复杂</span>
+                <h3>自动可走通</h3>
+                <p>只读解释、根因分析：可自动；复杂路径加强依据包与步数预算，仍可不经人工闸。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">敏感</span>
+                <h3>隔离再回答</h3>
+                <p>用户标识、会话 cookie 片段：进隔离上下文，禁止写入共享日志明文，工具白名单收窄。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">高危</span>
+                <h3>先批后跑</h3>
+                <p>合主干、改生产配置、动权限：Harness 停在 <code>human_gate</code>，审批通过才放开对应 Tool。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">降级</span>
+                <h3>工具挂了不装死</h3>
+                <p>CI / runner 不可用：路由到人工跑测或只读说明路径，而不是假装测绿。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 路由如何前置（可落地）</h3>
+            <ol class="step-list">
+              <li><strong>入站分类</strong>——按意图/资源/动作标签打档（简单·复杂·敏感·高危），规则优先于模型自评。</li>
+              <li><strong>选路径配置</strong>——模型档位、工具 ACL、是否人工闸、预算上限从策略表取出。</li>
+              <li><strong>再进 Harness</strong>——带着路径标签跑状态机；高危步的 <code>next</code> 不含「直接 apply_patch 生产」。</li>
+              <li><strong>运行中可升级不可私自降级</strong>——发现要动禁区/合主干，只允许升到高危+人工；禁止执行角色自行降到「简单自动」。</li>
+            </ol>
+            <div class="contract-template"><code>route_table (示意):
+  explain_error_code     → simple   (readonly, light_model)
+  rootcause_session_leak → complex  (strong_model, enrich_context)
+  qa_with_user_id        → sensitive(isolated_ctx, redact)
+  merge_main | prod_cfg  → highrisk (human_gate_before_tools)
+  ci_unavailable         → degrade  (human_test | readonly_explain)
+
+# 入站：改生产会话时长
+classify: highrisk
+gate: human_approve
+after_approve: allow apply_patch(prod-config) within window
+deny_if: model_says "我自己看着办"</code></div>
+            <div class="diag-flow">
+              <p><strong>路由自检：</strong></p>
+              <ol>
+                <li>高危动作是否在<strong>调工具前</strong>就进入人工闸？</li>
+                <li>路径是否来自策略表，而非模型临场发挥？</li>
+                <li>降级路径是否避免「工具失败却宣称完成」？</li>
+                <li>敏感数据是否与普通任务上下文隔离？</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 一条路 vs 分路径</h3>
+            <table class="comparison-table">
+              <tr><th>一条路走到底</th><th>风险路由</th></tr>
+              <tr><td>解释错误码也要人工批</td><td>简单路径全自动，体验与成本合理</td></tr>
+              <tr><td>合主干与只读问答同权</td><td>高危先批后跑，事故面可控</td></tr>
+              <tr><td>CI 挂了仍让模型「宣布测过」</td><td>降级转人工，验证不撒谎</td></tr>
+              <tr><td>出了事再补审批</td><td>路由前置，审批在架构里</td></tr>
+            </table>
+            <div class="tip-box">
+              <strong>干货：</strong>路由前置。出了事再补审批，是事故流程，不是架构。下一章：路径跑通后，把翻车经验沉淀成可回归资产——但演进必须受评估与权限约束。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>风险决定控制强度。策略表路由前置；模型不负责临场发明该不该自动干。</div>
+          <hr>
+
+          <h2 id="part-12" data-toc="受控演进">Part 12 · 受控演进：把翻车写成资产</h2>
+          <span class="section-kicker">12 / Evolution</span>
+          <p class="section-summary">经验可以沉淀；无评估、无权限的自动改策略，不行。把翻车写成可执行资产，系统才会越跑越稳——否则「自进化」就是自毁开关。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/12-evolution.png" alt="Self-Evolution">
+
+          <div class="content-block">
+            <h3>1. 五步环最后一截：别让经验死在聊天里</h3>
+            <p>小周修好登出后 <code>/me</code> 401，若经过只留在对话里，下一周同类任务仍会再踩「清理未调用」。闭环地图里的「经验沉淀」，要把翻车变成<strong>系统资产</strong>：回归用例、规则、评估集——而不是模型夜里私自改生产默认值。</p>
+            <table class="comparison-table">
+              <tr><th>时间</th><th>若只留在聊天</th><th>写成资产之后</th></tr>
+              <tr><td>本周 T04 翻车</td><td>「下次记得清 session」</td><td>抽出失败模式 + 提案用例/规则</td></tr>
+              <tr><td>合入前</td><td>无人复查是否还记得</td><td>过评估门槛 + 人工发布</td></tr>
+              <tr><td>下周同类任务</td><td>再踩同一坑</td><td>CI / ACL 自动拦住</td></tr>
+              <tr><td>规则误伤</td><td>不知道改过什么</td><td>回滚到上一资产版本</td></tr>
+            </table>
+            <div class="warn-box">
+              <strong>假演进：</strong>Agent 无人审计地改了「生产默认会话时长」或路由策略。那不叫进化，叫失控写操作——应走高危路径 + 治理，而不是 Evolution 旁路。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 认证试点：三类资产清单</h3>
+            <p class="note-meta">资产 = 可执行、可版本化、可回滚；不是自然语言备忘</p>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">回归用例</span>
+                <h3>可自动复查</h3>
+                <p class="right">登出后 <code>/me</code> 必须 401；错误体不得含绝对路径。进 CI，下次改动自动挡。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">规则</span>
+                <h3>默认禁区</h3>
+                <p class="right">auth 任务默认禁止改哈希相关文件；写进 Tool ACL / 路由表，不只写在备忘录。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">评估集</span>
+                <h3>改策略前先测</h3>
+                <p class="right">错误体泄密、会话清理遗漏等用例集；策略或提示变更必须过评估门槛。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">不沉淀</span>
+                <h3>聊天里的「教训」</h3>
+                <p class="wrong">「下次注意清 session」只留在对话 → 换人、换会话即丢失。</p>
+              </div>
+            </div>
+            <table class="comparison-table">
+              <tr><th>资产类型</th><th>落点</th><th>谁消费</th><th>失败时</th></tr>
+              <tr><td>回归用例</td><td>测试库 / CI</td><td>Execute + 审核</td><td>红则不准宣称完成</td></tr>
+              <tr><td>规则 / ACL</td><td>Tool 权限与路由表</td><td>Harness 调工具前</td><td>越权直接拒绝</td></tr>
+              <tr><td>评估集</td><td>演进发布门禁</td><td>Evolution 流水线</td><td>未达标不准 publish</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 受控演进流水线</h3>
+            <ol class="step-list">
+              <li><strong>留证归档</strong>——从 Harness 日志抽出失败模式（症状、根因、出口、task-id）。</li>
+              <li><strong>提案资产</strong>——生成候选回归用例 / 规则 / 评估项，标注来源，状态为 draft。</li>
+              <li><strong>评估门槛</strong>——在评估集上跑；未达门槛不准合入默认策略。</li>
+              <li><strong>权限发布</strong>——合入规则表 / ACL / 用例库走审批（对接高危路由）。</li>
+              <li><strong>可回滚</strong>——资产版本化；新规则误杀或漏拦，能退回上一版。</li>
+            </ol>
+            <div class="contract-template"><code># 受控演进提案（示意）
+proposal_id: evo-auth-logout-401
+from_task: auth-delivery#r7
+symptom: logout /me → 200
+root_cause: cleanup not called on logout path
+assets:
+  - type: regression_test
+    name: logout_me_must_401
+  - type: rule
+    name: auth_forbid_hash_paths
+  - type: eval_case
+    name: error_body_no_abspath
+gate:
+  eval_suite: auth-smoke
+  min_pass_rate: 1.0
+  approver: human
+publish: ruleset@v3
+rollback: ruleset@v2
+forbid: auto_edit_prod_session_ttl</code></div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 真沉淀 vs 假自进化</h3>
+            <table class="comparison-table">
+              <tr><th>真沉淀（资产）</th><th>假自进化（失控）</th></tr>
+              <tr><td>回归用例进 CI</td><td>只在聊天里说「下次记得」</td></tr>
+              <tr><td>规则进 ACL / 路由表，可审计</td><td>模型临场「优化」生产默认值</td></tr>
+              <tr><td>评估集挡策略变更</td><td>无评估、夜里自动改提示/策略</td></tr>
+              <tr><td>版本化 + 可回滚</td><td>改完无法退回，事故面扩大</td></tr>
+              <tr><td>发布经权限与人工闸</td><td>执行角色绕过高危路由</td></tr>
+            </table>
+            <div class="diag-flow">
+              <p><strong>演进自检（发布前全过）：</strong></p>
+              <ol>
+                <li>是否落成<strong>可执行资产</strong>（用例/规则/评估），而非自然语言备忘？</li>
+                <li>合入前是否过评估门槛？</li>
+                <li>失败能否回滚到上一资产版本？</li>
+                <li>是否有人/角色对发布负责并可被审计追到？</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 与前后章的衔接</h3>
+            <p>沉淀补的是五步环最后一环；它不取代治理。权限、审计、人工闸（下一章）决定<strong>谁能发布资产、谁能改高危配置</strong>。Evolution 只提案与版本化；Governance 管放行与追责。</p>
+            <div class="callout">
+              <strong>一句话：</strong>把翻车写成资产，系统才会越跑越稳；把演进写成无人看守的自动改配置，系统只会越跑越险。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>受控演进 = 留证 → 提案资产 → 评估门槛 → 权限发布 → 可回滚。无评估无权限的「自进化」，就是自毁开关。</div>
+          <hr>
+
+          <h2 id="part-13" data-toc="运行治理">Part 13 · 运行治理：权限、审计与人工闸</h2>
+          <span class="section-kicker">13 / Governance</span>
+          <p class="section-summary">能力越强，边界越要硬。治理不是附录，是闭环的一部分——越权操作若追不到「谁、何时、凭什么」，就还没治理。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/13-governance.png" alt="治理与安全">
+
+          <div class="content-block">
+            <h3>1. 为何机制齐了仍要治理</h3>
+            <p>Context、Tool、Harness、路由能让认证 Agent「跑得起来」。治理回答另一问：<strong>跑出界时谁拦、拦了能否追溯、高危是否必须过人。</strong>小周试点里，若执行角色能静默改哈希或合主干，前面所有禁区声明都只是文案。</p>
+            <div class="warn-box">
+              <strong>治理自检一句：</strong>越权操作能否追到「谁、何时、凭什么授权」？不能，就还没治理——只有演示级能力栈。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 四块硬边界</h3>
+            <div class="deliverables">
+              <div class="deliverable"><strong>最小权限</strong>执行角色只能碰 auth 路径</div>
+              <div class="deliverable"><strong>操作审计</strong>每次 patch/测试可追</div>
+              <div class="deliverable"><strong>人工闸</strong>合主干、外发、权限变更</div>
+              <div class="deliverable"><strong>可撤回</strong>回到 Checkpoint</div>
+            </div>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">最小权限</span>
+                <h3>角色 × 路径 × 动作</h3>
+                <p>检索只读；执行限域写 auth；协调可改计划不可偷写业务文件；审核只读证据。哈希 / <code>.env</code> / 生产配置默认拒绝。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">操作审计</span>
+                <h3>每次调用可追</h3>
+                <p>谁（角色/身份）、何时、调了何工具、参数摘要、返回四态、所属 task-id——进不可篡改日志。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">人工闸</span>
+                <h3>高危先批后跑</h3>
+                <p>合主干、外发、权限变更、改生产配置：Harness 停在 <code>human_gate</code>，审批通过才放开对应 Tool（对接路由高危路径）。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">可撤回</span>
+                <h3>回到 Checkpoint</h3>
+                <p>越权或有害 patch 被审计打回后，状态滚回上一 Checkpoint；资产发布可退版本（Part 12）。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 认证合 PR 前的治理走读</h3>
+            <ol class="step-list">
+              <li><strong>执行</strong>交出 Diff + 测试/探针证据 ID；写锁范围内仅 auth 路径。</li>
+              <li><strong>审计</strong>自动扫描：是否触及哈希禁区、是否缺少 run-id、是否绕过 Schema。</li>
+              <li><strong>审核</strong>对照证据清单裁定（Part 08）；未 401 / 缺证 → 打回，原因码入库。</li>
+              <li><strong>人工闸</strong>（若合主干）：人批通过后，才允许 merge 类工具；拒绝则保持分支隔离。</li>
+              <li><strong>可撤回</strong>：已合并前发现问题 → 回 Checkpoint；规则误发 → 回滚 ruleset 版本。</li>
+            </ol>
+            <div class="contract-template"><code># 审计打回示例（越权改哈希）
+audit_event:
+  task_id: auth-delivery
+  actor: role:executor
+  tool: apply_patch
+  target: src/crypto/password_hash.ts
+  decision: DENY
+  reason_code: FORBIDDEN_PATH
+  policy: auth_forbid_hash_paths@v3
+  next: rollback_to_checkpoint(guard-401)
+# 合主干
+merge_main:
+  requires: human_gate.approved
+  evidence: [run:r9 green, probe:p5 401, audit:clean]
+  else: block</code></div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 无治理 vs 有治理</h3>
+            <table class="comparison-table">
+              <tr><th>无治理</th><th>有治理</th></tr>
+              <tr><td>禁区只写在 Prompt 里</td><td>ACL + 策略在调工具前强制执行</td></tr>
+              <tr><td>改了什么靠聊天回忆</td><td>每次调用可审计追责</td></tr>
+              <tr><td>合主干与修 session 同权自动</td><td>高危人工闸前置</td></tr>
+              <tr><td>越权后无法回滚</td><td>Checkpoint / 资产版本可撤回</td></tr>
+              <tr><td>演进随便改默认策略</td><td>发布经权限与评估（Part 12）</td></tr>
+            </table>
+            <div class="diag-flow">
+              <p><strong>治理四问（全「是」才算立住）：</strong></p>
+              <ol>
+                <li>执行角色是否<strong>物理上</strong>调不了禁区路径（而不只是「被提醒别调」）？</li>
+                <li>任意一次 patch/测试能否追到谁、何时、凭什么？</li>
+                <li>合主干 / 改生产是否必须经过人工闸？</li>
+                <li>打回或事故后能否回到 Checkpoint / 上一资产版本？</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 治理在闭环上的位置</h3>
+            <p>治理横切每一跳：路由决定是否进闸，Harness 执行停与放，审计记录每次 Tool，审核用证据裁定，演进发布也要过同一套权限。下一章把各层拼成一张图——缺治理，高危处断开的不是「智能」，是<strong>安全边界</strong>。</p>
+            <div class="tip-box">
+              <strong>干货：</strong>能力越强，边界越要硬。治理不是上线后补的合规附件，而是认证 Agent 能持续跑的前提。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>最小权限 · 操作审计 · 人工闸 · 可撤回。追不到「谁、何时、凭什么」，就还没治理。</div>
+          <hr>
+
+          <h2 id="part-14" data-toc="系统拼装">Part 14 · 系统拼装：能持续跑的认证 Agent</h2>
+          <span class="section-kicker">14 / 整合</span>
+          <p class="section-summary">各层都有了，才叫系统。缺一层，闭环在对应位置断开。机制地图 + 失败→缺层对照，是以后分诊 Agent 故障的两张底图。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/14-architecture.png" alt="架构整合">
+
+          <div class="content-block">
+            <h3>1. 拼装目标：从会说话到能持续跑</h3>
+            <p>小周第一版是对话框里的「方案生成器」。本篇各层补齐后，认证交付 Agent 应能：装载 Spec 与现行依据 → 按计划执行 → 工具真改真测 → 证据裁定 → 失败回流或沉淀 → 高危过人闸——并且进程重启后仍可从 Checkpoint 续跑。</p>
+            <div class="callout">
+              <strong>拼装不是堆名词：</strong>每层都要挂在五步环上；用手指描一遍「验证失败回流」，描不出来，系统就还没闭环。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 层落点：认证系统里各在哪</h3>
+            <table class="comparison-table">
+              <tr><th>层</th><th>认证系统里落在哪</th><th>缺了会怎样</th><th>本篇章节</th></tr>
+              <tr><td>LLM</td><td>拆步、填参、读日志</td><td>无智能</td><td>Part 03</td></tr>
+              <tr><td>Context</td><td>契约 + 代码 + 日志依据包</td><td>瞎猜、踩禁区</td><td>Part 04</td></tr>
+              <tr><td>Tool</td><td>读改测探受控接口</td><td>只会说话</td><td>Part 05</td></tr>
+              <tr><td>ReAct / Plan</td><td>局部排障 + 全局计划对象</td><td>漂或空转</td><td>Part 06–07</td></tr>
+              <tr><td>Reflection</td><td>证据清单裁定出口</td><td>假完成</td><td>Part 08</td></tr>
+              <tr><td>Multi-Agent</td><td>统一状态后的职责切分</td><td>多窗口噪声 / 状态裂</td><td>Part 09</td></tr>
+              <tr><td>Harness</td><td>状态 / Checkpoint / 交接</td><td>演示级，不可恢复</td><td>Part 10</td></tr>
+              <tr><td>Routing</td><td>按风险选控制强度</td><td>过严或过松</td><td>Part 11</td></tr>
+              <tr><td>Evolution</td><td>翻车→可回归资产</td><td>重复踩坑 / 假自进化</td><td>Part 12</td></tr>
+              <tr><td>Governance</td><td>权限、审计、人工闸</td><td>事故与不可追责</td><td>Part 13</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 失败 → 缺层对照（分诊底图）</h3>
+            <p class="note-meta">现场一红，先对层，再补层——与开篇四个缺口同构，只是落在完整栈上</p>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">事实类</span>
+                <h3>不知真值 / 瞎猜</h3>
+                <p>缺 Context 或探针 Tool；补依据包与 <code>http_probe</code> / <code>read_file</code>。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">行动类</span>
+                <h3>只会建议</h3>
+                <p>缺 Tool 契约或权限过死/过松；补受控双手，禁全能 shell。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">状态类</span>
+                <h3>不知跑到哪 / 难续</h3>
+                <p>缺 Plan 对象或 Harness Checkpoint；进度外置，失败可回滚。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">验证 / 安全类</span>
+                <h3>假完成或事故</h3>
+                <p>缺 Reflection、Routing 或 Governance；证据裁定 + 高危闸 + 审计。</p>
+              </div>
+            </div>
+            <table class="comparison-table">
+              <tr><th>症状</th><th>先查哪层</th><th>典型补法</th></tr>
+              <tr><td>自称 401，实测 200</td><td>Reflection / Tool</td><td>强制探针证据，禁止自述完成</td></tr>
+              <tr><td>方案对，仓库未改</td><td>Tool</td><td>接 apply_patch + 审计</td></tr>
+              <tr><td>多轮后进度丢失</td><td>Harness / Plan</td><td>Checkpoint + 状态机</td></tr>
+              <tr><td>哈希被「优化」</td><td>Context / Governance</td><td>禁区 ACL + 审计打回</td></tr>
+              <tr><td>合主干无审批</td><td>Routing / 治理</td><td>高危路径人工闸前置</td></tr>
+              <tr><td>同一坑每周重踩</td><td>Evolution</td><td>回归用例与规则资产化</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 小周 v0 → 可持续跑（对照）</h3>
+            <table class="comparison-table">
+              <tr><th></th><th>对话框 v0</th><th>拼装后的认证 Agent</th></tr>
+              <tr><td>输入</td><td>Spec 粘贴堆</td><td>受控依据包 + 计划对象</td></tr>
+              <tr><td>执行</td><td>生成长文方案</td><td>Tool 限域读写测探</td></tr>
+              <tr><td>失败</td><td>再生成一版</td><td>Reflection 选出口 + Harness 回流</td></tr>
+              <tr><td>进度</td><td>活在聊天里</td><td>task 状态 + Checkpoint</td></tr>
+              <tr><td>高危</td><td>与只读同权</td><td>路由 + 人工闸 + 审计</td></tr>
+              <tr><td>经验</td><td>对话坟墓</td><td>受控演进资产</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>5. 闭环自检（拼装验收）</h3>
+            <div class="diag-flow">
+              <p><strong>在架构图上描通以下路径，描不通则未拼完：</strong></p>
+              <ol>
+                <li>目标进入 → 依据装载 → 计划步进 → 工具行动</li>
+                <li>观察返回 → 证据裁定 → <strong>验证失败回流</strong>（补上下文 / 重试 / 重规划 / 人工）</li>
+                <li>验证通过 → Checkpoint → 下一步或交付摘要</li>
+                <li>高危动作 → 路由高危 → 人工闸 → 审计记录</li>
+                <li>典型翻车 → 演进提案 → 评估发布 → 可回滚资产</li>
+              </ol>
+            </div>
+            <div class="tip-box">
+              <strong>干货：</strong>机制地图告诉你「有什么」；失败→缺层对照告诉你「坏了补哪」。两张底图够你分诊大多数「Agent 不闭环」。下一节只列通往产品的问题——规格与验收是 03 篇的事。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>各层挂上五步环，才叫系统。描得出「验证失败回流」，才叫能持续跑的认证 Agent。</div>
+          <hr>
+
+          <h2 id="part-bridge" data-toc="通往产品">过渡 · 机制到产品：先问清这张清单</h2>
+          <span class="section-kicker">过渡</span>
+          <p class="section-summary">吃透机制之后，下一问是：如何封成可验收的单个产品？本页只列问题，不填设计卡——规格与验收是 03 篇的事。</p>
+          <img class="chapter-image" src="/images/llm-agent-principles/15-practical-design.png" alt="通往 03">
+
+          <div class="content-block">
+            <h3>1. 为何要「先问清」再做成产品</h3>
+            <p>小周现在有一张能跑的机制地图：缺口、五步环、依据包、工具、计划、裁定、Harness、路由、演进、治理。若直接跳进「做个认证 Agent 产品」而不把机制翻译成<strong>用户可感知的目标与验收</strong>，产品仍会变成又一个对话框外壳。</p>
+            <div class="warn-box">
+              <strong>边界：</strong>本过渡章不写 Job-to-be-Done、不填设计卡、不定定价与排期。只把「机制名词」换成「产品必须回答的问题」，交给
+              <a href="/2026/08/07/ai-agent-engineering/">03 · 做成 Agent 产品</a>。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 机制 → 产品问题总表</h3>
+            <table class="comparison-table">
+              <tr><th>本篇机制</th><th>产品侧要回答（→ 03）</th></tr>
+              <tr><td>目标 / Context</td><td>用户目标与成功标准如何写成产品契约？</td></tr>
+              <tr><td>Plan / Tool</td><td>规划与工具能力如何规格化、对用户暴露到哪一层？</td></tr>
+              <tr><td>Harness / Reflection</td><td>状态恢复与验证如何对用户可见、可申诉？</td></tr>
+              <tr><td>Routing / Governance</td><td>权限与上线闸门如何成为产品约束而非后台彩蛋？</td></tr>
+              <tr><td>Evolution</td><td>产品如何吸收失败案例而不变成无人改配置？</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 认证场景下的问题清单（示例）</h3>
+            <p class="note-meta">仍是问题，不是答案；用来开会对齐，不是用来直接开工写 UI</p>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">契约</span>
+                <h3>谁在什么情况下算成功？</h3>
+                <p>运营 / 研发 / 平台：各自眼里的「认证 Agent 做完了」是否同一句可否决验收？</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">能力边界</span>
+                <h3>产品承诺改什么、不改什么？</h3>
+                <p>是否允许自动合主干？哈希禁区是否对用户可见为「能力外」？</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">可见性</span>
+                <h3>进度与证据怎么展示？</h3>
+                <p>Checkpoint、红测、探针结果是否进产品 UI / 通知，还是只埋在日志？</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">闸门</span>
+                <h3>谁批、批什么、超时怎么办？</h3>
+                <p>人工闸的角色、SLA、拒绝后的产品状态机如何定义？</p>
+              </div>
+            </div>
+            <ol class="step-list">
+              <li>用户是谁？一次成功交付帮他少做哪几步不可跳过的人肉劳动？</li>
+              <li>成功标准能否写成对外契约（类似 Spec Acceptance），而不是「体验更好」？</li>
+              <li>工具与权限边界如何写成产品能力清单与「明确不做」？</li>
+              <li>失败时用户看到什么？回流 / 人工接管在产品里叫什么状态？</li>
+              <li>审计与合规要求是否进入上线门槛，而非上线后补？</li>
+            </ol>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 带问题进 03，不带机制名词堆砌</h3>
+            <table class="comparison-table">
+              <tr><th>别这样做</th><th>带进 03 的做法</th></tr>
+              <tr><td>把 ReAct/Harness 名词塞进 PRD 当卖点</td><td>改成用户可感知的能力与验收句</td></tr>
+              <tr><td>未回答「谁算成功」就画架构</td><td>先用上表问题对齐契约，再谈封装</td></tr>
+              <tr><td>把治理留到上线后</td><td>把人工闸与权限写成产品约束问题</td></tr>
+            </table>
+            <div class="tip-box">
+              <strong>干货：</strong>机制名可以收进抽屉；产品规格与验收是下一篇的事。问题清单问不清，做成的「产品」仍是会说话的外壳。
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>只列问题，不填设计卡。带着「机制→产品」问题清单进入 03，才谈得上可验收的单个 Agent 产品。</div>
+          <hr>
+
+          <h2 id="closing" data-toc="结语">结语 · 认证 Agent 为何终于能闭环</h2>
+          <span class="section-kicker">收束</span>
+          <p class="section-summary">从「会写一段方案」到「能跑完认证并证明」，靠的不是更长的 Prompt，而是一层层补齐运行时：眼、手、记性、考官、架子与闸门。</p>
+
+          <div class="content-block">
+            <h3>1. 案例收束：小周那天后来怎样</h3>
+            <p>第一版把 Spec 丢进对话框，十分钟出完整方案与「伪测通过」——一接仓库与 CI，事实、行动、状态、验证四个缺口同时爆。停手之后，不再换模型硬刚，而是按本篇路径补机制：五步环定形状，Context/Tool 给眼和手，ReAct/Plan 分工探索与托底，Reflection 回证据，Harness 保可恢复，Routing/治理管风险，Evolution 把翻车写成资产。</p>
+            <table class="comparison-table">
+              <tr><th></th><th>对话框 v0</th><th>能闭环时</th></tr>
+              <tr><td>完成声明</td><td>模型自述「应该 401」</td><td>探针 + 测试证据裁定</td></tr>
+              <tr><td>改仓库</td><td>只会建议</td><td>受控 Tool 限域 patch</td></tr>
+              <tr><td>失败后</td><td>再生成一整版</td><td>回流出口写进状态机</td></tr>
+              <tr><td>进度</td><td>活在聊天窗口</td><td>Checkpoint 可续跑</td></tr>
+              <tr><td>高危</td><td>与只读同权</td><td>路由 + 人工闸 + 审计</td></tr>
+            </table>
+            <div class="callout">
+              <strong>终于能闭环的原因：</strong>不是模型突然「懂认证了」，而是系统不再把语言智能误当成整机——缺层被显式补上，验证失败在图上有边可走。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 为何「会说话」不够，「能闭环」要这些层</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">四个缺口</span>
+                <h3>入口诊断</h3>
+                <p>事实 · 行动 · 状态 · 验证——裸对话交不出认证的根因地图。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">五步环</span>
+                <h3>运行形状</h3>
+                <p>目标→规划→行动→验证→沉淀；失败必须回流，禁止感觉收工。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">眼与手</span>
+                <h3>Context · Tool</h3>
+                <p>依据包可治理；感知与行动有契约、权限与返回四态。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">架子与闸</span>
+                <h3>Harness · 路由 · 治理</h3>
+                <p>可恢复、按风险分路径、越权可追可拦——持续跑的前提。</p>
+              </div>
+            </div>
+            <div class="note-take"><strong>带走三样：</strong>机制地图 · 失败→缺层对照 · 通往产品的问题清单。</div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 全文路径（回看用）</h3>
+            <div class="diag-flow">
+              <ol>
+                <li><strong>开篇–01</strong>：真实案例 → 四个缺口</li>
+                <li><strong>02–05</strong>：闭环地图 → 推理内核 → 依据包 → 受控工具</li>
+                <li><strong>06–08</strong>：ReAct 排障 → 计划对象 → 证据裁定</li>
+                <li><strong>09–11</strong>：多角色协议 → Harness → 风险路由</li>
+                <li><strong>12–14</strong>：受控演进 → 运行治理 → 系统拼装</li>
+                <li><strong>过渡</strong>：机制→产品问题清单（不填设计卡）</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 本篇边界与上下衔接</h3>
+            <p>本篇停在<strong>系统理解 / 机制层</strong>：吃透 Agent 缺什么、补哪层、边界在哪。人怎么用 AI 交付，见上一篇；如何封成可验收的单个产品，见下一篇。</p>
+            <table class="comparison-table">
+              <tr><th>层</th><th>篇</th><th>一句话</th></tr>
+              <tr><td>用法</td><td><a href="/2026/08/06/ai-programming-engineering/">01 · 用好 AI 编程</a></td><td>契约 · 证据 · 工序 · 回流</td></tr>
+              <tr><td>机制</td><td>本篇 02</td><td>从会说话到能闭环</td></tr>
+              <tr><td>产品</td><td><a href="/2026/08/07/ai-agent-engineering/">03 · 做成 Agent 产品</a></td><td>从目标到可验收</td></tr>
+            </table>
+            <div class="tip-box">
+              <strong>下一步：</strong>带着过渡章的问题清单，把机制封成可验收产品 →
+              <a href="/2026/08/07/ai-agent-engineering/">03 · 做成 Agent 产品：从目标到可验收</a>
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>全文带走：</strong>会说话不是闭环。补齐眼、手、记性、考官、架子与闸门——描得出「验证失败回流」，认证 Agent 才算终于能闭环。</div>
+          <p><em>Last updated: 2026-08-07 · 结语与全文结构修订</em></p>
+
+          <div class="chapter-nav">
+            <a href="/2026/08/06/ai-programming-engineering/" class="chapter-prev">← 用好 AI 编程</a>
+            <a href="/2026/08/07/ai-agent-engineering/" class="chapter-next">做成 Agent 产品 →</a>
+          </div>
+        </div>
+      </article>
+    </div></div>
+    <div class="toggle sidebar-toggle">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active">文章目录</li>
+          <li class="sidebar-nav-overview">站点概览</li>
+        </ul>
+        <div class="post-toc-wrap sidebar-panel"></div>
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author motion-element">
+            <img class="site-author-image" alt="JiFuLian" src="/uploads/avatar.png">
+            <p class="site-author-name">JiFuLian</p>
+            <div class="site-description">全栈开发者 · AI Agent 研究员</div>
+          </div>
+          <div class="site-state-wrap motion-element"><nav class="site-state">
+            <div class="site-state-item"><a href="/archives/"><span class="site-state-item-count">87</span><span class="site-state-item-name">文章</span></a></div>
+            <div class="site-state-item"><a href="/categories/"><span class="site-state-item-count">4</span><span class="site-state-item-name">分类</span></a></div>
+          </nav></div>
+          <div class="links-of-author motion-element"><span class="links-of-author-item"><a href="https://github.com/Lianjifu" title="GitHub" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a></span></div>
+        </div>
+      </div>
+    </aside>
+    <div id="sidebar-dimmer"></div>
+    </div></main>
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 – 2026 <span class="author">JiFuLian</span></div>
+      </div>
+    </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=8"></script>
+</body>
+</html>

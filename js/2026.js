@@ -14,18 +14,24 @@
   var article = document.querySelector('.post-body');
   if (!tocWrap || !article) return;
 
-  var headings = article.querySelectorAll('h2, h3, h4');
+  // data-toc-mode="h2" → only top-level sections in sidebar (best for long posts)
+  var tocMode = (article.getAttribute('data-toc-mode') || '').toLowerCase();
+  var selector = tocMode === 'h2' ? 'h2' : 'h2, h3, h4';
+  var headings = article.querySelectorAll(selector);
   if (headings.length === 0) return;
 
   var tocItems = [];
 
-  // Collect heading data
+  // Collect heading data (data-toc = short sidebar label; data-toc-skip = exclude)
   headings.forEach(function(h) {
     if (!h.id) return;
-    var level = parseInt(h.tagName[1]);
-    var text = h.textContent.trim();
+    if (h.hasAttribute('data-toc-skip')) return;
+    var level = parseInt(h.tagName[1], 10);
+    var text = (h.getAttribute('data-toc') || h.textContent || '').trim();
+    if (!text) return;
     tocItems.push({ level: level, id: h.id, text: text, el: h });
   });
+  if (tocItems.length === 0) return;
 
   // Assign sequential section numbers (e.g. 1, 1.1, 1.1.1)
   var counters = [0, 0, 0, 0];
@@ -62,7 +68,7 @@
 
       html += '<li class="nav-item nav-level-' + item.level + (hasChildren ? ' has-child' : '') + '">' +
         '<a class="nav-link" href="#' + item.id + '">' +
-        '<span class="toc-num">' + item.num + '</span>' +
+        (tocMode === 'h2' ? '' : '<span class="toc-num">' + item.num + '</span>') +
         '<span class="nav-text">' + item.text + '</span></a>';
 
       var children = [];
@@ -83,6 +89,30 @@
 
   var tocHtml = '<ol class="nav">' + renderTOC(tocItems, 1) + '</ol>';
   tocWrap.innerHTML = '<div class="post-toc motion-element">' + tocHtml + '</div>';
+  if (tocMode === 'h2') {
+    document.body.classList.add('toc-compact');
+  }
+
+  // NexT boots before this script fills .post-toc, so TOC panel stays display:none.
+  // Activate 文章目录 panel now that TOC exists.
+  var overviewWrap = document.querySelector('.site-overview-wrap');
+  var tocNav = document.querySelector('.sidebar-nav-toc');
+  var overviewNav = document.querySelector('.sidebar-nav-overview');
+  var sidebarNav = document.querySelector('.sidebar-nav');
+  if (sidebarNav) {
+    sidebarNav.style.display = '';
+    sidebarNav.classList.add('motion-element');
+  }
+  tocWrap.classList.add('sidebar-panel-active');
+  tocWrap.style.opacity = '1';
+  if (overviewWrap) {
+    overviewWrap.classList.remove('sidebar-panel-active');
+  }
+  if (tocNav) tocNav.classList.add('sidebar-nav-active');
+  if (overviewNav) overviewNav.classList.remove('sidebar-nav-active');
+  if (window.NexT && NexT.utils && typeof NexT.utils.initSidebarDimension === 'function') {
+    NexT.utils.initSidebarDimension();
+  }
 
   var tocLinks = tocWrap.querySelectorAll('.nav-link');
   var headingEls = tocItems.map(function(item) { return item.el; });

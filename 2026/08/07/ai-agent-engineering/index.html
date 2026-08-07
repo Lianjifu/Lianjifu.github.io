@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <meta name="description" content="五层系列 03·单产品设计：做成 Agent 产品，从目标到可验收。设计卡与验收四柱。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="03 · 做成 Agent 产品：从目标到可验收">
+  <meta property="og:url" content="http://lianjifu.cn/2026/08/07/ai-agent-engineering/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="五层系列 03·单产品设计：做成 Agent 产品，从目标到可验收。设计卡与验收四柱。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="article:published_time" content="2026-08-07T00:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="AI Agent">
+  <link rel="canonical" href="http://lianjifu.cn/2026/08/07/ai-agent-engineering/">
+  <title>03 · 做成 Agent 产品：从目标到可验收 | LianJiFu'blogs</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/css/2026.css">
+  <link rel="stylesheet" href="/css/post.css?v=6">
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lianjifu.cn","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"right","Pisces | Gemini":240,"display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <script id="page-configurations">
+    CONFIG.page = { sidebar: "", isHome: false, isPost: true, lang: "zh-CN" };
+  </script>
+  <noscript>
+    <style>
+      .use-motion .brand, .use-motion .menu-item, .sidebar-inner,
+      .use-motion .post-block, .use-motion .post-header, .use-motion .post-body { opacity: initial; }
+      .use-motion .site-title, .use-motion .site-subtitle { opacity: initial; top: initial; }
+    </style>
+  </noscript>
+  <style>
+    .ai-engineering-page { background: #f8fafc; }
+    .ai-engineering-page .post-block { max-width: 1180px; margin: 0 auto; }
+    .ai-engineering-page .post-body { color: #172554; }
+    .ai-engineering-page .post-body h2 { margin-top: 3.2rem; padding-bottom: .7rem; border-bottom: 2px solid #dbeafe; color: #123b8f; }
+    .ai-engineering-page .post-body h3 { color: #1d4ed8; }
+    .ai-engineering-page .section-kicker { display: inline-block; margin: 2.2rem 0 .35rem; color: #2563eb; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .ai-engineering-page .section-summary { margin: .9rem 0 1.5rem; padding: 1rem 1.2rem; border-left: 4px solid #2563eb; background: #eff6ff; color: #1e3a8a; font-weight: 600; }
+    .ai-engineering-page .content-block { margin: 1.25rem 0; }
+    .ai-engineering-page .content-block h3 { margin-bottom: .55rem; font-size: 1.12rem; }
+    .ai-engineering-page .callout { margin: 1.4rem 0; padding: 1rem 1.2rem; border: 1px solid #bfdbfe; border-radius: 10px; background: #f8fbff; }
+    .ai-engineering-page .callout strong { color: #1d4ed8; }
+    .ai-engineering-page .tip-box { margin: 1.2rem 0; padding: 1rem 1.15rem; border-left: 4px solid #f59e0b; background: #fffbeb; border-radius: 0 10px 10px 0; color: #78350f; }
+    .ai-engineering-page .tip-box strong { color: #b45309; }
+    .ai-engineering-page .warn-box { margin: 1.2rem 0; padding: 1rem 1.15rem; border-left: 4px solid #ef4444; background: #fef2f2; border-radius: 0 10px 10px 0; color: #7f1d1d; }
+    .ai-engineering-page .warn-box strong { color: #b91c1c; }
+    .ai-engineering-page .deliverables { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .8rem; margin: 1rem 0 1.5rem; }
+    .ai-engineering-page .deliverable { padding: .85rem 1rem; border: 1px solid #dbeafe; border-radius: 8px; background: #fff; }
+    .ai-engineering-page .deliverable strong { display: block; margin-bottom: .25rem; color: #1e40af; }
+    .ai-engineering-page .step-list { counter-reset: step; list-style: none; padding-left: 0; }
+    .ai-engineering-page .step-list li { counter-increment: step; position: relative; margin: .75rem 0; padding: .7rem .9rem .7rem 3rem; border: 1px solid #dbeafe; border-radius: 8px; background: #fff; }
+    .ai-engineering-page .step-list li::before { content: counter(step); position: absolute; left: .85rem; top: .65rem; width: 1.45rem; height: 1.45rem; border-radius: 50%; background: #2563eb; color: #fff; text-align: center; line-height: 1.45rem; font-weight: 700; }
+    .ai-engineering-page .comparison-table { width: 100%; margin: 1rem 0 1.5rem; border-collapse: collapse; font-size: .95rem; }
+    .ai-engineering-page .comparison-table th, .ai-engineering-page .comparison-table td { padding: .7rem .8rem; border: 1px solid #dbeafe; text-align: left; vertical-align: top; }
+    .ai-engineering-page .comparison-table th { background: #dbeafe; color: #1e3a8a; }
+    .ai-engineering-page .chapter-close { margin-top: 1.5rem; padding: .9rem 1.1rem; border-radius: 9px; background: #172554; color: #eff6ff; }
+    .ai-engineering-page .chapter-close strong { color: #93c5fd; }
+    .ai-engineering-page .chapter-image { display: block; width: 100%; height: auto; margin: 1rem auto 1.75rem; border: 1px solid #bfdbfe; border-radius: 12px; box-shadow: 0 12px 32px rgba(37, 99, 235, .12); }
+    .ai-engineering-page .overview-image { margin: 1.25rem auto 2rem; }
+    .ai-engineering-page .principles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.5rem 0; }
+    .ai-engineering-page .principle { padding: 1rem; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; }
+    .ai-engineering-page .principle strong { display: block; margin-bottom: .35rem; color: #1d4ed8; }
+    .ai-engineering-page .contract-template { margin: 1rem 0 1.5rem; padding: 1rem 1.1rem; border-radius: 10px; background: #0f172a; color: #e2e8f0; overflow-x: auto; font-size: .9rem; line-height: 1.55; }
+    .ai-engineering-page .contract-template code { color: inherit; background: transparent; }
+    .ai-engineering-page .chapter-nav { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 2rem 0 1rem; padding-top: 1.2rem; border-top: 1px solid #dbeafe; }
+    .ai-engineering-page .chapter-nav a { color: #2563eb; font-weight: 700; text-decoration: none; }
+    .ai-engineering-page .chapter-nav a:hover { text-decoration: underline; }
+    .ai-engineering-page hr { border: 0; border-top: 1px solid #dbeafe; margin: 2.4rem 0; }
+    .ai-engineering-page .comparison-table a { color: #1d4ed8; font-weight: 600; text-decoration: none; }
+    .ai-engineering-page .post-body > h2[id="intro"] { margin-top: 1.2rem; }
+    .ai-engineering-page .note-take { margin: 1.1rem 0 0; padding: .85rem 1.1rem; border: 1px dashed #93c5fd; border-radius: 8px; background: #f8fafc; color: #1e3a8a; font-size: .95rem; }
+    .ai-engineering-page .note-take strong { color: #1d4ed8; }
+    .ai-engineering-page .note-meta { margin: 0 0 1rem; color: #64748b; font-size: .9rem; }
+    .ai-engineering-page .series-path { margin: 1rem 0 1.5rem; padding: 1rem 1.15rem; border-radius: 10px; background: #0f172a; color: #e2e8f0; font-size: .92rem; line-height: 1.7; }
+    .ai-engineering-page .series-path strong { color: #93c5fd; }
+    .ai-engineering-page .series-path a { color: #93c5fd; }
+    .ai-engineering-page .layer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.25rem 0 1.5rem; }
+    .ai-engineering-page .layer-card { margin: 0; padding: 1rem 1.1rem; border: 1px solid #bfdbfe; border-radius: 10px; background: #fff; }
+    .ai-engineering-page .layer-card h3 { margin: 0 0 .55rem; font-size: 1.05rem; }
+    .ai-engineering-page .layer-card .layer-tag { display: inline-block; margin-bottom: .55rem; padding: .15rem .55rem; border-radius: 999px; background: #dbeafe; color: #1e40af; font-size: .75rem; font-weight: 700; letter-spacing: .04em; }
+    .ai-engineering-page .layer-card p { margin: .4rem 0; font-size: .95rem; line-height: 1.55; }
+    .ai-engineering-page .layer-card .wrong { color: #9f1239; }
+    .ai-engineering-page .layer-card .right { color: #166534; }
+    .ai-engineering-page .diag-flow { margin: 1rem 0 1.5rem; padding: 1rem 1.15rem; border-radius: 10px; background: #eff6ff; border: 1px solid #bfdbfe; }
+    .ai-engineering-page .diag-flow ol { margin: .5rem 0 0; padding-left: 1.2rem; }
+    .ai-engineering-page .diag-flow li { margin: .45rem 0; line-height: 1.55; }
+    @media (max-width: 700px) {
+      .ai-engineering-page .principles { grid-template-columns: 1fr 1fr; }
+      .ai-engineering-page .deliverables { grid-template-columns: 1fr; }
+      .ai-engineering-page .layer-grid { grid-template-columns: 1fr; }
+      .ai-engineering-page .comparison-table { display: block; overflow-x: auto; }
+      .ai-engineering-page .post-body { padding: 0 .75rem; }
+    }
+
+  </style>
+</head>
+<body itemscope itemtype="http://schema.org/WebPage" class="page-post ai-engineering-page">
+  <div class="container use-motion">
+    <div class="headband"></div>
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner">
+        <div class="site-brand-container">
+          <div class="site-nav-toggle">
+            <div class="toggle" aria-label="切换导航栏">
+              <span class="toggle-line toggle-line-first"></span>
+              <span class="toggle-line toggle-line-middle"></span>
+              <span class="toggle-line toggle-line-last"></span>
+            </div>
+          </div>
+          <div class="site-meta">
+            <a href="/" class="brand" rel="start">
+              <span class="logo-line-before"><i></i></span>
+              <h1 class="site-title">LianJiFu'blogs</h1>
+              <span class="logo-line-after"><i></i></span>
+            </a>
+          </div>
+          <div class="site-nav-right">
+            <div class="toggle popup-trigger"><i class="fa fa-search fa-fw fa-lg"></i></div>
+          </div>
+        </div>
+        <nav class="site-nav">
+          <ul id="menu" class="main-menu menu">
+            <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+            <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+            <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-book fa-fw"></i>目录</a></li>
+            <li class="menu-item menu-item-search"><a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索</a></li>
+          </ul>
+        </nav>
+        <div class="search-pop-overlay">
+          <div class="popup search-popup">
+            <div class="search-header">
+              <span class="search-icon"><i class="fa fa-search"></i></span>
+              <div class="search-input-container">
+                <input autocomplete="off" autocapitalize="off" placeholder="搜索..." spellcheck="false" type="search" class="search-input">
+              </div>
+              <span class="popup-btn-close"><i class="fa fa-times-circle"></i></span>
+            </div>
+            <div id="search-result">
+              <div id="no-result"><i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <div class="back-to-top"><i class="fa fa-arrow-up"></i><span>0%</span></div>
+    <main class="main"><div class="main-inner"><div class="content-wrap"><div class="content post posts-expand">
+      <article class="post-block" itemscope itemtype="http://schema.org/Article">
+        <header class="post-header">
+          <h1 class="post-title" itemprop="name headline">03 · 做成 Agent 产品：从目标到可验收</h1>
+          
+          <div class="post-meta"><span class="post-meta-item"><i class="far fa-calendar"></i> 发表于 2026-08-07</span><span class="post-meta-item"><i class="far fa-folder"></i> 分类于 <a href="/categories/ai-agent/">AI Agent</a></span><span class="post-meta-item"><i class="fas fa-tags"></i> 学习笔记 · 03 做成 · 单产品设计</span></div>
+        </header>
+        <div class="post-body" itemprop="articleBody" data-toc-mode="h2">
+          <h2 id="intro" data-toc="开篇">开篇 · 真实案例：把认证 Agent 做成可上线产品</h2>
+          <span class="section-kicker">00 / 案例背景</span>
+          <p class="section-summary">机制齐了不等于产品成了。产品成了的标志：用户目标可验收，失败可见，能上线——而不是又一个「什么都会聊」的对话框。</p>
+          <img class="chapter-image overview-image" src="/images/ai-agent-engineering/00-overview.png" alt="做成 Agent 产品总览">
+
+          <div class="content-block">
+            <h3>承接前两层</h3>
+            <p>01 里阿明用契约把认证修到可合并；02 里小周补齐了 Agent 运行时。产品同学小林接着提需求：做一个<strong>「认证交付助手」</strong>——给业务后端用，在权限内改 auth、跑测、证明登出后 401，而不是再开一个万能聊天窗。</p>
+          </div>
+
+          <div class="content-block">
+            <h3>第一版：能力清单很炫，一上仓库就漂</h3>
+            <table class="comparison-table">
+              <tr><th>时间线</th><th>发生了什么</th><th>产品缺口</th></tr>
+              <tr><td>需求会</td><td>抄一堆能力：会规划、会工具、会记忆、会反思</td><td>没有用户与可否决成功标准</td></tr>
+              <tr><td>演示日</td><td>对话框里「全链路演示」很漂亮</td><td>范围未钉死，OAuth 顺手就进了</td></tr>
+              <tr><td>接真仓库</td><td>失败只回「我再试试」；哈希差点被改</td><td>失败不可见、无权限闸、无上线标准</td></tr>
+              <tr><td>复盘</td><td>结论：这是机制演示壳，不是可上线产品</td><td>缺问题表 → 规格 → 设计卡 → 四柱</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>转折：按产品路径重做</h3>
+            <p>小林与阿明、小周对齐：02 解决「系统缺什么」；本篇解决<strong>如何封成可验收的单个产品</strong>。主线固定为——</p>
+            <div class="callout">
+              <strong>案例主线：</strong>钉用户与目标 → 机制映射成能力 → 勾选本轮能力 → 六项规格填实 → 一页设计卡 → 四柱验收放行。<br>
+              不重讲 Agent 原理；不扩到平台编制（那是 04）。
+            </div>
+          </div>
+          <hr>
+
+          <h2 id="part-01" data-toc="产品问题">Part 01 · 产品问题：为谁、完成什么、怎样算成</h2>
+          <span class="section-kicker">01 / 用户与目标</span>
+          <p class="section-summary">不问「Agent 是什么」，先问：为谁、完成什么、怎样算成、明确不做什么。问题表写不满，不要进入能力设计。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/01-know-agent.png" alt="产品问题">
+
+          <div class="content-block">
+            <h3>1. 先钉问题，再谈能力</h3>
+            <p>小林 v0 从「会规划、会工具、会记忆」开工，演示炫、交付虚。正确顺序是先填产品问题表——阿明作为首批用户，要的是<strong>可合并的认证增量</strong>，不是又一个聊天窗。</p>
+            <div class="warn-box">
+              <strong>成败标准：</strong>成功标准必须可外部观察。「更安全」「更好用」不能验收，等于没写目标。
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 认证交付助手 · 问题表定稿</h3>
+            <table class="comparison-table">
+              <tr><th>字段</th><th>本轮定稿</th><th>写糊会长什么样</th></tr>
+              <tr><td><strong>用户</strong></td><td>业务后端工程师（有仓库写权限；阿明是首批用户）</td><td>「所有人」→ 需求互相打架</td></tr>
+              <tr><td><strong>场景</strong></td><td>迭代里要交认证相关增量，怕一次生成踩哈希 / 泄密</td><td>场景虚 → 功能清单膨胀</td></tr>
+              <tr><td><strong>目标（完成态）</strong></td><td>在边界内完成注册 / 登录 / 登出相关改动，并通过约定验收</td><td>「做好认证」→ 无法判定完成</td></tr>
+              <tr><td><strong>成功标准</strong></td><td>① auth 单测绿 ② 手动：登录→/me 200→登出→/me 401 ③ 错误体不泄堆栈/路径 ④ 关键写操作可审计</td><td>形容词验收 → 假完成</td></tr>
+              <tr><td><strong>非目标</strong></td><td>不做 OAuth、不做多租户 SSO、不替人合主干、不碰生产密钥</td><td>缺非目标 → 范围漂（v0 翻车）</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 字段卡片（怎么写才算数）</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">用户</span>
+                <h3>具体到角色与权限</h3>
+                <p class="right">有写权限的业务后端；不是「全公司」或「AI 爱好者」。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">成功标准</span>
+                <h3>可一票否决</h3>
+                <p class="right">每条对应命令或手动路径；第三方能按同一路径说「没过」。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">非目标</span>
+                <h3>挡住最易漂的三项</h3>
+                <p class="right">OAuth / 合主干 / 密钥——v0 演示里全踩过边。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">目标</span>
+                <h3>完成态语言</h3>
+                <p>写「边界内改完并证明」，不写「提供智能认证体验」。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>4. 可否决自检</h3>
+            <div class="diag-flow">
+              <ol>
+                <li>能否指出「哪一条命令/手动路径」证明没过？不能 → 重写成功标准。</li>
+                <li>非目标是否挡住最容易漂的三项？没有 → 补 OAuth / 合主干 / 密钥。</li>
+                <li>用户是否具体到角色，而不是「所有人」？否 → 先收窄。</li>
+                <li>阿明能否用这张表向 reviewer 解释「助手何时算帮完」？不能 → 表未定稿。</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>产品从问题表开始。成功标准可一票否决，非目标挡住范围漂；写不满四行，不开能力设计。</div>
+          <hr>
+
+          <h2 id="part-02" data-toc="机制对照">Part 02 · 机制对照：把 02 翻成产品能力</h2>
+          <span class="section-kicker">02 / 映射</span>
+          <p class="section-summary">02 的机制名翻成产品能力名。本篇写规格与选型，不写原理课——机制名进抽屉，产品能力进规格。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/02-work-model.png" alt="机制对照">
+
+          <div class="content-block">
+            <h3>1. 分工：小周讲机制，小林问产品要什么</h3>
+            <p>对照表不是把 02 再讲一遍。每一格要能回答：本产品<strong>要不要、要成什么样、用户如何感知</strong>。讲不清，就还没进入规格。</p>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 完整映射表</h3>
+            <table class="comparison-table">
+              <tr><th>运行时机制（02）</th><th>产品能力</th><th>认证助手要什么</th><th>用户如何感知</th></tr>
+              <tr><td>目标 / Context</td><td>目标理解</td><td>澄清验收与非目标，歧义阻塞</td><td>可编辑契约卡；阻塞态可见</td></tr>
+              <tr><td>Plan</td><td>任务规划</td><td>可验证步骤，进度可见</td><td>步骤列表；卡在 Sx 可看见</td></tr>
+              <tr><td>Tool</td><td>工具调用</td><td>限域读改测；越权拒绝</td><td>拒绝原因弹层；审计可查</td></tr>
+              <tr><td>Context / Memory</td><td>上下文与记忆</td><td>本轮依据 + 短程进度</td><td>可展开「依据来源」</td></tr>
+              <tr><td>Harness 状态</td><td>状态与恢复</td><td>中断可续、可交接</td><td>暂停/恢复按钮；Brief 导出</td></tr>
+              <tr><td>Reflection</td><td>验证与反馈</td><td>回证据，禁假完成</td><td>通过/未通过 + 证据链接</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 选型口令</h3>
+            <div class="diag-flow">
+              <ol>
+                <li>用户目标是否依赖该能力？否 → 本轮不承诺。</li>
+                <li>能否写出输入 / 输出 / 失败态 / 验收点？否 → 还是名词，不是产品能力。</li>
+                <li>是否与非目标冲突（如自动合主干）？是 → 砍掉或降级为说明产出。</li>
+                <li>用户能否在界面上<strong>感知</strong>该能力的成功与失败？不能 → 规格未落地。</li>
+              </ol>
+            </div>
+            <div class="tip-box"><strong>干货：</strong>Governance / Routing 在单产品里体现为权限表与上线闸门，不必再开两个「能力模块」名词吓唬人。</div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>对照表用来选型；每格要有「要什么 + 用户如何感知」。</div>
+          <hr>
+
+          <h2 id="part-03" data-toc="能力地图">Part 03 · 能力地图：本轮勾选，不贪多</h2>
+          <span class="section-kicker">03 / 组合</span>
+          <p class="section-summary">六项都是模块。勾选 = 承诺可验收的最小规格，不是愿望清单。v0 错在「全开 + 无规格」；本轮是「全开 + 每格可验收」。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/03-capability-map.png" alt="能力地图">
+
+          <div class="content-block">
+            <h3>1. 本轮勾选（均做最小规格）</h3>
+            <div class="principles" style="grid-template-columns:repeat(3,1fr)">
+              <div class="principle"><strong>目标理解</strong>必选 · Part 04</div>
+              <div class="principle"><strong>任务规划</strong>必选 · Part 05</div>
+              <div class="principle"><strong>工具调用</strong>必选 · Part 06</div>
+              <div class="principle"><strong>上下文与记忆</strong>必选 · Part 07</div>
+              <div class="principle"><strong>状态与恢复</strong>必选 · Part 08</div>
+              <div class="principle"><strong>验证与反馈</strong>必选 · Part 09</div>
+            </div>
+            <table class="comparison-table">
+              <tr><th>能力</th><th>为何必选（对阿明）</th><th>最小规格一句话</th></tr>
+              <tr><td>目标理解</td><td>防止「安全一点」开干</td><td>输出可编辑契约；歧义阻塞</td></tr>
+              <tr><td>任务规划</td><td>大 Diff 不可验收</td><td>步骤可勾选；未确认不往下</td></tr>
+              <tr><td>工具调用</td><td>要真改仓库</td><td>白名单写；拒绝可见</td></tr>
+              <tr><td>上下文与记忆</td><td>要吃对现行实现</td><td>依据可展开；密钥进不来</td></tr>
+              <tr><td>状态与恢复</td><td>联调会中断换人</td><td>可暂停；Brief 可交接</td></tr>
+              <tr><td>验证与反馈</td><td>防假完成</td><td>无证据不得标完成</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 明确砍掉</h3>
+            <table class="comparison-table">
+              <tr><th>砍掉项</th><th>原因</th><th>以后谁做</th></tr>
+              <tr><td>自动合主干</td><td>高危；本产品只产出可审查变更说明</td><td>治理更严的平台能力</td></tr>
+              <tr><td>多租户 / 跨仓库编排</td><td>超出单产品边界</td><td>04 数字员工平台</td></tr>
+              <tr><td>长期跨项目偏好记忆</td><td>易脏、难合规</td><td>可选增强，非 v1</td></tr>
+              <tr><td>OAuth / SSO 交付</td><td>非目标</td><td>另开产品问题表</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 勾选门禁</h3>
+            <div class="diag-flow">
+              <ol>
+                <li>该项是否写入设计卡「能力组合」？</li>
+                <li>是否已有（或本篇将写）输入/输出/失败态/验收点？</li>
+                <li>砍掉项是否出现在非目标或路线图？未写 = 仍可能被悄悄做回来。</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>勾选即承诺最小可验收规格；砍掉项必须写明，防止能力回潮。</div>
+          <hr>
+
+          <h2 id="part-04" data-toc="目标理解">Part 04 · 规格：目标理解</h2>
+          <span class="section-kicker">04 / 目标理解</span>
+          <p class="section-summary">用户一句话进来，产品要输出可执行的目标契约字段；歧义未消就阻塞，不准开改。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/04-goal-understanding.png" alt="目标理解">
+
+          <div class="content-block">
+            <h3>1. 四段规格</h3>
+            <table class="comparison-table">
+              <tr><th>段</th><th>认证交付助手</th></tr>
+              <tr><td>输入</td><td>工程师自然语言 + 可选仓库路径提示</td></tr>
+              <tr><td>输出</td><td>Goal / Boundary / Acceptance / Non-goals（结构化，可展示可编辑）</td></tr>
+              <tr><td>失败态</td><td>缺验收句、范围含 OAuth/密钥 → <strong>阻塞</strong>，要求人补全</td></tr>
+              <tr><td>验收点</td><td>输出契约可被第三方按 Acceptance 一票否决；禁止用形容词充数</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 好输入 vs 产品行为</h3>
+            <table class="comparison-table">
+              <tr><th>用户输入</th><th>产品应有状态</th><th>下一步</th></tr>
+              <tr><td>「把登录做得安全一点」</td><td><code>blocked_need_acceptance</code></td><td>UI 要求补可否决句</td></tr>
+              <tr><td>「顺便把 OAuth 也做了」</td><td><code>blocked_non_goal</code></td><td>标红非目标冲突，请删或另开任务</td></tr>
+              <tr><td>完整四字段 + 登出后 401</td><td><code>contract_ready</code></td><td>进入任务规划</td></tr>
+            </table>
+            <div class="contract-template"><code>示例输出（产品界面可见）：
+Goal: 修复登出后会话仍有效
+Boundary: 只改 auth/session 与对应测试；禁止改哈希
+Acceptance: auth.session.spec 绿；手动登出后 GET /me → 401
+Non-goals: 不引入 OAuth</code></div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 与 01 契约的关系</h3>
+            <p>字段同构于人侧契约；这里是<strong>产品必须产出并展示</strong>的结构化对象。阿明可编辑后确认，确认前工具调用层不得开写。</p>
+            <div class="tip-box"><strong>干货：</strong>目标理解的产品验收 =「契约能不能否决完成」；歧义未消就停。</div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>契约未确认 = 全局写锁关闭。阻塞态必须对用户可见。</div>
+          <hr>
+
+          <h2 id="part-05" data-toc="任务规划">Part 05 · 规格：任务规划</h2>
+          <span class="section-kicker">05 / 任务规划</span>
+          <p class="section-summary">输出可验证步骤与依赖；依赖不清则重规划并告知用户，不准闷头开改。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/05-task-planning.png" alt="任务规划">
+
+          <div class="content-block">
+            <h3>1. 四段规格</h3>
+            <table class="comparison-table">
+              <tr><th>段</th><th>认证交付助手</th></tr>
+              <tr><td>输入</td><td>已确认契约（<code>contract_ready</code>）</td></tr>
+              <tr><td>输出</td><td>步骤列表：每步完成条件、依赖、风险；S1 登录 → S2 鉴权 → S3 登出 → S4 错误体</td></tr>
+              <tr><td>失败态</td><td>步骤无完成条件 / 依赖成环 → 重规划并告知用户</td></tr>
+              <tr><td>验收点</td><td>任一步可单独勾选「过/不过」；下一步不得消费未确认输出</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 产品行为</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">可见</span>
+                <h3>步骤对象，非散文</h3>
+                <p class="right">用户应能看到「当前卡在 S3」；只暴露产品字段，不暴露内部推理轨迹全文。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">重规划</span>
+                <h3>显式、可感知</h3>
+                <p>依赖变化或假设错误时，UI 显示原因与新步骤图，不静默改计划。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">依赖</span>
+                <h3>S3 不得抢跑</h3>
+                <p>S2 未确认前，禁止启动登出失效步骤——与 01 工序、02 Plan 同构。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">验收</span>
+                <h3>进度可见 + 步步可验</h3>
+                <p>每步完成条件映射到测试或探针；勾选由验证层驱动，不由模型自述。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>规划输出是可勾选的步骤对象；下一步只消费已确认输出；重规划必须可见。</div>
+          <hr>
+
+          <h2 id="part-06" data-toc="工具调用">Part 06 · 规格：工具调用</h2>
+          <span class="section-kicker">06 / 工具调用</span>
+          <p class="section-summary">工具是产品能力的手。越权与失败必须对用户可见，关键写操作可审计——「拒绝长什么样」比「能调什么」更重要。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/06-tool-calling.png" alt="工具调用">
+
+          <div class="content-block">
+            <h3>1. 四段规格</h3>
+            <table class="comparison-table">
+              <tr><th>段</th><th>认证交付助手</th></tr>
+              <tr><td>输入</td><td>当前步骤 + 权限集（auth 路径白名单）</td></tr>
+              <tr><td>输出</td><td>受控调用结果：read / patch / test / probe；附审计事件</td></tr>
+              <tr><td>失败态</td><td>越权路径、改哈希 → 拒绝并展示原因；测试红 → 标记步骤失败</td></tr>
+              <tr><td>验收点</td><td>无白名单外写入；每次 patch 可追到步骤 ID</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 权限矩阵与拒绝体验</h3>
+            <div class="contract-template"><code>权限矩阵（产品配置）：
+allow_write: src/auth/** , tests/auth/**
+deny: **/*hash* , **/.env* , **/secrets/**
+high_risk: 合主干 → 本产品不做，只产出 PR 草稿说明
+
+拒绝 UI 必含：
+reason_code · 触碰路径 · 对应策略版本 · 「请改范围或联系管理员」</code></div>
+            <table class="comparison-table">
+              <tr><th>事件</th><th>用户应看到</th><th>系统应留下</th></tr>
+              <tr><td>试图改哈希文件</td><td>拒绝弹层 + 原因码</td><td>审计：DENY + FORBIDDEN_PATH</td></tr>
+              <tr><td>patch 成功</td><td>Diff 摘要 + 步骤 ID</td><td>审计：ALLOW + commit/工作树指纹</td></tr>
+              <tr><td>测试红</td><td>步骤标红 + 日志入口</td><td>run-id 绑到验证层</td></tr>
+            </table>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>手必须受控：白名单、拒绝可见、写操作可审计；合主干不做，只给说明产出。</div>
+          <hr>
+
+          <h2 id="part-07" data-toc="上下文记忆">Part 07 · 规格：上下文与记忆</h2>
+          <span class="section-kicker">07 / 上下文与记忆</span>
+          <p class="section-summary">产品要规定：存什么、召回什么、过期与越权数据进不来。价值是「正确时间给正确依据」，不是存得越多越好。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/07-context-memory.png" alt="上下文与记忆">
+
+          <div class="content-block">
+            <h3>1. 四段规格</h3>
+            <table class="comparison-table">
+              <tr><th>段</th><th>认证交付助手</th></tr>
+              <tr><td>输入</td><td>本步所需：契约、相关文件、最近失败日志</td></tr>
+              <tr><td>输出</td><td>当前依据包（带来源）+ 短程任务记忆（做到哪一步）</td></tr>
+              <tr><td>失败态</td><td>过期规范、越权文件、密钥 → 不得进入依据包</td></tr>
+              <tr><td>验收点</td><td>用户可展开「本步依据来源」；密钥类路径触发拦截</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 存 / 召回 / 驱逐</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">存</span>
+                <h3>本任务级</h3>
+                <p>契约确认版、Checkpoint、本轮失败约束、依据条目元数据。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">召回</span>
+                <h3>按步装载</h3>
+                <p>S3 装 session + 红测日志；不整仓灌入。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">驱逐</span>
+                <h3>过期与越权出局</h3>
+                <p>旧 run、密钥、非目标范围文件——策略拒绝进入。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">裁剪</span>
+                <h3>不做长期偏好</h3>
+                <p class="wrong">跨项目「个人偏好记忆」非 v1；任务结束可清理。</p>
+              </div>
+            </div>
+            <div class="tip-box"><strong>与 02 分工：</strong>Context 治理在系统侧；产品侧多了「用户可展开来源」与任务结束清理策略。</div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>记忆的产品验收 = 来源可展开 + 越权/密钥进不来 + 任务级可清理。</div>
+          <hr>
+
+          <h2 id="part-08" data-toc="状态恢复">Part 08 · 规格：状态与恢复</h2>
+          <span class="section-kicker">08 / 状态与恢复</span>
+          <p class="section-summary">演示可以一路顺风；产品必须回答：中断、换人、失败后怎么续——可暂停、可恢复、可交接。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/08-state-recovery.png" alt="状态与恢复">
+
+          <div class="content-block">
+            <h3>1. 四段规格</h3>
+            <table class="comparison-table">
+              <tr><th>段</th><th>认证交付助手</th></tr>
+              <tr><td>输入</td><td>执行进度、Checkpoint、最后动作</td></tr>
+              <tr><td>输出</td><td>可暂停 / 从 Checkpoint 恢复 / 生成交接 Brief</td></tr>
+              <tr><td>失败态</td><td>不可恢复（工作树被外部大幅改写）→ 明确告知并停止自动续跑</td></tr>
+              <tr><td>验收点</td><td>人为中断 10 分钟后，另一人凭 Brief 能从 S3 续上，不靠聊天记录</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 三种续跑场景</h3>
+            <table class="comparison-table">
+              <tr><th>场景</th><th>产品行为</th><th>验收演练</th></tr>
+              <tr><td>中断</td><td>暂停 → 状态外置 → 恢复到原 Checkpoint</td><td>关页 10 分钟再开，仍在 S3</td></tr>
+              <tr><td>换人</td><td>导出 Brief；接手人导入后续跑</td><td>阿明停、同事续，不翻聊天</td></tr>
+              <tr><td>不可恢复</td><td>停止自动；提示重置或人工处理</td><td>外部大改工作树后不得假续跑</td></tr>
+            </table>
+            <div class="contract-template"><code>交接 Brief 必含：
+task_id · 当前步骤 · 已确认 Checkpoint · 阻塞原因 · 日志路径 · 禁区提醒</code></div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>状态能力的验收 = 可暂停、可恢复、可交接；不可恢复必须诚实告知。</div>
+          <hr>
+
+          <h2 id="part-09" data-toc="验证反馈">Part 09 · 规格：验证与反馈</h2>
+          <span class="section-kicker">09 / 验证与反馈</span>
+          <p class="section-summary">产品不得在证据不足时显示「已完成」。未通过原因必须对用户可见——假完成进不了 UI。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/09-verify-feedback.png" alt="验证与反馈">
+
+          <div class="content-block">
+            <h3>1. 四段规格</h3>
+            <table class="comparison-table">
+              <tr><th>段</th><th>认证交付助手</th></tr>
+              <tr><td>输入</td><td>步骤产物 + 测试/探针结果 + 契约 Acceptance</td></tr>
+              <tr><td>输出</td><td>通过 / 不通过；失败时回流建议（重试/重规划/补上下文/人工）</td></tr>
+              <tr><td>失败态</td><td>无测试日志却宣称完成 → 产品层直接禁止该状态</td></tr>
+              <tr><td>验收点</td><td>用户能看到「哪条 Acceptance 未满足 + 证据链接」</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 四出口产品化</h3>
+            <div class="layer-grid">
+              <div class="layer-card content-block"><span class="layer-tag">重试</span><h3>瞬时失败</h3><p>UI 显示限次重试与剩余次数，不改步骤假设。</p></div>
+              <div class="layer-card content-block"><span class="layer-tag">重规划</span><h3>假设错误</h3><p>展示新步骤图与原因；保留已确认 Checkpoint。</p></div>
+              <div class="layer-card content-block"><span class="layer-tag">补上下文</span><h3>证据不足</h3><p>引导补依据来源；补齐前不开写。</p></div>
+              <div class="layer-card content-block"><span class="layer-tag">人工</span><h3>僵局/高危</h3><p>生成 Brief，停自动执行，状态=waiting_human。</p></div>
+            </div>
+            <div class="diag-flow">
+              <p><strong>文案铁律：</strong></p>
+              <ol>
+                <li>禁止「基本上好了 / 应该可以了」。</li>
+                <li>只有：未通过（附证据）/ 已通过（附证据）。</li>
+                <li>完成徽章仅在全部成功标准勾选且证据齐备时点亮。</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>验证能力的验收 = 假完成进不了 UI；原因与证据必须可见；四出口可点可选。</div>
+          <hr>
+
+          <h2 id="part-10" data-toc="设计卡">Part 10 · 一页设计卡：案例定稿</h2>
+          <span class="section-kicker">10 / 设计卡</span>
+          <p class="section-summary">把前面规格收成一页。填不实的格子，上线前必须补——九项都能被第三方挑刺，才叫做成了产品设计。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/10-agent-design.png" alt="设计卡">
+
+          <div class="content-block">
+            <h3>1. 收卡四步</h3>
+            <ol class="step-list">
+              <li>钉产品问题（用户/目标/非目标/成功标准）</li>
+              <li>勾选能力组合并写最小规格</li>
+              <li>写权限、失败可见性、交接 Brief</li>
+              <li>定义验证方式与上线闸门</li>
+            </ol>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 认证交付助手 v1 定稿</h3>
+            <div class="contract-template"><code>【设计卡 · 认证交付助手 v1】
+用户/场景: 业务后端工程师；认证相关迭代交付
+目标: 边界内完成注册/登录/登出相关改动并证明通过
+非目标: OAuth / 多租户 / 自动合主干 / 触碰密钥
+成功标准: 单测绿；登录→/me200→登出→/me401；错误体不泄密；写操作可审计
+能力组合: 目标理解·规划·工具·上下文记忆·状态恢复·验证（六项最小规格）
+工具与权限: allow auth/** + tests/auth/**；deny hash/.env/secrets；高危人工
+失败时用户看到: 未通过的 Acceptance + 证据 + 下一步选项
+验证: 单测 + http 探针；无证据不得标完成
+上线闸门: 安全清单（禁区、审计、假完成拦截）评审通过；灰度 1 个小队 1 周</code></div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 填不实格子 = 上线前门禁</h3>
+            <table class="comparison-table">
+              <tr><th>空格</th><th>风险</th><th>动作</th></tr>
+              <tr><td>成功标准含糊</td><td>假完成</td><td>补可否决句后再评</td></tr>
+              <tr><td>权限表缺失</td><td>越权改哈希</td><td>补 allow/deny 再联调</td></tr>
+              <tr><td>失败可见性未写</td><td>用户只看到「再试试」</td><td>补 UI 状态与证据链</td></tr>
+              <tr><td>Brief / 恢复未写</td><td>换人无法续</td><td>补状态规格与演练</td></tr>
+              <tr><td>上线闸门未写</td><td>演示直接当上线</td><td>补灰度与安全清单</td></tr>
+            </table>
+            <div class="callout"><strong>挑刺演练：</strong>请未参与设计的 reviewer 按设计卡逐项提问；答不上的格子当晚补，不带病进四柱验收。</div>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>一页设计卡是上线前的合同草稿；空格不放行，挑刺不过不进四柱。</div>
+          <hr>
+
+          <h2 id="part-11" data-toc="验收四柱">Part 11 · 验收四柱：放行还是打回</h2>
+          <span class="section-kicker">11 / 验收</span>
+          <p class="section-summary">验收对象是产品是否完成用户目标，不是模型会不会说话。任一柱不过，产品不放行——补规格与闸门，不补「请更认真」。</p>
+          <img class="chapter-image" src="/images/ai-agent-engineering/11-agent-acceptance.png" alt="验收四柱">
+
+          <div class="content-block">
+            <h3>1. 四柱打分（案例）</h3>
+            <table class="comparison-table">
+              <tr><th>柱</th><th>问什么</th><th>本案例结论</th><th>不过时补什么</th></tr>
+              <tr><td><strong>正确</strong></td><td>成功标准是否满足？</td><td>三轮灰度均达 401 与单测绿 → 过</td><td>验收句 / 探针 / 测试绑定</td></tr>
+              <tr><td><strong>完整</strong></td><td>是否越出非目标？</td><td>拦截 OAuth/改哈希有审计 → 过</td><td>非目标 / 权限表 / 拒绝 UI</td></tr>
+              <tr><td><strong>可恢复</strong></td><td>中断/换人能否续？</td><td>Brief 交接演练通过 → 过</td><td>Checkpoint / Brief / 暂停恢复</td></tr>
+              <tr><td><strong>可解释</strong></td><td>拒绝与失败是否有据？</td><td>证据可点开 → 过</td><td>审计 / 证据链 / 禁假完成</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 放行交付物与走读</h3>
+            <div class="deliverables">
+              <div class="deliverable"><strong>设计卡</strong></div>
+              <div class="deliverable"><strong>六项规格摘要</strong></div>
+              <div class="deliverable"><strong>权限表</strong></div>
+              <div class="deliverable"><strong>验证记录</strong></div>
+              <div class="deliverable"><strong>闸门结论</strong></div>
+            </div>
+            <div class="diag-flow">
+              <p><strong>放行走读（小林主持）：</strong></p>
+              <ol>
+                <li>对照设计卡，四柱逐项举证（灰度记录 / 审计截图 / Brief 演练纪要）。</li>
+                <li>任一柱红 → 打回对应规格章节，不改期「先上线再补」。</li>
+                <li>全绿 → 签闸门结论，进入灰度 1 小队 1 周观察。</li>
+              </ol>
+            </div>
+            <p>v0 演示日四柱全红：无成功标准、范围漂、不可交接、失败不可解释——那是能力清单，不是产品。</p>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>四柱是放行开关；交付物是审计与复盘底稿。柱红补规格，不补口号。</div>
+          <hr>
+
+          <h2 id="closing" data-toc="结语">结语 · 产品做成之后</h2>
+          <span class="section-kicker">收束</span>
+          <p class="section-summary">认证交付助手从「会聊机制」变成「可上线产品」，靠的是问题、规格、设计卡与四柱，而不是更长的功能列表。</p>
+
+          <div class="content-block">
+            <h3>1. 案例收束：小林那天做成了什么</h3>
+            <p>v0 能力清单演示翻车后，团队按本篇路径重做：问题表钉死阿明的验收；六项能力写成输入/输出/失败态/验收点；设计卡可被挑刺；四柱决定放行。产品成了的标志不是「会更多机制」，而是<strong>用户目标可验收、失败可见、能上线</strong>。</p>
+            <table class="comparison-table">
+              <tr><th></th><th>v0 演示壳</th><th>可上线产品</th></tr>
+              <tr><td>起点</td><td>能力名词堆砌</td><td>产品问题表钉死用户与验收</td></tr>
+              <tr><td>范围</td><td>OAuth 漂移</td><td>非目标 + 权限表挡住</td></tr>
+              <tr><td>失败</td><td>「我再试试」</td><td>证据可见 + 四出口</td></tr>
+              <tr><td>续跑</td><td>靠聊天记忆</td><td>Checkpoint + Brief 交接</td></tr>
+              <tr><td>放行</td><td>演示通过即上线</td><td>四柱 + 闸门 + 灰度</td></tr>
+            </table>
+          </div>
+
+          <div class="content-block">
+            <h3>2. 带走四件套</h3>
+            <div class="deliverables">
+              <div class="deliverable"><strong>产品问题表</strong>用户·目标·成功·非目标</div>
+              <div class="deliverable"><strong>六项规格</strong>输入·输出·失败态·验收点</div>
+              <div class="deliverable"><strong>一页设计卡</strong>可挑刺的合同草稿</div>
+              <div class="deliverable"><strong>验收四柱</strong>正确·完整·可恢复·可解释</div>
+            </div>
+            <div class="diag-flow">
+              <p><strong>全文路径：</strong></p>
+              <ol>
+                <li>开篇–01：真实案例 → 产品问题</li>
+                <li>02–03：机制对照 → 能力勾选与砍掉</li>
+                <li>04–09：六项规格填实</li>
+                <li>10–11：设计卡 → 四柱放行</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="content-block">
+            <h3>3. 本篇边界与下一步</h3>
+            <p>本篇停在<strong>单产品设计</strong>。用法见 01，机制见 02。下一问：多个这样的产品如何编成可运营的数字员工体系——岗位、权限、指标，而不是再堆一个单助手。</p>
+            <div class="tip-box"><strong>下一步：</strong>
+              <a href="/2026/08/09/digital-employee-platform/">04 · 建成数字员工平台：从岗位到可运营</a>
+              · 机制层
+              <a href="/2026/08/08/llm-agent-principles/">02 · 吃透 AI Agent</a>
+              · 用法层
+              <a href="/2026/08/06/ai-programming-engineering/">01 · 用好 AI 编程</a></div>
+          </div>
+
+          <div class="chapter-close"><strong>全文带走：</strong>机制齐了只是原料。问题 → 规格 → 设计卡 → 四柱，产品才算做成。</div>
+          <p><em>Last updated: 2026-08-07 · P01–P11 与结语加厚修订</em></p>
+
+          <div class="chapter-nav">
+            <a href="/2026/08/08/llm-agent-principles/" class="chapter-prev">← 吃透 AI Agent</a>
+            <a href="/2026/08/09/digital-employee-platform/" class="chapter-next">建成数字员工平台 →</a>
+          </div>
+        </div>
+      </article>
+    </div></div>
+    <div class="toggle sidebar-toggle">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active">文章目录</li>
+          <li class="sidebar-nav-overview">站点概览</li>
+        </ul>
+        <div class="post-toc-wrap sidebar-panel"></div>
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author motion-element">
+            <img class="site-author-image" alt="JiFuLian" src="/uploads/avatar.png">
+            <p class="site-author-name">JiFuLian</p>
+            <div class="site-description">全栈开发者 · AI Agent 研究员</div>
+          </div>
+          <div class="site-state-wrap motion-element"><nav class="site-state">
+            <div class="site-state-item"><a href="/archives/"><span class="site-state-item-count">87</span><span class="site-state-item-name">文章</span></a></div>
+            <div class="site-state-item"><a href="/categories/"><span class="site-state-item-count">4</span><span class="site-state-item-name">分类</span></a></div>
+          </nav></div>
+          <div class="links-of-author motion-element"><span class="links-of-author-item"><a href="https://github.com/Lianjifu" title="GitHub" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a></span></div>
+        </div>
+      </div>
+    </aside>
+    <div id="sidebar-dimmer"></div>
+    </div></main>
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 – 2026 <span class="author">JiFuLian</span></div>
+      </div>
+    </footer>
+  </div>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/motion.js"></script>
+  <script src="/js/schemes/pisces.js"></script>
+  <script src="/js/next-boot.js"></script>
+  <script src="/js/local-search.js?v=4"></script>
+  <script src="/js/2026.js?v=8"></script>
+</body>
+</html>
