@@ -70,8 +70,8 @@
     .ai-engineering-page .principles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.5rem 0; }
     .ai-engineering-page .principle { padding: 1rem; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; }
     .ai-engineering-page .principle strong { display: block; margin-bottom: .35rem; color: #1d4ed8; }
-    .ai-engineering-page .contract-template { margin: 1rem 0 1.5rem; padding: 1rem 1.1rem; border-radius: 10px; background: #0f172a; color: #e2e8f0; overflow-x: auto; font-size: .9rem; line-height: 1.55; }
-    .ai-engineering-page .contract-template code { color: inherit; background: transparent; }
+    .ai-engineering-page .contract-template { margin: 1rem 0 1.5rem; padding: 1rem 1.15rem; border: 1px solid #334155; border-left: 4px solid #38bdf8; border-radius: 10px; background: #0f172a; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); color: #e2e8f0; overflow-x: auto; font-size: .92rem; line-height: 1.75; }
+    .ai-engineering-page .contract-template code { display: block; color: inherit; background: transparent; white-space: pre-wrap; overflow-wrap: anywhere; }
     .ai-engineering-page .chapter-nav { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 2rem 0 1rem; padding-top: 1.2rem; border-top: 1px solid #dbeafe; }
     .ai-engineering-page .chapter-nav a { color: #2563eb; font-weight: 700; text-decoration: none; }
     .ai-engineering-page .chapter-nav a:hover { text-decoration: underline; }
@@ -162,15 +162,15 @@
           <div class="post-meta"><span class="post-meta-item"><i class="far fa-calendar"></i> 发表于 2026-08-08</span><span class="post-meta-item"><i class="far fa-folder"></i> 分类于 <a href="/categories/ai-agent/">AI Agent</a></span><span class="post-meta-item"><i class="fas fa-tags"></i> 学习笔记 · 02 吃透 · 系统理解</span></div>
         </header>
         <div class="post-body" itemprop="articleBody" data-toc-mode="h2">
-          <h2 id="intro" data-toc="开篇">开篇 · 真实案例：想让 Agent 自己跑完认证</h2>
+          <h2 id="intro" data-toc="开篇">开篇 · 真实案例：想让 Agent 自己跑完认证？先别急着堆 Prompt</h2>
           <span class="section-kicker">00 / 案例背景</span>
-          <p class="section-summary">LLM 会说话；Agent 要能闭环。缺一层机制，认证交付就会停在「像那么回事」——方案漂亮，仓库与 CI 对不上。</p>
+          <p class="section-summary">从「人侧交付」走向「Agent 闭环」，缺的不是更长 Prompt，而是让事实、行动、状态与验证真正接入任务系统。</p>
           <img class="chapter-image overview-image" src="/images/llm-agent-principles/00-overview.png" alt="吃透 AI Agent 总览">
 
           <div class="content-block">
-            <h3>1. 系统背景：从人侧交付走向 Agent 闭环</h3>
-            <p>上一篇里，阿明用<strong>契约 · 证据包 · 工序 · 回流</strong>把 B 端控制台认证修到可合并。团队很快有了下一问：每次还要人盯着拆步、贴红证、写回流——能不能搭一个 Agent，<strong>自己把认证目标跑完</strong>：读现行代码、改 session、跑测、证明登出后 <code>GET /me</code> → 401？</p>
-            <p>负责内部工具的小周接下这个试点：目标不是再写一篇用法教程，而是做一个<strong>认证交付 Agent</strong>，输入 Spec v1.0，输出可复查的交付证据。对应图中的右侧路径，Spec 不能直接跳到“完成”，而要先成为可恢复的计划，再经过事实读取、受控行动和外部验证。</p>
+            <h3>00 / 案例背景：从“人侧交付”到“Agent 闭环”的惊险一跃</h3>
+            <p>在上一篇中，阿明通过<strong>契约、证据包、工序、回流</strong>四大支柱，成功将 B 端控制台认证修复至可合并状态。但这依然依赖于人的高强度介入。团队很快提出了下一个挑战：能不能搭一个 Agent，让它自己把认证目标跑完？</p>
+            <p>这个试点的目标不是写一篇新教程，而是构建一个<strong>认证交付 Agent</strong>：输入是 Spec v1.0，输出必须是可复查的交付证据。正如「LLM Agent 框架原理」图示所强调的：LLM 是智能内核；Agent 是让智能参与真实任务的运行系统。</p>
             <div class="diag-flow">
               <p><strong>这个试点的完成定义：</strong></p>
               <ol>
@@ -183,14 +183,14 @@
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：把 Spec 丢进对话框，为什么仍不是 Agent</h3>
+            <h3>01 / 核心问题：把 Spec 丢进对话框，为什么仍不是 Agent？</h3>
             <p>小周的第一版很诱人——本质是加强版聊天：把 Spec、几段代码说明贴进去，模型洋洋洒洒写出改造方案，甚至贴出「伪测试通过」和「登出后应为 401」的结论段落。演示会上大家觉得「差不多能自己干了」。</p>
             <p>一接真实仓库与 CI，原形毕露：模型能解释“应该怎样修”，却没有能力证明“仓库已经修好”。这正是图左侧的断点：Spec 进入模型后，只产出方案与自述，既没有落到真实仓库，也没有进入测试与探针的验证路径。</p>
             <p>问题不在于这份方案是否听起来合理，而在于它没有接触交付所依赖的外部世界：它不知道当前分支是否已有未提交改动，不能真正调用测试 runner，也无法在窗口被压缩或任务中断后确认自己推进到了哪一步。对话给出了建议，系统却没有获得可执行的任务状态。</p>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：真实仓库与 CI 如何否定自述</h3>
+            <h3>02 / 事实证据：真实仓库与 CI 如何否定“自述”</h3>
             <p class="note-meta">时间线记录的不是模型文笔，而是图中右侧闭环路径缺了哪些节点。</p>
             <table class="comparison-table">
               <tr><th>时间线</th><th>发生了什么</th><th>暴露的机制缺口</th></tr>
@@ -200,54 +200,54 @@
               <tr><td>周一傍晚</td><td>多轮聊天后忘了 T02 是否已过、该从哪续</td><td>进度只活在上下文窗口里</td></tr>
               <tr><td>周二复盘</td><td>结论：这不是 Agent，是会写方案的 LLM</td><td>缺事实、行动、状态、验证四层</td></tr>
             </table>
+            <h4>认证交付的两条路径：对话自述 vs Agent 闭环</h4>
             <div class="mermaid">
-flowchart TB
+flowchart LR
   Spec["认证 Spec v1.0"]
 
-  subgraph Chat["裸 LLM 对话"]
-    LLM["生成方案与自述"]
-    Claim["声称已修好"]
-    Gap["无真实仓库写入\n无测试证据\n无可恢复状态"]
-    LLM --> Claim --> Gap
+  subgraph Chat["裸对话：止于语言"]
+    LLM["LLM 生成方案"] --> Claim["自述：已修好"]
+    Claim --> Gap["没有仓库变更、测试证据与任务状态"]
   end
 
-  subgraph Agent["可闭环 Agent"]
-    Plan["计划与 Checkpoint"]
-    Facts["读取现行代码与接口状态"]
-    Act["受控修改与测试调用"]
-    Verify{"测试 / 探针通过？"}
-    Evidence["保存证据并提交交付结果"]
-    Recover["记录失败并回流当前步骤"]
-    Plan --> Facts --> Act --> Verify
-    Verify -->|通过| Evidence
-    Verify -->|失败| Recover --> Plan
+  subgraph Agent["Agent 系统：进入真实任务"]
+    State["计划与 Checkpoint"] --> Facts["事实：读代码与探针"]
+    Facts --> Act["行动：受控读改测"]
+    Act --> Verify{"验证：测试 / 探针通过？"}
+    Verify -->|通过| Evidence["保存证据，交付结果"]
+    Verify -->|失败| Recover["记录失败，回流当前步骤"]
+    Recover --> State
   end
 
   Spec --> LLM
-  Spec --> Plan
-  Claim -. "无法证明" .-> Verify
+  Spec --> State
 
-  classDef chat fill:#fef2f2,stroke:#ef4444,color:#7f1d1d;
-  classDef agent fill:#eff6ff,stroke:#2563eb,color:#1e3a8a;
-  class LLM,Claim,Gap chat;
-  class Plan,Facts,Act,Verify,Evidence,Recover agent;
+  classDef chat fill:#fef2f2,stroke:#ef4444,color:#7f1d1d
+  classDef system fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+  classDef success fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef failure fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+  class LLM,Claim,Gap chat
+  class State,Facts,Act,Verify system
+  class Evidence success
+  class Recover failure
             </div>
             <p>图中的分界很明确：裸对话在“自述”处结束；Agent 必须继续进入读事实、做行动、跑验证和保存状态的循环。表中的“不能真改仓库”对应图里的<strong>受控修改与测试调用</strong>缺失；“不知真实行为”对应<strong>读取现行代码与接口状态</strong>缺失；“忘了 T02 是否已过”对应<strong>计划与 Checkpoint</strong>缺失；测试仍红却自称完成，则是绕过了<strong>测试 / 探针通过？</strong>这个裁定节点。</p>
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：从“换模型”转向“补机制”</h3>
+            <h3>03 / 执行结论：从“换模型”转向“补机制”</h3>
             <p>小周没有继续堆 Prompt。他和阿明对齐：上一篇解决的是<strong>人怎么用 AI 交付</strong>；本篇要解决的是<strong>系统缺什么才能闭环</strong>——Context 如何治理、Tool 如何契约、计划与状态如何外置、失败如何回证据、Harness / 路由 / 治理如何托底。</p>
             <p>这意味着模型不再被要求独自承担“知道事实、执行写入、记住进度、宣布完成”四种职责。它只负责在当前状态和策略约束下判断下一步；其余职责交由受控工具、状态机、验证器和治理规则共同完成。按图实施时，成功路径由验证通过后保存证据并交付结果收束；失败路径则记录失败、回流当前步骤，再从计划对象继续，而不是重新开始一次聊天。</p>
             <div class="callout"><strong>系统改造原则：</strong>先让每一次读取、修改、测试和失败都有可追溯记录，再讨论模型是否需要更强的规划、推理或多角色协作。没有这些底座，模型再强也只能把方案写得更像交付。</div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：语言能力不是任务闭环</h3>
+            <h3 class="reflection-title">思考笔记：语言能力不是任务闭环</h3>
             <p>模型可以给出看似完整的改造方案，却无法仅凭语言知道仓库当前是什么状态、一次写操作是否成功，或测试是否真的通过。把“会解释”误当成“会交付”，正是这类 Agent 试点最容易出现的错位。</p>
             <p>要让系统自己跑完认证，必须把事实、行动、状态和验证从聊天窗口外置为可管理的机制。模型负责判断下一步，系统负责让每一步可执行、可恢复、可证明。</p>
             <p class="note-take"><strong>带着这个问题进入下一章：</strong>裸对话要变成可交付 Agent，首先缺少的四块系统能力分别是什么？</p>
           </div>
+          <div class="chapter-close"><strong>这一幕带走：</strong>语言能力不是任务闭环。先把事实、行动、状态和验证外置成可管理机制，再讨论模型是否需要更强的规划与推理。</div>
           <hr>
 
           <h2 id="part-01" data-toc="四个缺口">Part 01 · 四个缺口：裸对话交不出认证</h2>
@@ -256,7 +256,9 @@ flowchart TB
           <img class="chapter-image" src="/images/llm-agent-principles/01-why-not-agent.png" alt="LLM≠Agent">
 
           <div class="content-block">
-            <h3>1. 系统背景：为什么“会说话”不等于“能闭环”</h3>
+            <h3>01 / 缺口诊断：为什么“会说话”不等于“能闭环”？</h3>
+            <p>小周的第一版尝试把 Spec 丢给裸 LLM，结果惨败。这缺的不是文笔，而是任务闭环的四块砖：事实、行动、状态、验证。缺一块，认证交付就永远停在「像那么回事」的阶段。</p>
+            <p>正如「PART 01 · 起点」图示所强调的：Agent 的核心价值，是把语言智能组织成可执行、可验证的任务闭环。LLM ≠ Agent：语言能解决“会理解和表达”，但真实任务还需要感知、行动、状态与反馈。</p>
             <p>演示会上，模型把 Spec v1.0 讲得很完整：登出清理思路、测试用例草案、甚至「预期 401」的段落。阿明问一句：仓库里改了吗？CI 绿了吗？——没有。</p>
             <div class="warn-box">
               <strong>关键误判：</strong>把「生成一段正确说明」当成「完成一次交付」。语言智能能规划与解释；闭环还要读真实系统、改外部世界、记住进度、用外部证据证明完成。
@@ -265,7 +267,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：裸对话缺少哪四块系统能力</h3>
+            <h3>02 / 事实证据：裸对话缺少哪四块系统能力？</h3>
             <p class="note-meta">每一层看三样：现场长什么样 · 裸对话只会怎样 · 系统要补什么</p>
             <p>这四类能力不是可以互相替代的插件。能读代码却不能执行，仍然无法改变仓库；能运行工具却不保存状态，任务中断后仍会失忆；能执行却不做外部验证，则只是把“自述完成”换成了“自动自述完成”。</p>
             <div class="layer-grid">
@@ -298,45 +300,59 @@ flowchart TB
                 <p class="right"><strong>系统要补：</strong>外部证据裁定（测试/探针 + Reflection 出口）。→ Part 08</p>
               </div>
             </div>
+            <h4>从四个缺口到认证交付闭环</h4>
             <div class="mermaid">
-flowchart TB
-  Spec["认证 Spec v1.0"] --> LLM["裸 LLM 推理"]
-  LLM --> GapFacts["事实缺口\n不知道当前代码与接口真值"]
-  LLM --> GapActions["行动缺口\n不能受控读改测"]
-  LLM --> GapState["状态缺口\n任务进度只在窗口里"]
-  LLM --> GapVerify["验证缺口\n完成靠自述"]
+flowchart LR
+  Spec["认证 Spec v1.0"]
 
-  GapFacts -. "补实时依据" .-> Context["Context 与探针"]
-  GapActions -. "补工具契约" .-> Tools["受控读改测"]
-  GapState -. "补计划状态" .-> State["Plan 与 Checkpoint"]
-  GapVerify -. "补外部裁定" .-> Verify{"测试 / 探针通过？"}
+  subgraph Chat["裸 LLM：缺口只会累积"]
+    LLM["生成方案"] --> F["事实缺口"]
+    LLM --> A["行动缺口"]
+    LLM --> S["状态缺口"]
+    LLM --> V["验证缺口"]
+  end
 
+  subgraph Runtime["Agent 运行时：每项能力都有责任者"]
+    Context["事实：Context + 探针"] --> Plan["状态：Plan + Checkpoint"]
+    Plan --> Tool["行动：受控 Tool 读改测"]
+    Tool --> Verify{"验证：测试 / 探针通过？"}
+    Verify -->|通过| Done["保存证据\n认证可交付"]
+    Verify -->|失败| Recover["记录失败\n回流当前步骤"]
+    Recover --> Plan
+  end
+
+  Spec --> LLM
   Spec --> Context
-  Context --> State --> Tools --> Verify
-  Verify -->|通过| Done["保存证据\n认证可交付"]
-  Verify -->|失败| State
+  F -. "补事实" .-> Context
+  A -. "补行动" .-> Tool
+  S -. "补状态" .-> Plan
+  V -. "补验证" .-> Verify
 
-  classDef gap fill:#fef2f2,stroke:#ef4444,color:#7f1d1d;
-  classDef system fill:#eff6ff,stroke:#2563eb,color:#1e3a8a;
-  class GapFacts,GapActions,GapState,GapVerify gap;
-  class Context,Tools,State,Verify,Done system;
+  classDef gap fill:#fef2f2,stroke:#ef4444,color:#7f1d1d
+  classDef runtime fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+  classDef success fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef recover fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+  class LLM,F,A,S,V gap
+  class Context,Plan,Tool,Verify runtime
+  class Done success
+  class Recover recover
             </div>
-            <p>图上四条虚线说明了“补什么”：不是向模型追加更多形容词，而是把缺失能力接入运行时。下方实线才是一条能够运行的认证交付路径，验证失败会回到计划状态，而不是回到一段新的聊天请求。</p>
+            <p>图中的四条虚线说明了“补什么”：不是向模型追加更多形容词，而是把缺失能力接入运行时。实线是能够运行的认证交付路径；验证失败回到计划状态，而不是回到一段新的聊天请求。</p>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：四个缺口如何在认证现场出现</h3>
+            <h4>四缺口对照表：现场、裸对话与系统能力</h4>
             <table class="comparison-table">
-              <tr><th>缺口</th><th>系统要补什么</th><th>小周认证现场</th><th>后文展开</th></tr>
-              <tr><td><strong>事实</strong></td><td>可追溯的实时依据</td><td>不知 <code>/me</code> 登出后真实状态</td><td>依据包治理</td></tr>
-              <tr><td><strong>行动</strong></td><td>受控外部操作</td><td>只能建议改 session，改不了仓库</td><td>工具契约</td></tr>
-              <tr><td><strong>状态</strong></td><td>进度外置、可恢复</td><td>聊到 T04 忘了 T02 已通过</td><td>计划对象 / Harness</td></tr>
-              <tr><td><strong>验证</strong></td><td>外部证据证明完成</td><td>自称「应该 401」，测试仍红</td><td>证据裁定</td></tr>
+              <tr><th>缺口</th><th>现场痛点</th><th>裸对话表现</th><th>Agent 补什么（系统能力）</th><th>对应后文</th></tr>
+              <tr><td><strong>1. 事实</strong></td><td>不知 <code>/me</code> 登出后真实是 200 还是 401；不知 <code>session.ts</code> HEAD 长什么样。</td><td>用训练记忆与「应该如此」填空。</td><td>工具调用（Context + 探针 / 读文件）</td><td>Part 04</td></tr>
+              <tr><td><strong>2. 行动</strong></td><td>只能建议改 session 清理；Diff 不进分支，测试跑不起来。</td><td>输出伪代码与「请你手动执行」。</td><td>流程控制（Tool 契约：读改测、权限）</td><td>Part 05</td></tr>
+              <tr><td><strong>3. 状态</strong></td><td>多轮后忘了 T02 是否已过、该从 T04 哪点续；刷新对话等于失忆。</td><td>靠上下文窗口「大概记得」。</td><td>记忆与状态（Plan + Checkpoint + Harness）</td><td>Part 07 / 10</td></tr>
+              <tr><td><strong>4. 验证</strong></td><td>自称「应该 401 了」「伪测试通过」；本地 <code>auth.session.spec</code> 仍红。</td><td>用更长、更自信的段落代替 runner 结果。</td><td>验证与治理（测试 / 探针 + Reflection）</td><td>Part 08</td></tr>
             </table>
           </div>
 
           <div class="content-block">
-            <h3>补充自检：何时不能只用裸 LLM</h3>
+            <h4>补充自检：何时不能只用裸 LLM</h4>
             <div class="diag-flow">
               <p><strong>有一问为「是」，就不能只用裸对话当 Agent：</strong></p>
               <ol>
@@ -351,7 +367,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：先补缺口，再谈模型能力</h3>
+            <h3>03 / 执行结论：先补缺口，再谈模型能力</h3>
             <p>四缺口诊断的输出，不是“换一个模型试试”，而是明确本轮需要接入哪种系统能力。事实、行动、状态、验证可以同时缺失，但每一项都必须有对应的运行时责任者和可检查产物。</p>
             <table class="comparison-table">
               <tr><th>误判</th><th>你实际在做的事</th><th>典型结果</th></tr>
@@ -366,7 +382,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：Agent 的能力来自协作分工，而非单次回答</h3>
+            <h3 class="reflection-title">思考笔记：Agent 的能力来自协作分工，而非单次回答</h3>
             <p>把更多要求塞进 Prompt，只能让模型更努力地描述它想做什么，不能让它获得当前事实、写入权限、持久状态或独立验证。真正的 Agent 不是“更会聊天的模型”，而是模型与上下文、工具、状态机、验证器共同组成的执行系统。</p>
             <p>因此，判断一个系统是否接近 Agent，不应先问它能生成多长的计划，而应追问：它能否读取真值、留下受控行动、从检查点恢复，并让外部证据裁定完成？</p>
             <p class="note-take"><strong>带着这个判断进入下一章：</strong>四个缺口确认之后，认证交付 Agent 的最小闭环应该由哪些步骤组成？</p>
@@ -381,7 +397,7 @@ flowchart TB
           <img class="chapter-image" src="/images/llm-agent-principles/02-panorama.png" alt="全景闭环">
 
           <div class="content-block">
-            <h3>1. 闭环背景：为什么先画运行地图，再谈各层机制</h3>
+            <h3>01 / 运行地图：为什么先画运行地图，再谈各层机制</h3>
             <p>四个缺口告诉你「缺什么」。闭环地图告诉你「认证跑起来长什么样」——目标进来，必须能走到可复查的完成，或明确的回流，而不能停在一段漂亮说明上。</p>
             <div class="warn-box">
               <strong>小周第一版的形状：</strong>目标进 → 模型一次生成方案 → 自称完成。图上没有「观察 / 验证失败 / 回流」。系统没有画失败边，运行时就会用「再生成一次完整答案」冒充闭环。
@@ -390,15 +406,17 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：认证闭环必须走完哪五步</h3>
+            <h3>02 / 核心问题：认证闭环必须走完哪五步？</h3>
             <p class="note-meta">每一步：要产出什么 · 缺了会断在哪 · 主要靠哪类机制托底</p>
-            <ol class="step-list">
-              <li><strong>目标与上下文</strong>：装载 Spec 验收句 + 现行 session/路由事实；缺了 → 事实缺口，后文乱猜。</li>
-              <li><strong>理解与规划</strong>：拆成可验证子目标（登录→鉴权→登出→错误体）；缺了 → 一步到位大 Diff，状态不可恢复。</li>
-              <li><strong>工具行动</strong>：读改测，留下 Diff 与日志；缺了 → 只有建议，仓库不动。</li>
-              <li><strong>观察与验证</strong>：单测 + 接口探测；失败则回流，禁止宣布完成；缺了 → 验证靠自述。</li>
-              <li><strong>经验沉淀</strong>：把「登出清理点遗漏」写入回归用例/规则，而不只留在聊天；缺了 → 同一坑下一轮重踩。</li>
-            </ol>
+            <table class="comparison-table">
+              <tr><th>步骤</th><th>核心动作</th><th>要产出什么</th><th>缺了会断在哪</th><th>对应机制</th></tr>
+              <tr><td><strong>1. 目标与上下文</strong></td><td>装载 Spec 验收句 + 现行 session / 路由事实</td><td>明确的任务边界与事实依据</td><td>事实缺口，后文乱猜</td><td>依据包</td></tr>
+              <tr><td><strong>2. 理解与规划</strong></td><td>拆成可验证子目标（登录→鉴权→登出→错误体）</td><td>可执行的步骤序列</td><td>一步到位大 Diff，状态不可恢复</td><td>推理核、计划对象</td></tr>
+              <tr><td><strong>3. 工具行动</strong></td><td>读改测，留下 Diff 与日志</td><td>真实的外部变更</td><td>只有建议，仓库不动</td><td>工具契约</td></tr>
+              <tr><td><strong>4. 观察与验证</strong></td><td>单测 + 接口探测；失败则回流</td><td>外部证据裁定过 / 不过</td><td>验证靠自述，CI 仍红</td><td>ReAct、证据裁定</td></tr>
+              <tr><td><strong>5. 经验沉淀</strong></td><td>把登出清理点遗漏写入回归用例 / 规则</td><td>系统能力的更新</td><td>同一坑下一轮重踩</td><td>记忆与学习</td></tr>
+            </table>
+            <div class="tip-box"><strong>关键认识：</strong>Agent 不是一次生成，而是“目标—行动—反馈—改进”的持续循环。前一层解决的问题，会自然引出下一层能力；它们共同组成任务闭环。</div>
             <div class="layer-grid">
               <div class="layer-card content-block">
                 <span class="layer-tag">步骤 1–2</span>
@@ -421,6 +439,7 @@ flowchart TB
                 <p>Checkpoint、超时重试、权限与人工闸托住整环。对应后文：Harness、路由、治理。</p>
               </div>
             </div>
+            <h4>认证交付的五步闭环与四条验证出口</h4>
             <div class="mermaid">
 flowchart LR
   Context["1. 目标与上下文\nSpec + 现行事实"] --> Plan["2. 理解与规划\n可验证子目标"]
@@ -445,7 +464,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：T04 登出失效的一轮回流</h3>
+            <h3>03 / 事实证据：T04 登出失效的一轮回流</h3>
             <p class="note-meta">小周试点里，登出失效修复的典型一圈——验证失败时系统该怎么走</p>
             <div class="contract-template"><code>认证一轮（示例）
 目标：登出后 /me → 401
@@ -464,7 +483,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：闭环必须保留的三条边</h3>
+            <h3>04 / 执行结论：闭环必须保留的三条边</h3>
             <div class="diag-flow">
               <p><strong>画图时必须同时画上的三条边：</strong></p>
               <ol>
@@ -479,13 +498,13 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>补充对照：一次生成 vs 五步环</h3>
+            <h4>补充对照：一次生成 vs 五步环</h4>
             <table class="comparison-table">
-              <tr><th>一次生成（小周 v0）</th><th>五步环（要建成的形状）</th></tr>
-              <tr><td>目标 → 长文方案 → 自称完成</td><td>目标 → 规划 → 行动 → 观察验证 → 沉淀 / 回流</td></tr>
-              <tr><td>失败靠人肉发现</td><td>失败是一等公民边，默认回流</td></tr>
-              <tr><td>进度在聊天里</td><td>进度在任务状态与 Checkpoint</td></tr>
-              <tr><td>经验留在对话</td><td>经验进回归用例与规则</td></tr>
+              <tr><th>维度</th><th>一次生成（小周 v0）</th><th>五步环（要建成的形状）</th></tr>
+              <tr><td>流程</td><td>目标 → 长文方案 → 自称完成</td><td>目标 → 规划 → 行动 → 观察验证 → 沉淀 / 回流</td></tr>
+              <tr><td>失败处理</td><td>失败靠人肉发现</td><td>失败是一等公民边，默认回流</td></tr>
+              <tr><td>进度管理</td><td>进度在聊天里</td><td>进度在任务状态与 Checkpoint</td></tr>
+              <tr><td>经验积累</td><td>经验留在对话</td><td>经验进回归用例与规则</td></tr>
             </table>
             <div class="callout">
               <strong>下一章起按环拆开：</strong>先钉推理核边界（LLM 只想下一步），再补 Context 与 Tool——没有眼和手，环在「行动 / 观察」处必断。
@@ -493,7 +512,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：闭环不是“多跑几轮”，而是每轮都能改变系统状态</h3>
+            <h3 class="reflection-title">思考笔记：闭环不是“多跑几轮”，而是每轮都能改变系统状态</h3>
             <p>反复调用模型不等于闭环。只有当每一轮都新增了可追溯的事实、受控的外部行动、持久的任务状态或可复查的验证证据，系统才真的向交付结果推进。</p>
             <p>五步环也因此不是固定的直线：认证失败时，系统必须知道该回到哪个节点、保留哪些已确认产物、由谁决定是否继续。把失败出口画清，才能让 Agent 在不确定中有序运行。</p>
             <p class="note-take"><strong>带着这个判断进入下一章：</strong>在这条闭环上，LLM 应该承担哪些推理职责，又有哪些事实和裁定绝不能交给它单独决定？</p>
@@ -508,7 +527,8 @@ flowchart LR
           <img class="chapter-image" src="/images/llm-agent-principles/03-llm-fundamentals.png" alt="LLM 基础">
 
           <div class="content-block">
-            <h3>1. 推理背景：小周为什么把 LLM 当成了整机</h3>
+            <h3>01 / 推理边界：小周为什么把 LLM 当成了整机</h3>
+            <p>正如「PART 03 · LLM 基础」图示所强调的：LLM 是 Agent 的推理内核，但不是完整系统。它依赖提示词和上下文做概率生成，必须由外部能力补充事实与控制。</p>
             <p>第一版对话框里，模型同时扮演了规划师、测试报告和「现网真相」：写出清理方案，又自行宣布「登出后应为 401」「我测过了」。一接 runner，全是自述。</p>
             <div class="warn-box">
               <strong>定位错误：</strong>把 LLM 放在「完整 Agent」的位置，而不是「推理内核」。内核只负责想清楚下一步；事实查询与写操作必须交给工具和策略，完成裁定必须交给外部证据。
@@ -517,13 +537,14 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：哪些职责可以交给 LLM，哪些必须外置</h3>
+            <h3>02 / 核心问题：哪些职责可以交给 LLM，哪些必须外置？</h3>
             <table class="comparison-table">
-              <tr><th>交给 LLM（推理内核）</th><th>绝不交给 LLM 单独裁定</th></tr>
-              <tr><td>解析验收句、拆可验证步骤</td><td>「现网已经 401」</td></tr>
-              <tr><td>根据日志提出假设、填工具参数</td><td>「我测过了 / 伪测试通过」</td></tr>
-              <tr><td>在证据齐备时写交付摘要</td><td>「哈希可以换更安全的」（越权改禁区）</td></tr>
-              <tr><td>解读失败日志，建议回流类型</td><td>用更长段落代替 <code>run_tests</code> / <code>http_probe</code> 结果</td></tr>
+              <tr><th>维度</th><th>LLM 在 Agent 中负责（推理内核）</th><th>LLM 的天然边界（绝对禁区）</th></tr>
+              <tr><td>核心能力</td><td>✅ 理解意图<br>✅ 抽取信息<br>✅ 生成计划<br>✅ 选择工具<br>✅ 解释结果</td><td>❌ 上下文有限<br>❌ 知识可能过期<br>❌ 输出非确定<br>❌ 可能产生幻觉<br>❌ 没有持久状态</td></tr>
+              <tr><td>认证场景示例</td><td>解析验收句、拆可验证步骤</td><td>「现网已经 401」（未探针）</td></tr>
+              <tr><td>认证场景示例</td><td>根据日志提出假设、填工具参数</td><td>「我测过了」（伪测试通过）</td></tr>
+              <tr><td>认证场景示例</td><td>在证据齐备时写交付摘要</td><td>「哈希可以换更安全的」（越权改禁区）</td></tr>
+              <tr><td>认证场景示例</td><td>解读失败日志，建议回流类型</td><td>用更长段落代替 <code>run_tests</code> 结果</td></tr>
             </table>
             <div class="layer-grid">
               <div class="layer-card content-block">
@@ -541,7 +562,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：认证任务里为什么必须建立这些边界</h3>
+            <h3>03 / 事实证据：认证任务里为什么必须建立这些边界？</h3>
             <ol class="step-list">
               <li><strong>上下文有限</strong>——塞整仓会淹掉 session 关键路径；要靠依据包治理，不能靠「模型自己找」。</li>
               <li><strong>知识过时</strong>——训练数据不知道你们仓库 HEAD；现行实现必须工具读入。</li>
@@ -560,7 +581,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：把推理内核放回五步环的正确位置</h3>
+            <h3>04 / 执行结论：把推理内核放回五步环的正确位置</h3>
             <table class="comparison-table">
               <tr><th>环上步骤</th><th>LLM 该做</th><th>LLM 不该单独做</th></tr>
               <tr><td>目标与上下文</td><td>解析验收句、标出缺口问题</td><td>臆造现行 session 行为</td></tr>
@@ -572,6 +593,7 @@ flowchart LR
             <div class="tip-box">
               <strong>干货：</strong>换更强模型，只增强「想」的质量；不自动补上眼（Context/探针）、手（Tool）、记性（状态）和考官（外部验证）。
             </div>
+            <h4>LLM 的受控输入、结构化输出与外部裁定</h4>
             <div class="mermaid">
 flowchart LR
   Spec["任务 Spec 与 Acceptance"] --> LLM["LLM 推理内核"]
@@ -597,23 +619,33 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>补充示例：认证试点中的正确接法</h3>
-            <div class="contract-template"><code>LLM 输出（允许）：
-  intent: 排查登出后 /me 仍 200
-  plan_step: S3-logout-401
-  tool_calls: [read_file(session.ts), run_tests(auth.session), http_probe(GET,/me)]
-
-系统裁定（禁止 LLM 单独说了算）：
-  observation ← 工具返回
-  verify ← 对照 Acceptance（401？）
-  next ← 策略机：retry | replan | enrich_context | human</code></div>
+            <h4>补充示例：认证试点中的正确接法</h4>
+            <div class="layer-grid">
+              <div class="layer-card content-block">
+                <span class="layer-tag">LLM 可以输出</span>
+                <h4>下一步意图与工具建议</h4>
+                <p><strong>任务判断：</strong>登出后 <code>/me</code> 仍返回 <code>200</code>，需要排查会话是否真正清理。</p>
+                <p><strong>任务位置：</strong>当前处于「S3 · 登出后应返回 401」这一步。</p>
+                <p><strong>建议动作：</strong>先读取 <code>session.ts</code>，再运行认证测试并探测 <code>/me</code> 的真实返回。</p>
+              </div>
+              <div class="layer-card content-block">
+                <span class="layer-tag">系统必须裁定</span>
+                <h4>事实、验收与下一出口</h4>
+                <p><strong>真实观察：</strong>只接受工具实际返回的日志、Diff 与状态码，不采纳模型自述。</p>
+                <p><strong>完成判断：</strong>逐条对照验收条件——登出后是否真的返回 <code>401</code>。</p>
+                <p><strong>下一出口：</strong>由策略选择重试、重规划、补充依据或人工接管；模型不能自行宣布完成。</p>
+              </div>
+            </div>
+            <div class="diag-flow">
+              <p><strong>一句话分工：</strong>LLM 负责提出“接下来查什么”；系统负责用真实结果决定“到底发生了什么、下一步允许做什么”。</p>
+            </div>
             <div class="callout">
               <strong>下一章：</strong>推理核要「想得准」，先得吃对依据——依据包如何被系统治理，而不是聊天里随便粘贴。
             </div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：把 LLM 限在边界内，反而让系统更可靠</h3>
+            <h3 class="reflection-title">思考笔记：把 LLM 限在边界内，反而让系统更可靠</h3>
             <p>限制模型不能自证事实、不能直接写入、不能单独宣布完成，并不是削弱它，而是把它从不擅长承担的职责中解放出来。它可以专注于理解目标、解释证据和提出下一步，而系统可以用确定的接口与规则承担风险。</p>
             <p>这也是“模型越强，系统边界越重要”的原因：推理越有说服力，越需要外部证据抵消语言带来的虚假确定性。</p>
             <p class="note-take"><strong>带着这个判断进入下一章：</strong>既然 LLM 只能基于已验证的事实推理，系统应该如何选择、标注、更新和淘汰进入 Context 的依据？</p>
@@ -628,7 +660,8 @@ flowchart LR
           <img class="chapter-image" src="/images/llm-agent-principles/04-context.png" alt="Context">
 
           <div class="content-block">
-            <h3>1. Context 背景：为什么“塞更多”补不了事实缺口</h3>
+            <h3>01 / Context 背景：为什么“塞更多”补不了事实缺口</h3>
+            <p>正如「PART 04 · CONTEXT」图示所强调的：高质量上下文应当最小充分、来源清晰、可控且具备时效性。上下文不是越多越好，而是为当前任务提供最有效、最可信的事实。</p>
             <p>小周第一版的本能是：把 Spec、半截代码、聊天结论一股脑贴进对话框。模型「看见」很多字，却 anchor 不住 <code>session.ts</code> 的 HEAD 与本轮红测日志——事实缺口还在，只是噪音更大。</p>
             <div class="warn-box">
               <strong>与 01 篇的分工：</strong>人侧「证据包」讲怎么挑文件给 AI；本篇讲<strong>系统如何治理依据</strong>——条目要有来源、版本、权限、时效，进入与驱逐都有规则，而不是靠人手每次粘贴。
@@ -637,15 +670,15 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：什么样的依据可以进入高风险路径</h3>
+            <h3>02 / 核心问题：什么样的依据可以进入高风险路径？</h3>
             <p class="note-meta">登出失效排查轮次；每条都能回答元数据四问</p>
             <table class="comparison-table">
-              <tr><th>条目</th><th>来源</th><th>版本 / 时效</th><th>权限</th></tr>
-              <tr><td>验收句「登出后 401」</td><td>任务契约</td><td>v1.0</td><td>全角色可读</td></tr>
-              <tr><td><code>session.ts</code> 现行实现</td><td>仓库 HEAD</td><td>commit 哈希</td><td>执行角色可读写限域</td></tr>
-              <tr><td>失败测试日志</td><td>CI / 本地 runner</td><td>本轮 run-id</td><td>可读</td></tr>
-              <tr><td>错误体规范（若涉及泄路径）</td><td>仓库文档</td><td>文档版本</td><td>可读</td></tr>
-              <tr><td>生产密钥 / <code>.env</code></td><td>—</td><td>—</td><td><strong>永不进入</strong></td></tr>
+              <tr><th>维度</th><th>图示定义</th><th>认证现场治理标准（元数据四问）</th></tr>
+              <tr><td><strong>1. 任务上下文</strong></td><td>目标、约束、当前文件</td><td>验收句「登出后 401」<br>来源：任务契约 v1.0<br>权限：全角色可读</td></tr>
+              <tr><td><strong>2. 会话状态</strong></td><td>已完成步骤、待确认事项</td><td>失败测试日志<br>来源：CI / 本地 runner<br>版本：本轮 run-id<br>时效：仅本轮有效</td></tr>
+              <tr><td><strong>3. 长期记忆</strong></td><td>历史任务、偏好、经验</td><td>错误体规范<br>来源：仓库文档<br>版本：文档版本号<br>用途：参考而非强制</td></tr>
+              <tr><td><strong>4. 企业知识</strong></td><td>制度、流程、专业资料</td><td><code>session.ts</code> 现行实现<br>来源：仓库 HEAD<br>版本：commit 哈希<br>权限：执行角色可读写限域</td></tr>
+              <tr><td><strong>5. 权限边界</strong></td><td>哪些信息可以访问</td><td>生产密钥 / <code>.env</code><br>状态：永不进入<br>策略：硬拦截</td></tr>
             </table>
             <div class="diag-flow">
               <p><strong>元数据四问（每条必答）：</strong></p>
@@ -660,7 +693,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：粘贴堆为何无法成为受控依据包</h3>
+            <h3>03 / 事实证据：粘贴堆为何无法成为受控依据包</h3>
             <div class="layer-grid">
               <div class="layer-card content-block">
                 <span class="layer-tag">粘贴堆</span>
@@ -683,6 +716,7 @@ flowchart LR
                 <p>旧 run 日志、已废弃分支片段、越权文件——默认踢出高风险路径的上下文。</p>
               </div>
             </div>
+            <h4>依据包的准入、使用、回写与失效</h4>
             <div class="mermaid">
 flowchart TB
   Spec["任务契约\nGoal / Acceptance / 禁区"] --> Gate["元数据准入校验\n来源 · 版本 · 权限 · 时效"]
@@ -709,7 +743,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：把依据治理写成可执行规则</h3>
+            <h3>04 / 执行结论：把依据治理写成可执行规则</h3>
             <ol class="step-list">
               <li><strong>最小充分</strong>——只装本步验收与行动所需；多一条就要能回答「缺了会猜错什么」。</li>
               <li><strong>现行优先</strong>——HEAD / 本轮 run 优先于聊天记忆与外部博客结论。</li>
@@ -730,7 +764,7 @@ never_load: [".env", "**/secrets/**", "prod-config/**"]</code></div>
           </div>
 
           <div class="content-block">
-            <h3>补充对照：依据包装错会长什么样</h3>
+            <h4>补充对照：依据包装错会长什么样</h4>
             <table class="comparison-table">
               <tr><th>错法</th><th>认证现场</th><th>纠正</th></tr>
               <tr><td>整仓当 Context</td><td>关键清理函数被淹没</td><td>按 Tn 装载最小集合</td></tr>
@@ -744,7 +778,7 @@ never_load: [".env", "**/secrets/**", "prod-config/**"]</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：Context 的质量取决于可追溯性，不取决于字数</h3>
+            <h3 class="reflection-title">思考笔记：Context 的质量取决于可追溯性，不取决于字数</h3>
             <p>模型可以处理很长的文本，但无法自动判断哪些内容代表当前真相、哪些只是过期意见。高风险任务中，错误地相信一条旧日志或越权信息，往往比缺少一段说明更危险。</p>
             <p>把 Context 做成带来源、版本、权限和时效的对象，意味着系统终于可以解释“为什么允许 Agent 基于这条信息行动”，也可以在事实变化后明确撤销这种许可。</p>
             <p class="note-take"><strong>带着这个判断进入下一章：</strong>当系统已经选出可用依据，Agent 又该通过怎样的工具接口去读取、修改和验证外部世界？</p>
@@ -759,7 +793,8 @@ never_load: [".env", "**/secrets/**", "prod-config/**"]</code></div>
           <img class="chapter-image" src="/images/llm-agent-principles/05-tool-calling.png" alt="Tool Calling">
 
           <div class="content-block">
-            <h3>1. 工具背景：为什么“能执行”不等于“可安全执行”</h3>
+            <h3>01 / Tool 背景：为什么“能执行”不等于“可安全执行”</h3>
+            <p>正如「PART 05 · TOOL CALLING」图示所强调的：Tool Calling 的重点不是“能调用”，而是“可控、可验证、可审计”。工具包含描述、参数、权限和返回结果；调用前必须检查必要性、完整性、授权与可验证性。</p>
             <p>小周第一版没有真正的 Tool——模型输出「请在 session 清理函数里……」，人要自己改、自己跑测。接上「能执行」之后若放开无契约的 shell，问题会反转：什么都能动，却不知道谁授权、结果算不算数。</p>
             <div class="warn-box">
               <strong>两端都危险：</strong>无工具 = 行动缺口（交不出认证）；无契约的全能工具 = 把生产交给概率。本层要的是<strong>受控接口</strong>，不是更多自由。
@@ -768,7 +803,7 @@ never_load: [".env", "**/secrets/**", "prod-config/**"]</code></div>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：认证 Agent 最少需要哪些受控能力</h3>
+            <h3>02 / 核心问题：认证 Agent 最少需要哪些受控能力？</h3>
             <p class="note-meta">感知（读/探）与行动（改/测）成对出现；每条都有明确返回</p>
             <div class="contract-template"><code>read_file(path)       → 内容 | 失败
 apply_patch(diff)      → 成功 | 冲突 | 拒绝（越权路径）
@@ -778,6 +813,15 @@ http_probe(method,url) → status + body摘要
 每个工具必须具备：
   描述 · JSON Schema · 权限 · 返回四态
 返回四态：成功 / 业务失败 / 异常 / 可重试</code></div>
+            <table class="comparison-table">
+              <tr><th>维度</th><th>图示定义 / 分类</th><th>认证现场治理标准（契约要素）</th></tr>
+              <tr><td>1. 搜索检索</td><td>查询事实与知识</td><td><code>read_file(path)</code>：描述明确、只读权限、返回内容或报错</td></tr>
+              <tr><td>2. 数据库 / API</td><td>读写业务数据</td><td><code>http_probe(method, url)</code>：Schema 必填、返回 Status Code + Body 摘要</td></tr>
+              <tr><td>3. 文件办公</td><td>文档、表格、演示</td><td><code>apply_patch(diff)</code>：限域写白名单路径、返回成功 / 冲突 / 拒绝</td></tr>
+              <tr><td>4. 浏览器系统</td><td>操作业务页面</td><td><code>run_tests(selector)</code>：返回 Pass / Fail + 日志链接</td></tr>
+              <tr><td>5. 自动化脚本</td><td>执行重复动作</td><td>调用前四检：必要性、完整性、授权、可验证性</td></tr>
+              <tr><td>6. 外部系统</td><td>受控连接与返回</td><td>返回四态：成功 / 业务失败 / 异常 / 可重试</td></tr>
+            </table>
             <div class="layer-grid">
               <div class="layer-card content-block">
                 <span class="layer-tag">感知</span>
@@ -794,7 +838,7 @@ http_probe(method,url) → status + body摘要
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：工具契约如何约束每次调用</h3>
+            <h3>03 / 事实证据：工具契约如何约束每次调用？</h3>
             <table class="comparison-table">
               <tr><th>件套</th><th>要写清什么</th><th>认证例</th></tr>
               <tr><td><strong>描述</strong></td><td>做什么、不做什么</td><td><code>apply_patch</code> 只改白名单路径，不执行任意 shell</td></tr>
@@ -811,6 +855,7 @@ http_probe(method,url) → status + body摘要
                 <li><strong>结果如何验证？</strong>返回将对照哪条 Acceptance / 检查点？</li>
               </ol>
             </div>
+            <h4>从工具意图到审计、结果与回流的受控链路</h4>
             <div class="mermaid">
 flowchart LR
   LLM["LLM 输出\n工具名 + 参数"] --> Schema{"Schema 完整？"}
@@ -838,7 +883,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：用受控接口替代危险接法</h3>
+            <h3>04 / 执行结论：用受控接口替代危险接法</h3>
             <table class="comparison-table">
               <tr><th>危险接法</th><th>后果</th><th>受控接法</th></tr>
               <tr><td>无 Schema 全能 shell</td><td>任意命令、难审计、易越权</td><td>白名单工具 + Schema + 路径策略</td></tr>
@@ -852,7 +897,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>补充示例：小周试点的一串合法调用</h3>
+            <h4>补充示例：小周试点的一串合法调用</h4>
             <div class="contract-template"><code># T04 登出失效 · 受控调用序列（示意）
 1) read_file("src/auth/session.ts")
    → 成功：内容入依据包（commit 绑定）
@@ -870,7 +915,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：工具的自由度越高，契约越不能缺席</h3>
+            <h3 class="reflection-title">思考笔记：工具的自由度越高，契约越不能缺席</h3>
             <p>真正危险的不是 Agent 会调用工具，而是系统无法说明它为什么能调用、调用了什么、外部世界发生了什么，以及失败后由谁负责停止。工具契约把这些问题从模型的临场判断变成可执行的系统规则。</p>
             <p>因此，工具设计的目标不是给模型一只更大的手，而是让每一次伸手都有范围、权限、记录和可验证的结果。这样，行动能力才能真正缩小交付缺口，而不是扩大事故面。</p>
             <p class="note-take"><strong>带着这个判断进入下一章：</strong>当根因尚不确定时，Agent 如何在受控工具范围内边观察、边推理、边行动，同时避免无限循环？</p>
@@ -885,7 +930,8 @@ flowchart LR
           <img class="chapter-image" src="/images/llm-agent-principles/06-react.png" alt="ReAct">
 
           <div class="content-block">
-            <h3>1. ReAct 背景：何时应该在步骤内部启动短环</h3>
+            <h3>01 / ReAct 背景：何时应该在步骤内部启动短环</h3>
+            <p>正如「PART 06 · REACT」图示所强调的：ReAct 用“推理—行动—观察”处理不确定问题，但必须严格遵守退出条件。证据已充分、目标已达成、风险触发或超过预算时，循环必须终止或升级。</p>
             <p>小周接到 T04：验收要求登出后 <code>/me</code> → 401，实测 200。此时<strong>根因不确定</strong>（没清 session？探针带旧 Cookie？测错环境？），适合短环：观察 → 推理 → 行动 → 再观察，而不是一次性写完「完整修复方案」。</p>
             <div class="warn-box">
               <strong>误用：</strong>整条认证（登录→鉴权→登出→错误体→PR）全靠 ReAct 裸转。步数一多，状态漂、预算爆、也没法从检查点恢复。ReAct 嵌在<strong>某一步内部</strong>；全局对齐交给下一章的计划对象。
@@ -894,13 +940,13 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：根因不确定时为什么不能直接给出完整修复</h3>
+            <h3>02 / 核心问题：根因不确定时为什么不能直接给出完整修复？</h3>
             <p>“登出后仍 200”是一个症状，不是根因。它可能来自 session 清理遗漏、路由没有调用清理函数、测试或探针携带旧 Cookie，甚至是环境指向错误。若模型在没有观察证据前直接选中其中一个原因并修改多个模块，系统就把探索变成了范围失控的猜测。</p>
             <p>ReAct 的作用是把大问题缩小为一系列可证伪假设：每次只基于最新工具返回提出一个下一步，执行一次限域调用，再用新的观察结果保留、收窄或推翻假设。这样，失败本身也会变成计划可消费的状态。</p>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：T04 的一轮受控排障</h3>
+            <h3>03 / 事实证据：T04 的一轮受控排障</h3>
             <ol class="step-list">
               <li><strong>观察</strong>：<code>auth.session.spec</code> 红；<code>http_probe</code> 登出后实际 200。</li>
               <li><strong>推理</strong>：会话可能未清理，或探针仍带旧 Cookie。</li>
@@ -909,17 +955,18 @@ flowchart LR
               <li><strong>调整</strong>：小 patch（限域）+ <code>run_tests</code>；步数封顶 8，超限升级重规划。</li>
             </ol>
             <table class="comparison-table">
-              <tr><th>环节</th><th>输入</th><th>输出</th><th>禁止</th></tr>
-              <tr><td>观察</td><td>工具返回 / 日志</td><td>可引用的事实句</td><td>模型臆造「应该 401」</td></tr>
-              <tr><td>推理</td><td>事实 + 验收句</td><td>可检验假设</td><td>同时开十个无关假设乱打</td></tr>
-              <tr><td>行动</td><td>假设 + 工具契约</td><td>一次限域调用</td><td>无 Schema shell；改哈希禁区</td></tr>
-              <tr><td>再观察</td><td>新工具返回</td><td>收窄或证伪假设</td><td>忽略红结果继续「感觉好了」</td></tr>
+              <tr><th>环节</th><th>图示定义</th><th>认证现场执行标准（T04 示例）</th></tr>
+              <tr><td>1. 观察</td><td>看见当前事实</td><td>输入：<code>auth.session.spec</code> 红；<code>http_probe</code> 返回 200。<br>禁止：臆造「应该 401」或忽略红结果。</td></tr>
+              <tr><td>2. 推理</td><td>判断缺什么信息</td><td>提出可证伪假设：会话未清理或探针带旧 Cookie。<br>禁止：同时开十个无关假设乱打。</td></tr>
+              <tr><td>3. 行动</td><td>调用工具获取信息</td><td>执行 <code>read_file(session.ts)</code> 定位清理函数。<br>禁止：无 Schema shell；修改哈希禁区。</td></tr>
+              <tr><td>4. 再观察</td><td>读取新结果</td><td>发现登出路径未调用清理函数，用新证据收窄或推翻假设。</td></tr>
+              <tr><td>5. 调整</td><td>继续、结束或升级</td><td>证据充分则进入修复；步数超限则升级重规划。<br>禁止：忽略失败继续「感觉好了」。</td></tr>
             </table>
             <p>这一轮的关键产物不是“模型想到了清理函数”，而是连续的证据链：探针 200、读取到登出路径、定位到未调用清理、限域 patch、测试结果。每一项都带有工具返回和当前步骤标识，因此可以被下一轮、Plan 或人工接手者复用。</p>
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：退出条件必须写进系统</h3>
+            <h3>04 / 执行结论：退出条件必须写进系统</h3>
             <div class="diag-flow">
               <p><strong>下列任一成立，结束本段 ReAct：</strong></p>
               <ol>
@@ -932,6 +979,7 @@ flowchart LR
             <div class="tip-box">
               <strong>干货：</strong>没有退出条件的 ReAct，就是预算粉碎机。小周试点把单步封顶设为 8；超限写入状态：<code>escalate_replan</code>。
             </div>
+            <h4>T04 短环：仅在低风险且预算允许时继续</h4>
             <div class="mermaid">
 flowchart TB
   Start["Plan 当前步骤：T04\n验收：登出后 /me = 401"] --> Observe["观察\n测试、探针、日志"]
@@ -960,7 +1008,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>补充说明：ReAct 与五步环、Plan 的关系</h3>
+            <h4>补充说明：ReAct 与五步环、Plan 的关系</h4>
             <div class="layer-grid">
               <div class="layer-card content-block">
                 <span class="layer-tag">适合</span>
@@ -986,7 +1034,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：ReAct 的价值是缩小不确定性，不是替代计划</h3>
+            <h3 class="reflection-title">思考笔记：ReAct 的价值是缩小不确定性，不是替代计划</h3>
             <p>短环擅长回答“当前这一步为什么失败”，不擅长保存长链路的目标、依赖和恢复点。把它用于整个认证流程，会让每轮探索都可能重写全局方向，最终失去可以复查的任务状态。</p>
             <p>正确的关系是外层 Plan 决定要完成什么、当前在哪一步、失败后保留什么；ReAct 只在该步骤内部探索最小的下一次行动，并在达到出口条件时把证据写回外层。</p>
             <p class="note-take"><strong>带着这个判断进入下一章：</strong>既然认证交付是一条长链路，系统应如何把步骤、依赖、输入、验证和恢复点落成可执行的计划对象？</p>
@@ -1001,7 +1049,8 @@ flowchart TB
           <img class="chapter-image" src="/images/llm-agent-principles/07-plan-execute.png" alt="Plan-and-Execute">
 
           <div class="content-block">
-            <h3>1. 计划背景：为什么长任务不能只靠 ReAct</h3>
+            <h3>01 / Plan 背景：为什么长任务不能只靠 ReAct</h3>
+            <p>正如「PART 07 · PLAN-AND-EXECUTE」图示所强调的：长任务先拆计划，再按步骤执行。计划负责目标分解和依赖排序，执行负责完成动作、记录状态与处理失败。</p>
             <p>小周要交付的不是一个单点修复，而是一条认证链路：登录可用、未登录访问受保护接口返回 <code>401</code>、登出后会话失效、错误体符合约定，最后还要留下可复查的交付记录。这些结果存在先后依赖，也各自需要独立的外部证据。</p>
             <p>Part 06 的 ReAct 短环适合处理“登出后 <code>/me</code> 为什么仍返回 <code>200</code>”这类局部不确定性；它不负责记住整条链路完成到哪里、哪项证据仍有效、失败后应从何处恢复。长任务因此要先落成<strong>计划对象</strong>，再在某个步骤内部按需启动短环。</p>
             <div class="warn-box">
@@ -1010,23 +1059,42 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：待办清单为什么不是运行时计划</h3>
+            <h3>02 / 核心问题：待办清单为什么不是运行时计划？</h3>
             <p>“先登录、再登出、最后写报告”看起来已经拆了步，但它仍无法回答运行时最关键的问题：S3 能否启动？它依赖的 S2 是否真的通过？失败是当前步骤的局部问题，还是需要修改全局依赖？另一个执行者接手时，应从哪里继续？</p>
             <p>没有这些约束，长任务会退化为一串随时可被改写的自然语言。S3 失败时，系统可能重新跑一遍登录、覆盖已绿的测试结果，或让两个探索分支同时修改 session 文件。这样的“重来”既浪费成本，也让最终交付无法解释。</p>
             <div class="callout"><strong>计划对象的职责：</strong>把任务拆成状态可迁移的节点，把“已经确认的事实”保存为 Checkpoint，并把可做的下一步限制在依赖满足的范围内。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：认证计划对象如何保存依赖与 Checkpoint</h3>
+            <h3>03 / 事实证据：认证计划对象如何保存依赖与 Checkpoint？</h3>
             <p>认证任务在系统内不是一段 Prompt，而是一份可读取、可更新、可恢复的状态。下表中的每个步骤都声明了可消费的输入与可否决的验证结果；只有验证通过，输出才会成为下游可以使用的 Checkpoint。</p>
-            <div class="contract-template"><code>Task: auth-delivery
-Steps:
-  S1 login-ok     in:契约  out:Checkpoint(login-ok)  verify:登录测绿
-  S2 guard-401    in:S1    out:Checkpoint(guard)     verify:无会话/me→401
-  S3 logout-401   in:S2    out:Checkpoint(logout)    verify:登出后/me→401
-  S4 error-body   in:S2|S3 out:Checkpoint(err)       verify:快照测绿
-  S5 report       in:all   out:交付摘要
-规则：S3 不得在 S2 未确认时启动；失败写入状态机，不擦除 Checkpoint</code></div>
+            <div class="contract-template"><code>任务：auth-delivery
+
+S1 · 登录可用
+  输入：任务契约
+  输出：Checkpoint(login-ok)
+  验证：登录测试通过
+
+S2 · 未登录访问受保护接口
+  依赖：S1 已确认
+  输出：Checkpoint(guard-401)
+  验证：无会话访问 /me → 401
+
+S3 · 登出后会话失效
+  依赖：S2 已确认
+  输出：Checkpoint(logout-401)
+  验证：登出后 /me → 401
+
+S4 · 错误体安全
+  依赖：S2、S3 已确认
+  输出：Checkpoint(error-body)
+  验证：错误体快照测试通过
+
+S5 · 交付报告
+  依赖：全部相关 Checkpoint
+  输出：可复查的交付摘要
+
+规则：S3 未确认 S2 时不得启动；失败写入状态机，已绿 Checkpoint 不得擦除。</code></div>
             <table class="comparison-table">
               <tr><th>步骤</th><th>依赖</th><th>验证（可否决）</th><th>失败时</th></tr>
               <tr><td>S1 登录可用</td><td>契约</td><td>登录测绿</td><td>停在 S1；不进 S2</td></tr>
@@ -1058,6 +1126,7 @@ Steps:
                 <p><strong>Plan</strong> 管全局对齐与依赖；<strong>Execute</strong> 管状态迁移、工具调用与失败写入。两者缺一，长任务必漂。</p>
               </div>
             </div>
+            <h4>认证计划的依赖门槛、步内 ReAct 与显式重规划</h4>
             <div class="mermaid">
 flowchart TB
   S1["S1 登录可用"] --> C1["Checkpoint: login-ok"]
@@ -1078,7 +1147,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：全局变化必须显式重规划</h3>
+            <h3>04 / 执行结论：全局变化必须显式重规划</h3>
             <p>计划不是模型一次性写出的静态清单，而是持续记录任务状态的系统对象。执行器只推进依赖已经满足的步骤；ReAct 只在当前步骤内提出假设、调用受控工具并收集证据。两者的边界必须清晰，才能避免局部排障悄悄改写全局任务。</p>
             <ol class="step-list">
               <li>步内 ReAct 可以调整假设和最小 patch，<strong>不得偷偷删除或重排</strong>全局步骤。</li>
@@ -1101,7 +1170,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：计划对象的价值不是预测未来，而是保护已确认的过去</h3>
+            <h3 class="reflection-title">思考笔记：计划对象的价值不是预测未来，而是保护已确认的过去</h3>
             <p>长任务一定会遇到未知：测试可能暴露新约束，依赖可能变更，局部假设也会被推翻。计划对象不承诺一开始就把未来排得绝对正确；它先把已验证的结果沉淀为不可随意丢失的事实，再让后续变化在可审计的重规划中发生。</p>
             <p>因此，好的计划不是步骤越多越好，而是每一步都能回答：我依据什么启动、成功由谁裁定、失败后保留什么、何时需要改变全局路径。</p>
           </div>
@@ -1115,7 +1184,8 @@ flowchart TB
           <img class="chapter-image" src="/images/llm-agent-principles/08-reflection.png" alt="Reflection">
 
           <div class="content-block">
-            <h3>1. 裁定背景：为什么步骤结束后还不能直接宣布完成</h3>
+            <h3>01 / Reflection 背景：为什么步骤结束后还不能直接宣布完成</h3>
+            <p>正如「PART 08 · REFLECTION」图示所强调的：可靠性来自规则、事实、测试或独立评审，而不是让模型“再想一次”。Reflection 要检查规则、比对事实、接受独立审核，并把失败送往明确出口。</p>
             <p>Part 07 已经把认证任务落成了带依赖的计划对象，但一个步骤“执行结束”不等于它“交付完成”。以 S3 为例，模型可以完成 session 清理 patch，也可以写出“登出后应返回 <code>401</code>”的说明；只有测试、接口探针和变更边界都给出可追溯的结果，系统才有资格放行下游步骤。</p>
             <p>小周第一版的习惯是让模型在失败后“再想一想 / 再写一版修复”。输出更长、语气更稳，却没有回看 runner、探针和规则引擎的真实返回。它并没有处理失败，只是把验证缺口换成了另一段生成内容。</p>
             <div class="warn-box">
@@ -1124,22 +1194,21 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：模型自述为什么不能代替证据裁定</h3>
+            <h3>02 / 核心问题：模型自述为什么不能代替证据裁定？</h3>
             <p>模型对代码的解释、对测试的预测、甚至“我已经修复”的结论，都是待验证的假设，不是系统事实。反思的对象不是上一段自然语言，而是当前任务状态中可定位的证据：哪个工具在什么版本的工作区运行、得到了什么原始结果、这条结果对应哪一句验收条件。</p>
             <p>如果证据缺少来源 ID，后续执行者就无法判断它是否过期；如果任一否决项仍红，Checkpoint 就不能写入；如果失败只留在聊天记录里，重试、补依据和人工交接都会失去依据。因此，Reflection 的首要动作是<strong>收证并对照</strong>，而非重新生成方案。</p>
             <div class="callout"><strong>裁定边界：</strong>LLM 可以解释证据、提出下一步建议；测试 runner、接口探针、Diff 规则和权限策略才负责提供或否决事实。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：S3 结束后如何对照验收条件</h3>
+            <h3>03 / 事实证据：S3 结束后如何对照验收条件</h3>
             <p class="note-meta">每条必须可追溯到工具返回或规则引擎结果，不能来自模型自述</p>
             <p>针对“登出后 <code>GET /me</code> 返回 <code>401</code>”这一验收句，系统不只看一条测试绿灯。它需要同时确认目标没有漂移、实现测试通过、真实接口行为符合预期，并且本轮改动没有越过哈希、环境配置等禁区。</p>
             <table class="comparison-table">
-              <tr><th>证据项</th><th>来源</th><th>通过标准</th></tr>
-              <tr><td>契约验收句</td><td>任务 Spec v1.0</td><td>本步目标仍是「登出后 /me → 401」</td></tr>
-              <tr><td><code>auth.session.spec</code></td><td><code>run_tests</code> + run-id</td><td>相关用例绿</td></tr>
-              <tr><td>登出后状态码</td><td><code>http_probe</code></td><td>实际 401（不是「应为 401」）</td></tr>
-              <tr><td>Diff 禁区校验</td><td>路径/规则引擎</td><td>未改哈希、<code>.env</code>、越权文件</td></tr>
+              <tr><th>环节</th><th>图示定义</th><th>认证现场执行标准（S3 登出验收）</th></tr>
+              <tr><td>1. 规则校验</td><td>是否完成目标？是否遗漏约束？字段是否完整？</td><td>契约验收句<br>来源：任务 Spec v1.0<br>标准：目标仍是「登出后 <code>/me</code> → 401」，未漂移。</td></tr>
+              <tr><td>2. 事实比对</td><td>工具结果是否冲突？数据是否可追溯？结论是否有依据？</td><td><code>auth.session.spec</code> &amp; <code>http_probe</code><br>来源：<code>run_tests</code> + run-id / probe<br>标准：用例全绿；实际状态码为 401。</td></tr>
+              <tr><td>3. 独立审核</td><td>评审 Agent、自动化测试、人工复核</td><td>Diff 禁区校验<br>来源：路径 / 规则引擎<br>标准：未改哈希、<code>.env</code>、越权文件。</td></tr>
             </table>
             <div class="diag-flow">
               <p><strong>清单三问（全「是」才允许宣布本步完成）：</strong></p>
@@ -1149,6 +1218,7 @@ flowchart TB
                 <li>模型陈述是否被当成证据？是 → 剔除，补工具调用。</li>
               </ol>
             </div>
+            <h4>收证、裁定与四出口：Reflection 的状态迁移</h4>
             <div class="mermaid">
 flowchart TB
   Step["S3 执行结束\n登出后 /me 应为 401"] --> Collect["收集本步证据\nrun-id / probe-id / diff 结果"]
@@ -1168,7 +1238,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：选择出口，并把决定写回状态</h3>
+            <h3>04 / 执行结论：选择出口，并把决定写回状态</h3>
             <p>裁定失败并不等于“这次任务失败”。它要做的是把失败转译为下一次可以执行的动作：环境偶发问题重试，步骤前提错误重规划，事实不足补上下文，高风险或持续无进展则交由人工。出口的选择由证据类别决定，不由模型的表达自信决定。</p>
             <div class="layer-grid">
               <div class="layer-card content-block">
@@ -1206,14 +1276,26 @@ flowchart TB
               <li><strong>选出口</strong>——重试 / 重规划 / 补上下文 / 人工；写进状态机，禁止口头「再试试」。</li>
               <li><strong>通过则放行</strong>——打 Checkpoint，允许下一步消费；摘要可引用证据 ID。</li>
             </ol>
-            <div class="contract-template"><code># S3 Reflection 裁定（示意）
-evidence:
-  - spec: auth.session.spec  run:r7  result: FAIL  expect:401 actual:200
-  - probe: GET /me after logout  id:p3  status:200
-  - diff_guard: hash_paths_untouched  ok:true
-decision: enrich_context | replan   # 非「再生成一版方案」
-next: load session cleanup path + retry S3 ReAct (budget=8)
-forbid: llm_self_declare_complete</code></div>
+            <div class="contract-template"><code>S3 · Reflection 裁定（示意）
+
+证据 1 · 认证测试
+  来源：auth.session.spec · run:r7
+  结果：FAIL
+  期望：401
+  实际：200
+
+证据 2 · 登出后接口探针
+  请求：GET /me
+  来源：probe:p3
+  实际状态：200
+
+证据 3 · Diff 禁区校验
+  规则：hash_paths_untouched
+  结果：通过
+
+裁定：enrich_context 或 replan（不是“再生成一版方案”）
+下一步：加载现行 session 清理路径，再以预算 8 重跑 S3 ReAct
+禁止：LLM 单独声明任务已完成</code></div>
             <p><strong>补充自检：假反思与真裁定的差别。</strong>前者用“再想一版”回避当前的外部结果；后者用证据清单否决或放行，并留下可接手的状态。任何无法写明证据 ID、失败分类和下一出口的结论，都不应称为 Reflection。</p>
             <table class="comparison-table">
               <tr><th>假反思</th><th>真裁定</th></tr>
@@ -1228,7 +1310,7 @@ forbid: llm_self_declare_complete</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：反思的产物不该是一段更长的话，而应是一条可恢复的状态迁移</h3>
+            <h3 class="reflection-title">思考笔记：反思的产物不该是一段更长的话，而应是一条可恢复的状态迁移</h3>
             <p>工程任务里，失败本身并不可怕；不可追溯的失败才会让系统失控。把失败原因、已验证事实、剩余预算和下一出口写进任务状态，下一位执行者才能在同一事实基础上继续，而不是重新猜测前面发生了什么。</p>
             <p>所以，Reflection 不是给模型增加“自我评价”回合，而是给系统增加一次基于证据的决策。它决定此刻能否写入 Checkpoint，也决定失败应当如何被限制、被传递和被解决。</p>
           </div>
@@ -1242,7 +1324,8 @@ forbid: llm_self_declare_complete</code></div>
           <img class="chapter-image" src="/images/llm-agent-principles/09-multi-agent.png" alt="Multi-Agent">
 
           <div class="content-block">
-            <h3>1. 协作背景：为什么任务变长后会需要多个角色</h3>
+            <h3>01 / Multi-Agent 背景：为什么任务变长后会需要多个角色</h3>
+            <p>正如「PART 09 · MULTI-AGENT」图示所强调的：复杂任务需要专业分工，而非一个万能 Agent。多角色的前提是职责明确、状态统一、交接完整并能追溯责任。</p>
             <p>认证交付走到 S3 后，系统既要回看 session 清理路径和错误码规则，又要做限域修改、运行测试和接口探针，还要对照证据清单裁定下一出口。把这些动作交给同一个执行单元并非不可能，但当任务变长、风险上升或需要并行读取时，职责会自然分化为协调、检索、执行和审核。</p>
             <p>小周试点中有人建议“一个窗口写登录，一个窗口写登出，一个窗口跑测”。表面上多了人手，实际上每个窗口各带一份 Spec 片段和进度。合并时 <code>session.ts</code> 冲突，两边都说自己测绿，却无法回答哪一份证据对应当前任务状态。</p>
             <div class="warn-box">
@@ -1251,14 +1334,14 @@ forbid: llm_self_declare_complete</code></div>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：为什么分工前必须先解决状态裂</h3>
+            <h3>02 / 核心问题：为什么分工前必须先解决状态分裂？</h3>
             <p>多角色真正的风险不在“谁来写代码”，而在多个角色基于不同的任务快照行动。若执行者拿着版本 12 的证据修改 <code>session.ts</code>，协调者已经把计划更新到版本 13，或审核者仍用旧验收句裁定结果，那么每一次交接都会把不一致放大。</p>
             <p>因此，系统不能只给角色分配 Prompt，还必须规定共享状态的最小协议：任务身份把计划、Checkpoint 和日志归到同一对象；状态版本拒绝过期交接；交接 Schema 让阻塞点、证据、禁区与下一允许动作成为机器可读字段；同一路径的写锁防止两个执行者制造互相覆盖的事实。</p>
             <div class="callout"><strong>先统一，再并行：</strong>可并行的是只读检索、测试观察和相互独立的文件范围；会修改同一任务状态或同一路径的动作，必须经过版本校验和单写者控制。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：S3 的一轮协作如何保持同一事实</h3>
+            <h3>03 / 事实证据：S3 的一轮协作如何保持同一事实</h3>
             <p>下面的交接对象不是聊天摘要，而是协调、执行和审核共同读取的状态切片。接收者先校验 <code>task_id</code> 与 <code>state_version</code>，再确认依赖 Checkpoint、证据 ID 和禁止触碰的范围；任何字段不匹配，都应拒绝执行并返回协调角色。</p>
             <div class="layer-grid">
               <div class="layer-card content-block">
@@ -1295,19 +1378,22 @@ forbid: llm_self_declare_complete</code></div>
   ask: pass | fail+reason_code</code></div>
             <p class="note-meta">角色是运行时职责切分；可以由同一模型的不同提示和权限实现，不必等于四个人</p>
             <table class="comparison-table">
-              <tr><th>角色</th><th>职责</th><th>交接产出</th><th>权限要点</th></tr>
-              <tr><td><strong>协调</strong></td><td>维护计划与状态版本；触发重规划</td><td>广播 Task 状态</td><td>改计划；不直接 patch 业务文件</td></tr>
-              <tr><td><strong>检索</strong></td><td>拉规范与现行代码，组装依据包</td><td>带来源/版本的上下文包</td><td>只读；不写仓库</td></tr>
-              <tr><td><strong>执行</strong></td><td>限域 patch + 跑测 / 探针</td><td>Diff + 日志 + run-id</td><td>白名单写；单写者锁</td></tr>
-              <tr><td><strong>审核</strong></td><td>对照证据清单裁定（Part 08）</td><td>通过 / 失败 + 原因码</td><td>只读证据；可打回不可偷改 Diff</td></tr>
+              <tr><th>环节</th><th>图示定义 / 角色</th><th>认证现场执行标准（S3 协作示例）</th></tr>
+              <tr><td>1. 协调 Agent</td><td>拆分与汇总</td><td>Task ID: <code>auth-delivery</code><br>维护计划与状态版本，触发重规划；广播状态，不直接 patch。</td></tr>
+              <tr><td>2. 检索 Agent</td><td>获取资料与事实</td><td>Context Package：拉规范与现行代码，组装依据包；只读，不写仓库。</td></tr>
+              <tr><td>3. 分析 Agent</td><td>推理与判断</td><td>Logic &amp; Analysis：提出假设、分析证据，产出结论与依据。</td></tr>
+              <tr><td>4. 执行 Agent</td><td>调用系统操作</td><td>Diff + run-id：限域 patch + 跑测 / 探针；白名单写，单写者锁。</td></tr>
+              <tr><td>5. 审核 Agent</td><td>检查风险与结果</td><td>Pass / Fail + Reason Code：对照证据裁定；只读证据，可打回不可偷改 Diff。</td></tr>
             </table>
             <p><strong>S3 的协作顺序：</strong>协调确认当前步为 S3、版本为 12 且 S2 已绿；检索将 <code>session.ts</code> HEAD 和红测日志装入依据包；执行者取得写锁后做限域 patch 并交出 Diff、<code>run-id</code> 和 <code>probe-id</code>；审核者仅凭这些证据裁定；协调者再依据原因码更新状态或创建新计划版本。</p>
+            <h4>同一 Task ID 下的角色协作、写锁与证据裁定</h4>
             <div class="mermaid">
 flowchart TB
   State["共享任务状态\nauth-delivery · version 12\nCheckpoint: guard-401"] --> Coordinator["协调\n确认步骤、依赖与状态版本"]
   Coordinator --> Research["检索\n装载 session 路径与红测日志"]
   Research --> Package["依据包\n来源、版本、禁区"]
-  Package --> Lock{"session.ts 写锁\n是否可获取？"}
+  Package --> Analyze["分析\n基于证据提出最小行动"]
+  Analyze --> Lock{"session.ts 写锁\n是否可获取？"}
   Lock -->|是| Execute["执行\n限域 patch + 测试 + 探针"]
   Lock -->|否| Wait["等待或改走独立只读任务"]
   Execute --> Handoff["交接 Schema\nDiff · run-id · probe-id · version 12"]
@@ -1321,7 +1407,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：让权限、交接与冲突处理进入协议</h3>
+            <h3>04 / 执行结论：让权限、交接与冲突处理进入协议</h3>
             <p>多角色不是增加更多“会思考的人”，而是把不同风险的动作交给边界清晰的职责。协调者维护计划但不直接 patch；检索者能读事实但不写仓库；执行者可以在白名单内写入但必须持锁；审核者能否决交付却不能偷改 Diff。职责和权限分开，才不会让一次协作又退化为不可解释的长对话。</p>
             <ol class="step-list">
               <li><strong>交接前校验版本</strong>——接收者只接受与当前 <code>task_id</code>、<code>state_version</code> 一致的交接；不一致则拒绝并重新拉取状态。</li>
@@ -1353,7 +1439,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：多角色的价值不是让任务更热闹，而是让责任边界可验证</h3>
+            <h3 class="reflection-title">思考笔记：多角色的价值不是让任务更热闹，而是让责任边界可验证</h3>
             <p>当协调、检索、执行和审核各自拥有明确的输入、输出与权限，协作中的每个决定就可以被复查：谁基于哪版状态行动、谁修改了什么范围、谁用哪些证据放行或打回。没有这些边界，所谓分工只是在复制不确定性。</p>
             <p>因此，先问“任务状态是否唯一、交接是否可拒绝、写入是否受控”，再问“要不要增加一个角色”。协议成立后，单模型、多模型或人工接手都可以在同一个任务对象上工作。</p>
           </div>
@@ -1367,7 +1453,8 @@ flowchart TB
           <img class="chapter-image" src="/images/llm-agent-principles/10-harness.png" alt="Harness">
 
           <div class="content-block">
-            <h3>1. 执行背景：为什么单次跑通还不算工程交付</h3>
+            <h3>01 / Harness 背景：为什么单次跑通还不算工程交付</h3>
+            <p>正如「PART 10 · HARNESS」图示所强调的：Harness 让 Agent 可运行、可恢复、可审计。它负责状态、重试、检查点、回滚和人机交接；不让 Agent 更聪明，却让复杂任务能稳定完成并被他人接手。</p>
             <p>小周补上 Context、Tool、ReAct、Plan、Reflection 之后，单次演示已经可以修好登出。但工程现场不会总在一次连续对话里结束：进程可能被重启，CI 可能在夜间超时，执行者可能换班，或者 S3 的 patch 被证据裁定为有害。若进度只活在窗口里，任何中断都会把任务拉回“重新解释一遍需求”。</p>
             <p>Harness 是围住执行过程的控制框架。它不替模型规划认证方案，而是保证任务在执行、验证、失败、回滚和交接之间有明确状态，使下一次行动只能从最近的已确认事实出发。</p>
             <div class="warn-box">
@@ -1376,14 +1463,14 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：中断之后系统凭什么知道该从哪里继续</h3>
+            <h3>02 / 核心问题：中断之后系统凭什么知道该从哪里继续？</h3>
             <p>“继续处理登出问题”不是一个足够的恢复指令。系统必须知道当前任务是谁、处于什么状态、上一次改了什么、外部观察到了什么、哪一个 Checkpoint 仍然可信，以及下一步被允许做什么。没有这些字段，模型只能重新阅读对话并猜测任务进度，重试也可能在错误的工作区或错误的路径上发生。</p>
             <p>恢复的关键不是保留更多聊天记录，而是把<strong>运行时状态</strong>外置成可读写的对象。它把过去的行动、当前失败和未来允许的出口绑定在同一个 <code>task_id</code> 下，并让恢复、回滚和交接都受状态机约束。</p>
             <div class="callout"><strong>Harness 的边界：</strong>Plan 决定全局目标和依赖，Reflection 裁定证据与出口，Harness 负责把这些决定可靠地执行、保存、超时控制和交接出去。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：S3 失败时，Harness 保存了哪些可恢复状态</h3>
+            <h3>03 / 事实证据：S3 失败时，Harness 保存了哪些可恢复状态？</h3>
             <p class="note-meta">登出失效步骤上的运行时切片；每字段都应可被系统读写，而不是写在聊天里</p>
             <p>当探针观察到“登出后 <code>GET /me</code> 仍为 <code>200</code>”，Harness 不会把失败简化为一句“请再试一次”。它把当前验证状态、可回滚的 <code>guard-401</code>、最近 patch、原始观察与允许出口同时保存，供后续的 Reflection、ReAct 或人工接手使用。</p>
             <div class="contract-template"><code>task_id: auth-delivery
@@ -1424,6 +1511,7 @@ handoff_brief: 阻塞点、日志路径、禁止动哈希</code></div>
                 <p>写操作尽量幂等、能回则回；交接带阻塞点、证据路径、禁区——对接 Part 09 Schema。</p>
               </div>
             </div>
+            <h4>Harness 状态、Checkpoint、恢复出口与人工交接</h4>
             <div class="mermaid">
 flowchart TB
   Start["从 Checkpoint: guard-401 恢复"] --> Load["载入任务快照\nstate · last_action · observation · next"]
@@ -1443,7 +1531,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：让恢复、回滚与交接成为受控动作</h3>
+            <h3>04 / 执行结论：让恢复、回滚与交接成为受控动作</h3>
             <p>Harness 的价值不在于保存一份日志，而在于限制失败后的行动集合。运行时只能从 <code>next</code> 指定的出口中选择：瞬时问题可以重试，工作区受损可以回滚，计划前提错误需要重规划，高风险或预算耗尽则进入人工闸。这样，系统不会因为“想继续”就重新生成整套认证方案。</p>
             <ol class="step-list">
               <li><strong>幂等</strong>——同一 patch / 同一测试选择器，重复执行不制造第二份混乱状态。</li>
@@ -1476,7 +1564,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：可恢复的核心不是“永不失败”，而是失败后不丢失事实</h3>
+            <h3 class="reflection-title">思考笔记：可恢复的核心不是“永不失败”，而是失败后不丢失事实</h3>
             <p>认证任务里的失败不可避免：runner 会超时，假设会被推翻，执行者也会中断。Harness 并不试图消灭这些事件，而是让每个事件留下状态、证据和受限的恢复路径，使失败不会把已确认的工作重新变成猜测。</p>
             <p>当恢复点、超时预算、写操作与交接格式都成为系统规则，Agent 才能从一次性演示迈向可长期运行的工程能力。</p>
           </div>
@@ -1490,7 +1578,8 @@ flowchart TB
           <img class="chapter-image" src="/images/llm-agent-principles/11-routing.png" alt="Dynamic Routing">
 
           <div class="content-block">
-            <h3>1. 路由背景：为什么不同请求不能共用一条执行路径</h3>
+            <h3>01 / Dynamic Routing 背景：为什么不同请求不能共用一条执行路径</h3>
+            <p>正如「PART 11 · DYNAMIC ROUTING」图示所强调的：不同任务，应选择不同的模型、工具和控制路径。复杂度、风险、时效、敏感度与成本共同决定 Agent 如何运行。</p>
             <p>认证系统里，“解释某个错误码”“分析会话泄漏”“查看带用户标识的日志”“修改生产会话配置”“合并主干”都可能来自同一个对话入口，但它们的风险、所需证据和允许工具完全不同。若全部走同一条自动管道，要么为了安全把简单只读请求也卡住，要么为了效率把高危写操作一并放行。</p>
             <p>Part 10 的 Harness 负责让执行可恢复；风险路由负责在执行开始前决定<strong>这条请求需要多强的控制</strong>。它把模型、上下文、工具权限、预算和人工闸按风险组合成不同路径，而不是把所有判断交给模型的临场感觉。</p>
             <div class="warn-box">
@@ -1499,14 +1588,14 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：为什么模型不能自行决定控制强度</h3>
+            <h3>02 / 核心问题：为什么模型不能自行决定控制强度？</h3>
             <p>模型擅长根据当前上下文提出行动建议，却不是权限和风险的最终裁判。它可能低估生产配置的影响，也可能在工具失败时为了完成任务而跳过验证。若风险判断发生在工具调用之后，审批、隔离、脱敏和预算限制就已失去意义。</p>
             <p>因此，路由输入应由可检查的意图、资源和动作标签构成，例如“是否写入”“是否生产环境”“是否包含敏感标识”“是否触碰主干”。策略表据此返回固定的控制组合：可用工具、上下文隔离方式、模型档位、预算、是否需要人工批准，以及失败时的降级出口。</p>
             <div class="callout"><strong>路由边界：</strong>模型可以协助补充分类信息，但只能在策略表允许的路径内行动；它无权把高危请求自行降级为“简单自动”。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：认证请求如何映射到不同控制路径</h3>
+            <h3>03 / 事实证据：认证请求如何映射到不同控制路径</h3>
             <p>下面的路径表说明，风险路由不是给请求贴一个抽象标签，而是直接改变运行时配置。相同的认证领域任务，因资源和动作不同，会得到不同的工具集合、证据要求和人工介入位置。</p>
             <table class="comparison-table">
               <tr><th>路径</th><th>配置要点</th><th>认证例</th><th>控制强度</th></tr>
@@ -1538,6 +1627,7 @@ flowchart TB
                 <p>CI / runner 不可用：路由到人工跑测或只读说明路径，而不是假装测绿。</p>
               </div>
             </div>
+            <h4>路由前置：五种路径在工具调用前进入不同控制门</h4>
             <div class="mermaid">
 flowchart TB
   Request["认证请求进入\n意图 + 资源 + 动作标签"] --> Classify{"策略表分类\n是否写入、生产、敏感、主干？"}
@@ -1560,7 +1650,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：策略前置，运行中只升级不私自降级</h3>
+            <h3>04 / 执行结论：策略前置，运行中只升级不私自降级</h3>
             <p>风险路由应在第一次工具调用前完成。Harness 读取的不是自由文本任务，而是已经带有路径标签和控制配置的任务状态；因此高危步骤的 <code>next</code> 中不会出现“直接修改生产配置”，敏感任务也不会把原始标识写入普通日志。</p>
             <ol class="step-list">
               <li><strong>入站分类</strong>——按意图/资源/动作标签打档（简单·复杂·敏感·高危），规则优先于模型自评。</li>
@@ -1603,7 +1693,7 @@ deny_if: model_says "我自己看着办"</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：风险路由的目标不是阻止自动化，而是让自动化停在正确的边界内</h3>
+            <h3 class="reflection-title">思考笔记：风险路由的目标不是阻止自动化，而是让自动化停在正确的边界内</h3>
             <p>真正可用的 Agent 既不能把所有请求拖进人工流程，也不能把所有写操作伪装成低风险。路由的价值是把控制强度与实际影响匹配：低风险路径保持快，高风险路径在出手前被验证、被批准、被审计。</p>
             <p>当路径来自策略表而非模型自评，系统才能在能力增强时保持边界稳定。下一步要演进的也不应是“放宽默认权限”，而是把每次翻车沉淀为更可靠的测试、规则和评估资产。</p>
           </div>
@@ -1617,7 +1707,8 @@ deny_if: model_says "我自己看着办"</code></div>
           <img class="chapter-image" src="/images/llm-agent-principles/12-evolution.png" alt="Self-Evolution">
 
           <div class="content-block">
-            <h3>1. 演进背景：为什么修好的经验不能只留在聊天里</h3>
+            <h3>01 / Self-Evolution 背景：为什么修好的经验不能只留在聊天里</h3>
+            <p>正如「PART 12 · SELF-EVOLUTION」图示所强调的：Agent 可以持续优化，但必须在受控边界内演进。正确方式是“评估后更新”，而不是无边界自我修改。</p>
             <p>小周修好“登出后 <code>/me</code> 仍返回 <code>200</code>”之后，如果结论只是“下次记得清 session”，下一周相似任务仍会踩同一个坑。经验沉淀是闭环的最后一步：把一次翻车转化为能被后续任务自动消费的回归用例、规则和评估集。</p>
             <p>这不意味着 Agent 可以自行修改生产默认值、权限规则或路由策略。真正的演进先产出候选资产，再经过评估、审批、版本发布和可撤回控制；它让系统学会更早发现同类问题，而不是让系统获得无人看守的写权限。</p>
             <table class="comparison-table">
@@ -1633,14 +1724,14 @@ deny_if: model_says "我自己看着办"</code></div>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：为什么“记住教训”不是受控演进</h3>
+            <h3>02 / 核心问题：为什么“记住教训”不是受控演进？</h3>
             <p>自然语言备忘无法被 CI、工具 ACL 或发布门禁执行，也没有来源、版本和回滚点。它既不能阻止同类改动再次破坏 session 清理，也无法说明一条新规则是谁在什么失败现场提出、验证过哪些反例，或误伤时如何恢复。</p>
             <p>受控演进要求每条经验具备工程形态：能被自动运行的回归用例，能在工具调用前执行的规则，能在策略变更前裁定效果的评估集。候选资产必须保留与原任务证据的关联，默认处于 draft，而不是直接成为全局默认行为。</p>
             <div class="callout"><strong>演进边界：</strong>Evolution 负责从失败中提案、验证和版本化；Governance 负责决定谁能发布、哪些资产触及高危范围，以及出了问题如何追责和撤回。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：一次认证翻车如何落成三类可执行资产</h3>
+            <h3>03 / 事实证据：一次认证翻车如何落成三类可执行资产</h3>
             <p class="note-meta">资产 = 可执行、可版本化、可回滚；不是自然语言备忘</p>
             <p>S3 的失败证据表明 logout 路径没有调用清理逻辑。系统不应只保存这个根因描述，而应同时提出三类资产：用回归用例守住“登出后 <code>/me</code> 必须为 <code>401</code>”，用 ACL 规则限制无关哈希路径，用评估集检查错误体泄露与会话清理等策略变更的副作用。</p>
             <div class="layer-grid">
@@ -1671,6 +1762,7 @@ deny_if: model_says "我自己看着办"</code></div>
               <tr><td>规则 / ACL</td><td>Tool 权限与路由表</td><td>Harness 调工具前</td><td>越权直接拒绝</td></tr>
               <tr><td>评估集</td><td>演进发布门禁</td><td>Evolution 流水线</td><td>未达标不准 publish</td></tr>
             </table>
+            <h4>受控演进：从失败证据到版本化资产与可回滚发布</h4>
             <div class="mermaid">
 flowchart TB
   Failure["S3 失败证据\n登出后 /me = 200"] --> Archive["归档失败模式\nsymptom · root cause · task-id · evidence"]
@@ -1694,7 +1786,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：演进必须经过评估、权限发布与可回滚</h3>
+            <h3>04 / 执行结论：演进必须经过评估、权限发布与可回滚</h3>
             <p>受控演进的输出不是“模型变得更聪明”，而是一组经过验证、授权且可撤回的工程资产。每次新资产进入默认路径前，都必须证明它能挡住原始失败而不过度误伤；发布本身属于高风险变更，应交给 Part 11 的高危路由和 Part 13 的治理机制。</p>
             <ol class="step-list">
               <li><strong>留证归档</strong>——从 Harness 日志抽出失败模式（症状、根因、出口、task-id）。</li>
@@ -1746,7 +1838,7 @@ forbid: auto_edit_prod_session_ttl</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：系统真正“学会”的不是一句经验，而是一条可被否决的规则</h3>
+            <h3 class="reflection-title">思考笔记：系统真正“学会”的不是一句经验，而是一条可被否决的规则</h3>
             <p>一次失败只有被写成测试、规则或评估项，并经过反例验证，才会在未来的任务中稳定发挥作用。否则它仍只是某次对话里的记忆，既无法被自动执行，也无法在错误时被精确撤回。</p>
             <p>演进越靠近默认策略和生产行为，越需要更严格的证据、审批与版本控制。让系统积累资产，不等于让系统自由改变自己。</p>
           </div>
@@ -1760,7 +1852,8 @@ forbid: auto_edit_prod_session_ttl</code></div>
           <img class="chapter-image" src="/images/llm-agent-principles/13-governance.png" alt="治理与安全">
 
           <div class="content-block">
-            <h3>1. 治理背景：为什么机制齐了仍可能越界</h3>
+            <h3>01 / Governance 背景：为什么机制齐了仍可能越界</h3>
+            <p>正如「PART 13 · 治理与安全」图示所强调的：治理决定 Agent 能否被企业放心使用。权限、审批、审计、数据边界和回滚机制，必须从设计阶段进入任务流程。</p>
             <p>Context、Tool、Harness、路由能让认证 Agent 跑起来，也能让任务在失败时恢复；但它们不能自动回答“谁有权修改哈希”“谁能合并主干”“越权时谁来拦截”“事后能否证明这次行动的授权依据”。只要执行角色仍能静默修改禁区文件，前面的边界声明就只是文案。</p>
             <p>运行治理把权限、审计、人工闸和撤回能力放进每一次行动的路径中。它不在任务结束后附加一份合规报告，而是在工具调用前限制动作、在调用时记录事实、在高危节点要求人类批准，并在错误发生后提供可追溯的恢复点。</p>
             <div class="warn-box">
@@ -1769,14 +1862,14 @@ forbid: auto_edit_prod_session_ttl</code></div>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：为什么 Prompt 里的禁区不能构成权限控制</h3>
+            <h3>02 / 核心问题：为什么 Prompt 里的禁区不能构成权限控制？</h3>
             <p>“不要改 <code>.env</code> 和密码哈希”写进 Prompt，只能影响模型的建议，不能阻止一次拥有全仓写权限的工具调用。模型可能误解路径，也可能在排障时为了让测试通过而扩大修改范围；一旦操作已发生，事后提醒无法把泄露的密钥或错误合并收回来。</p>
             <p>因此，治理必须把约束变成系统可执行的规则：角色、路径和动作共同决定 ACL；每次调用被记录到不可篡改的审计事件；合主干、外发、权限变更和生产配置等高危动作在工具前停在人工闸；越权或有害变更则回到 Checkpoint 或上一资产版本。</p>
             <div class="callout"><strong>治理边界：</strong>模型可以提出请求，不能自授权限；审核可以裁定证据，不能绕过 ACL；人工批准只放开明确的动作范围和有效时间，不授予无限制权限。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：认证合 PR 前，治理如何拦截并留下轨迹</h3>
+            <h3>03 / 事实证据：认证合 PR 前，治理如何拦截并留下轨迹</h3>
             <p>认证交付进入合并阶段时，治理不依赖“大家都记得禁区”。执行者提交的 Diff、测试和探针证据先经过路径与 Schema 审计；审核者再用 Part 08 的证据清单裁定；若请求合主干，系统还必须验证人工闸已经批准。每一步都附着同一个 <code>task_id</code> 与证据 ID。</p>
             <div class="deliverables">
               <div class="deliverable"><strong>最小权限</strong>执行角色只能碰 auth 路径</div>
@@ -1828,6 +1921,7 @@ merge_main:
   requires: human_gate.approved
   evidence: [run:r9 green, probe:p5 401, audit:clean]
   else: block</code></div>
+            <h4>治理前置：ACL、审计、人工闸与回滚不可绕过</h4>
             <div class="mermaid">
 flowchart TB
   Request["执行请求\napply_patch 或 merge_main"] --> ACL{"角色 × 路径 × 动作\nACL 是否允许？"}
@@ -1849,7 +1943,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：让最小权限、审计、人工闸与撤回不可绕过</h3>
+            <h3>04 / 执行结论：让最小权限、审计、人工闸与撤回不可绕过</h3>
             <p>治理是否成立，不取决于 Prompt 写得多严，而取决于系统是否能在关键节点拒绝行动并留下证据。执行角色应只有完成当前认证步骤所需的最小权限；每次工具调用都能关联到身份、授权、任务、参数摘要和结果；高危动作必须在调用前通过人工闸；任何打回或事故都必须有明确的恢复出口。</p>
             <table class="comparison-table">
               <tr><th>无治理</th><th>有治理</th></tr>
@@ -1875,7 +1969,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：真正的治理不是多一道确认框，而是让越权动作根本无法发生</h3>
+            <h3 class="reflection-title">思考笔记：真正的治理不是多一道确认框，而是让越权动作根本无法发生</h3>
             <p>人工审批、审计日志和回滚机制都很重要，但它们不能替代工具层的硬限制。一个没有 ACL 的“请勿修改”提示，最终仍把安全寄托在模型是否听话；一个没有证据关联的审批，也无法解释批准了什么、为何批准。</p>
             <p>当权限范围、审计事件、人工闸和恢复点共同生效时，系统才既能自动完成低风险工作，也能在高风险行动前可靠地停下来。</p>
           </div>
@@ -1883,13 +1977,14 @@ flowchart TB
           <div class="chapter-close"><strong>这一幕带走：</strong>最小权限 · 操作审计 · 人工闸 · 可撤回。追不到「谁、何时、凭什么」，就还没治理。</div>
           <hr>
 
-          <h2 id="part-14" data-toc="系统拼装">Part 14 · 系统拼装：能持续跑的认证 Agent</h2>
+          <h2 id="part-14" data-toc="架构整合">Part 14 · 架构整合：九项能力共同组成一个可持续运行的 Agent 系统</h2>
           <span class="section-kicker">14 / 整合</span>
           <p class="section-summary">各层都有了，才叫系统。缺一层，闭环在对应位置断开。机制地图 + 失败→缺层对照，是以后分诊 Agent 故障的两张底图。</p>
           <img class="chapter-image" src="/images/llm-agent-principles/14-architecture.png" alt="架构整合">
 
           <div class="content-block">
-            <h3>1. 拼装背景：从方案生成器到能持续跑的认证 Agent</h3>
+            <h3>01 / Architecture Integration：从方案生成器到能持续跑的认证 Agent</h3>
+            <p>正如「PART 14 · 架构整合」图示所强调的：企业级 Agent 不是一个 Prompt，而是一套连接目标、能力、工具和治理的运行系统。控制平面贯穿所有节点，状态、权限、审计、人工升级与结果评估贯穿全程。</p>
             <p>小周的第一版只是对话框里的“方案生成器”：它能解释认证该怎么改，却不知道仓库当前的真相、无法受控写入、不会保存任务进度，也不能用外部证据证明登出是否真正失效。本篇逐层补齐的目的，不是堆出一串 Agent 名词，而是让认证任务在真实工程环境中完整走完。</p>
             <p>拼装后的系统应能装载 Spec 与现行依据，按计划推进，调用受控工具读改测，以证据裁定步骤结果，在失败时从 Checkpoint 回流或重规划，在高危操作前停止等待人工，并在进程中断或人员切换后从持久化状态继续。</p>
             <div class="callout">
@@ -1898,14 +1993,14 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：为什么组件齐全仍可能拼不成系统</h3>
+            <h3>02 / 核心问题：为什么组件齐全仍可能拼不成系统？</h3>
             <p>拥有 LLM、检索、工具、工作流和审计日志，不代表它们天然组成 Agent。若工具不消费计划状态、验证结果不写入 Checkpoint、风险路由在高危调用之后才执行，或失败经验无法回到测试与规则中，系统仍是一组彼此脱节的能力，最终会在某个边界重新退化为“再生成一版”。</p>
             <p>系统拼装要解决的是职责和状态的连通性：Context 提供当前事实，Plan 限定下一步，Routing 和 Governance 决定能否行动，Tool 产生外部观察，Reflection 基于证据裁定，Harness 保存状态与恢复点，Evolution 将重复失败沉淀为资产。每一层都要有明确输入、输出与失败出口。</p>
             <div class="warn-box"><strong>整体验收的误区：</strong>“每个模块都能演示”不等于“任务可以交付”。只有当成功、失败、高危和中断四类路径都能穿过这些层并返回可追溯状态时，才算一个能运行的系统。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：认证任务如何穿过整套运行机制</h3>
+            <h3>03 / 事实证据：认证任务如何穿过整套运行机制</h3>
             <p>下表把抽象层映射到认证任务中的具体落点。它既是组件清单，也是分诊入口：现场出现“自称 <code>401</code> 但实测 <code>200</code>”“哈希被误改”“多轮后忘记进度”等症状时，先定位断在哪一层，再补对应机制，而不是盲目更换模型。</p>
             <table class="comparison-table">
               <tr><th>层</th><th>认证系统里落在哪</th><th>缺了会怎样</th><th>本篇章节</th></tr>
@@ -1920,6 +2015,7 @@ flowchart TB
               <tr><td>Evolution</td><td>翻车→可回归资产</td><td>重复踩坑 / 假自进化</td><td>Part 12</td></tr>
               <tr><td>Governance</td><td>权限、审计、人工闸</td><td>事故与不可追责</td><td>Part 13</td></tr>
             </table>
+            <h4>五阶段主线与失败、高危、演进三类受控出口</h4>
             <div class="mermaid">
 flowchart TB
   Spec["认证 Spec 与验收句"] --> Context["Context\n现行代码、规范、日志依据包"]
@@ -1978,7 +2074,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：按闭环验收系统，而不是按模块打勾</h3>
+            <h3>04 / 执行结论：按闭环验收系统，而不是按模块打勾</h3>
             <p>系统是否拼装完成，应由任务行为裁定，而不是由组件数量裁定。对认证 Agent 来说，至少要能证明：输入有受控依据，执行有计划和权限约束，结果有测试与探针，失败有明确回流，高危有人工闸，中断后有可恢复状态，重复问题有资产化出口。</p>
             <table class="comparison-table">
               <tr><th></th><th>对话框 v0</th><th>拼装后的认证 Agent</th></tr>
@@ -2005,7 +2101,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：系统拼装的完成标志，不是“模型更强”，而是失败不再无处可去</h3>
+            <h3 class="reflection-title">思考笔记：系统拼装的完成标志，不是“模型更强”，而是失败不再无处可去</h3>
             <p>单点能力再强，也无法替代一条可追溯的失败路径。真正能持续跑的认证 Agent，知道当前事实来自哪里、下一步为何被允许、失败应由谁裁定、该回到哪里，以及高危动作何时必须停下。</p>
             <p>这也是本文从“裸对话交不出认证”走到“系统拼装”的最终判断：语言模型负责提出下一步，运行系统负责让每一步可执行、可验证、可恢复并且受治理。</p>
           </div>
@@ -2013,13 +2109,14 @@ flowchart TB
           <div class="chapter-close"><strong>这一幕带走：</strong>各层挂上五步环，才叫系统。描得出「验证失败回流」，才叫能持续跑的认证 Agent。</div>
           <hr>
 
-          <h2 id="part-bridge" data-toc="通往产品">过渡 · 机制到产品：先问清这张清单</h2>
+          <h2 id="part-bridge" data-toc="机制到产品">Part 15 · 机制到产品：先问清这张清单</h2>
           <span class="section-kicker">过渡</span>
           <p class="section-summary">吃透机制之后，下一问是：如何封成可验收的单个产品？本页只列问题，不填设计卡——规格与验收是 03 篇的事。</p>
           <img class="chapter-image" src="/images/llm-agent-principles/15-practical-design.png" alt="通往 03">
 
           <div class="content-block">
-            <h3>1. 产品背景：为什么机制跑通后还不能直接做成产品</h3>
+            <h3>过渡 / Transition：为什么机制跑通后还不能直接做成产品</h3>
+            <p>正如「PART 15 · 实战设计」图示所强调的：最终交付是一套完整方案，而不是一段孤立 Prompt。理解、行动、验证、治理与演进缺一项，就很难形成可靠 Agent。</p>
             <p>小周现在有一张能跑的机制地图：缺口、五步环、依据包、工具、计划、裁定、Harness、路由、演进与治理。但这些是系统如何运行的语言，不是用户为什么购买、何时算完成、失败时看见什么的语言。若直接跳进“做个认证 Agent 产品”，很容易把机制名词包进界面，最终仍是一个更会聊天的外壳。</p>
             <p>产品化的第一步不是画 UI 或补更多功能，而是把运行机制翻译成用户可感知、可选择、可验收的承诺：谁提出什么目标，系统可以处理到什么边界，用户依据什么确认结果，高危动作由谁批准，失败后如何接手。</p>
             <div class="warn-box">
@@ -2029,14 +2126,14 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：为什么“系统能力”不等于“产品承诺”</h3>
+            <h3>01 / 核心问题：为什么“系统能力”不等于“产品承诺”？</h3>
             <p>系统可以拥有 Plan、Tool、Harness 和 Governance，但产品仍需决定这些能力对谁可见、何时触发、哪些动作被允许、发生失败时由谁承担后续责任。例如“支持自动修改认证逻辑”没有说明是允许修改哪个仓库、是否允许合主干、提交前需要哪些证据，也没有回答运营、研发和平台团队各自如何判断结果。</p>
             <p>把机制直接当产品描述，会造成两个偏差：一是用户只能看见术语，看不见自己获得的工作结果；二是高危边界被藏在后台配置里，直到上线后才暴露为权限、审计和交接问题。产品需要将内部机制转换为外部契约、能力边界、状态可见性和审批体验。</p>
             <div class="callout"><strong>过渡原则：</strong>机制负责回答“系统怎样做”；产品必须先回答“为谁做什么、做到何种程度、由什么证据证明、失败后谁能接住”。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：认证机制如何转译为产品必须回答的问题</h3>
+            <h3>02 / 事实证据：认证机制如何转译为产品必须回答的问题</h3>
             <p>下表不是功能列表，而是把每项运行机制转化为产品侧必须明确的决策。只要其中一项无法回答，团队就不应以“Agent 已能跑”为由直接承诺交付。</p>
             <table class="comparison-table">
               <tr><th>本篇机制</th><th>产品侧要回答（→ 03）</th></tr>
@@ -2077,6 +2174,7 @@ flowchart TB
               <li>失败时用户看到什么？回流 / 人工接管在产品里叫什么状态？</li>
               <li>审计与合规要求是否进入上线门槛，而非上线后补？</li>
             </ol>
+            <h4>从机制能力到可验收产品契约的必要转译</h4>
             <div class="mermaid">
 flowchart LR
   Mechanism["机制能力\nContext · Plan · Tool · Harness · Governance"] --> Translate["产品化转译\n将内部能力变成外部问题"]
@@ -2096,7 +2194,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：带着问题进入产品设计，而不是带着术语堆砌</h3>
+            <h3>03 / 执行结论：带着问题进入产品设计，而不是带着术语堆砌</h3>
             <p>进入 03 之前，团队不需要马上决定界面、定价或排期，但需要先达成四项最小对齐：用户与任务范围、可否决的成功标准、明确的能力与权限边界、失败与人工接管的产品状态。它们会成为下一篇产品契约、规格和验收的输入。</p>
             <table class="comparison-table">
               <tr><th>别这样做</th><th>带进 03 的做法</th></tr>
@@ -2119,7 +2217,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：产品化不是把 Agent 包装起来，而是把责任边界交代清楚</h3>
+            <h3 class="reflection-title">思考笔记：产品化不是把 Agent 包装起来，而是把责任边界交代清楚</h3>
             <p>用户不需要知道系统内部是否使用了 ReAct 或 Harness，但必须知道任务会推进到哪里、证据在哪里、哪些动作需要自己批准，以及失败后还能从哪里继续。把这些责任与状态说清楚，才是把机制变成可靠产品体验的开始。</p>
             <p>因此，这一章只保留问题，不替下一篇提前填答案。先把必须共同承担的产品决策摆在台面上，后续的规格与设计才不会重新把闭环压扁成一个聊天入口。</p>
           </div>
@@ -2128,15 +2226,16 @@ flowchart LR
           <hr>
 
           <h2 id="closing" data-toc="结语">结语 · 认证 Agent 为何终于能闭环</h2>
-          <span class="section-kicker">收束</span>
+          <span class="section-kicker">收束 / Conclusion</span>
           <p class="section-summary">从「会写一段方案」到「能跑完认证并证明」，靠的不是更长的 Prompt，而是一层层补齐运行时：眼、手、记性、考官、架子与闸门。</p>
 
           <div class="content-block">
-            <h3>1. 收束背景：认证 Agent 最终解决的到底是什么</h3>
+            <h3>01 / 收束背景：认证 Agent 最终解决的到底是什么</h3>
+            <p>正如全文所强调的：会说话不是闭环。补齐眼、手、记性、考官、架子与闸门——描得出「验证失败回流」，认证 Agent 才算终于能闭环。</p>
             <p>第一版把 Spec 丢进对话框，十分钟生成完整方案与“伪测通过”。一接真实仓库与 CI，事实、行动、状态、验证四个缺口同时暴露：它不知道现行 session 实现，无法受控修改代码，不记得任务推进到哪一步，也不能证明登出后的 <code>GET /me</code> 是否真的返回 <code>401</code>。</p>
             <p>小周没有继续更换模型或堆叠 Prompt，而是把认证任务放回运行系统：五步环定义任务形状，Context 和 Tool 提供事实与行动，ReAct 与 Plan 分开局部探索和全局依赖，Reflection 用证据裁定，Harness 保存状态和恢复点，Routing 与 Governance 管理风险，Evolution 把翻车写成资产。</p>
             <table class="comparison-table">
-              <tr><th></th><th>对话框 v0</th><th>能闭环时</th></tr>
+              <tr><th>维度</th><th>对话框 v0（演示级）</th><th>能闭环时（产品级）</th></tr>
               <tr><td>完成声明</td><td>模型自述「应该 401」</td><td>探针 + 测试证据裁定</td></tr>
               <tr><td>改仓库</td><td>只会建议</td><td>受控 Tool 限域 patch</td></tr>
               <tr><td>失败后</td><td>再生成一整版</td><td>回流出口写进状态机</td></tr>
@@ -2149,7 +2248,7 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：为什么会说话仍然不等于能交付</h3>
+            <h3>02 / 核心问题：为什么会说话仍然不等于能交付？</h3>
             <p>模型可以把“如何修认证”解释得极具说服力，但交付不是一段回答，而是一条可验证的状态变化：代码是否落进正确工作区、测试与探针是否真的通过、失败时保留了哪些事实、高危操作是否被授权。任何一项仍由模型自述代替，闭环就会在那一层断开。</p>
             <p>因此，认证 Agent 的完成标准也不是“生成了一份方案”或“模型认为已经修好”，而是外部证据确认验收条件，同时任务状态、权限轨迹和失败出口都可以被下一位执行者复查。智能负责选择下一步，系统负责限制、验证和保存每一步。</p>
             <div class="layer-grid">
@@ -2178,8 +2277,9 @@ flowchart LR
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：认证闭环如何从目标走到可复查交付</h3>
+            <h3>03 / 事实证据：认证闭环如何从目标走到可复查交付</h3>
             <p>下面的总图压缩了本文的最终判断。主线不以模型输出为终点，而以外部证据和 Checkpoint 为终点；失败不是重新生成的理由，而是根据证据回到补事实、修实现、重规划或人工闸的入口。只有这些出口存在，任务才会在中断、换人或风险升级时保持可控。</p>
+            <h4>认证 Agent 总览：主线推进、证据裁定与四类失败出口</h4>
             <div class="mermaid">
 flowchart TB
   Goal["认证目标\n登出后 /me = 401"] --> Facts["受控依据\nSpec、现行代码、规则、日志"]
@@ -2216,7 +2316,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：以闭环能力判断 Agent，并带着问题进入产品设计</h3>
+            <h3>04 / 执行结论：以闭环能力判断 Agent，并带着问题进入产品设计</h3>
             <p>判断一个认证 Agent 是否成立，可以连续追问：它是否读取当前事实、以受控工具改变外部世界、让外部证据而非自述裁定完成、把失败写进可恢复状态、在高危处停下并留下授权轨迹、把重复失败沉淀为可回归资产？只要任一问题无法回答，系统就还停在演示级能力。</p>
             <p>本篇到此停在<strong>系统理解 / 机制层</strong>：解释 Agent 缺什么、补哪层、边界在哪里。下一篇不再重复这些内部机制，而是把它们翻译为一个用户能理解、团队能验收、风险能承担的产品契约。</p>
             <table class="comparison-table">
@@ -2232,7 +2332,7 @@ flowchart TB
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：闭环不是让系统永远自动，而是让系统始终知道何时继续、何时停下</h3>
+            <h3 class="reflection-title">思考笔记：闭环不是让系统永远自动，而是让系统始终知道何时继续、何时停下</h3>
             <p>一个可靠的 Agent 不会把所有问题都自动解决。它在证据不足时补事实，在局部失败时修复，在计划失效时重规划，在高危和超限时交给人，在重复失败时留下资产。能够停下并说明原因，与能够继续执行同样重要。</p>
             <p>这正是认证 Agent 从“会写方案”走到“能交付”的分水岭：每个结果都能追溯，每次失败都有出口，每个高危动作都有边界。</p>
           </div>

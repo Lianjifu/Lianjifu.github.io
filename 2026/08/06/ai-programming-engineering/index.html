@@ -162,102 +162,129 @@
           <div class="post-meta"><span class="post-meta-item"><i class="far fa-calendar"></i> 发表于 2026-08-06</span><span class="post-meta-item"><i class="far fa-folder"></i> 分类于 <a href="/categories/ai-agent/">AI Agent</a></span><span class="post-meta-item"><i class="fas fa-tags"></i> 学习笔记 · 01 用好 · 个人交付</span></div>
         </header>
         <div class="post-body" itemprop="articleBody" data-toc-mode="h2">
-          <h2 id="intro" data-toc="开篇">开篇 · 真实案例：B 端控制台登录，周五下午翻车</h2>
+          <h2 id="intro" data-toc="开篇">开篇 · 真实案例：B 端控制台登录，周五下午的“完美翻车”</h2>
           <span class="section-kicker">00 / 案例背景</span>
-          <p class="section-summary">一项看似简单的认证需求，如何在 AI 的快速生成下变成一次交付翻车？先从这个周五下午的 B 端控制台案例说起。</p>
+          <p class="section-summary">一项看似毫无技术门槛的认证需求，为何在 AI 的极速生成下，演变成了一场险些酿成事故的交付灾难？让我们把时钟拨回那个令人窒息的周五下午，从一个 B 端控制台的真实翻车现场说起。</p>
           <img class="chapter-image overview-image" src="/images/ai-programming-engineering/00-overview.png" alt="用好 AI 编程总览">
 
           <div class="content-block">
-            <h3>1. 项目背景与初始任务</h3>
-            <p>团队在做一套内部 B 端控制台。迭代目标很具体：先打通<strong>邮箱注册 / 登录 / 登出</strong>，让运营同学能进系统配数据；OAuth、多租户、「记住我」都明确排到后面。后端已有 Express + TypeScript 骨架，会话打算沿用现有 <code>session</code> 方案，密码哈希与错误体规范写在仓库文档里。</p>
-            <p>负责这块的同学（下文称阿明）周五上午接到口头需求：<strong>「认证先做起来，下午最好能联调。」</strong>他打开 Cursor，把仓库根目录丢进上下文，输入一句：</p>
+            <h3>01 / 初始任务：一句 Prompt 开启的“盲盒”</h3>
+            <p>团队正在推进一套内部 B 端控制台。迭代目标非常克制且明确：仅打通基础的<strong>邮箱注册、登录与登出</strong>流程，确保运营同学能顺利进入系统配置数据。OAuth、多租户架构以及“记住我”等复杂功能，都被明确划入后续排期。</p>
+            <p>后端已经搭好 Express + TypeScript 骨架，会话管理沿用现有的 <code>session</code> 方案，密码哈希与错误体规范也早已沉淀在仓库文档中。周五上午，负责该模块的阿明接到口头需求：<strong>“认证先做起来，下午最好能联调。”</strong></p>
+            <p>他打开 Cursor，将仓库根目录作为上下文喂给 AI，并敲下了一句极其经典的提示词：</p>
             <div class="contract-template"><code>帮我实现用户认证，要安全一点，最好用现在流行的写法。</code></div>
           </div>
 
           <div class="content-block">
-            <h3>2. 看似完成，实际失控</h3>
-            <p>大约四十分钟，Agent 交出一大坨 Diff——注册、登录、JWT 中间件、若干工具函数，文件数后来统计超过 40 个。本地 <code>npm test</code> 当时大部分是绿的（很多是新写的、断言很松的测试）。阿明开了 PR，描述只有一行：<em>「AI 生成认证模块，请 review。」</em></p>
-            <p>中午前他觉得自己赢了：需求含糊，输出却「看起来完整」。这是整场翻车最危险的一刻——<strong>把生成成功当成了交付成功</strong>。</p>
+            <h3>02 / 虚假繁荣：把“生成成功”错当“交付成功”</h3>
+            <p>仅仅四十分钟，Agent 就吐出了一大坨 Diff。注册、登录、JWT 中间件、各类工具函数……事后统计，涉及文件超过 40 个。本地 <code>npm test</code> 跑下来，进度条几乎全绿，尽管其中不少是新写的、断言极其宽松的测试。</p>
+            <p>阿明自信地提交了 PR，描述仅有一行：<em>“AI 生成认证模块，请 review。”</em>中午前，他觉得自己“赢麻了”：需求虽然含糊，但 AI 的输出却“看起来无懈可击”。而这，恰恰是整场翻车中最危险的一刻——他错把 AI 的<strong>“生成成功”</strong>当成了工程的<strong>“交付成功”</strong>。</p>
           </div>
 
           <div class="content-block">
-            <h3>3. 联调与 Review 的事实证据</h3>
-            <p>14:30 前端联调。运营试用账号登录后点退出，再请求 <code>GET /me</code>，响应仍是 <strong>200</strong>，用户信息还在。紧接着错误弹窗里出现了服务器绝对路径。Code review 又揪出更刺眼的改动：密码哈希相关文件被「顺手优化」成另一套算法，与库里已有用户数据不兼容；顺带还起草了一截没人要的 OAuth 草稿。</p>
+            <h3>03 / 事实证据：联调与 Review 扯下的“遮羞布”</h3>
+            <p>下午 14:30，前端联调开始，灾难接踵而至：</p>
+            <ul class="checklist">
+              <li><strong>会话失效漏洞：</strong>运营使用测试账号登录后点击退出，再次请求 <code>GET /me</code>，响应依然是 <strong>200</strong>，用户信息赫然在列。</li>
+              <li><strong>敏感信息泄露：</strong>错误弹窗中，竟然直接暴露了服务器的绝对路径。</li>
+              <li><strong>破坏性重构：</strong>Code Review 揪出更刺眼的改动——密码哈希相关文件被 AI “顺手优化”成了另一套算法，导致与库中已有用户数据完全不兼容；它甚至还“自作聪明”地起草了一截根本没人要的 OAuth 草稿代码。</li>
+            </ul>
             <table class="comparison-table">
-              <tr><th>时间线</th><th>发生了什么</th><th>表面结论</th></tr>
-              <tr><td>10:20</td><td>一句 Prompt + 整仓上下文开工</td><td>很快有代码</td></tr>
-              <tr><td>11:10</td><td>大 Diff PR，测试「基本绿」</td><td>好像做完了</td></tr>
-              <tr><td>14:30</td><td>登出后 <code>/me</code> 仍 200</td><td>会话没真正失效</td></tr>
-              <tr><td>14:45</td><td>错误体泄路径；哈希被改；OAuth 多余</td><td>禁区与范围都失控</td></tr>
-              <tr><td>15:00</td><td>想「再生成一次整模块」</td><td>差点在错误方法上加码</td></tr>
+              <tr><th>时间</th><th>发生了什么</th><th>表面结论</th><th>实际隐患</th></tr>
+              <tr><td>10:20</td><td>一句 Prompt + 整仓上下文开工</td><td>很快有代码</td><td>任务未被定义</td></tr>
+              <tr><td>11:10</td><td>大 Diff PR，测试“基本绿”</td><td>好像做完了</td><td>验收标准缺失</td></tr>
+              <tr><td>14:30</td><td>登出后 <code>/me</code> 仍 200</td><td>会话没真正失效</td><td>逻辑未闭环</td></tr>
+              <tr><td>14:45</td><td>错误体泄路径；哈希被改；OAuth 多余</td><td>禁区与范围都失控</td><td>上下文未对齐</td></tr>
+              <tr><td>15:00</td><td>想“再生成一次整模块”</td><td>差点在错误方法上加码</td><td>缺乏反馈回路</td></tr>
             </table>
           </div>
 
           <div class="content-block">
-            <h3>4. 停手，改用法</h3>
-            <p>阿明没有换模型硬刚。他和 reviewer 达成共识：<strong>问题不在模型够不够强，而在输入、拆步、验收全没立住。</strong>后文整条线，就是他们把这次认证从「会生成」修到「能合并」的过程——先归层，再写契约、收证据、拆工序、失败写回，直到 PR 带上手动验收三步、CI 实打实转绿。</p>
+            <h3>04 / 破局之道：从“会回答”到“能交付”的范式转移</h3>
+            <p>阿明没有选择换模型硬刚，而是和 Reviewer 达成了共识：<strong>问题不在模型够不够强，而在输入、拆步、验收全没立住。</strong>这次翻车事故，本质上是因为阿明只把 AI 当作了一个“问答机器”，而忽略了工程化的约束。</p>
+            <p>正如“AI 编程工程化”框架所强调的，要让 AI 从“会回答”走向“能交付”，必须建立一套可靠的系统。这套系统由四个核心要素组成，缺一不可：</p>
+            <div class="layer-grid">
+              <div class="layer-card"><span class="layer-tag">Prompt</span><h3>把目标说清楚</h3><p>失败始于“要安全一点”。Prompt 不是聊天，而是任务定义，需要明确边界、约束和验收标准，而不是让 AI 去猜什么是“流行写法”。</p></div>
+              <div class="layer-card"><span class="layer-tag">Context</span><h3>把事实补齐</h3><p>丢进根目录不等于提供了依据。必须明确沿用现有 Session 方案、禁止修改哈希算法等关键事实，让业务规则和历史决策进入上下文。</p></div>
+              <div class="layer-card"><span class="layer-tag">Harness</span><h3>把执行跑稳</h3><p>40 个文件的 Diff 没有执行边界。Harness 用脚手架、Lint 规则和测试护栏限制 AI 的行动范围，防止它“脱缰”乱改。</p></div>
+              <div class="layer-card"><span class="layer-tag">Loop</span><h3>把反馈带回</h3><p>测试全绿不是终点。Loop 要求小步快跑、持续验证，把人工验收、CI 和联调结果写回下一轮，而不是“一把梭哈”后听天由命。</p></div>
+            </div>
+            <div class="mermaid">
+flowchart LR
+  A[说清任务 Prompt] --> B[给足上下文 Context]
+  B --> C[可靠执行 Harness]
+  C --> D[持续验收 Loop]
+  D -->|失败写回约束| A
+  D --> E[能合并的交付结果]
+            </div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：生成结果为什么不能直接等于交付结果</h3>
-            <p>这次翻车表面上发生在登出接口，实际上发生在更早的地方：任务没有被定义成可判断的目标，AI 也没有被限制在可靠的依据和可检查的步骤里。</p>
-            <p>因此，AI 编程真正需要解决的不是“怎样让模型一次写出更多代码”，而是三个问题：<strong>它应该改什么、依据是什么、怎样证明改对了。</strong>只要这三个问题没有答案，代码生成得越快，错误扩散得也可能越快。</p>
-            <p class="note-take"><strong>带着这个问题继续：</strong>怎样把一个模糊的“做个登录”，变成 AI 和 reviewer 都能执行、检查并否决的工程任务？</p>
+            <h3>05 / 核心公式：重新定义可靠交付</h3>
+            <p>这次翻车让团队痛定思痛，总结出了 AI 编程时代的交付公式：</p>
+            <div class="contract-template"><code>可靠交付 = 说清任务（Prompt） × 给足上下文（Context） × 可靠执行（Harness） × 持续验收（Loop）</code></div>
+            <p>在这个公式中，任何一项如果是 0，结果就是 0。阿明的案例中，正是因为缺失了后三项的支撑，导致第一项 Prompt 的威力变成了破坏力。</p>
+            <p>后文整条线，就是阿明团队如何把这个公式落地，把这次认证模块从“会生成”修到“能合并”的过程——先归层，再写契约、收证据、拆工序、失败写回，直到 PR 带上手动验收三步、CI 实打实转绿。</p>
+          </div>
+
+          <div class="content-block">
+            <h3 class="reflection-title">思考笔记：生成结果为什么不能直接等于交付结果</h3>
+            <p>生成结果为什么不能直接等于交付结果？因为 AI 擅长的是“概率预测”，而工程追求的是“确定性交付”。只要任务定义、依据来源、验证手段这三个问题没有答案，代码生成得越快，错误扩散得也可能越快。</p>
+            <p class="note-take"><strong>带着这个问题继续：</strong>失败不是一个点。先把现场归到正确层级，再决定下一轮输入、证据和检查点如何补齐。</p>
           </div>
 
           <hr>
 
-          <h2 id="part-01" data-toc="翻车归层">Part 01 · 翻车归层：失败不是一个点</h2>
+          <h2 id="part-01" data-toc="翻车归层">Part 01 · 翻车归层：失败不是一个点，而是一条链</h2>
           <span class="section-kicker">01 / 诊断</span>
-          <p class="section-summary">先别让 AI「再生成一次」。先问：这次到底死在哪一层？归错层，换再强的模型也是原地打转。</p>
+          <p class="section-summary">先别让 AI“再生成一次”。面对同一个失败现象，先判断它属于目标、依据、执行还是反馈哪一层，再决定下一轮修什么。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/01-problem-map.png" alt="问题地图">
+          <div class="mermaid">
+flowchart LR
+  A["翻车现场"] --> B["L1 说不清"]
+  A --> C["L2 依据错"]
+  A --> D["L3 步骤不可检"]
+  A --> E["L4 无闭环"]
+  B --> F["先归层，再修复"]
+  C --> F
+  D --> F
+  E --> F
+          </div>
 
           <div class="content-block">
-            <h3>1. 当前现场：为什么不能直接「再生成」</h3>
-            <p>阿明 15:00 的第一反应是：把整段认证模块删掉，换个更强模型，再生成一遍。这几乎是最常见的坏习惯。</p>
+            <h3>01 / 诊断：别急着换药，先看病灶在哪</h3>
+            <p>面对阿明 15:00 时的崩溃现场，第一反应往往是：“把整段认证模块删掉，换个更强的模型，再生成一遍。”这是 AI 编程中最常见的坏习惯。</p>
+            <p>危险点在于：<strong>“再生成”默认假设上次失败只是因为模型不够聪明。</strong>但回顾阿明的案例，认证模块同时爆了四类问题：范围跑偏（做了 OAuth）、依据没读（改了哈希）、步骤不可检（40+ 文件大 Diff）、失败没写回（登出无效）。</p>
             <div class="warn-box">
-              <strong>危险点：</strong>「再生成」默认假设——上次失败只是模型不够好。但认证下午同时爆了四类问题：范围跑偏、依据没读、步骤不可检、失败没写回。它们不是同一类病，不能靠同一种药治。
+              <strong>先归层：</strong>这就像病人同时发烧、骨折且营养不良，不能只给他吃退烧药。应先把现场现象映射到具体责任层，再决定下一轮输入该改什么。
             </div>
-            <p>正确动作是<strong>先归层</strong>：把现场现象映射到「说不清 / 依据错 / 步骤不可检 / 无闭环」四层之一（或叠加），再决定下一轮输入该改什么。</p>
+            <p>正如「01 / 问题地图」所示，失败不是孤立的一个点，而是一条因果链。归层不是给问题贴标签，而是为下一步选择正确的修复入口。</p>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：失败不是一个点</h3>
-            <p class="note-meta">每一层看三样：现场长什么样 · 错误反应 · 正确处置</p>
-            <div class="layer-grid">
-              <div class="layer-card">
-                <span class="layer-tag">L1 · 说不清</span>
-                <h3>目标与边界没钉死</h3>
-                <p><strong>现场：</strong>Prompt 只有「安全一点、流行写法」；Diff 里冒出本期没人要的 OAuth 草稿。</p>
-                <p class="wrong"><strong>错反应：</strong>继续加功能，或让 AI「再完善一下登录」。</p>
-                <p class="right"><strong>正确：</strong>先写清 Goal / Non-goals / Acceptance，再让 AI 动代码。</p>
-              </div>
-              <div class="layer-card">
-                <span class="layer-tag">L2 · 依据错</span>
-                <h3>没读对现行规范</h3>
-                <p><strong>现场：</strong>哈希被「顺手优化」；错误体把服务器路径打到前端；会话方案与仓库现有 <code>session</code> 不一致。</p>
-                <p class="wrong"><strong>错反应：</strong>整仓 @ 进上下文，指望模型自己找对文件。</p>
-                <p class="right"><strong>正确：</strong>只挂最小充分证据：会话实现、错误体规范、密码哈希禁区。</p>
-              </div>
-              <div class="layer-card">
-                <span class="layer-tag">L3 · 步骤不可检</span>
-                <h3>一次改太多，没法验收</h3>
-                <p><strong>现场：</strong>单次 PR 超过 40 个文件；本地测试「松绿」；联调才发现登出后 <code>/me</code> 仍 200。</p>
-                <p class="wrong"><strong>错反应：</strong>一口气重生整模块，继续大 Diff。</p>
-                <p class="right"><strong>正确：</strong>拆成可中断步骤，每步有命令/手动检查点，过了再往下。</p>
-              </div>
-              <div class="layer-card">
-                <span class="layer-tag">L4 · 无闭环</span>
-                <h3>失败没有写回输入</h3>
-                <p><strong>现场：</strong>联调红了，下一轮仍是「帮我修一下认证」；已知约束（登出必须失效、禁改哈希）没有进入 Prompt。</p>
-                <p class="wrong"><strong>错反应：</strong>同一句话重试，或换模型硬刚同一输入。</p>
-                <p class="right"><strong>正确：</strong>把失败现象写成下一轮硬约束，再小步回流。</p>
-              </div>
-            </div>
+            <h3>02 / 核心拆解：四层缺陷与修复地图</h3>
+            <p class="note-meta">每一层都看四件事：核心缺陷 · 现场症状 · 错误反应 · 正确修复动作</p>
+            <table class="comparison-table">
+              <tr><th>归属层</th><th>核心缺陷</th><th>现场症状（阿明案例）</th><th>错误反应</th><th>正确修复动作</th></tr>
+              <tr><td><strong>L1：Prompt</strong></td><td>说不清<br>（目标 / 边界模糊）</td><td>Diff 里冒出本期没人要的 OAuth 草稿；Prompt 只有“安全一点”。</td><td>继续加功能，或让 AI“再完善一下登录”。</td><td>先写清 Goal、Non-goals、Acceptance，再让 AI 动代码。</td></tr>
+              <tr><td><strong>L2：Context</strong></td><td>依据错<br>（知识 / 规范缺失）</td><td>哈希被“顺手优化”；错误体暴露服务器路径；会话方案不一致。</td><td>整仓 @ 进上下文，指望模型自己找对文件。</td><td>补事实：只挂最小充分证据，如会话实现、错误体规范和哈希禁区。</td></tr>
+              <tr><td><strong>L3：Harness</strong></td><td>步骤不可检<br>（执行 / 验证失控）</td><td>单次 PR 超过 40 个文件；测试“松绿”；联调才发现登出后 <code>/me</code> 仍 200。</td><td>一口气重生整模块，继续大 Diff。</td><td>拆成可中断步骤，每步设命令和手动检查点，过了再往下。</td></tr>
+              <tr><td><strong>L4：Loop</strong></td><td>无闭环<br>（反馈 / 状态丢失）</td><td>联调红了，下一轮仍是“帮我修一下认证”；已知约束没有进入 Prompt。</td><td>同一句话重试，或换模型硬刚同一输入。</td><td>把失败现象写成下一轮硬约束，再小步回流。</td></tr>
+            </table>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：现场现象如何归层</h3>
+            <h3>03 / 事实证据：如何按顺序补缺</h3>
+            <p>这四层问题往往会叠加出现，阿明那次就是四层同时中招。为了避免修复动作互相干扰，建议固定顺序：<strong>先说清楚 → 再给依据 → 再拆步骤 → 最后谈回流。</strong></p>
+            <div class="diag-flow">
+              <p><strong>快速诊断：停在第一个回答“否”的地方</strong></p>
+              <ol>
+                <li>有没有可观测的验收句？没有 → <strong>L1 说不清</strong>。此时猛加证据没用，生成得越完整，交付越对不上。</li>
+                <li>AI 是否读对了现行代码、规范和禁区？没有 → <strong>L2 依据错</strong>。此时换更强模型没用，同一错误上下文下，引擎越强，幻觉越自信。</li>
+                <li>能否指出“做到哪一步、怎么证明过了”？不能 → <strong>L3 步骤不可检</strong>。此时整模块重生只会带来更大的 Diff、更难的 Review。</li>
+                <li>失败后下一轮输入有没有新增约束？没有 → <strong>L4 无闭环</strong>。此时同一 Prompt 重试，只会让你在同一个坑里踩第二遍。</li>
+              </ol>
+            </div>
             <table class="comparison-table">
               <tr><th>现场现象</th><th>归属层</th><th>根因一句话</th><th>下一动作</th></tr>
               <tr><td>做了 OAuth 草稿，本期没人要</td><td><strong>说不清</strong></td><td>目标与非目标没写死</td><td>补契约，再动代码</td></tr>
@@ -268,23 +295,13 @@
           </div>
 
           <div class="content-block">
-            <h3>4. 诊断结论：按顺序补缺</h3>
-            <div class="diag-flow">
-              <p><strong>按顺序问，停在第一个「否」：</strong></p>
-              <ol>
-                <li>有没有可观测的验收句？（没有 → <strong>说不清</strong>）</li>
-                <li>AI 是否读对了现行代码 / 规范 / 禁区？（没有 → <strong>依据错</strong>）</li>
-                <li>能否指出「做到哪一步、怎么证明过了」？（不能 → <strong>步骤不可检</strong>）</li>
-                <li>失败后下一轮输入有没有新增约束？（没有 → <strong>无闭环</strong>）</li>
-              </ol>
-            </div>
-            <div class="tip-box">
-              <strong>叠加很常见：</strong>阿明那次四层同时中招。处理顺序建议固定为：先说清楚 → 再给依据 → 再拆步骤 → 最后谈回流。后文 Part 02 起，就是按这个顺序把认证救回来。
-            </div>
+            <h3>04 / 诊断结论：归层是为了精准用药</h3>
+            <p>归错层的代价很大。明明说不清，却猛加 Context，结果只是生成得更完整，仍然不是我要的；明明依据错，却换更强 Model，哈希和禁区问题可能复现得更自信；明明步骤不可检，却整模块重生，PR 会更大、Review 会更难；明明无闭环，却同一 Prompt 重试，只是在同一个坑里踩第二遍。</p>
+            <div class="tip-box"><strong>执行口令：</strong>先找到第一个缺口，补齐它，再进入下一层。四层可以叠加，但药不能混着开。</div>
           </div>
 
           <div class="content-block">
-            <h3>常见误判：归错层会怎样</h3>
+            <h3>补充说明：归错层会怎样</h3>
             <table class="comparison-table">
               <tr><th>误判</th><th>你实际在做的事</th><th>典型结果</th></tr>
               <tr><td>明明说不清，却猛加证据</td><td>@ 更多文件，仍无验收句</td><td>生成更完整，交付仍对不上</td></tr>
@@ -295,7 +312,7 @@
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：诊断比重新生成更重要</h3>
+            <h3 class="reflection-title">思考笔记：诊断比重新生成更重要</h3>
             <p>同样是“登录失败”，可能是需求没有说清、现行规范没有读到、步骤无法验证，或是失败没有写回下一轮输入。症状相同，不代表根因相同；根因不同，修复动作也不该相同。</p>
             <p>因此，归层不是给问题贴标签，而是为下一步选择正确的修复入口。先找到第一个缺口，再补齐它，才能避免把“换模型、加上下文、重生整模块”变成条件反射。</p>
             <p class="note-take"><strong>带着这个判断进入下一章：</strong>既然四层问题需要按顺序补缺，具体该如何把修复动作组织成一套可执行的计划？</p>
@@ -304,190 +321,115 @@
           <div class="chapter-close"><strong>这一幕带走：</strong>翻车先归层。四层可以叠加，但药不能混着开——先对症，再生成。</div>
           <hr>
 
-          <h2 id="part-02" data-toc="四件事">Part 02 · 修复计划：说清楚 · 给依据 · 跑可靠 · 变更好</h2>
+          <h2 id="part-02" data-toc="四种 Engineering">Part 02 · 修复计划：四种 Engineering，把「会生成」变成「能交付」</h2>
           <span class="section-kicker">02 / 总图</span>
-          <p class="section-summary">认证要救回来，不是换一个更强的模型，而是把四件事按顺序补齐——同一任务上的四层加固，不是四套互斥技巧。</p>
+          <p class="section-summary">认证要救回来，不是换一个更强的模型，而是把 Prompt、Context、Harness、Loop 四种 Engineering 按顺序补齐，让每一轮 Diff 都更接近可合并的交付结果。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/02-four-engineering.png" alt="交付能力链">
+          <div class="mermaid">
+flowchart LR
+  P["Prompt 说清楚"] --> C["Context 给依据"]
+  C --> H["Harness 跑可靠"]
+  H --> L["Loop 变更好"]
+  L --> R["可合并的 Diff"]
+          </div>
 
           <div class="content-block">
-            <h3>1. 修复背景：归层之后，为什么先立计划</h3>
-            <p>归层之后，阿明和 reviewer 没有立刻再开一轮生成。他们先把修复计划钉成四件事，并约定：<strong>缺哪一层，就不进入下一层。</strong></p>
+            <h3>01 / 总图：从单点修补到系统加固</h3>
+            <p>在 Part 01 中，我们诊断出阿明的翻车并非单一原因，而是四层缺陷的叠加。面对这种复合型失败，简单的“换个模型”或“重写 Prompt”只是隔靴搔痒。</p>
+            <p>要救回这个认证模块，需要一套系统性的修复计划。正如「Part 02 · 四种 Engineering」所示，这不仅仅是四个技巧，而是一套覆盖从任务表达到持续交付的工作系统。每一种 Engineering 都解决一类特定失败，共同构成 AI 编程的工程化底座：</p>
             <div class="principles">
-              <div class="principle"><strong>说清楚</strong>要什么、不要什么、怎样算过</div>
-              <div class="principle"><strong>给依据</strong>最小充分的文件与规范</div>
-              <div class="principle"><strong>跑可靠</strong>一步一检、可中断可续</div>
-              <div class="principle"><strong>变更好</strong>失败变成下一轮约束</div>
+              <div class="principle"><strong>Prompt Engineering（说清楚）</strong>解决“目标模糊”的问题。</div>
+              <div class="principle"><strong>Context Engineering（给依据）</strong>解决“知识幻觉”的问题。</div>
+              <div class="principle"><strong>Harness Engineering（跑可靠）</strong>解决“执行失控”的问题。</div>
+              <div class="principle"><strong>Loop Engineering（变更好）</strong>解决“缺乏进化”的问题。</div>
             </div>
-            <div class="callout"><strong>一句话：</strong>模型负责写 Diff；这四件事负责让 Diff 变得可合并。缺一层，就等于把「会生成」伪装成「能交付」。</div>
+            <div class="callout"><strong>总原则：</strong>这四件事必须按顺序补齐，缺一不可。模型负责写 Diff，而这四件事负责让 Diff 变得可合并。</div>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：四层缺口如何同时存在</h3>
-            <p class="note-meta">每一格：翻车前怎么做 · 计划改成什么 · 后文哪章展开</p>
-            <div class="layer-grid">
-              <div class="layer-card content-block">
-                <span class="layer-tag">① 说清楚</span>
-                <h3>任务契约</h3>
-                <p class="wrong"><strong>翻车前：</strong>「做个登录，安全一点，流行写法。」</p>
-                <p class="right"><strong>改成：</strong>Goal + Boundary + Acceptance + Non-goals；验收句可一票否决。</p>
-                <p><strong>对应层：</strong>说不清 → Part 03</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">② 给依据</span>
-                <h3>证据包</h3>
-                <p class="wrong"><strong>翻车前：</strong>整仓 @，指望模型自己找对文件。</p>
-                <p class="right"><strong>改成：</strong>只挂 session / auth 路由 / 错误体规范 / 现有测试 + 契约全文。</p>
-                <p><strong>对应层：</strong>依据错 → Part 04</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">③ 跑可靠</span>
-                <h3>可检查工序</h3>
-                <p class="wrong"><strong>翻车前：</strong>一口气生成 40+ 文件，测试松绿就开 PR。</p>
-                <p class="right"><strong>改成：</strong>T01→T06，每步有命令或手动检查点，过了再往下。</p>
-                <p><strong>对应层：</strong>步骤不可检 → Part 05</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">④ 变更好</span>
-                <h3>失败回流</h3>
-                <p class="wrong"><strong>翻车前：</strong>联调红了，同一句「修一下」重试或换模型。</p>
-                <p class="right"><strong>改成：</strong>把红测 / 联调现象写成下一轮硬约束，小步回流。</p>
-                <p><strong>对应层：</strong>无闭环 → Part 06</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 计划证据：翻车前与修复动作的对照</h3>
+            <h3>02 / 核心拆解：四种 Engineering 的分工与协作</h3>
+            <p class="note-meta">每一行都回答：翻车前怎么做 · 修复后怎么做 · 解决哪类问题</p>
             <table class="comparison-table">
-              <tr><th>翻车做法</th><th>修复计划</th><th>解决的问题</th></tr>
-              <tr><td>「做个登录」一句糊</td><td>带验收的契约</td><td>说不清：OAuth 乱跑、完成标准虚</td></tr>
-              <tr><td>整仓 @</td><td>最小充分证据包</td><td>依据错：哈希被改、错误体泄路径</td></tr>
-              <tr><td>一口气生成整模块</td><td>T01→T06 一步一检</td><td>步骤不可检：大 Diff、联调才爆</td></tr>
-              <tr><td>测红了再试 / 换模型</td><td>失败写进下一轮 Prompt</td><td>无闭环：同一坑反复踩</td></tr>
+              <tr><th>Engineering</th><th>核心定义</th><th>翻车前（阿明做法）</th><th>修复后（工程化做法）</th><th>解决的问题</th></tr>
+              <tr><td><strong>1. Prompt</strong></td><td>任务契约<br>（目标 · 约束 · 验收）</td><td>“做个登录，安全一点。”<br>模糊指令</td><td>Goal + Boundary + Acceptance；明确“不要 OAuth”“登出后 <code>/me</code> 必须 401”。</td><td><strong>说不清</strong><br>避免范围蔓延与标准虚化</td></tr>
+              <tr><td><strong>2. Context</strong></td><td>事实依据<br>（代码 · 规则 · 证据）</td><td>整仓 @，指望模型自己找。<br>大海捞针</td><td>最小充分证据包；只提供 Session 实现、错误体规范、哈希禁区文件。</td><td><strong>依据错</strong><br>避免破坏现有规范与数据结构</td></tr>
+              <tr><td><strong>3. Harness</strong></td><td>可靠执行<br>（拆分 · 状态 · 恢复）</td><td>一口气生成 40+ 文件。<br>黑盒交付</td><td>T01 → T06 工序化；每步有命令或手动检查点，一步一验，过了再往下。</td><td><strong>步骤不可检</strong><br>避免大 Diff 导致 Review 失效</td></tr>
+              <tr><td><strong>4. Loop</strong></td><td>持续改进<br>（验收 · 复盘 · 下一轮）</td><td>测红了重试，或换模型。<br>原地打转</td><td>失败回流机制；把报错信息写成下一轮硬约束，小步闭环。</td><td><strong>无闭环</strong><br>避免同一坑反复踩</td></tr>
             </table>
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：四件事必须按顺序补齐</h3>
+            <h3>03 / 执行逻辑：为什么顺序不能乱？</h3>
+            <p>这四种 Engineering 不是菜单上的四道菜，不能随意点选；它们是串联的加固工序。阿明案例的最短修复路径，严格遵循以下逻辑：</p>
             <ol class="step-list">
-              <li><strong>先说清楚</strong>——没有可否决的验收句，后面三件事都会漂。</li>
-              <li><strong>再给依据</strong>——契约有了，但禁区与现行实现没进视野，模型仍会「优化」哈希。</li>
-              <li><strong>再跑可靠</strong>——证据齐了，仍一口气大 Diff，review 与联调救不回来。</li>
-              <li><strong>最后变更好</strong>——前三层立住后，失败才有地方写回；否则回流只是换皮重试。</li>
+              <li><strong>先说清楚（Prompt）：</strong>如果没有可否决的验收句（Acceptance Criteria），后面的 Context 给得再多，模型也不知道该优先遵守哪条规则，容易生成“正确但无用”的代码，例如多余的 OAuth。</li>
+              <li><strong>再给依据（Context）：</strong>契约有了，但如果禁区（如密码哈希算法）与现行实现没进视野，模型仍会自作聪明地“优化”代码，导致数据不兼容。</li>
+              <li><strong>再跑可靠（Harness）：</strong>证据齐了，如果仍一口气生成大 Diff，Reviewer 和测试者依然无法有效拦截错误，联调时还是会爆雷。</li>
+              <li><strong>最后变更好（Loop）：</strong>只有前三层立住了，失败才有地方“写回”。否则，所谓“修改”只是在错误的基础上换皮重试。</li>
             </ol>
-            <div class="diag-flow">
-              <p><strong>阿明案例的最短路径：</strong></p>
-              <ol>
-                <li>停手，不删模块重生</li>
-                <li>按 Part 01 归层（四层叠加）</li>
-                <li>按本计划补齐四件事</li>
-                <li>从 Part 03 起逐项落地，直到 PR 可合并</li>
-              </ol>
-            </div>
-            <div class="tip-box">
-              <strong>干货：</strong>四件事是<strong>串联加固</strong>，不是菜单点菜。常见误用是「只加强 Prompt」或「只多 @ 文件」——那是单点补丁，救不回认证这种复合翻车。
-            </div>
+            <div class="diag-flow"><strong>干货总结：</strong>四件事是串联加固，不是互斥工具。常见误用是“只加强 Prompt”或“只多 @ 文件”——那是单点补丁，救不回认证这种复合翻车。真正有效的修复，不是让模型一次做得更多，而是让每一步都知道为什么做、依据什么做，以及怎样证明做对了。</div>
           </div>
 
           <div class="content-block">
-            <h3>常见误解：这四件事不是什么</h3>
-            <table class="comparison-table">
-              <tr><th>容易误解成</th><th>实际是</th></tr>
-              <tr><td>四套互斥工具，选一个就行</td><td>同一任务上的四层，通常要一起上</td></tr>
-              <tr><td>换更强模型的替代说法</td><td>模型可换；用法结构不变</td></tr>
-              <tr><td>写完文档再开始写代码</td><td>契约与证据可以短，但必须可检查</td></tr>
-              <tr><td>只适合大项目</td><td>认证这种「半天联调」任务，缺一层一样会翻</td></tr>
-            </table>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：修复计划不是更长的 Prompt</h3>
-            <p>“说清楚、给依据、跑可靠、变更好”看上去像四项准备工作，实质上是在把产品判断、仓库事实、执行检查和失败学习重新放回工程流程中。它们不是为 AI 增加仪式，而是为每一次变更建立可判断的边界。</p>
-            <p>如果只补其中一项，例如只把 Prompt 写得更长，或只追加更多文件，问题仍可能从另一个缺口进入。真正有效的修复，不是让模型一次做得更多，而是让每一步都知道为什么做、依据什么做，以及怎样证明做对了。</p>
-            <p class="note-take"><strong>带着这个思考进入下一章：</strong>四件事中的第一件——“说清楚”，怎样被写成 AI 和 reviewer 都能否决的任务契约？</p>
+            <h3 class="reflection-title">思考笔记：修复计划不是更长的 Prompt</h3>
+            <p>很多人误以为“工程化”就是写更长的文档或 Prompt。其实，“说清楚、给依据、跑可靠、变更好”实质上是在把产品判断、仓库事实、执行检查和失败学习重新放回工程流程中。</p>
+            <p>它们不是为 AI 增加仪式，而是为每一次变更建立可判断的边界。如果只补其中一项，问题仍可能从另一个缺口进入。</p>
+            <p class="note-take"><strong>带着这个思考进入下一章：</strong>四件事中的第一件——“说清楚”，怎样被写成 AI 和 Reviewer 都能执行、检查并否决的任务契约？</p>
           </div>
 
           <div class="chapter-close"><strong>这一幕带走：</strong>修复计划 = 说清楚 → 给依据 → 跑可靠 → 变更好。下一章从「说清楚」开始，把「做个登录」写成可否决的契约。</div>
           <hr>
 
-          <h2 id="part-03" data-toc="任务契约">Part 03 · 说清楚：把「做个登录」写成契约</h2>
+          <h2 id="part-03" data-toc="任务契约">Part 03 · 说清楚：先把任务说清楚，AI 才不会自作主张</h2>
           <span class="section-kicker">03 / 契约</span>
-          <p class="section-summary">AI 不是读心术。你不写可否决的验收，它就用「看起来完整」当完成——阿明上午的「赢」，就是这么来的。</p>
+          <p class="section-summary">Prompt Engineering 的核心不是话术，而是定义。把模糊意图写成目标、范围、约束、输出和验收，AI 才知道做什么、不做什么，以及什么结果才算正确。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/03-prompt-engineering.png" alt="任务契约">
-
-          <div class="content-block">
-            <h3>1. 契约背景：为什么必须先写契约</h3>
-            <p>修复计划的第一件事是<strong>说清楚</strong>。说不清楚，证据包再精、工序再细，模型仍在猜「完成长什么样」。</p>
-            <div class="warn-box">
-              <strong>阿明翻车根因之一：</strong>口头需求「认证先做起来」+ Prompt「安全一点、流行写法」——没有目标边界，没有可否决验收。OAuth 草稿、JWT 乱入、哈希「优化」，都是在填你没写死的空白。
-            </div>
-            <p>契约不是长文档，是<strong>给 AI 和 reviewer 共用的短规格</strong>：写什么算过、写什么不许碰、写什么本轮不做。</p>
+          <div class="mermaid">
+flowchart LR
+  G["Goal 目标"] --> S["任务契约"]
+  B["Boundary 范围"] --> S
+  C["Constraints 约束"] --> S
+  O["Output 输出"] --> S
+  A["Acceptance 验收"] --> S
+  S --> D["可执行的变更"]
           </div>
 
           <div class="content-block">
-            <h3>2. 问题对照：从翻车版到可交付版</h3>
-            <p class="note-meta">左边是阿明上午那句；右边是当场改成的契约骨架</p>
-            <p><strong>翻车版：</strong></p>
-            <div class="contract-template"><code>帮我实现用户认证，要安全一点，最好用现在流行的写法。</code></div>
-            <p><strong>可交付版（五块齐全）：</strong></p>
-            <div class="contract-template"><code>Goal:
-  注册 / 登录 / 登出；受保护接口在未登录或登出后返回 401。
-
-Boundary:
-  只改 auth 相关模块（路由、session、中间件、对应测试）。
-  禁止修改密码哈希算法、禁止触碰生产密钥与 .env。
-
-Acceptance:（任一失败 = 未完成）
-  1) auth 相关单测全绿
-  2) 手动：登录 → GET /me 200 → 登出 → GET /me 401
-  3) 错误响应不泄露堆栈与绝对路径
-
-Non-goals:
-  本轮不做 OAuth、不做多租户、不做「记住我」长期会话。
-
-Evidence:（下一章展开）
-  session 实现、auth 路由、错误体规范、现有测试样例。</code></div>
+            <h3>01 / 契约背景：Prompt 不是聊天，是“任务契约”</h3>
+            <p>在 AI 编程工程化中，Prompt Engineering 的核心不在于“话术”，而在于定义。正如「Part 03 · Prompt Engineering」图示所强调的：Prompt 不是一句话，而是一份可执行的任务契约。</p>
+            <p>阿明翻车的根源，在于他把 Prompt 当成了“口头需求”的传声筒。</p>
+            <div class="comparison-table">
+              <p><strong>反例（一句话交付）：</strong>“帮我做一个用户认证系统。”</p>
+              <p><strong>后果：</strong>缺少目标、范围、禁区和验收标准。AI 只能用它的“默认知识”去猜测空白，导致 OAuth 乱入、JWT 误用。</p>
+              <p><strong>正例（五个字段）：</strong>必须包含目标、范围、约束、输出、验收。</p>
+              <p><strong>价值：</strong>把模糊的意图转化为结构化指令，让 AI 知道“做什么”“不做什么”，以及“做成什么样才算对”。</p>
+            </div>
+            <p>契约不是为了把 Prompt 写得更长，而是为了建立一套 AI、开发者和 Reviewer 都能对齐的判断标准。当验收句能够指出具体接口、状态码、文件范围和安全约束时，后续的证据包才有筛选标准，工序才有检查点。</p>
           </div>
 
           <div class="content-block">
-            <h3>3. 证据与标准：契约五块各自做什么</h3>
-            <div class="layer-grid">
-              <div class="layer-card content-block">
-                <span class="layer-tag">Goal</span>
-                <h3>要交付什么</h3>
-                <p>用结果语言写，不写「实现认证模块」。阿明版：注册 / 登录 / 登出可用，受保护接口在未登录与登出后均为 401。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">Boundary</span>
-                <h3>改哪里 · 禁哪里</h3>
-                <p>改动面 + 硬禁区。禁改哈希、禁碰 <code>.env</code>，就是为了挡住「顺手优化」和密钥泄漏。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">Acceptance</span>
-                <h3>怎样算过</h3>
-                <p>每条必须可观测、可一票否决。测绿 + 手动路径 + 错误体不泄密，三条任一失败 = 未完成。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">Non-goals</span>
-                <h3>本轮明确不做</h3>
-                <p>OAuth / 多租户 /「记住我」写进非目标，模型才不会用「流行写法」把范围撑爆。</p>
-              </div>
-            </div>
-            <div class="tip-box">
-              <strong>Evidence 放哪：</strong>契约里可列证据清单作索引；具体挂哪些文件、怎么筛，是 Part 04。五块里前四块必须当场写清，Evidence 可以「先列名、后展开」。
-            </div>
+            <h3>02 / 核心拆解：从“翻车版”到“五字段契约”</h3>
+            <p>结合图示中的“正例：五个字段”，我们将阿明的需求重构为一份标准任务契约。这不是文字堆砌，而是从目标到验收的逻辑闭环。</p>
+            <table class="comparison-table">
+              <tr><th>字段</th><th>定义</th><th>❌ 翻车版（阿明原话）</th><th>✅ 可交付版（五字段契约）</th></tr>
+              <tr><td><strong>1. 目标</strong></td><td>要完成什么？<br><em>Goal</em></td><td>“做个登录”</td><td>实现注册、登录、登出；受保护接口在未登录或登出后必须返回 401。</td></tr>
+              <tr><td><strong>2. 范围</strong></td><td>做到哪里为止？<br><em>Boundary</em></td><td>未提及</td><td>仅修改 auth 相关模块：路由、session、中间件和对应测试。</td></tr>
+              <tr><td><strong>3. 约束</strong></td><td>什么不能做？<br><em>Constraints</em></td><td>“安全一点”<br>模糊指令</td><td>禁止修改密码哈希算法；禁止触碰生产密钥与 <code>.env</code> 文件。</td></tr>
+              <tr><td><strong>4. 输出</strong></td><td>要留下什么？<br><em>Output</em></td><td>未提及</td><td>更新后的路由代码、Session 管理逻辑和配套单元测试文件。</td></tr>
+              <tr><td><strong>5. 验收</strong></td><td>什么算完成？<br><em>Acceptance</em></td><td>未提及</td><td>auth 单测全绿；手动验证“登录 → GET /me 200 → 登出 → GET /me 401”；错误响应不泄露堆栈与绝对路径。</td></tr>
+            </table>
+            <div class="contract-template"><code>验收原则：任一验收项失败 = 任务未完成。</code></div>
           </div>
 
           <div class="content-block">
-            <h3>4. 落地执行：验收句怎么写才算数</h3>
-            <p>核心标准就一条：<strong>别人能不能根据这句话说「没过」而不吵架。</strong></p>
+            <h3>03 / 落地执行：验收句怎么写才算数？</h3>
+            <p>核心标准就一条：<strong>别人能不能根据这句话说“没过”而不吵架。</strong></p>
             <table class="comparison-table">
               <tr><th>不合格（无法否决）</th><th>合格（可一票否决）</th></tr>
-              <tr><td>尽量安全一点</td><td>错误响应不出现堆栈与绝对路径</td></tr>
-              <tr><td>登录体验好一点</td><td>正确账号登录后 <code>GET /me</code> 返回 200 与用户字段</td></tr>
-              <tr><td>会话处理好</td><td>登出后再请求 <code>GET /me</code> 必须 401</td></tr>
-              <tr><td>测试差不多绿就行</td><td>auth 相关单测全绿；任一红则本步未完成</td></tr>
-              <tr><td>别改太多无关代码</td><td>Diff 仅限 auth 路由 / session / 中间件 / 对应测试</td></tr>
+              <tr><td>尽量安全一点</td><td>错误响应不出现堆栈与绝对路径。</td></tr>
+              <tr><td>登录体验好一点</td><td>正确账号登录后 <code>GET /me</code> 返回 200 与用户字段。</td></tr>
+              <tr><td>会话处理好</td><td>登出后再请求 <code>GET /me</code> 必须返回 401。</td></tr>
+              <tr><td>测试差不多绿就行</td><td>auth 相关单测全绿；任一红则本步未完成。</td></tr>
             </table>
             <div class="diag-flow">
               <p><strong>写 Acceptance 的三问：</strong></p>
@@ -500,353 +442,257 @@ Evidence:（下一章展开）
           </div>
 
           <div class="content-block">
-            <h3>补充清单：五分钟完成契约初稿</h3>
-            <ol class="step-list">
-              <li><strong>Goal</strong>：用「用户能做什么 / 系统必须返回什么」写结果，不写实现口号。</li>
-              <li><strong>Boundary</strong>：列出可改路径；至少写一条硬禁区（哈希、密钥、无关模块）。</li>
-              <li><strong>Acceptance</strong>：≥2 条可观测句；标明「任一失败 = 未完成」。</li>
-              <li><strong>Non-goals</strong>：至少写出本期最容易被「流行写法」带偏的 1～3 项。</li>
-              <li><strong>对齐</strong>：和 reviewer / 联调方对一遍验收句，无歧义再开生成。</li>
-            </ol>
-            <div class="callout">
-              <strong>案例节点：</strong>阿明补完这份契约后，OAuth 从「顺手做了」变成「明确不做」；登出后 <code>/me</code> 401 从「应该会吧」变成「不过就不能合」。后面证据包与工序，都挂在这份契约上。
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：契约的价值是允许明确地说“不通过”</h3>
-            <p>一份契约不是为了把 Prompt 写得更长，而是把“完成”从模糊判断变成共同判断。AI、开发者、reviewer 和联调方依据同一组目标、边界与验收句，就能在结果不符合预期时明确否决，而不是围绕“看起来差不多”争论。</p>
-            <p>当验收句能够指出具体接口、状态码、文件范围和安全约束时，后续的证据包才有筛选标准，工序才有检查点，失败回流也才知道应该增加哪条约束。</p>
+            <h3 class="reflection-title">思考笔记：为什么“说清楚”比“写代码”更重要？</h3>
+            <p>在传统开发流程中，我们习惯于“边做边想”，或者在代码里通过注释补充逻辑。但在 AI 辅助编程中，思维必须前置。</p>
+            <ul class="checklist">
+              <li><strong>消除“默认值”陷阱：</strong>AI 模型训练于海量通用数据，它的默认值往往是通用的、流行的，但不一定是当前项目需要的。如果不明确指定“不做 OAuth”，它可能因为 OAuth 是“流行写法”而擅自添加。契约的本质，就是用项目的特异性覆盖 AI 的通用性。</li>
+              <li><strong>从“人治”到“法治”：</strong>阿明之前靠 Reviewer 的经验发现 OAuth 不对、哈希被改；现在则把规则写进契约，让 AI 在生成前自我审查，让 Reviewer 在验收时有据可依。</li>
+              <li><strong>降低沟通熵值：</strong>模糊需求是高熵的，包含无数种可能性；结构化契约是低熵的，能够收敛可能性。写契约的过程，就是给 AI 降噪，让正确代码的信号更清晰地传输。</li>
+            </ul>
             <p class="note-take"><strong>带着这个思考进入下一章：</strong>契约已经说明“要什么、不要什么、怎样算过”，还需要哪些仓库事实来约束 AI 的判断？</p>
           </div>
 
           <div class="chapter-close"><strong>这一幕带走：</strong>契约 = Goal + Boundary + Acceptance + Non-goals（Evidence 索引可选）。少一项，就给翻车留门。下一章：把禁区与现行实现收成刚好够用的证据包。</div>
           <hr>
 
-          <h2 id="part-04" data-toc="证据包">Part 04 · 给依据：刚好够用的证据包</h2>
+          <h2 id="part-04" data-toc="证据包">Part 04 · 给依据：上下文不是越多越好，而是刚好够用</h2>
           <span class="section-kicker">04 / 证据</span>
-          <p class="section-summary">哈希被「优化」、错误体泄路径，通常不是模型坏，是你没把禁区和现行实现放进视野——或者塞了太多噪音，关键信号被稀释。</p>
+          <p class="section-summary">契约回答“要什么、不要什么、怎样算过”，证据包回答“仓库里的现行事实是什么”。上下文不是越多越可靠，而是刚好足以约束这一次变更。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/04-context-engineering.png" alt="证据包">
-
-          <div class="content-block">
-            <h3>1. 证据背景：契约写清了，为什么还要证据包</h3>
-            <p>契约回答「要什么 / 不要什么 / 怎样算过」。证据包回答另一件事：<strong>仓库里现行事实是什么，哪些文件是硬约束。</strong></p>
-            <div class="warn-box">
-              <strong>阿明翻车：</strong>整仓 @ 进上下文。模型「看见」了很多无关模块，却没稳定 anchor 到 <code>session</code> 实现与错误体规范——于是用「流行写法」改哈希、用调试友好的错误体把路径打到前端。
-            </div>
-            <p>证据包的目标不是「上下文越多越好」，而是<strong>最小充分</strong>：少到会猜错关键路径就补；多到开始稀释信号就减。</p>
+          <div class="mermaid">
+flowchart LR
+  L1["L1：现行实现"] --> P["最小充分证据包"]
+  L2["L2：规则与测试"] --> P
+  L3["L3：历史决策（按需）"] --> P
+  X["密钥与无关噪音"] -.不进入.-> P
+  P --> D["受约束的判断"]
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：缺少关键依据时会发生什么</h3>
-            <p class="note-meta">每项都对应现场某一类失败；没有「以防万一」的填充物</p>
+            <h3>01 / 证据背景：为什么“整仓投喂”反而误事？</h3>
+            <p>在 Part 03 中，我们确立了契约。但契约只回答“要什么、不要什么”，证据包则要回答<strong>“仓库里的现行事实是什么”</strong>。</p>
+            <p>阿明翻车的核心原因之一，就是把整个仓库根目录丢进了上下文。他以为这样最保险，结果模型“看见”了大量无关模块，却没稳定锚定到 Session 实现与错误体规范。于是，AI 用通用的“流行写法”替换了哈希算法，用调试友好的错误体把服务器路径打到了前端。</p>
+            <div class="warn-box"><strong>最小充分：</strong>证据包不是“上下文越多越好”，而是少到会猜错关键路径就补，多到开始稀释信号就减。缺少 Context，AI 只能用默认知识补齐未知，这正是幻觉的温床。</div>
+          </div>
+
+          <div class="content-block">
+            <h3>02 / 核心拆解：分层结构与最小充分原则</h3>
+            <p>证据包不能一股脑全塞进去，而应按优先级分层投喂。先用必须材料锚定主干，再根据报错或 Review 意见递进补充。</p>
             <table class="comparison-table">
-              <tr><th>放入</th><th>对应风险</th><th>为什么必须有</th></tr>
-              <tr><td><code>src/auth/session.ts</code></td><td>登出后 <code>/me</code> 仍 200</td><td>会话创建 / 失效的现行实现</td></tr>
-              <tr><td><code>src/routes/auth/*.ts</code></td><td>登录 / 登出入口漂移</td><td>真实路由与中间件挂载点</td></tr>
-              <tr><td><code>docs/error-envelope.md</code></td><td>错误体泄路径 / 堆栈</td><td>对外错误形状的硬规范</td></tr>
-              <tr><td><code>tests/auth/*.spec.ts</code></td><td>「松绿」掩盖回归</td><td>已有断言，防止改坏仍宣称完成</td></tr>
-              <tr><td>契约全文（Part 03）</td><td>范围与禁区口头化</td><td>Goal / Boundary / Acceptance 进入同一视野</td></tr>
+              <tr><th>层级</th><th>内容类型</th><th>对应阿明案例的文件</th><th>作用</th></tr>
+              <tr><td><strong>L1 必须</strong></td><td>报错、复现、目标文件</td><td><code>src/auth/session.ts</code><br><code>src/routes/auth/*.ts</code></td><td>锚定现行实现，防止登出逻辑失效或路由漂移。</td></tr>
+              <tr><td><strong>L2 常需</strong></td><td>技术栈、API、项目规则</td><td><code>docs/error-envelope.md</code><br><code>tests/auth/*.spec.ts</code></td><td>确立错误体规范与测试标准，防止泄露路径或断言过松。</td></tr>
+              <tr><td><strong>L3 按需</strong></td><td>历史决策、关联模块</td><td>本次暂不需要</td><td>仅在涉及复杂交互或历史坑点时引入。</td></tr>
             </table>
-            <div class="callout">
-              <strong>搭配一句禁区声明（写进 Prompt）：</strong>禁止修改密码哈希实现；禁止读取或改写 <code>.env</code> / 密钥文件；本轮不做 OAuth。
+            <div class="principles">
+              <div class="principle"><strong>最小充分</strong>拿掉任意一项，是否会导致某条 Acceptance 必然漂移？是则保留，否则删除。</div>
+              <div class="principle"><strong>分层递进</strong>先给 L1 文件跑通主干，再根据报错或 Review 意见补充 L2 / L3。</div>
+              <div class="principle"><strong>可追溯</strong>所有依据必须来自现行主分支事实，拒绝旧分支、闲聊结论或外部博客。</div>
+              <div class="principle"><strong>有边界</strong>明确 <code>.env</code>、密钥文件和无关模块等禁区，绝不进入上下文。</div>
             </div>
           </div>
 
           <div class="content-block">
-            <h3>3. 证据边界：明确不放什么</h3>
-            <div class="layer-grid">
-              <div class="layer-card content-block">
-                <span class="layer-tag">整仓噪音</span>
-                <h3>整个 <code>src/</code></h3>
-                <p class="wrong"><strong>后果：</strong>相关文件被淹没；模型更容易「顺便重构」无关模块。</p>
-                <p class="right"><strong>改成：</strong>只挂 auth 路径与直接依赖。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">过期意见</span>
-                <h3>旧分支 / 闲聊结论</h3>
-                <p class="wrong"><strong>后果：</strong>「上周有人说 JWT 过时了」变成实现依据，与仓库现行 session 方案冲突。</p>
-                <p class="right"><strong>改成：</strong>只收现行主分支事实与已合并文档。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">密钥风险</span>
-                <h3><code>.env</code> / 密钥文件</h3>
-                <p class="wrong"><strong>后果：</strong>泄漏进 Diff、日志或错误体；review 更难拦。</p>
-                <p class="right"><strong>改成：</strong>禁区明文写出，文件根本不进上下文。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">虚假完整</span>
-                <h3>大段教程粘贴</h3>
-                <p class="wrong"><strong>后果：</strong>模型按教程「最佳实践」重写，偏离本仓库约定。</p>
-                <p class="right"><strong>改成：</strong>用本仓 <code>error-envelope.md</code> 与现有测试当标准。</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：用三问筛选最小充分证据</h3>
-            <p>每想多 @ 一个文件，先过三问；任一问答不上，就别加。</p>
+            <h3>03 / 执行结论：用“三问”筛选最小充分证据</h3>
+            <p>每想多 @ 一个文件，先过三问；任一问答不上，就别加：</p>
             <ol class="step-list">
-              <li><strong>缺了它，AI 会猜错什么？</strong>说不出具体猜错点 → 多半是安慰剂，不加。</li>
-              <li><strong>它是现行事实，还是过期意见？</strong>分支实验、聊天结论、外部博客 → 默认不进包。</li>
-              <li><strong>它是否含密钥或无关噪音？</strong>有密钥 → 永不进；噪音大于信号 → 剪到相关片段或换摘要。</li>
+              <li><strong>缺了它，AI 会猜错什么？</strong>说不出具体猜错点，多半是安慰剂，不加。</li>
+              <li><strong>它是现行事实，还是过期意见？</strong>分支实验、聊天结论和外部博客，默认不进包。</li>
+              <li><strong>它是否含密钥或无关噪音？</strong>有密钥，永不进；噪音大于信号，就剪到相关片段或换摘要。</li>
             </ol>
             <div class="diag-flow">
               <p><strong>最小充分自检：</strong></p>
               <ol>
-                <li>拿掉包里任意一项，是否会导致某一条 Acceptance 必然漂？会 → 该项必要。</li>
-                <li>包里是否存在「与验收无关、只是顺手 @」的文件？有 → 删。</li>
-                <li>禁区是否同时以<strong>文字</strong>出现在 Prompt 里？（只靠「没 @ 哈希文件」不够，模型仍可能新建一套。）</li>
+                <li>拿掉包里任意一项，是否会导致某一条 Acceptance 必然漂？会，则该项必要。</li>
+                <li>包里是否存在“与验收无关、只是顺手 @”的文件？有，则删除。</li>
+                <li>禁区是否同时以<strong>文字</strong>出现在 Prompt 里？只靠“没 @ 哈希文件”不够，模型仍可能新建一套。</li>
               </ol>
             </div>
           </div>
 
           <div class="content-block">
-            <h3>补充说明：证据包怎么挂进一轮对话</h3>
-            <table class="comparison-table">
-              <tr><th>做法</th><th>推荐度</th><th>说明</th></tr>
-              <tr><td>契约全文 + 上表文件 + 禁区声明</td><td><strong>推荐</strong></td><td>阿明修复轮采用的组合</td></tr>
-              <tr><td>整仓 @ +「你看着办」</td><td>禁止</td><td>翻车上午的原样</td></tr>
-              <tr><td>只给契约、不给现行实现</td><td>不足</td><td>仍会发明第二套 session / 哈希</td></tr>
-              <tr><td>只给代码、不写禁区文字</td><td>不足</td><td>模型可能新建文件绕开禁区</td></tr>
-            </table>
-            <div class="tip-box">
-              <strong>干货：</strong>证据包是「给依据」，不是「塞上下文」。每多一份无关材料，真正决定登出是否失效的那几行，权重就再降一档。
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：上下文不是越多越可靠</h3>
+            <h3 class="reflection-title">思考笔记：上下文不是越多越可靠</h3>
             <p>证据包的难点不在于“找到多少文件”，而在于判断哪些事实足以约束这一次变更。把整仓内容交给 AI，看起来减少了遗漏，实际上可能让会话实现、错误体规范和禁区声明淹没在无关信息里。</p>
-            <p>最小充分不是追求最少，而是让每一项材料都能回答一个明确问题：缺少它，AI 会在哪一条验收上判断错误？答不上来，就不应让它占据上下文。</p>
+            <p>最小充分不是追求最少，而是让每一项材料都能回答一个明确问题：<strong>缺少它，AI 会在哪一条验收上判断错误？</strong>答不上来，就不应让它占据上下文。</p>
             <p class="note-take"><strong>带着这个思考进入下一章：</strong>当目标和依据都已明确，怎样把认证任务拆成可以逐步检查、失败也能定位的工序？</p>
           </div>
 
-          <div class="chapter-close"><strong>这一幕带走：</strong>证据包追求最小充分——必要文件 + 契约 + 明文禁区。多塞的每一份，都在稀释真正关键的信号。下一章：有了契约与依据，把认证拆成可检查步骤。</div>
+          <div class="chapter-close"><strong>这一幕带走：</strong>证据包追求最小充分：按 L1 → L2 → L3 递进，所有材料可追溯，禁区不进上下文。下一章：有了契约与依据，把认证拆成可检查步骤。</div>
           <hr>
 
-          <h2 id="part-05" data-toc="可检查工序">Part 05 · 跑可靠：认证拆成可检查步骤</h2>
+          <h2 id="part-05" data-toc="可检查工序">Part 05 · 跑可靠：大任务要拆开、可恢复、可交接，AI 才做得完</h2>
           <span class="section-kicker">05 / 工序</span>
-          <p class="section-summary">一次生成 40 个文件，等于没有检查点。中断后你只能重来；联调爆了，你也不知道该回滚到哪一步。</p>
+          <p class="section-summary">契约解决“做什么”，证据包解决“依据是什么”；Harness 进一步解决“怎样把大任务跑完”。大任务要拆开、可恢复、可交接，AI 才做得完。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/05-harness-engineering.png" alt="可检查工序">
-
-          <div class="content-block">
-            <h3>1. 工序背景：为什么契约和证据齐了，还要拆步</h3>
-            <p>说清楚、给依据，解决的是「方向对不对」。跑可靠解决的是：<strong>进度可检、失败可定位、中断可续跑。</strong></p>
-            <div class="warn-box">
-              <strong>阿明翻车：</strong>一口气生成注册 + 登录 + JWT 草稿 + 中间件 + 测试，单次 PR 40+ 文件。本地「松绿」就开 PR；下午登出后 <code>/me</code> 仍 200 时，已经分不清该回哪一段 Diff。
-            </div>
-            <p>工序不是把任务写细好玩，而是让每一小步都有<strong>输入 · 输出 · 检查点 · 失败停点</strong>——过了才准往下。</p>
+          <div class="mermaid">
+flowchart LR
+  T1["T01 契约确认"] --> T2["T02 登录可用"]
+  T2 --> T3["T03 鉴权通过"]
+  T3 --> T4["T04 登出失效"]
+  T4 --> T5["T05 错误体安全"]
+  T5 --> T6["T06 收束 PR"]
+  T2 -.检查点失败.-> T2
+  T4 -.检查点失败.-> T4
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：每一步怎样才算可检查</h3>
-            <p>每一步开跑前，至少能回答这四句；写不清，就不要开生成。</p>
+            <h3>01 / 工序背景：Harness 把“一次性生成”变成“可控流水线”</h3>
+            <p>在 Part 03 和 Part 04 中，我们解决了“做什么”和“依据是什么”的问题。但即使契约完美、证据充分，如果执行过程失控，依然会翻车。</p>
+            <p>正如“Part 05 · Harness Engineering”图示所强调的：<strong>大任务要拆开、可恢复、可交接，AI 才做得完。</strong></p>
+            <p>阿明之前的失败模式是典型的“瀑布式生成”：一口气生成注册、登录、JWT 草稿、中间件和测试，单次 PR 包含 40+ 个文件。本地测试“松绿”就敢开 PR；下午联调发现登出后 <code>/me</code> 仍返回 200，此时面对巨大 Diff，根本分不清是哪一段逻辑导致会话失效失败，只能全盘重来。</p>
+            <div class="warn-box"><strong>Harness 的核心价值：</strong>把一次性的大生成变成一组有输入、有输出、可检查、可继续的步骤。它不是把任务写细为了好玩，而是让每一小步都有失败停点——过了才准往下，红了立刻停步。</div>
+          </div>
+
+          <div class="content-block">
+            <h3>02 / 核心拆解：三条执行纪律与 T01—T06 工序</h3>
+            <p>不要给 AI 一个模糊的“开始”，要给它明确的护栏。Harness 的第一步不是生成，而是先确定每个步骤如何启动、如何证明、如何停下和如何交给下一步。</p>
             <table class="comparison-table">
-              <tr><th>要素</th><th>要写清什么</th><th>阿明 T04 示例</th></tr>
-              <tr><td><strong>输入</strong></td><td>本步依赖的已确认产物</td><td>T02/T03 已绿；session 现行实现在证据包内</td></tr>
-              <tr><td><strong>输出</strong></td><td>本步要交出的可观察结果</td><td>登出后会话失效；对应测试与手动路径</td></tr>
-              <tr><td><strong>检查点</strong></td><td>用什么命令/手动动作一票否决</td><td><code>auth.session</code> 相关测绿 + 手动 <code>/me</code>→401</td></tr>
-              <tr><td><strong>失败停点</strong></td><td>红了停在哪，禁止扩散到哪</td><td>停在 T04；不准顺手改注册表单或哈希</td></tr>
+              <tr><th>纪律</th><th>定义</th><th>阿明案例的修正</th></tr>
+              <tr><td><strong>① 小粒度</strong></td><td>每一步有输入、输出和完成条件。</td><td>禁止“顺便重构”；T04 只负责登出失效，不准动注册表单。</td></tr>
+              <tr><td><strong>② 可恢复</strong></td><td>每一步留下状态、Diff、测试和 Checkpoint。</td><td>如果 T04 挂了，只回滚 T04 的代码，保留 T01—T03 的成果。</td></tr>
+              <tr><td><strong>③ 可交接</strong></td><td>统一使用 Brief → Report → 下一步。</td><td>上一步的输出（如 Session 实现）必须明确成为下一步的输入。</td></tr>
             </table>
           </div>
 
           <div class="content-block">
-            <h3>3. 过程证据：认证交付的 T01 → T06</h3>
+            <h4>② 过程证据：认证交付的 T01 → T06</h4>
             <p class="note-meta">阿明修复轮实际采用的人侧工序；每步检查点不过，禁止进入下一步</p>
-            <ol class="step-list">
-              <li><strong>T01 契约确认</strong>：评审 Goal / Boundary / Acceptance / Non-goals；检查点 = 团队对验收句无歧义，再开写码。</li>
-              <li><strong>T02 登录可用</strong>：正确账号能拿到会话；检查点 = 登录相关单测绿。</li>
-              <li><strong>T03 受保护接口</strong>：无会话访问受保护路由 → 401；检查点 = 中间件 / 鉴权测试绿。</li>
-              <li><strong>T04 登出失效</strong>：登出后再请求 <code>GET /me</code> → 401；检查点 = 会话测试绿 + 手动探测同路径。（案例里在此红过，见 Part 06）</li>
-              <li><strong>T05 错误体</strong>：错误响应不泄堆栈 / 绝对路径；检查点 = 错误体快照或约定断言绿。</li>
-              <li><strong>T06 收束 PR</strong>：小 Diff、PR 写清验证步骤与禁区；检查点 = CI 绿 + Acceptance 清单全部勾完。</li>
-            </ol>
-            <div class="callout">
-              <strong>顺序为什么这样排：</strong>先钉契约 → 再登录 → 再鉴权 → 再登出失效（最容易漏）→ 再错误体安全 → 最后收 PR。登出失效单独成步，就是因为阿明把它埋在「大模块生成」里，联调才炸。
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：跑工序的三条铁律</h3>
-            <div class="layer-grid">
-              <div class="layer-card content-block">
-                <span class="layer-tag">铁律 1</span>
-                <h3>只消费上一步产物</h3>
-                <p>T04 没过，不准开始「顺便重构注册表单」。每步只改本步范围，输出交给下一步当输入。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">铁律 2</span>
-                <h3>检查点必须可复现</h3>
-                <p>「我觉得登录行了」不算过。要有测试名或手动请求序列；reviewer 能按同一路径复核。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">铁律 3</span>
-                <h3>红了停步，不扩范围</h3>
-                <p>失败时停在当前 T；把红证留给 Part 06 回流。禁止用「再生成整模块」跳过停点。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">铁律补充</span>
-                <h3>一步一 PR 亦可</h3>
-                <p>不必六步六个 PR，但 Diff 与提交信息应能看出步界；至少本地按步验收后再叠下一段。</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3>补充对照：一口气生成 vs 可检查工序</h3>
             <table class="comparison-table">
-              <tr><th>一口气生成（翻车）</th><th>可检查工序（修复）</th></tr>
-              <tr><td>单次 40+ 文件 Diff</td><td>每步小 Diff，范围写在 Boundary 里</td></tr>
-              <tr><td>测试松绿就开 PR</td><td>每步专属检查点，过了才往下</td></tr>
-              <tr><td>联调爆了不知回哪</td><td>红在 T04 → 只回流 T04</td></tr>
-              <tr><td>中断只能整段重来</td><td>从最近绿的一步续跑</td></tr>
-              <tr><td>「顺便」改哈希 / OAuth</td><td>失败停点禁止扩到禁区与非目标</td></tr>
+              <tr><th>步骤</th><th>任务内容</th><th>关键检查点（Checkpoint）</th><th>失败停点（Stop Point）</th></tr>
+              <tr><td><strong>T01</strong></td><td>契约确认</td><td>团队对 Goal / Boundary / Acceptance 无歧义。</td><td>未对齐前，禁止写代码。</td></tr>
+              <tr><td><strong>T02</strong></td><td>登录可用</td><td>正确账号能拿到会话；登录单测全绿。</td><td>登录失败，禁止做鉴权。</td></tr>
+              <tr><td><strong>T03</strong></td><td>受保护接口</td><td>无会话访问受保护路由 → 401；中间件测试绿。</td><td>鉴权失效，禁止做登出。</td></tr>
+              <tr><td><strong>T04</strong></td><td>登出失效</td><td>登出后再请求 <code>GET /me</code> → 401；会话测试绿。</td><td>阿明翻车点：登出无效，禁止改错误体。</td></tr>
+              <tr><td><strong>T05</strong></td><td>错误体安全</td><td>错误响应不泄露堆栈 / 路径；快照断言绿。</td><td>泄露敏感信息，禁止收束 PR。</td></tr>
+              <tr><td><strong>T06</strong></td><td>收束 PR</td><td>CI 全绿；Acceptance 清单全部勾选。</td><td>任何一项未达标，禁止合并。</td></tr>
             </table>
+            <div class="callout"><strong>顺序逻辑：</strong>先钉契约 → 再登录 → 再鉴权 → 再登出失效（最容易漏，需单独成步）→ 再错误体安全 → 最后收 PR。这样能让核心业务闭环在早期验证，避免最后联调时“大爆炸”。</div>
+          </div>
+
+          <div class="content-block">
+            <h3>03 / 落地执行：开跑前的“30 秒自检”</h3>
+            <p>让 AI 开始每一个步骤前，必须完成以下确认；否则就是给未来埋雷：</p>
             <div class="diag-flow">
-              <p><strong>开跑前 30 秒自检：</strong></p>
               <ol>
-                <li>当前是 Tn，上一步检查点是否已绿？</li>
-                <li>本步输入 / 输出 / 检查点 / 失败停点是否写进 Prompt？</li>
-                <li>本步 Boundary 是否小于等于契约 Boundary？</li>
-                <li>若红，下一动作是「回流写约束」，还是「整模块重生」？（后者直接否决）</li>
+                <li><strong>前置确认：</strong>当前是 Tn，上一步 Tn-1 的检查点是否已经确认为绿？</li>
+                <li><strong>要素完备：</strong>本步的输入、输出、检查点、失败停点是否都已写进 Prompt？</li>
+                <li><strong>边界控制：</strong>本步 Boundary 是否严格小于或等于契约 Boundary？</li>
+                <li><strong>失败预案：</strong>若红，下一动作是回流写约束，还是整模块重生？后者直接否决。</li>
               </ol>
             </div>
-            <div class="tip-box">
-              <strong>干货：</strong>工序是人侧 harness。模型可以在一步内多改几个文件，但<strong>跨步合并验收</strong>不行——那会把「哪一步坏了」重新变模糊。
-            </div>
+            <div class="tip-box"><strong>干货：</strong>工序是人侧的 Harness。模型可以在一步内多改几个文件，但跨步合并验收不行——那会把“哪一步坏了”重新变模糊。一步一验收，才是 AI 编程的“稳”。</div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：拆步不是减慢速度，而是减少返工</h3>
-            <p>一次生成很多文件，表面上省去了等待时间，实际上把验证、定位和回退都推迟到了联调阶段。等问题暴露时，团队面对的是一整块难以判断的 Diff，而不是一个可以明确修复的步骤。</p>
-            <p>可检查工序的价值，在于把进度变成证据：每个“已完成”都对应一次可复现的检查，每个失败也都有明确的停点。这样 AI 才能持续向前推进，而不是每次出错都回到起点。</p>
+            <h3 class="reflection-title">思考笔记：拆步不是为了繁琐，而是为了减少返工</h3>
+            <p>拆步不是为了制造流程，而是为了对抗大模型生成带来的熵增。一次生成 500 行代码看似高效，实则将验证成本后置到了最昂贵的联调阶段。错误发生后，面对一团乱麻的 Diff，开发者往往被迫放弃修复而选择重写，这才是最大的浪费。</p>
+            <p>Harness 的本质，是将“黑盒交付”转变为“白盒验证”：让每一次前进都有据可依，让每一次失败都止步于当下。只有把大任务拆解为机器可执行、人类可验证的原子单元，AI 才能真正从“玩具”变成生产力工具。</p>
             <p class="note-take"><strong>带着这个思考进入下一章：</strong>当 T04 的检查点真实失败时，怎样把这条红证写回下一轮输入，而不破坏已经通过的步骤？</p>
           </div>
 
-          <div class="chapter-close"><strong>这一幕带走：</strong>步骤契约 = 输入 · 输出 · 检查点 · 失败停点。写不清就不要开跑。下一章：T04 红了之后，如何把失败写回下一轮，而不是整模块重生。</div>
+          <div class="chapter-close"><strong>这一幕带走：</strong>Harness = 小粒度 + 可恢复 + 可交接。每步有输入、输出、检查点和失败停点；红了就停，不把局部失败扩散成整模块重生。下一章：T04 红了之后，如何把失败写回下一轮。</div>
           <hr>
 
-          <h2 id="part-06" data-toc="反馈闭环">Part 06 · 变更好：登出仍 200 之后发生了什么</h2>
+          <h2 id="part-06" data-toc="反馈闭环">Part 06 · 变更好：真正的效率来自闭环，而不是一次生成</h2>
           <span class="section-kicker">06 / 闭环</span>
-          <p class="section-summary">T04 红了。正确动作不是「再生成整个认证」，而是把红结果写成下一轮输入里的硬约束——失败若没变成文字，就等于没发生过。</p>
+          <p class="section-summary">验收不是终点，而是下一轮的输入。真正的效率来自把失败沉淀为约束、锁定在当前步骤并持续回流，而不是一次又一次地整模块生成。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/06-loop-engineering.png" alt="反馈闭环">
-
-          <div class="content-block">
-            <h3>1. 回流背景：T04 检查点挂了</h3>
-            <p>契约、证据包、工序都立住后，阿明按步推进。T01–T03 绿；跑到 <strong>T04 登出失效</strong> 时检查点不过：</p>
-            <table class="comparison-table">
-              <tr><th>检查项</th><th>期望</th><th>实际</th></tr>
-              <tr><td><code>auth.session.spec</code>：登出后 <code>GET /me</code></td><td>401</td><td><strong>200</strong>（用户信息仍在）</td></tr>
-              <tr><td>手动同路径复现</td><td>401</td><td><strong>200</strong></td></tr>
-            </table>
-            <div class="warn-box">
-              <strong>第一反应陷阱：</strong>「把认证模块删了再生成」「换个更强模型」「顺便把注册也重构一下」。这三种都会毁掉已绿的 T01–T03，并把失败信息重新变糊。
-            </div>
+          <div class="mermaid">
+flowchart LR
+  A["验收"] --> B["定位"]
+  B --> C["沉淀失败证据"]
+  C --> D["写回新增约束"]
+  D --> E["锁定当前 Tn 重跑"]
+  E --> A
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：失败若不写回会发生什么</h3>
-            <p>「变更好」不是改态度，是改<strong>下一轮 Prompt 的结构</strong>：范围锁在当前步，证据钉死，约束新增，完成条件可否决。</p>
+            <h3>01 / 闭环背景：验收不是终点，而是下一轮的输入</h3>
+            <p>在 Part 05 中，我们建立了 Harness 工序，确保任务被拆解为可检查的步骤。然而，当 T04（登出失效）检查点变红时，真正的考验才刚刚开始。</p>
+            <p>正如“Part 06 · Loop Engineering”图示所强调的：<strong>真正的效率来自闭环，而不是一次生成。</strong></p>
+            <p>阿明在 T04 翻车了：登出后 <code>GET /me</code> 接口依然返回 200。此时，他面临三种选择：</p>
             <div class="layer-grid">
-              <div class="layer-card content-block">
-                <span class="layer-tag">错法</span>
-                <h3>同一句话重试</h3>
-                <p class="wrong">「帮我修一下认证 / 登出有问题」。失败细节只在你脑子里，模型下一轮仍从模糊目标起步。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">错法</span>
-                <h3>整模块重生</h3>
-                <p class="wrong">丢掉已绿步骤，大 Diff 重来。登出 bug 可能修好，哈希禁区与错误体又可能被踩。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">错法</span>
-                <h3>只换模型</h3>
-                <p class="wrong">输入不变，引擎再强也在猜同一片空白。闭环缺的是约束文字，不是参数量。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">正法</span>
-                <h3>留证 → 归层 → 写回</h3>
-                <p class="right">把红测写进下一轮；锁在 T04；禁区再声明一遍；完成条件 = 原检查点转绿。</p>
-              </div>
+              <div class="layer-card"><span class="layer-tag">错误选择 A</span><h3>盲目重试</h3><p class="wrong">“帮我修一下认证，登出有问题。”失败细节只在他脑子里，模型下一轮仍从模糊目标起步。</p></div>
+              <div class="layer-card"><span class="layer-tag">错误选择 B</span><h3>全盘重来</h3><p class="wrong">“把认证模块删了再生成。”这会毁掉已绿的 T01—T03，并把失败信息重新变糊。</p></div>
+              <div class="layer-card"><span class="layer-tag">正确选择</span><h3>闭环回流</h3><p class="right">留证 → 归层 → 写回，把红测结果写成下一轮 Prompt 里的硬约束。</p></div>
             </div>
+            <div class="warn-box"><strong>Loop Engineering 的核心：</strong>每一轮都留下可复用结果，并把反馈带入下一轮。如果失败没有变成文字约束，就等于没发生过。</div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：闭环三步如何定位问题</h3>
-            <ol class="step-list">
-              <li><strong>留证</strong>：测试名、期望 / 实际、手动复现路径；必要时贴相关日志片段（脱敏）。没有留证，归层只能靠感觉。</li>
-              <li><strong>归层</strong>：再用 Part 01 口诀——这次是依据不足（没读清 session 清理）、步骤假设错，还是契约验收本来就含糊？阿明此轮判定：现行 session 清理路径未被遵守 → 偏「依据 / 实现约束」未写回。</li>
-              <li><strong>写回</strong>：把「必须清理服务端 session（以仓库为准）」「禁止改哈希」「只改 session 清理与对应测试」写成下一轮硬约束，而不是口头叮嘱。</li>
-            </ol>
-            <div class="diag-flow">
-              <p><strong>归层时多问一句：</strong></p>
-              <ol>
-                <li>T01–T03 还成立吗？成立 → <strong>禁止重做</strong>，只回流当前步。</li>
-                <li>失败是否证明契约 Acceptance 写错了？写错 → 先改契约再回流，不要用错误验收硬拧实现。</li>
-                <li>是否缺了一份证据文件？缺 → 补进证据包，再开回流轮。</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：把失败写成回流 Prompt</h3>
-            <p class="note-meta">继续 T04，不重做已绿步骤；失败证据与新增约束同屏出现</p>
-            <div class="contract-template"><code>继续 T04，不要重做 T01–T03。
-
-失败证据：
-- 测试 auth.session.spec：登出后 GET /me 期望 401，实际 200
-- 手动复现相同
-
-约束（新增）：
-- 必须清理服务端 session / 令牌黑名单（以仓库现行实现为准）
-- 禁止改动密码哈希
-- 只改 session 清理路径与对应测试
-
-完成条件：
-- 上述测试转绿；手动复现 401</code></div>
-            <div class="callout">
-              <strong>案例结果：</strong>一轮回流后 T04 转绿；随后 T05 错误体、T06 收束 PR。PR 描述写上手动三步验收与禁区，CI 实打实绿，reviewer 可按同一路径复核。
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3>补充模板：回流 Prompt 可直接套用</h3>
+            <h3>02 / 核心拆解：四步闭环法与回流 Prompt</h3>
+            <p>不要只盯着代码看，要盯着输入输出看。结合“验收 → 定位 → 沉淀 → 调整”的流程，阿明的修复过程可以标准化为四步闭环法：</p>
             <table class="comparison-table">
-              <tr><th>区块</th><th>写什么</th><th>不要写成</th></tr>
-              <tr><td>范围锁</td><td>继续 Tn，不要重做 T1…T(n-1)</td><td>从头再做一遍认证</td></tr>
-              <tr><td>失败证据</td><td>测试名 + 期望/实际 + 手动路径</td><td>「登出好像有问题」</td></tr>
-              <tr><td>约束新增</td><td>本轮必须遵守的实现约束与禁区</td><td>「注意安全一点」</td></tr>
-              <tr><td>改动边界</td><td>只改哪些路径 / 测试</td><td>「相关的都可以动」</td></tr>
-              <tr><td>完成条件</td><td>= 原检查点转绿（可否决）</td><td>「修到差不多」</td></tr>
+              <tr><th>步骤</th><th>动作</th><th>阿明 T04 案例执行</th></tr>
+              <tr><td><strong>① 验收</strong></td><td>确认结果是否符合预期。</td><td>自动化测试 <code>auth.session.spec</code> 报红；手动复现 <code>GET /me</code> 返回 200。</td></tr>
+              <tr><td><strong>② 定位</strong></td><td>识别问题根因与改进方向。</td><td>判定为“依据不足”：现行 Session 清理路径未被遵守，而非简单的逻辑错误。</td></tr>
+              <tr><td><strong>③ 沉淀</strong></td><td>沉淀方法与知识，形成资产。</td><td>将“必须清理服务端 Session”从隐性知识转化为显性约束。</td></tr>
+              <tr><td><strong>④ 调整</strong></td><td>优化策略与执行，进入下一轮。</td><td>锁定 T04 范围，禁止改动哈希算法，只改 Session 清理路径。</td></tr>
             </table>
-            <div class="tip-box">
-              <strong>干货：</strong>闭环的质量 = 下一轮输入比上一轮<strong>多了哪些不可省略的约束</strong>。若两轮 Prompt 几乎一样，你只是在重试，不是在变更好。
-            </div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：失败的价值取决于它是否改变下一轮输入</h3>
-            <p>测试失败本身不会让系统变好；只有当期望、实际、范围和新增约束被写成下一轮可执行的输入，失败才从一次挫折变成一次学习。否则，模型每次面对的仍是同一片模糊的上下文。</p>
-            <p>回流的关键不是“再试一次”，而是保护已经验证通过的步骤，并让当前失败只影响必要的最小范围。这样，改动才具备累积性，而不是反复推倒重来。</p>
-            <p class="note-take"><strong>带着这个思考进入下一章：</strong>当契约、证据和回流逐步补齐，同一个认证需求的 Spec 会如何从模糊描述演进为可交付规格？</p>
+            <h4>② 事实证据：构建“回流 Prompt”</h4>
+            <p>回流 Prompt 是 Loop Engineering 的实战载体。不要把失败当作终点，要把它当作下一轮的 Context。</p>
+            <p><strong>错误的回流方式：</strong><code>还是不行，登出后还能访问，你再检查一下代码。</code>——AI 会再次猜测，并可能引入新 Bug。</p>
+            <p><strong>正确的回流 Prompt：</strong></p>
+            <div class="contract-template"><code># Role: 继续 T04（登出失效修复）
+# ⛔ 范围锁：继续 T04，绝对不要重做 T01—T03（登录与鉴权已验证通过）
+
+## 🔴 失败证据（Evidence）
+- 测试名：auth.session.spec.ts
+- 期望：登出后 GET /me 返回 401
+- 实际：返回 200（用户信息仍在）
+- 手动复现：相同路径，确认 Session ID 在服务端未被销毁
+
+## 🛡️ 新增约束（Constraints）
+1. 必须清理服务端 Session / 令牌黑名单（以仓库现行实现为准，不要自行发明存储方式）
+2. 禁止改动密码哈希逻辑（T02 已绿）
+3. 只允许修改 Session 清理路径与对应测试文件
+
+## ✅ 完成条件（Acceptance）
+- 上述测试转绿
+- 手动复现必须返回 401</code></div>
           </div>
 
-          <div class="chapter-close"><strong>这一幕带走：</strong>留证 → 归层 → 写回。失败变成下一轮文字，才算进过闭环。下一章：同一认证需求，三版 Spec 如何决定三种命运。</div>
+          <div class="content-block">
+            <h3>03 / 执行结论：让改动具备累积性</h3>
+            <p>Loop Engineering 的本质是保护已验证的成果。<strong>闭环的质量 = 下一轮输入比上一轮多了哪些不可省略的约束。</strong>若两轮 Prompt 几乎一样，你只是在重试，不是在“变更好”。</p>
+            <p>阿明使用上述回流 Prompt 后，仅一轮回流 T04 即转绿。随后顺利推进 T05（错误体安全）和 T06（收束 PR）。PR 描述中清晰写上手动三步验收与禁区，Reviewer 可按同一路径复核，CI 实打实全绿。</p>
+            <div class="tip-box"><strong>结论：</strong>测试失败本身不会让系统变好；只有当期望、实际、范围和新增约束被写成下一轮可执行输入，失败才从一次挫折变成一次学习。</div>
+          </div>
+
+          <div class="content-block">
+            <h3 class="reflection-title">思考笔记：Loop 不是重聊，而是状态机</h3>
+            <p>很多人误以为 AI 编程就是“对话”，聊错了就重聊。但工程化的 Loop 更像状态机：每一次报错都不应只被“解决”掉，而应被记录下来，成为系统的一部分。</p>
+            <p>当失败被结构化后，AI 不再是需要反复教导的实习生，而成为能够继承历史反馈、严格恪守边界的执行器。所谓智能，正在于精准继承上下文和约束，而不是每轮都从头猜起。</p>
+            <p class="note-take"><strong>带着这个思考进入下一章：</strong>当步骤、反馈和约束不断积累后，最初模糊的 Spec 如何一步步进化为可交付的工程规格？</p>
+          </div>
+
+          <div class="chapter-close"><strong>这一幕带走：</strong>验收 → 定位 → 沉淀 → 调整。失败变成下一轮文字，才算进入闭环；保护已绿步骤，让每一次改动都能累积。下一章：同一认证需求，三版 Spec 如何决定三种命运。</div>
           <hr>
 
-          <h2 id="part-07" data-toc="Spec演进">Part 07 · Spec 演进：v0.1 → v1.0</h2>
+          <h2 id="part-07" data-toc="Spec演进">Part 07 · Spec 演进：从“模糊需求”到“可交付契约”</h2>
           <span class="section-kicker">07 / 实战</span>
-          <p class="section-summary">同一认证需求，三版契约，决定了三种命运。Spec 每升一版，都是在减少「模型替你做产品决定」的空间。</p>
+          <p class="section-summary">同一个认证需求会走向三种不同结局。Spec 的演进不是文档变长，而是将 Prompt、Context、Harness、Loop 逐层整合，把产品决定权从模型手中收回。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/07-case-study.png" alt="认证实战">
+          <div class="mermaid">
+flowchart LR
+  V01["v0.1 模糊需求"] --> X["范围与验收缺失"]
+  X --> F["联调翻车"]
+  F --> V10["v1.0 可交付 Spec"]
+  V10 --> R["按 T01-T06 交付"]
+          </div>
 
           <div class="content-block">
-            <h3>1. 演进背景：同一需求为什么出现三种结局</h3>
+            <h3>01 / 演进背景：同一需求，三种结局</h3>
+            <p>在 Part 03 到 Part 06 中，我们分别建立了契约、证据、工序和闭环。现在需要将这些能力整合，看它们如何共同决定一个项目的命运。</p>
+            <p>正如“Part 07 · 贯穿案例”图示所强调的：四种 Engineering 不是四套替代技巧，而是把同一个任务逐层加固。阿明的认证需求经历了三个版本的迭代；这不仅是文档修改，更是控制权的转移。</p>
             <table class="comparison-table">
-              <tr><th>版本</th><th>写法特征</th><th>缺什么</th><th>案例结果</th></tr>
-              <tr><td><strong>v0.1</strong></td><td>「做个登录，安全一点」</td><td>目标 / 边界 / 验收全无</td><td>功能看起来全，下午联调翻车</td></tr>
-              <tr><td><strong>v0.5</strong></td><td>列了注册/登录/JWT，仍无否决句</td><td>Acceptance 虚、Non-goals 弱、禁区口头</td><td>登出失效、泄密、哈希被踩，修不完</td></tr>
-              <tr><td><strong>v1.0</strong></td><td>Goal / Boundary / Acceptance / Non-goals / Evidence + Risk / Rollback</td><td>—</td><td>按 T01–T06 推进，回流后 PR 可合并</td></tr>
+              <tr><th>版本</th><th>写法特征</th><th>核心缺失</th><th>最终结局</th></tr>
+              <tr><td><strong>v0.1</strong></td><td>“做个登录，安全一点”</td><td>目标 / 边界 / 验收全无</td><td>翻车：功能看似全，联调即炸，哈希被改，登出失效。</td></tr>
+              <tr><td><strong>v0.5</strong></td><td>列了注册 / 登录 / JWT，仍有“尽量”</td><td>Acceptance 虚、Non-goals 弱、禁区口头</td><td>假绿：觉得写清了，实则仍是 v0.1 精装版，修不完 Bug。</td></tr>
+              <tr><td><strong>v1.0</strong></td><td>Goal / Boundary / Acceptance + Risk / Rollback</td><td>—</td><td>交付：按 T01—T06 推进，回流可控，PR 顺利合并。</td></tr>
             </table>
             <div class="callout">
               <strong>读法：</strong>不是「写得越长越好」，而是每一版是否关掉一类翻车通道。v0.5 比 v0.1 长，但关掉的通道不够，所以仍然翻车。
@@ -854,7 +700,8 @@ Evidence:（下一章展开）
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：v0.1 为什么注定翻车</h3>
+            <h3>02 / 核心拆解：为什么 v0.1 注定失败，而 v1.0 能赢？</h3>
+            <h4>① v0.1 的陷阱：把决定权交给“流行写法”</h4>
             <div class="contract-template"><code>帮我实现用户认证，要安全一点，最好用现在流行的写法。</code></div>
             <div class="layer-grid">
               <div class="layer-card content-block">
@@ -872,7 +719,7 @@ Evidence:（下一章展开）
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：v0.5 如何制造“已写清”的错觉</h3>
+            <h4>② v0.5 的错觉：“已写清”的幻觉</h4>
             <div class="contract-template"><code>实现邮箱注册、登录、JWT 鉴权。
 要支持受保护路由。尽量安全，参考业界最佳实践。
 可以的话把登出也做了。</code></div>
@@ -889,7 +736,8 @@ Evidence:（下一章展开）
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：v1.0 如何成为可交付 Spec</h3>
+            <h4>③ v1.0 的执行结论：可交付 Spec 的结构</h4>
+            <p>阿明修复轮定稿的 v1.0 Spec，直接对应了前几章的工程化要求。它不再是一段话，而是一个结构化的数据块：</p>
             <p class="note-meta">阿明修复轮定稿；可直接复制改领域词</p>
             <div class="contract-template"><code>【认证 · Spec v1.0】
 Goal: 注册/登录/登出；登出后受保护接口 401
@@ -927,7 +775,8 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>补充清单：你的 Spec 到了哪一版</h3>
+            <h3>03 / 补充清单：你的 Spec 到了哪一版？</h3>
+            <p>在开启下一个任务前，用以下清单自检；若答案是否定的，请停留在当前版本继续打磨，不要进入编码阶段。</p>
             <ol class="step-list">
               <li>有没有<strong>可否决</strong>的 Acceptance？没有 → 仍是 v0.1 / v0.5。</li>
               <li>有没有<strong>硬 Boundary + 明文禁区</strong>？没有 → 哈希与密钥仍可能被「优化」。</li>
@@ -946,9 +795,10 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：Spec 的成熟度不由篇幅决定</h3>
-            <p>Spec 从 v0.1 到 v1.0 的变化，不是增加更多形容词或实现细节，而是逐一关掉已经验证过的风险通道：目标漂移、禁区被踩、验收含糊、依据缺失和回退无门。</p>
-            <p>因此，最好的 Spec 不是一次写成的长文档，而是随着真实反馈持续升级的工程协议。每新增一条约束，都应该能指向一个风险、一条验收，或一个明确的回退动作。</p>
+            <h3 class="reflection-title">思考笔记：Spec 的成熟度不由篇幅决定</h3>
+            <p>Spec 从 v0.1 到 v1.0 的变化，本质上是将“隐性知识”转化为“显性约束”的过程。它不只是写给 AI 的需求说明书，更是写给人类自己的风险防御协议。</p>
+            <p>v0.1 失败，是因为它假设 AI 拥有资深工程师一样的上下文理解力和业务判断力；v1.0 成功，则是因为它承认 AI 的局限：它不知道什么是“安全”，除非你定义“不泄露堆栈”；它不知道什么是“完成”，除非你定义“登出后返回 401”。</p>
+            <p>最好的 Spec 不是一次写成的长文档，而是随着真实反馈持续升级的工程协议。每新增一条约束，都应指向一个曾经踩过的坑、一条明确验收，或一个具体回退动作。成熟度不由篇幅决定，而由它消灭了多少模糊地带决定。</p>
             <p class="note-take"><strong>带着这个思考进入下一章：</strong>当问题再次出现时，怎样根据症状先找到正确层级，而不是拿同一种修复方式到处试？</p>
           </div>
 
@@ -957,51 +807,57 @@ Rollback: 回退至 T03 通过的 commit</code></div>
 
           <h2 id="part-08" data-toc="分诊">Part 08 · 分诊台：按层修，别乱开枪</h2>
           <span class="section-kicker">08 / 分诊</span>
-          <p class="section-summary">同样「登录失败」，修错层会越修越远。分诊顺序本身就是工序——乱序等于赌博。</p>
+          <p class="section-summary">系统报红时，先把失败表现映射到契约、证据、工序或闭环，再确定修复顺序。分诊不是“再生成一次”，而是决定本轮究竟修哪一层。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/08-defect-mapping.png" alt="故障分诊">
+          <div class="mermaid">
+flowchart TD
+  S["发现失败"] --> Q1{"验收能否否决？"}
+  Q1 -- 否 --> P["补契约"]
+  Q1 -- 是 --> Q2{"关键事实是否齐？"}
+  Q2 -- 否 --> C["补证据"]
+  Q2 -- 是 --> Q3{"能指出 Tn 与检查点？"}
+  Q3 -- 否 --> H["补工序"]
+  Q3 -- 是 --> L["留证写回，进入闭环"]
+          </div>
 
           <div class="content-block">
-            <h3>1. 分诊背景：为什么不能“有红就再生成”</h3>
-            <p>前面四件事（契约 / 证据 / 工序 / 闭环）在修复时是<strong>串联门禁</strong>。现场红了，若不问「死在哪一层」，默认动作往往是换模型、加上下文、整模块重生——枪开得很响，靶子却不对。</p>
+            <h3>01 / 分诊背景：为什么不能“有红就再生成”</h3>
+            <p>在 Part 03 到 Part 07 中，我们建立了契约、证据、工序和闭环。当系统报错时，很多人第一反应是“换模型”或“重新生成”，但这往往是无效劳动。</p>
+            <p>正如“Part 08 · 缺陷映射”图示所强调的：先看问题发生在哪一层，再确定修复顺序。</p>
             <div class="warn-box">
               <strong>阿明走过的弯路：</strong>T04 红后先「换模型再生成」整段认证，耗掉约两小时，哈希禁区差点再被踩。按序分诊后，只回流 T04，一轮就过。
             </div>
-            <p>分诊台要做的事很具体：<strong>把症状映射到层 → 只修那一层（或按固定顺序补缺）→ 再开下一轮生成。</strong></p>
+            <p>分诊台的核心逻辑：<strong>把症状映射到层 → 只修那一层（或按固定顺序补缺）→ 再开下一轮生成。</strong>乱序等于赌博。</p>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：相同症状如何修错层</h3>
-            <p class="note-meta">先对号，再动手；叠症时按下一节顺序拆</p>
+            <h3>02 / 核心拆解：60 秒分诊法与四层修复顺序</h3>
+            <p>结合图示的阅读方式——找到失败表现、对照编号、查看主责 Engineering、执行修复——可以建立一套标准化排查流程。不要只看表象，要看根源。</p>
+            <h4>① 症状映射：相同症状，为何修错层？</h4>
             <table class="comparison-table">
-              <tr><th>现场症状</th><th>先查</th><th>先修</th><th>阿明对照</th></tr>
-              <tr><td>做了没要的功能 / 漏了登出验收 / 「完成」无法否决</td><td><strong>契约</strong></td><td>补 Acceptance / Non-goals / Goal</td><td>OAuth 草稿、验收虚</td></tr>
-              <tr><td>改错文件、用错约定、动了哈希、错误体泄路径</td><td><strong>证据包</strong></td><td>收窄 @、挂现行实现、明文禁区</td><td>整仓 @、哈希被「优化」</td></tr>
-              <tr><td>Diff 巨大、说不清卡在哪步、中断只能重来</td><td><strong>工序</strong></td><td>拆 Tn、恢复上一检查点</td><td>40+ 文件一锅端</td></tr>
-              <tr><td>同一失败重复出现、两轮 Prompt 几乎一样</td><td><strong>闭环</strong></td><td>留证写回、锁步回流</td><td>「修一下认证」重试</td></tr>
+              <tr><th>现场症状</th><th>错误动作（乱开枪）</th><th>正确归因</th><th>修复动作（正解）</th></tr>
+              <tr><td>做了没要的功能 / 漏了登出验收 / “完成”无法否决</td><td>猛加 @ 文件，试图用上下文覆盖需求。</td><td><strong>契约病</strong></td><td>补 Acceptance / Non-goals / Goal（升 Spec）。</td></tr>
+              <tr><td>改错文件、用错约定、动了哈希、错误体泄路径</td><td>换更强模型，以为模型不够聪明。</td><td><strong>证据病</strong></td><td>收窄 @ 范围，挂现行实现，声明明文禁区。</td></tr>
+              <tr><td>Diff 巨大、说不清卡在哪步、中断只能重来</td><td>整模块重生，试图一次搞定。</td><td><strong>工序病</strong></td><td>拆 Tn，恢复上一检查点，禁止跨步。</td></tr>
+              <tr><td>同一失败重复出现、两轮 Prompt 几乎一样</td><td>同一句话重试，或只换模型不换 Prompt。</td><td><strong>闭环病</strong></td><td>留证写回，锁步回流，新增约束。</td></tr>
             </table>
-          </div>
 
-          <div class="content-block">
-            <h3>3. 事实证据：按什么顺序判断问题层</h3>
+            <h4>② 修复优先级：按什么顺序判断问题层？</h4>
+            <p>修复有优先级。如果上一层没修好，下一层的努力都会白费。</p>
             <ol class="step-list">
-              <li><strong>契约</strong>——验收与非目标若仍糊，修证据/工序只是在错误完成标准上加速。</li>
-              <li><strong>证据</strong>——契约清了但现行实现与禁区没进视野，模型仍会发明第二套方案。</li>
-              <li><strong>工序</strong>——依据齐了仍大 Diff，失败无法定位，回流也无从锁步。</li>
-              <li><strong>闭环</strong>——前三层立住后，才把红证写进下一轮；否则写回也只是换皮重试。</li>
+              <li><strong>契约（Priority 1）：</strong>验收与非目标若仍糊，修证据 / 工序只是在错误完成标准上加速。Acceptance 能否一票否决？否 → 停在契约。</li>
+              <li><strong>证据（Priority 2）：</strong>契约清了但现行实现与禁区没进视野，模型仍会发明第二套方案。现行关键文件与禁区是否在上下文？否 → 停在证据。</li>
+              <li><strong>工序（Priority 3）：</strong>依据齐了仍大 Diff，失败无法定位，回流也无从锁步。能否指出当前 Tn 与检查点？否 → 停在工序。</li>
+              <li><strong>闭环（Priority 4）：</strong>前三层立住后，才把红证写进下一轮；否则写回也只是换皮重试。下一轮是否新增失败约束？否 → 停在闭环。</li>
             </ol>
             <div class="diag-flow">
-              <p><strong>60 秒分诊口令（与 Part 01 对齐）：</strong></p>
-              <ol>
-                <li>Acceptance 能否一票否决？否 → 停在契约。</li>
-                <li>现行关键文件与禁区是否在上下文？否 → 停在证据。</li>
-                <li>能否指出当前 Tn 与检查点？否 → 停在工序。</li>
-                <li>下一轮是否新增了失败约束？否 → 停在闭环。</li>
-              </ol>
+              <p><strong>60 秒分诊口令：</strong>按<strong>契约 → 证据 → 工序 → 闭环</strong>依次提问；遇到第一个“否”，就停在该层修复，不向后跳步。</p>
             </div>
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：按层修，别乱开枪</h3>
+            <h3>03 / 执行结论：按层修，别乱开枪</h3>
+            <p><strong>❌ 乱开枪的后果</strong></p>
             <div class="layer-grid">
               <div class="layer-card content-block">
                 <span class="layer-tag">乱开枪</span>
@@ -1024,6 +880,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
                 <p class="wrong">失败未写回 → 同一坑第二遍（阿明换模型那两小时）。</p>
               </div>
             </div>
+            <p><strong>✅ 按层修的正解</strong></p>
             <table class="comparison-table">
               <tr><th>按层修（正）</th><th>动作示例</th></tr>
               <tr><td>契约缺口</td><td>先升 Spec（见 Part 07），T01 重新对齐后再写码</td></tr>
@@ -1048,7 +905,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：分诊是在控制修复的范围</h3>
+            <h3 class="reflection-title">思考笔记：分诊是在控制修复的范围</h3>
             <p>分诊的价值不只是更快找到原因，更重要的是防止一次局部失败扩大成整段系统的不确定性。明确“本轮只修哪一层”，才能保护已经验证通过的内容，让每一次修复都有边界。</p>
             <p>面对叠加问题时，最容易犯的错误是希望一轮 Prompt 同时解决所有缺口。更可靠的方式是按固定顺序补齐：先统一完成标准，再补足依据，再恢复检查点，最后让失败进入回流。</p>
             <p class="note-take"><strong>带着这个思考进入下一章：</strong>当每一步都已可检查，哪些步骤可以并行，哪些又必须因为共享状态而保持串行？</p>
@@ -1057,14 +914,15 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           <div class="chapter-close"><strong>这一幕带走：</strong>症状对层，按「契约 → 证据 → 工序 → 闭环」修。乱序开枪，越修越远。下一章：步骤之间谁依赖谁，哪一步才能并行。</div>
           <hr>
 
-          <h2 id="part-09" data-toc="依赖图">Part 09 · 画清依赖：哪步能并行</h2>
+          <h2 id="part-09" data-toc="依赖图">Part 09 · 画清依赖：哪步能并行，哪步必须串行</h2>
           <span class="section-kicker">09 / 执行图</span>
-          <p class="section-summary">人要先看清依赖，再让 AI 动手。否则「并行加速」只会制造冲突 Diff，把已绿检查点也冲掉。</p>
+          <p class="section-summary">图告诉我们任务如何连接，Harness 决定这些连接如何被可靠执行。先画清依赖，再让 AI 动手，才能判断哪些步骤必须串行、哪些才能真正并行。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/09-graph-engineering.png" alt="任务关系图">
 
           <div class="content-block">
-            <h3>1. 依赖背景：为什么工序拆完还要画依赖</h3>
-            <p>Part 05 把认证拆成 T01–T06，解决的是「一步一检」。依赖图解决下一问：<strong>哪些步必须串行，哪些才能并行。</strong></p>
+            <h3>01 / 依赖背景：为什么工序拆完还要画依赖图</h3>
+            <p>在 Part 05 中，我们通过 Harness 将认证任务拆解为 T01–T06，解决了“一步一检”的问题。但拆解不等于可以随意并行。依赖图解决的是下一个关键问题：<strong>哪些步骤必须串行，哪些才能真正并行？</strong></p>
+            <p>正如“Part 09 · Graph Engineering”图示所强调的：图告诉我们任务如何连接；Harness 决定这些连接如何被可靠执行。</p>
             <div class="warn-box">
               <strong>常见误用：</strong>看到六步就开两个 Agent——一个写登录，一个写登出与错误体。会话状态、中间件、错误形状同时被改，合并时冲突；更糟的是两边都「测绿」，合在一起登出后 <code>/me</code> 又 200。
             </div>
@@ -1072,16 +930,25 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：哪些步骤能并行，哪些必须串行</h3>
-            <div class="contract-template"><code>T01 契约
-  └─► T02 登录 ─┬─► T03 受保护接口 ─► T04 登出失效 ─► T06 PR
-                 └─► T05 错误体 ─────────────────────►┘
+            <h3>02 / 核心拆解：串行与并行的判断标准</h3>
+            <p>结合图示中的“任务依赖关系”与“执行产生 Diff”，先明确每一步的上下游关系，再决定是否启动第二条执行支路。</p>
+            <h4>① 任务依赖链：认证系统的执行图</h4>
+            <div class="mermaid">
+flowchart LR
+  T01["T01 契约确认"] --> T02["T02 登录可用"]
+  T02 --> T03["T03 受保护接口"]
+  T03 --> T04["T04 登出失效"]
+  T04 --> T06["T06 收束 PR"]
+  T02 --> T05["T05 错误体安全"]
+  T05 --> T06
 
-说明：
-- T03 依赖 T02（要有合法会话才能验「有会话 vs 无会话」）
-- T04 依赖 T03（先保证未登录 401，再验登出后 401，避免混诊）
-- T05 可与 T03/T04 部分并行，但合并进主线前统一错误体
-- 检查点挂在每条边的终点，不过线不准前进</code></div>
+  classDef main fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef parallel fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef finish fill:#dcfce7,stroke:#16a34a,color:#14532d
+  class T01,T02,T03,T04 main
+  class T05 parallel
+  class T06 finish
+            </div>
             <table class="comparison-table">
               <tr><th>边</th><th>依赖原因</th><th>若强行并行</th></tr>
               <tr><td>T01 → T02</td><td>无契约则登录「完成」无法否决</td><td>功能写完仍对不齐验收</td></tr>
@@ -1090,32 +957,16 @@ Rollback: 回退至 T03 通过的 commit</code></div>
               <tr><td>T02 ─┐→ T05</td><td>错误体可相对独立改</td><td>可并行；但须约定错误形状单一来源</td></tr>
               <tr><td>* → T06</td><td>PR 收束依赖各步检查点已绿</td><td>带红合入，review 与联调再爆</td></tr>
             </table>
-          </div>
 
-          <div class="content-block">
-            <h3>3. 事实证据：串行与并行如何判断</h3>
-            <div class="layer-grid">
-              <div class="layer-card content-block">
-                <span class="layer-tag">必须串行</span>
-                <h3>共享会话状态</h3>
-                <p>登录 → 鉴权 → 登出失效，读写同一套 session。阿明主链 T02→T03→T04 不拆并行。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">必须串行</span>
-                <h3>验收互相定义</h3>
-                <p>后一步的「过」以之前一步的绿为前提（如 T04 假设未登录 401 已成立）。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">可并行</span>
-                <h3>无共享可变点</h3>
-                <p>T05 错误体规范主要动错误封装与快照；与会话主链文件重叠少时可并行。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">可并行但仍要汇合</span>
-                <h3>合并前统一</h3>
-                <p>并行支路进 T06 前，做一次错误体 + 会话路径的联合冒烟，避免「各绿合红」。</p>
-              </div>
-            </div>
+            <h4>② 事实证据：如何判断能否并行</h4>
+            <p>不要凭感觉，用以下标准硬约束：</p>
+            <table class="comparison-table">
+              <tr><th>类型</th><th>判定依据</th><th>案例表现</th></tr>
+              <tr><td><strong>必须串行</strong></td><td>共享会话状态</td><td>登录 → 鉴权 → 登出失效，读写同一套 Session。阿明主链 T02 → T03 → T04 绝不拆并行。</td></tr>
+              <tr><td><strong>必须串行</strong></td><td>验收互相定义</td><td>后一步的“过”以前一步的绿为前提，例如 T04 假设未登录 401 已成立。</td></tr>
+              <tr><td><strong>可并行</strong></td><td>无共享可变点</td><td>T05 错误体规范主要动错误封装与快照；与会话主链文件重叠少时可并行。</td></tr>
+              <tr><td><strong>需汇合</strong></td><td>合并前统一</td><td>并行支路进 T06 前，做一次错误体与会话路径的联合冒烟，避免“各绿合红”。</td></tr>
+            </table>
             <div class="diag-flow">
               <p><strong>并行三问（全是「是」才开第二路）：</strong></p>
               <ol>
@@ -1128,7 +979,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：五分钟画出依赖图</h3>
+            <h3>03 / 执行结论：五分钟画出依赖图</h3>
             <ol class="step-list">
               <li>列出 Tn（沿用 Part 05），每步只写一个主检查点。</li>
               <li>对每对步骤问：A 的输出是否是 B 的输入？是则画边 A→B。</li>
@@ -1156,7 +1007,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：并行不是默认的加速方式</h3>
+            <h3 class="reflection-title">思考笔记：并行不是默认的加速方式</h3>
             <p>并行只在依赖已经被排除后才会带来速度；如果两个步骤共享会话状态、文件或验收路径，提前并行只是把等待时间换成合并冲突和更难定位的失败。</p>
             <p>依赖图的意义，是先让人决定工作如何分叉与汇合，再让 AI 在清楚的边界内执行。主链保持串行、独立支路谨慎并行，通常比“同时开多个 Agent”更快得到可合并的结果。</p>
             <p class="note-take"><strong>带着这个思考进入下一章：</strong>依赖明确之后，任务风险不同，应该把流程拆到多细、验收到多严？</p>
@@ -1165,35 +1016,43 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           <div class="chapter-close"><strong>这一幕带走：</strong>能并行的是无共享可变状态的步骤；会话链路通常必须串行。先画边，再动手。下一章：按风险档决定拆多细、查多严。</div>
           <hr>
 
-          <h2 id="part-10" data-toc="风险选型">Part 10 · 按风险选拆法</h2>
+          <h2 id="part-10" data-toc="Harness 选择">Part 10 · Harness 选择：按风险定拆法，拒绝一刀切</h2>
           <span class="section-kicker">10 / 选型</span>
-          <p class="section-summary">先定风险档，再定拆多细、查多严。认证默认按「高风险」打：强验收、小步 Diff、关键路径人工看一眼。档位定错，后面全错。</p>
+          <p class="section-summary">先定风险档，再决定拆多细、查多严。任务越接近安全、数据与共享状态，越需要完整的 Harness。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/10-harness-selection.png" alt="按风险选型">
-
-          <div class="content-block">
-            <h3>1. 风险背景：为什么拆法要跟风险走</h3>
-            <p>契约、证据、工序、闭环是同一套能力；但<strong>用多深、拆多细</strong>不该一刀切。改一句文案却上完整 T01–T06，是浪费；认证却「短 Prompt 一次生成」，是阿明周五翻车的结构原因——不是运气差。</p>
-            <div class="warn-box">
-              <strong>选型错误的典型想法：</strong>「都是让 AI 写代码，流程一样就行。」风险不同，失败代价不同：文案错了改一行；会话清不掉，可能是安全事故与联调全军覆没。
-            </div>
-            <p>本层只回答一件事：<strong>开干前先定档，再选配套拆法。</strong></p>
+          <div class="mermaid">
+flowchart LR
+  R["评估失败代价"] --> L["低风险：单步 + 冒烟"]
+  R --> M["中风险：2-4 步 + 检查点"]
+  R --> H["高风险：细工序 + 人工门 + 回滚"]
+  H --> A["认证 / 支付 / 权限"]
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：不同风险为何不能用同一套流程</h3>
+            <h3>01 / 选型背景：为什么拆法要跟风险走</h3>
+            <p>契约、证据、工序、闭环是同一套能力，但<strong>用多深、拆多细</strong>不该一刀切。改一句文案却上完整 T01–T06 是浪费；认证需求却用「短 Prompt 一次生成」，则是阿明周五翻车的结构原因——这并非运气差，而是档位定错。</p>
+            <div class="warn-box">
+              <strong>选型错误的典型想法：</strong>「都是让 AI 写代码，流程一样就行。」事实是，风险不同，失败代价天壤之别：文案错了改一行；会话清不掉，可能是安全事故与联调全军覆没。
+            </div>
+            <p>正如「PART 10 · HARNESS 选择」图示所强调的：任务简单时不要引入复杂 Harness；任务复杂时不要依赖单步生成。本层只回答一件事：<strong>开干前先定档，再选配套拆法。</strong></p>
+          </div>
+
+          <div class="content-block">
+            <h3>02 / 核心拆解：三档任务的风险与应对策略</h3>
+            <h4>① 风险分级矩阵：不同风险为何不能用同一套流程</h4>
             <table class="comparison-table">
-              <tr><th>档位</th><th>例子</th><th>失败代价</th><th>做法（拆法）</th></tr>
-              <tr><td><strong>低</strong></td><td>改文案、加日志字段、调样式</td><td>易回滚、影响面窄</td><td>短契约 + 一次生成 + 冒烟</td></tr>
-              <tr><td><strong>中</strong></td><td>新查询接口、内部工具脚本、非核心 CRUD</td><td>功能错、局部回归</td><td>分 2–4 步 + 每步测试 + 最小证据</td></tr>
-              <tr><td><strong>高</strong></td><td>认证、支付、权限、数据迁移、密钥相关</td><td>安全 / 数据 / 大面积不可用</td><td>完整契约 + 细工序 + 人工门 + 可回滚点</td></tr>
+              <tr><th>档位</th><th>典型场景</th><th>失败代价</th><th>推荐 Harness 能力</th><th>阿明案例对照</th></tr>
+              <tr><td><strong>低风险</strong></td><td>改文案、加日志字段、调样式</td><td>易回滚、影响面窄</td><td>单步执行 + 即时检查<br>短契约 + 一次生成 + 冒烟</td><td>若认证按此档操作，即为开篇翻车复刻。</td></tr>
+              <tr><td><strong>中风险</strong></td><td>新查询接口、内部工具脚本、非核心 CRUD</td><td>功能错、局部回归</td><td>串行 Pipeline + Checkpoint<br>2–4 步 + 每步测试 + 最小证据</td><td>接口任务若动到鉴权中间件，需立即升档。</td></tr>
+              <tr><td><strong>高风险</strong></td><td>认证、支付、权限、数据迁移、密钥相关</td><td>安全 / 数据 / 大面积不可用</td><td>可恢复 Pipeline + Parallel + 决策门<br>完整契约 + 细工序 + 人工门 + 可回滚点</td><td>B 端控制台登录 / 登出 / 会话 → 高。</td></tr>
             </table>
             <div class="callout">
-              <strong>阿明案例定档：</strong>B 端控制台登录 / 登出 / 会话 → <strong>高</strong>。应用：Spec v1.0、证据包、T01–T06、T04 关键回流、PR 手写验收三步。若按「低」档一次生成，就是开篇翻车的复刻。
+              <strong>阿明案例定档：</strong>应用 Spec v1.0、证据包、T01–T06、关键回流；若按「低」档一次生成，就是开篇翻车的复刻。
             </div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：三档任务分别需要什么</h3>
+            <h4>② 事实证据：三档任务的具体执行差异</h4>
             <div class="layer-grid">
               <div class="layer-card content-block">
                 <span class="layer-tag">低风险</span>
@@ -1228,7 +1087,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：开工前三问如何定档</h3>
+            <h3>03 / 执行结论：开工前三问如何定档</h3>
             <ol class="step-list">
               <li><strong>炸了会怎样？</strong>仅展示错 / 局部功能错 / 安全或数据错 → 大致对应低 / 中 / 高。</li>
               <li><strong>共享状态多吗？</strong>会话、权限、余额、迁移——共享可变状态越多，越往高档靠，并强制串行主链（Part 09）。</li>
@@ -1259,7 +1118,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：流程强度应该匹配失败代价</h3>
+            <h3 class="reflection-title">思考笔记：流程强度应该匹配失败代价</h3>
             <p>低风险任务不需要被复杂流程拖慢，高风险任务也不能因为赶时间就跳过门禁。真正需要判断的不是“AI 能不能做”，而是这次变更失败后，影响范围有多大、是否容易发现、是否容易回滚。</p>
             <p>风险档的作用，是在开工前把这些判断转成具体约束：需要多完整的契约、多少证据、多少检查点，以及哪条路径必须由人复核。档位一旦确定，后续流程就不再依赖临场感觉。</p>
             <p class="note-take"><strong>带着这个思考进入下一章：</strong>如果人不主动承担契约、证据和验收责任，最容易滑入哪些 AI 编程反模式？</p>
@@ -1272,9 +1131,18 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           <span class="section-kicker">11 / 反模式</span>
           <p class="section-summary">认证翻车里出现过的，全是可复现的坏习惯。根子往往不是模型弱，而是人坐在副驾——只负责「喊一句、等 Diff」。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/11-anti-patterns.png" alt="避坑">
+          <div class="mermaid">
+flowchart LR
+  P["乘客心态"] --> A["一句 Prompt"]
+  A --> B["整仓上下文"]
+  B --> C["大 Diff"]
+  C --> D["测试红了再生成"]
+  D --> P
+  P -.切换.-> E["司机心态：契约、证据、工序、回流"]
+          </div>
 
           <div class="content-block">
-            <h3>1. 反模式背景：什么是“乘客心态”</h3>
+            <h3>01 / 反模式背景：什么是“乘客心态”</h3>
             <p>乘客心态：把 AI 当成自动驾驶，自己只负责发车与抱怨路况。组织输入、钉验收、看禁区、做分诊——全甩给模型「看着办」。</p>
             <div class="warn-box">
               <strong>阿明上午的乘客时刻：</strong>一句「安全一点、流行写法」→ 整仓 @ → 大 Diff PR 写「AI 生成，请 review」。人在流程里缺席，模型就用默认值填空；默认值不等于可交付。
@@ -1285,7 +1153,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：六种坏习惯如何让责任外置</h3>
+            <h3>02 / 核心问题：六种坏习惯如何让责任外置</h3>
             <p class="note-meta">每一行：坏习惯 · 案例里的样子 · 替换成什么</p>
             <table class="comparison-table">
               <tr><th>坏习惯</th><th>案例里的样子</th><th>替换成</th></tr>
@@ -1299,7 +1167,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：坏习惯为何会反复出现</h3>
+            <h3>03 / 事实证据：坏习惯为何会反复出现</h3>
             <div class="layer-grid">
               <div class="layer-card content-block">
                 <span class="layer-tag">短快感</span>
@@ -1329,7 +1197,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：用司机动作替换乘客习惯</h3>
+            <h3>04 / 执行结论：用司机动作替换乘客习惯</h3>
             <ol class="step-list">
               <li><strong>开干前：</strong>四产物齐（契约 / 证据 / 执行图 / 回流位）——详见 Part 12；缺一不开生成。</li>
               <li><strong>生成中：</strong>只推进当前 Tn；检查点不过不扩范围；禁区每轮写进 Prompt。</li>
@@ -1366,7 +1234,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：使用 AI 的责任不能外包</h3>
+            <h3 class="reflection-title">思考笔记：使用 AI 的责任不能外包</h3>
             <p>“AI 写的”只能说明代码的生成方式，不能说明需求已经正确、变更已经安全，或结果已经通过验收。真正承担交付责任的人，仍然要组织输入、维护边界、检查证据并决定是否合并。</p>
             <p>司机心态也不是拒绝自动化，而是把自动化放进清楚的门禁里：让 AI 在当前步骤内提高执行速度，让人保留对目标、风险和最终结果的判断权。</p>
             <p class="note-take"><strong>带着这个思考进入下一章：</strong>如何把这些司机动作整理成一张开工前即可打勾的清单？</p>
@@ -1375,21 +1243,32 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           <div class="chapter-close"><strong>这一幕带走：</strong>你不是乘客。你是组织输入与验收的人。下一章：把司机动作收成开干前打勾清单。</div>
           <hr>
 
-          <h2 id="part-12" data-toc="开工清单">Part 12 · 开工清单：下次开干前打勾</h2>
+          <h2 id="part-12" data-toc="开工清单">Part 12 · 开工清单：把四种 Engineering 变成可执行的检查表</h2>
           <span class="section-kicker">12 / 清单</span>
-          <p class="section-summary">周一若再来一个「做个 XX」，先过这张表，再呼叫 AI。四产物不齐，不要开始；开始了就按图推进，按层分诊。</p>
+          <p class="section-summary">四产物齐备、四问答清晰，才开第一轮生成。开始后按图推进，变红时按层分诊。</p>
           <img class="chapter-image" src="/images/ai-programming-engineering/12-checklist.png" alt="开工清单">
-
-          <div class="content-block">
-            <h3>1. 清单背景：开工前需要拦住什么</h3>
-            <p>清单不是文档仪式，是<strong>开干门禁</strong>：防止再滑回「一句 Prompt + 整仓 @ + 大 Diff」。阿明上午若勾完再生成，OAuth 乱跑与哈希被改，多半进不了第一轮。</p>
-            <div class="warn-box">
-              <strong>用法：</strong>全部打勾才开第一轮生成。缺一项 = 仍在乘客座位上。高风险任务（认证 / 支付 / 权限）允许清单更长，不允许更短。
-            </div>
+          <div class="mermaid">
+flowchart LR
+  P["Prompt：契约"] --> G{"四产物齐备？"}
+  C["Context：证据包"] --> G
+  H["Harness：执行图"] --> G
+  L["Loop：回流位"] --> G
+  G -- 是 --> S["开始第一轮生成"]
+  G -- 否 --> R["补齐后再开工"]
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：四产物缺一会怎样</h3>
+            <h3>01 / 清单背景：开工前需要拦住什么</h3>
+            <p>清单不是文档仪式，而是<strong>开干门禁</strong>。它的核心作用，是防止我们滑回「一句 Prompt + 整仓 @ + 大 Diff」的乘客模式。</p>
+            <div class="warn-box">
+              <strong>用法原则：</strong>全部打勾才开第一轮生成。缺一项 = 仍在乘客座位上。高风险任务（认证 / 支付 / 权限）允许清单更长，不允许更短。若阿明上午勾完再生成，OAuth 乱跑与哈希被改的问题，多半进不了第一轮。
+            </div>
+            <p>正如「PART 12 · 明天就用」图示所强调的：你不是 AI 的被动使用者，而是在设计一套可交付的工作系统。</p>
+          </div>
+
+          <div class="content-block">
+            <h3>02 / 核心拆解：四产物与四问答</h3>
+            <h4>① 四产物缺一会怎样？</h4>
             <div class="deliverables">
               <div class="deliverable"><strong>① 契约</strong>Goal / Boundary / Acceptance / Non-goals</div>
               <div class="deliverable"><strong>② 证据包</strong>必读文件 ≤ 必要集合</div>
@@ -1397,16 +1276,17 @@ Rollback: 回退至 T03 通过的 commit</code></div>
               <div class="deliverable"><strong>④ 回流位</strong>失败如何留证并写回</div>
             </div>
             <table class="comparison-table">
-              <tr><th>产物</th><th>打勾标准（可否决）</th><th>缺了会怎样</th></tr>
-              <tr><td><strong>契约</strong></td><td>至少一条 Acceptance 能一票否决「做完了」；禁区与 Non-goals 已写</td><td>模型用「流行写法」填空</td></tr>
-              <tr><td><strong>证据包</strong></td><td>现行关键文件已列；密钥不进包；禁区有文字声明</td><td>发明第二套实现 / 踩禁区</td></tr>
-              <tr><td><strong>执行图</strong></td><td>Tn 列表 + 依赖边 + 每步检查点；风险档已定</td><td>大爆炸 Diff，失败无法锁步</td></tr>
-              <tr><td><strong>回流位</strong></td><td>预留「留证字段」与「只回流当前 Tn」的写法</td><td>红了只会重试或整模块重生</td></tr>
+              <tr><th>核心模块</th><th>对应产物</th><th>打勾标准（可否决）</th><th>缺了会怎样</th></tr>
+              <tr><td><strong>1. Prompt</strong></td><td>契约（Spec）</td><td>至少一条 Acceptance 能一票否决「做完了」；禁区与 Non-goals 已写。</td><td>模型用「流行写法」填空，需求对不齐。</td></tr>
+              <tr><td><strong>2. Context</strong></td><td>证据包</td><td>现行关键文件已列；密钥不进包；禁区有文字声明。</td><td>发明第二套实现，或踩中哈希 / 权限禁区。</td></tr>
+              <tr><td><strong>3. Harness</strong></td><td>执行图</td><td>Tn 列表 + 依赖边 + 每步检查点；风险档已定。</td><td>大爆炸 Diff，失败无法锁步，并行导致冲突。</td></tr>
+              <tr><td><strong>4. Loop</strong></td><td>回流位</td><td>预留「留证字段」与「只回流当前 Tn」的写法。</td><td>红了只会重试或整模块重生，陷入死循环。</td></tr>
             </table>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：开干前四问如何验收</h3>
+            <h4>② 事实证据：开干前四问如何验收</h4>
+            <p>在点击生成前，请自问以下四个问题，确保逻辑闭环：</p>
             <ol class="step-list">
               <li><strong>完成标准：</strong>要完成什么？哪一句能一票否决「做完了」？</li>
               <li><strong>依据与禁区：</strong>依据是哪些现行文件？禁区写清了吗？</li>
@@ -1425,7 +1305,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>4. 执行结论：按风险档裁剪清单</h3>
+            <h3>03 / 执行结论：按风险档裁剪清单</h3>
             <div class="layer-grid">
               <div class="layer-card content-block">
                 <span class="layer-tag">低</span>
@@ -1452,7 +1332,7 @@ Rollback: 回退至 T03 通过的 commit</code></div>
 
           <div class="content-block">
             <h3>补充示例：认证任务勾完长这样</h3>
-            <p class="note-meta">阿明修复轮开干前的压缩填写；可当模板改领域词</p>
+            <p class="note-meta">以下是阿明修复轮开干前的压缩填写，可作为模板修改领域词：</p>
             <div class="contract-template"><code>【开工勾选 · 认证 · 高风险】
 ① 契约：Spec v1.0（注册/登录/登出；登出后 /me → 401；禁改哈希；非目标含 OAuth）
 ② 证据：session.ts · auth 路由 · error-envelope · auth 测试 · 契约全文
@@ -1476,7 +1356,7 @@ Rollback：回退至 T03 已绿 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3 class="reflection-title">思考：清单的价值在于阻止错误开始</h3>
+            <h3 class="reflection-title">思考笔记：清单的价值在于阻止错误开始</h3>
             <p>开工清单不是把流程变得繁琐，而是把最容易被忽略的判断提前完成。只要目标、依据、步骤和失败预案中有一项空缺，第一轮生成就可能把不确定性放大成大 Diff。</p>
             <p>清单也不要求所有任务使用同样的重量。低风险任务可以缩短表格，高风险任务则必须保留人工门、回滚点和关键路径验收；可以裁短，但不能删掉判断核心。</p>
             <p class="note-take"><strong>带着这个思考进入结语：</strong>当清单、工序和回流都成为习惯，AI 编程最终改变的究竟是模型能力，还是个人的交付方式？</p>
@@ -1485,15 +1365,24 @@ Rollback：回退至 T03 已绿 commit</code></div>
           <div class="chapter-close"><strong>这一幕带走：</strong>四产物齐 + 四问答清，才开干。开始了就按图推进，按层分诊。下一章收束：认证修完之后，带走可复用的用法。</div>
           <hr>
 
-          <h2 id="closing" data-toc="结语">结语 · 认证修完之后</h2>
+          <h2 id="closing" data-toc="结语">结语 · 认证修完之后：从「会生成」到「能交付」</h2>
           <span class="section-kicker">收束</span>
-          <p class="section-summary">从「做个登录」到可合并 PR，靠的不是更长的 Prompt，而是可重复的用法。流程不变，换领域词就能迁到支付、权限、迁移。</p>
+          <p class="section-summary">从「会生成」到「能交付」，靠的不是更长的 Prompt，而是一套可重复的交付方式。</p>
+          <div class="mermaid">
+flowchart LR
+  A["会生成"] --> B["契约"]
+  B --> C["证据"]
+  C --> D["工序"]
+  D --> E["回流"]
+  E --> F["能交付"]
+          </div>
 
           <div class="content-block">
-            <h3>1. 收束背景：阿明那天后来怎样</h3>
-            <p>周五上午一句糊 Prompt，下午联调四连爆。停手之后，没有换模型硬刚，而是按本篇路径走完：归层 → 修复计划 → 契约 / 证据 / 工序 / 回流。Spec 升到 v1.0，T04 锁步回流转绿，PR 带上手动验收三步与禁区说明，CI 实打实绿，reviewer 按同一路径复核后合并。</p>
+            <h3>01 / 收束背景：阿明那天后来怎样</h3>
+            <p>周五上午一句模糊的 Prompt 导致下午联调四连爆。停手之后，阿明没有选择换模型硬刚，而是按本篇路径走完：归层 → 修复计划 → 契约 / 证据 / 工序 / 回流。</p>
+            <p>最终，Spec 升到 v1.0，T04 锁步回流转绿，PR 带上手动验收三步与禁区说明，CI 实打实绿，Reviewer 按同一路径复核后合并。真正换掉的不是模型，是用法。</p>
             <table class="comparison-table">
-              <tr><th></th><th>翻车上午</th><th>可合并时</th></tr>
+              <tr><th>阶段</th><th>翻车上午（乘客模式）</th><th>可合并时（司机模式）</th></tr>
               <tr><td>输入</td><td>「安全一点、流行写法」+ 整仓 @</td><td>Spec v1.0 + 最小证据包 + 明文禁区</td></tr>
               <tr><td>执行</td><td>一口气 40+ 文件</td><td>T01–T06，一步一检；T04 单独回流</td></tr>
               <tr><td>失败时</td><td>再生成 / 换模型</td><td>留证 → 归层 → 写回约束</td></tr>
@@ -1506,7 +1395,9 @@ Rollback：回退至 T03 已绿 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>2. 核心问题：从个人案例带走什么</h3>
+            <h3>02 / 核心拆解：从个人案例带走什么</h3>
+            <p>这套方法论的核心在于四件套与配套能力。骨架不动，把认证验收句换成新领域的可否决句即可迁移。</p>
+            <h4>① 四件套：钉死交付标准</h4>
             <div class="deliverables">
               <div class="deliverable"><strong>任务契约</strong>Goal · Boundary · Acceptance · Non-goals</div>
               <div class="deliverable"><strong>证据包</strong>最小充分 · 明文禁区</div>
@@ -1514,12 +1405,14 @@ Rollback：回退至 T03 已绿 commit</code></div>
               <div class="deliverable"><strong>失败回流</strong>留证 · 归层 · 写回</div>
             </div>
             <table class="comparison-table">
-              <tr><th>件套</th><th>钉死什么</th><th>缺了会回到哪</th></tr>
-              <tr><td>契约</td><td>验收与范围；模型不能替你做产品决定</td><td>OAuth 乱跑、「看起来完整」当完成</td></tr>
-              <tr><td>证据包</td><td>现行实现与禁区；挡住「流行写法」改哈希</td><td>第二套 session / 错误体泄路径</td></tr>
-              <tr><td>工序</td><td>检查点与停点；大 Diff 拆成可续跑步骤</td><td>联调才爆、不知回滚到哪</td></tr>
-              <tr><td>回流</td><td>失败进下一轮文字；禁止同一句重试</td><td>换模型空转、同一坑第二遍</td></tr>
+              <tr><th>件套</th><th>核心要素</th><th>钉死什么</th><th>缺了会回到哪</th></tr>
+              <tr><td>契约</td><td>Goal · Boundary · Acceptance · Non-goals</td><td>验收与范围；模型不能替你做产品决定</td><td>OAuth 乱跑、「看起来完整」当完成</td></tr>
+              <tr><td>证据包</td><td>最小充分 · 明文禁区</td><td>现行实现与禁区；挡住「流行写法」改哈希</td><td>第二套 session / 错误体泄路径</td></tr>
+              <tr><td>工序</td><td>Tn · 检查点 · 依赖图</td><td>检查点与停点；大 Diff 拆成可续跑步骤</td><td>联调才爆、不知回滚到哪</td></tr>
+              <tr><td>回流</td><td>留证 · 归层 · 写回</td><td>失败进下一轮文字；禁止同一句重试</td><td>换模型空转、同一坑第二遍</td></tr>
             </table>
+            <h4>② 配套能力：归层、分诊与定档</h4>
+            <p><strong>翻车先归层（Part 01）：</strong>先判断是契约、证据、工序还是闭环问题。<br><strong>再修按序（Part 08）：</strong>契约 → 证据 → 工序 → 闭环。<br><strong>开干前定档（Part 10）：</strong>低 / 中 / 高风险决定拆分粒度。</p>
             <div class="layer-grid">
               <div class="layer-card content-block">
                 <span class="layer-tag">配套能力</span>
@@ -1536,21 +1429,8 @@ Rollback：回退至 T03 已绿 commit</code></div>
           </div>
 
           <div class="content-block">
-            <h3>3. 事实证据：从翻车到可合并的完整路径</h3>
-            <div class="diag-flow">
-              <ol>
-                <li><strong>开篇–01</strong>：翻车现场 → 归层（说不清 / 依据错 / 步骤不可检 / 无闭环）</li>
-                <li><strong>02–06</strong>：修复计划落地——契约 → 证据 → 工序 → 回流</li>
-                <li><strong>07–08</strong>：Spec 升到 v1.0；按层分诊，别乱开枪</li>
-                <li><strong>09–10</strong>：画依赖（何可并行）；按风险选拆法</li>
-                <li><strong>11–12</strong>：丢掉乘客心态；开干前四产物打勾</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：下次换题只换领域词</h3>
-            <p>骨架不动。把认证验收句换成新领域的可否决句即可——例如支付退款：</p>
+            <h3>03 / 执行结论：下次换题只换领域词</h3>
+            <p>这套流程可以无缝迁移到其他高风险任务，例如支付退款：</p>
             <div class="contract-template"><code>【迁移示例 · 支付退款 · 高风险】
 Goal: 已支付订单可发起退款；退款成功后余额与订单状态一致
 Boundary: 只改 refund 模块；禁止改账本写入旁路；禁止碰密钥
@@ -1561,24 +1441,18 @@ Acceptance:
 Non-goals: 本期不做部分退款、不做跨境
 Evidence: 账本服务现行实现 · refund 路由 · 错误体规范 · 退款测试
 （其后：拆 Tn、定依赖、红了锁步写回——与认证同一套）</code></div>
+            <h4>执行五步法</h4>
             <ol class="step-list">
               <li><strong>定档</strong>——支付 / 权限 / 迁移默认高；文案日志可低。</li>
               <li><strong>勾清单</strong>——四产物 + 四问（Part 12）；No-Go 不开干。</li>
               <li><strong>按序加固</strong>——说清楚 → 给依据 → 跑可靠 → 变更好。</li>
               <li><strong>红了分诊</strong>——契约 → 证据 → 工序 → 闭环；乱序不开枪。</li>
+              <li><strong>人工门</strong>——关键路径必须人眼过一遍。</li>
             </ol>
           </div>
 
           <div class="content-block">
-            <h3>补充说明：本篇边界与下一步</h3>
-            <p>本篇停在<strong>个人交付用法</strong>：把「会生成」修到「能交付」。不解释 Agent 内部为何能闭环，也不谈如何做成产品或平台——那是系列后面几层的事。</p>
-            <div class="tip-box"><strong>若你开始好奇机制：</strong>工具调用、记忆、规划如何被组织成「能自己跑完一轮认证」——读
-              <a href="/2026/08/08/llm-agent-principles/">02 · 吃透 AI Agent：从会说话到能闭环</a>。
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：可复用的不是答案，而是交付方式</h3>
+            <h3 class="reflection-title">思考笔记：可复用的不是答案，而是交付方式</h3>
             <p>这次认证案例的具体接口、文件路径和测试名称都属于当前项目，但它背后的交付方式可以迁移到支付、权限、迁移和其他高风险任务。变化的是领域词，不变的是契约、证据、工序、回流和验收。</p>
             <p>当 AI 从“替我完成一项功能”变成“在明确边界内推进一组可验证步骤”，人的角色也从等待结果，转为设计约束、判断证据和承担最终决策。</p>
             <p class="note-take"><strong>全文留给你的问题：</strong>下一次呼叫 AI 之前，你能否先写出目标、依据、第一步检查点，以及失败后准备写回的约束？</p>
