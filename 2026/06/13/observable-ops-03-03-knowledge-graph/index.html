@@ -48,7 +48,7 @@
 
 
 
-<link rel="stylesheet" href="/css/portal.css?v=1"><link rel="stylesheet" href="/css/article.css?v=3"><script src="/js/portal.js?v=6" defer></script><script src="/js/article-reader.js?v=1" defer></script></head><body id="top" class="page-post personal-article" data-series="observable-ops"><svg
+<link rel="stylesheet" href="/css/portal.css?v=1"><link rel="stylesheet" href="/css/article.css?v=6"><link rel="stylesheet" href="/css/ops-series.css?v=1"><script src="/js/portal.js?v=6" defer></script><script src="/js/article-reader.js?v=2" defer></script></head><body id="top" class="page-post personal-article" data-series="observable-ops"><svg
       class="icon-definitions"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
@@ -179,8 +179,8 @@
 <p>本章节为认知网络模块（05-认知网络）提供技术参考，涵盖知识表示、图谱构建、知识嵌入、图推理、质量评估与实战示例。</p>
 </blockquote>
 <hr>
-<h2>1. 知识图谱概述</h2>
-<h3>1.1 本方案 4 层模型</h3>
+<h2 id="ops-1-知识图谱概述">1. 知识图谱概述</h2>
+<h3 id="ops-1-1-本方案-4-层模型">1.1 本方案 4 层模型</h3>
 <p>认知网络模块采用实体-关系-事件-知识 4 层结构：</p>
 <div class="mermaid">flowchart LR
     subgraph 实体["实体层（是什么）"]
@@ -210,7 +210,7 @@
     end
 
     实体 --> 关系 --> 事件 --> 知识
-    知识 -.反馈.-> 实体</div><h3>1.2 知识图谱 vs 传统数据库</h3>
+    知识 -.反馈.-> 实体</div><h3 id="ops-1-2-知识图谱-vs-传统数据库">1.2 知识图谱 vs 传统数据库</h3>
 <table>
 <thead>
 <tr>
@@ -251,8 +251,8 @@
 </tr>
 </tbody></table>
 <hr>
-<h2>2. 知识表示</h2>
-<h3>2.1 三元组模型</h3>
+<h2 id="ops-2-知识表示">2. 知识表示</h2>
+<h3 id="ops-2-1-三元组模型">2.1 三元组模型</h3>
 <p>知识图谱最基础的表示方式：<strong>head → relation → tail</strong></p>
 <pre><code class="language-python"># 三元组示例
 triplets = [
@@ -261,7 +261,7 @@ triplets = [
     ("缓存服务", "部署在", "K8s-Pod-01"),
     ("数据库", "关联告警", "DB-连接数告警"),
     ("DB-连接数告警", "可能导致", "服务响应超时"),
-]</code></pre><h3>2.2 本体建模</h3>
+]</code></pre><h3 id="ops-2-2-本体建模">2.2 本体建模</h3>
 <table>
 <thead>
 <tr>
@@ -296,7 +296,7 @@ triplets = [
 <td>属于/触发/关联</td>
 </tr>
 </tbody></table>
-<h3>2.3 时序知识表示</h3>
+<h3 id="ops-2-3-时序知识表示">2.3 时序知识表示</h3>
 <p>运维场景中拓扑关系随时间变化，需要引入时间维度：</p>
 <pre><code class="language-python"># 时序三元组：(head, relation, tail, valid_from, valid_to)
 temporal_triplets = [
@@ -331,7 +331,7 @@ temporal_triplets = [
 </tr>
 </tbody></table>
 <hr>
-<h2>3. 图数据库选型</h2>
+<h2 id="ops-3-图数据库选型">3. 图数据库选型</h2>
 <table>
 <thead>
 <tr>
@@ -371,16 +371,16 @@ temporal_triplets = [
 <td>云原生部署</td>
 </tr>
 </tbody></table>
-<h3>选型决策树</h3>
+<h3 id="ops-选型决策树">选型决策树</h3>
 <pre><code>节点数 &lt; 50万 ──→ Neo4j（推荐）
 节点数 &gt; 50万 ──→ 查询延迟 P99 &lt; 200ms 必要？──→ 是 → NebulaGraph
                                        └→ 否 → Neo4j + 分片
 多模型需求（图+文档）──→ ArangoDB
 已有 AWS 生态 ──→ Neptune</code></pre><hr>
-<h2>4. 知识嵌入（图向量）</h2>
-<h3>4.1 嵌入目的</h3>
+<h2 id="ops-4-知识嵌入-图向量">4. 知识嵌入（图向量）</h2>
+<h3 id="ops-4-1-嵌入目的">4.1 嵌入目的</h3>
 <p>将图结构转化为向量，支撑相似度检索和推理任务。</p>
-<h3>4.2 主流方法</h3>
+<h3 id="ops-4-2-主流方法">4.2 主流方法</h3>
 <table>
 <thead>
 <tr>
@@ -430,7 +430,7 @@ temporal_triplets = [
 <blockquote>
 <p>复杂度符号：n=节点数, w=随机游走次数, l=游走长度, d=嵌入维度, k=Attention head 数</p>
 </blockquote>
-<h3>4.3 Node2Vec 示例</h3>
+<h3 id="ops-4-3-node2vec-示例">4.3 Node2Vec 示例</h3>
 <pre><code class="language-python">from node2vec import Node2Vec
 
 def embed_graph(graph, dimensions=128, walk_length=30, num_walks=10):
@@ -438,7 +438,7 @@ def embed_graph(graph, dimensions=128, walk_length=30, num_walks=10):
     node2vec = Node2Vec(graph, dimensions=dimensions,
                         walk_length=walk_length, num_walks=num_walks)
     model = node2vec.fit(window=10, min_count=1, batch_words=4)
-    return model  # model.wv['节点名'] → 向量</code></pre><h3>4.4 GCN 示例</h3>
+    return model  # model.wv['节点名'] → 向量</code></pre><h3 id="ops-4-4-gcn-示例">4.4 GCN 示例</h3>
 <pre><code class="language-python">import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
@@ -453,7 +453,7 @@ class SimpleGCN(torch.nn.Module):
     def forward(self, x, edge_index):
         x = F.relu(self.conv1(x, edge_index))
         x = F.relu(self.conv2(x, edge_index))
-        return self.classifier(x)</code></pre><h3>4.5 嵌入更新策略</h3>
+        return self.classifier(x)</code></pre><h3 id="ops-4-5-嵌入更新策略">4.5 嵌入更新策略</h3>
 <table>
 <thead>
 <tr>
@@ -489,8 +489,8 @@ class SimpleGCN(torch.nn.Module):
 </tr>
 </tbody></table>
 <hr>
-<h2>5. 图推理引擎</h2>
-<h3>5.1 推理能力矩阵</h3>
+<h2 id="ops-5-图推理引擎">5. 图推理引擎</h2>
+<h3 id="ops-5-1-推理能力矩阵">5.1 推理能力矩阵</h3>
 <table>
 <thead>
 <tr>
@@ -544,7 +544,7 @@ class SimpleGCN(torch.nn.Module):
 <td>&gt; 80%</td>
 </tr>
 </tbody></table>
-<h3>5.2 推理执行流程</h3>
+<h3 id="ops-5-2-推理执行流程">5.2 推理执行流程</h3>
 <div class="mermaid">flowchart LR
     subgraph 输入["输入"]
         E[异常事件]
@@ -573,7 +573,7 @@ PageRank]
     K --> R3
     R1 --> R2 --> O1
     R3 --> O2
-    R2 --> O3</div><h3>5.3 运维图谱 Cypher 查询示例</h3>
+    R2 --> O3</div><h3 id="ops-5-3-运维图谱-cypher-查询示例">5.3 运维图谱 Cypher 查询示例</h3>
 <pre><code class="language-cypher">// 查询影响范围：找出 A 服务故障会影响哪些下游
 MATCH (a:Service {name: 'order-svc'})-[:calls*1..3]-&gt;(affected)
 RETURN affected.name, affected.type
@@ -591,8 +591,8 @@ MATCH (incident:Incident {pattern: $fault_pattern})
 MATCH (incident)-[:resolved_by]-&gt;(action:Action)
 RETURN action.description, action.success_rate
 ORDER BY action.success_rate DESC</code></pre><hr>
-<h2>6. RAG 在认知网络中的应用</h2>
-<h3>6.1 RAG 架构</h3>
+<h2 id="ops-6-rag-在认知网络中的应用">6. RAG 在认知网络中的应用</h2>
+<h3 id="ops-6-1-rag-架构">6.1 RAG 架构</h3>
 <div class="mermaid">flowchart LR
     subgraph 检索["检索阶段"]
         Q[用户问题] --> EQ[Embedding]
@@ -604,7 +604,7 @@ ORDER BY action.success_rate DESC</code></pre><hr>
     subgraph 生成["生成阶段"]
         CONTEXT --> LLM[LLM]
         LLM --> ANSWER[回答]
-    end</div><h3>6.2 GraphRAG 模式</h3>
+    end</div><h3 id="ops-6-2-graphrag-模式">6.2 GraphRAG 模式</h3>
 <p>运维场景中，纯向量检索可能丢失图结构信息。GraphRAG 在检索时同时返回子图：</p>
 <pre><code class="language-python">def graph_rag_query(query, neo4j_driver, embedding_model, llm):
     """GraphRAG：检索节点 + 扩展子图"""
@@ -625,7 +625,7 @@ ORDER BY action.success_rate DESC</code></pre><hr>
 
     # 3. 构建上下文送给 LLM
     context = format_subgraph(subgraph)
-    return llm.generate(f"根据运维知识图谱上下文：\n{context}\n回答问题：{query}")</code></pre><h3>6.3 时效性保障</h3>
+    return llm.generate(f"根据运维知识图谱上下文：\n{context}\n回答问题：{query}")</code></pre><h3 id="ops-6-3-时效性保障">6.3 时效性保障</h3>
 <p>RAG 的知识陈旧问题通过<strong>事件驱动刷新 + 热冷分离</strong>解决：</p>
 <table>
 <thead>
@@ -657,7 +657,7 @@ ORDER BY action.success_rate DESC</code></pre><hr>
 </tr>
 </tbody></table>
 <hr>
-<h2>7. 知识图谱构建流程</h2>
+<h2 id="ops-7-知识图谱构建流程">7. 知识图谱构建流程</h2>
 <div class="mermaid">flowchart LR
     subgraph 数据["知识来源"]
         D1[拓扑数据
@@ -705,8 +705,8 @@ Neo4j]
     S --> V --> A1
     V --> A2
     V --> A3</div><hr>
-<h2>8. 知识图谱质量评估与维护</h2>
-<h3>8.1 质量评估维度</h3>
+<h2 id="ops-8-知识图谱质量评估与维护">8. 知识图谱质量评估与维护</h2>
+<h3 id="ops-8-1-质量评估维度">8.1 质量评估维度</h3>
 <table>
 <thead>
 <tr>
@@ -747,7 +747,7 @@ Neo4j]
 <td>&lt; 2%</td>
 </tr>
 </tbody></table>
-<h3>8.2 维护策略</h3>
+<h3 id="ops-8-2-维护策略">8.2 维护策略</h3>
 <div class="mermaid">flowchart TB
     subgraph 增量["增量维护（实时）"]
         I1[Kafka 变更事件]
@@ -771,7 +771,7 @@ Neo4j]
     end
 
     增量 --> 治理
-    批量 --> 治理</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/06/13/observable-ops-03-02-root-cause/"><small>← 上一篇</small><span>参考 02 · 根因推理</span></a></div><div><a href="/2026/06/13/observable-ops-03-04-sre-agents/"><small>下一篇 →</small><span>参考 04 · SRE Agent</span></a></div><a class="article-series-return" href="/categories/observable-ops/">返回系统运维可观测性 ↗</a></nav></article></main><footer class="portal-footer">
+    批量 --> 治理</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#ops-1-知识图谱概述">1. 知识图谱概述</a><a class="reading-toc-link level-3" href="#ops-1-1-本方案-4-层模型">1.1 本方案 4 层模型</a><a class="reading-toc-link level-3" href="#ops-1-2-知识图谱-vs-传统数据库">1.2 知识图谱 vs 传统数据库</a><a class="reading-toc-link level-2" href="#ops-2-知识表示">2. 知识表示</a><a class="reading-toc-link level-3" href="#ops-2-1-三元组模型">2.1 三元组模型</a><a class="reading-toc-link level-3" href="#ops-2-2-本体建模">2.2 本体建模</a><a class="reading-toc-link level-3" href="#ops-2-3-时序知识表示">2.3 时序知识表示</a><a class="reading-toc-link level-2" href="#ops-3-图数据库选型">3. 图数据库选型</a><a class="reading-toc-link level-3" href="#ops-选型决策树">选型决策树</a><a class="reading-toc-link level-2" href="#ops-4-知识嵌入-图向量">4. 知识嵌入（图向量）</a><a class="reading-toc-link level-3" href="#ops-4-1-嵌入目的">4.1 嵌入目的</a><a class="reading-toc-link level-3" href="#ops-4-2-主流方法">4.2 主流方法</a><a class="reading-toc-link level-3" href="#ops-4-3-node2vec-示例">4.3 Node2Vec 示例</a><a class="reading-toc-link level-3" href="#ops-4-4-gcn-示例">4.4 GCN 示例</a><a class="reading-toc-link level-3" href="#ops-4-5-嵌入更新策略">4.5 嵌入更新策略</a><a class="reading-toc-link level-2" href="#ops-5-图推理引擎">5. 图推理引擎</a><a class="reading-toc-link level-3" href="#ops-5-1-推理能力矩阵">5.1 推理能力矩阵</a><a class="reading-toc-link level-3" href="#ops-5-2-推理执行流程">5.2 推理执行流程</a><a class="reading-toc-link level-3" href="#ops-5-3-运维图谱-cypher-查询示例">5.3 运维图谱 Cypher 查询示例</a><a class="reading-toc-link level-2" href="#ops-6-rag-在认知网络中的应用">6. RAG 在认知网络中的应用</a><a class="reading-toc-link level-3" href="#ops-6-1-rag-架构">6.1 RAG 架构</a><a class="reading-toc-link level-3" href="#ops-6-2-graphrag-模式">6.2 GraphRAG 模式</a><a class="reading-toc-link level-3" href="#ops-6-3-时效性保障">6.3 时效性保障</a><a class="reading-toc-link level-2" href="#ops-7-知识图谱构建流程">7. 知识图谱构建流程</a><a class="reading-toc-link level-2" href="#ops-8-知识图谱质量评估与维护">8. 知识图谱质量评估与维护</a><a class="reading-toc-link level-3" href="#ops-8-1-质量评估维度">8.1 质量评估维度</a><a class="reading-toc-link level-3" href="#ops-8-2-维护策略">8.2 维护策略</a></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/06/13/observable-ops-03-02-root-cause/"><small>← 上一篇</small><span>参考 02 · 根因推理</span></a></div><div><a href="/2026/06/13/observable-ops-03-04-sre-agents/"><small>下一篇 →</small><span>参考 04 · SRE Agent</span></a></div><a class="article-series-return" href="/categories/observable-ops/">返回系统运维可观测性 ↗</a></nav></article></main><footer class="portal-footer">
       <div class="content-width">
         <div class="footer-main">
           <div>

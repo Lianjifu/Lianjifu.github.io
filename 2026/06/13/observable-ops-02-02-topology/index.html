@@ -48,7 +48,7 @@
 
 
 
-<link rel="stylesheet" href="/css/portal.css?v=1"><link rel="stylesheet" href="/css/article.css?v=3"><script src="/js/portal.js?v=6" defer></script><script src="/js/article-reader.js?v=1" defer></script></head><body id="top" class="page-post personal-article" data-series="observable-ops"><svg
+<link rel="stylesheet" href="/css/portal.css?v=1"><link rel="stylesheet" href="/css/article.css?v=6"><link rel="stylesheet" href="/css/ops-series.css?v=1"><script src="/js/portal.js?v=6" defer></script><script src="/js/article-reader.js?v=2" defer></script></head><body id="top" class="page-post personal-article" data-series="observable-ops"><svg
       class="icon-definitions"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
@@ -179,11 +179,11 @@
 <p>智能系统运维可观测性 · 拓扑建模模块功能逻辑设计</p>
 </blockquote>
 <hr>
-<h2>1. 功能概述</h2>
+<h2 id="ops-1-功能概述">1. 功能概述</h2>
 <blockquote>
 <p>拓扑建模模块是 Observable Ops 平台的「数字底盘」——将物理世界的基础设施和逻辑世界的依赖关系抽象为统一知识图谱，为所有上层智能分析模块提供拓扑数据服务。</p>
 </blockquote>
-<h3>1.1 模块定位</h3>
+<h3 id="ops-1-1-模块定位">1.1 模块定位</h3>
 <div class="mermaid">flowchart LR
     subgraph 采集["数据采集层"]
         C1[K8s API]
@@ -231,7 +231,7 @@
 <td>图数据库（Neo4j）+ 时序数据库（TimescaleDB）+ 消息队列（Kafka）</td>
 </tr>
 </tbody></table>
-<h3>1.2 职责边界</h3>
+<h3 id="ops-1-2-职责边界">1.2 职责边界</h3>
 <div class="mermaid">flowchart TB
     subgraph 做["职责范围：做"]
         D1[多源拓扑数据汇聚与融合]
@@ -265,7 +265,7 @@
 <td>原始指标采集（采集层负责）· 异常检测逻辑（智能感知负责）· 根因推理（根因分析负责）· 业务告警通知（应用层负责）</td>
 </tr>
 </tbody></table>
-<h3>1.3 模块协作关系</h3>
+<h3 id="ops-1-3-模块协作关系">1.3 模块协作关系</h3>
 <div class="mermaid">flowchart LR
     M02[02 拓扑建模] --> M03[03 数据融合]
     M02 --> M04[04 智能感知]
@@ -325,8 +325,8 @@
 </tr>
 </tbody></table>
 <hr>
-<h2>2. 功能架构</h2>
-<h3>2.1 数据模型架构</h3>
+<h2 id="ops-2-功能架构">2. 功能架构</h2>
+<h3 id="ops-2-1-数据模型架构">2.1 数据模型架构</h3>
 <div class="mermaid">flowchart TB
     subgraph 实体层["实体层级模型"]
         L1[基础设施层]
@@ -361,7 +361,7 @@
     style L1 fill:#e3f2fd
     style L2 fill:#d1e7dd
     style L3 fill:#fff9c4
-    style L4 fill:#ffccbc</div><h4>实体模型</h4>
+    style L4 fill:#ffccbc</div><h4 id="ops-实体模型">实体模型</h4>
 <table>
 <thead>
 <tr>
@@ -420,7 +420,7 @@
 <td>APM / 日志解析</td>
 </tr>
 </tbody></table>
-<h4>关系模型</h4>
+<h4 id="ops-关系模型">关系模型</h4>
 <table>
 <thead>
 <tr>
@@ -474,7 +474,7 @@
 <td>last_sync, source</td>
 </tr>
 </tbody></table>
-<h4>属性模型</h4>
+<h4 id="ops-属性模型">属性模型</h4>
 <table>
 <thead>
 <tr>
@@ -504,7 +504,7 @@
 <td>Neo4j 节点属性（JSON）</td>
 </tr>
 </tbody></table>
-<h3>2.2 分层架构</h3>
+<h3 id="ops-2-2-分层架构">2.2 分层架构</h3>
 <div class="mermaid">flowchart TB
     subgraph 元数据层["元数据层 Meta Graph"]
         G1[Schema 定义
@@ -555,10 +555,9 @@
 <td>变更轨迹、回滚分析、故障复盘</td>
 </tr>
 </tbody></table>
-<h3>2.3 协作模式</h3>
+<h3 id="ops-2-3-协作模式">2.3 协作模式</h3>
 <div class="mermaid">sequenceDiagram
     participant CMDB as 数据源
-CMDB / K8s
     participant TM as 02 拓扑建模
     participant NB as Neo4j
     participant RD as Redis
@@ -566,32 +565,32 @@ CMDB / K8s
     participant 06 as 06 故障研判
 
     Note over TM: 启动时全量同步
-    CMDB->>TM: 批量导出
-    TM->>TM: 解析 + 实体映射
-    TM->>NB: 批量写入
-    NB-->>TM: 写入完成
-    TM->>RD: 缓存预热
+    CMDB-&gt;&gt;TM: 批量导出
+    TM-&gt;&gt;TM: 解析 + 实体映射
+    TM-&gt;&gt;NB: 批量写入
+    NB--&gt;&gt;TM: 写入完成
+    TM-&gt;&gt;RD: 缓存预热
 
     Note over TM: 运行期增量更新
     loop 实时监听
-        CMDB->>TM: K8s Watch / API 变更
-        TM->>TM: 增量解析
-        TM->>NB: 事务更新
-        TM->>RD: 缓存失效
-        TM->>04: Kafka拓扑变更事件
+        CMDB-&gt;&gt;TM: K8s Watch / API 变更
+        TM-&gt;&gt;TM: 增量解析
+        TM-&gt;&gt;NB: 事务更新
+        TM-&gt;&gt;RD: 缓存失效
+        TM-&gt;&gt;04: Kafka拓扑变更事件
     end
 
     Note over TM: 查询请求
-    04->>TM: gRPC: GetNeighbors
-    TM->>RD: 缓存查询
-    RD-->>TM: 缓存命中
-    TM-->>04: 邻居节点列表
-    06->>TM: gRPC: FindPath
-    TM->>NB: Cypher 路径查询
-    NB-->>TM: 路径结果
-    TM-->>06: 故障传播路径</div><hr>
-<h2>3. 核心功能</h2>
-<h3>3.1 拓扑构建</h3>
+    04-&gt;&gt;TM: gRPC: GetNeighbors
+    TM-&gt;&gt;RD: 缓存查询
+    RD--&gt;&gt;TM: 缓存命中
+    TM--&gt;&gt;04: 邻居节点列表
+    06-&gt;&gt;TM: gRPC: FindPath
+    TM-&gt;&gt;NB: Cypher 路径查询
+    NB--&gt;&gt;TM: 路径结果
+    TM--&gt;&gt;06: 故障传播路径</div><hr>
+<h2 id="ops-3-核心功能">3. 核心功能</h2>
+<h3 id="ops-3-1-拓扑构建">3.1 拓扑构建</h3>
 <div class="mermaid">flowchart LR
     C1[多源数据] --> P1[数据解析]
     P1 --> P2[实体映射]
@@ -654,7 +653,7 @@ CMDB / K8s
 <td>图数据库记录</td>
 </tr>
 </tbody></table>
-<h4>冲突解决策略详解</h4>
+<h4 id="ops-冲突解决策略详解">冲突解决策略详解</h4>
 <p>多源数据不可避免出现冲突，按以下优先级链处理：</p>
 <table>
 <thead>
@@ -685,7 +684,7 @@ CMDB / K8s
 <td>忽略 / 取新</td>
 </tr>
 </tbody></table>
-<h3>3.2 拓扑更新</h3>
+<h3 id="ops-3-2-拓扑更新">3.2 拓扑更新</h3>
 <div class="mermaid">flowchart TB
     subgraph 增量["增量更新"]
         U1[变更检测
@@ -742,7 +741,7 @@ Kafka]
 <td>&lt; 5min</td>
 </tr>
 </tbody></table>
-<h3>3.3 拓扑查询</h3>
+<h3 id="ops-3-3-拓扑查询">3.3 拓扑查询</h3>
 <table>
 <thead>
 <tr>
@@ -782,7 +781,7 @@ Kafka]
 <td>查询变更历史</td>
 </tr>
 </tbody></table>
-<h4>实战查询场景</h4>
+<h4 id="ops-实战查询场景">实战查询场景</h4>
 <table>
 <thead>
 <tr>
@@ -817,7 +816,7 @@ Kafka]
 <td>已迁移: <code>session-svc</code> / <code>cache-svc</code> · 未迁移: <code>rate-limiter</code>（告警）</td>
 </tr>
 </tbody></table>
-<h3>3.4 拓扑分析</h3>
+<h3 id="ops-3-4-拓扑分析">3.4 拓扑分析</h3>
 <table>
 <thead>
 <tr>
@@ -865,8 +864,8 @@ Kafka]
 </tr>
 </tbody></table>
 <hr>
-<h2>4. 技术实现</h2>
-<h3>4.1 数据采集</h3>
+<h2 id="ops-4-技术实现">4. 技术实现</h2>
+<h3 id="ops-4-1-数据采集">4.1 数据采集</h3>
 <div class="mermaid">flowchart LR
     subgraph 数据源
         DS1[K8s API Server]
@@ -931,7 +930,7 @@ Webhook / Kafka]
 <td>域名解析 / CNAME / A 记录</td>
 </tr>
 </tbody></table>
-<h3>4.2 存储架构</h3>
+<h3 id="ops-4-2-存储架构">4.2 存储架构</h3>
 <table>
 <thead>
 <tr>
@@ -966,7 +965,7 @@ Webhook / Kafka]
 <td>10GB</td>
 </tr>
 </tbody></table>
-<h3>4.3 缓存策略</h3>
+<h3 id="ops-4-3-缓存策略">4.3 缓存策略</h3>
 <table>
 <thead>
 <tr>
@@ -1001,7 +1000,7 @@ Webhook / Kafka]
 <td>时间/数量双阈值触发</td>
 </tr>
 </tbody></table>
-<h3>4.4 错误处理与边界场景</h3>
+<h3 id="ops-4-4-错误处理与边界场景">4.4 错误处理与边界场景</h3>
 <table>
 <thead>
 <tr>
@@ -1048,7 +1047,7 @@ Webhook / Kafka]
 <td>重试 + 通知运维</td>
 </tr>
 </tbody></table>
-<h3>4.5 图分析引擎</h3>
+<h3 id="ops-4-5-图分析引擎">4.5 图分析引擎</h3>
 <div class="mermaid">flowchart LR
     G1[查询请求] --> G2[查询计划生成
 Cypher Parser]
@@ -1100,8 +1099,8 @@ PageRank / Louvain
 </tr>
 </tbody></table>
 <hr>
-<h2>5. 接口设计</h2>
-<h3>5.1 REST API</h3>
+<h2 id="ops-5-接口设计">5. 接口设计</h2>
+<h3 id="ops-5-1-rest-api">5.1 REST API</h3>
 <table>
 <thead>
 <tr>
@@ -1166,7 +1165,7 @@ PageRank / Louvain
 <td>SyncJob</td>
 </tr>
 </tbody></table>
-<h3>5.2 gRPC 接口</h3>
+<h3 id="ops-5-2-grpc-接口">5.2 gRPC 接口</h3>
 <table>
 <thead>
 <tr>
@@ -1213,7 +1212,7 @@ PageRank / Louvain
 <td>管理面操作</td>
 </tr>
 </tbody></table>
-<h3>5.3 Kafka 事件流</h3>
+<h3 id="ops-5-3-kafka-事件流">5.3 Kafka 事件流</h3>
 <table>
 <thead>
 <tr>
@@ -1260,7 +1259,7 @@ PageRank / Louvain
 <td>监控告警</td>
 </tr>
 </tbody></table>
-<h3>5.4 接口质量指标</h3>
+<h3 id="ops-5-4-接口质量指标">5.4 接口质量指标</h3>
 <table>
 <thead>
 <tr>
@@ -1306,8 +1305,8 @@ PageRank / Louvain
 </tr>
 </tbody></table>
 <hr>
-<h2>6. 量化指标</h2>
-<h3>6.1 性能指标</h3>
+<h2 id="ops-6-量化指标">6. 量化指标</h2>
+<h3 id="ops-6-1-性能指标">6.1 性能指标</h3>
 <table>
 <thead>
 <tr>
@@ -1360,7 +1359,7 @@ PageRank / Louvain
 <td>Prometheus metrics</td>
 </tr>
 </tbody></table>
-<h3>6.2 准确指标</h3>
+<h3 id="ops-6-2-准确指标">6.2 准确指标</h3>
 <table>
 <thead>
 <tr>
@@ -1401,7 +1400,7 @@ PageRank / Louvain
 <td>图分析算法</td>
 </tr>
 </tbody></table>
-<h3>6.3 可用指标</h3>
+<h3 id="ops-6-3-可用指标">6.3 可用指标</h3>
 <table>
 <thead>
 <tr>
@@ -1443,8 +1442,8 @@ PageRank / Louvain
 </tr>
 </tbody></table>
 <hr>
-<h2>7. 部署架构</h2>
-<h3>7.1 K8s 部署架构</h3>
+<h2 id="ops-7-部署架构">7. 部署架构</h2>
+<h3 id="ops-7-1-k8s-部署架构">7.1 K8s 部署架构</h3>
 <div class="mermaid">flowchart TB
     subgraph K8s["Kubernetes 集群"]
         subgraph 数据层["数据层 StatefulSet"]
@@ -1479,7 +1478,7 @@ PageRank / Louvain
     style K8s fill:#f0f9ff
     style 数据层 fill:#fff9c4
     style 服务层 fill:#d1e7dd
-    style 采集层 fill:#ffccbc</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/06/13/observable-ops-02-01-module-architecture/"><small>← 上一篇</small><span>模块 01 · 模块架构</span></a></div><div><a href="/2026/06/13/observable-ops-02-03-data-fusion/"><small>下一篇 →</small><span>模块 03 · 数据融合</span></a></div><a class="article-series-return" href="/categories/observable-ops/">返回系统运维可观测性 ↗</a></nav></article></main><footer class="portal-footer">
+    style 采集层 fill:#ffccbc</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#ops-1-功能概述">1. 功能概述</a><a class="reading-toc-link level-3" href="#ops-1-1-模块定位">1.1 模块定位</a><a class="reading-toc-link level-3" href="#ops-1-2-职责边界">1.2 职责边界</a><a class="reading-toc-link level-3" href="#ops-1-3-模块协作关系">1.3 模块协作关系</a><a class="reading-toc-link level-2" href="#ops-2-功能架构">2. 功能架构</a><a class="reading-toc-link level-3" href="#ops-2-1-数据模型架构">2.1 数据模型架构</a><a class="reading-toc-link level-4" href="#ops-实体模型">实体模型</a><a class="reading-toc-link level-4" href="#ops-关系模型">关系模型</a><a class="reading-toc-link level-4" href="#ops-属性模型">属性模型</a><a class="reading-toc-link level-3" href="#ops-2-2-分层架构">2.2 分层架构</a><a class="reading-toc-link level-3" href="#ops-2-3-协作模式">2.3 协作模式</a><a class="reading-toc-link level-2" href="#ops-3-核心功能">3. 核心功能</a><a class="reading-toc-link level-3" href="#ops-3-1-拓扑构建">3.1 拓扑构建</a><a class="reading-toc-link level-4" href="#ops-冲突解决策略详解">冲突解决策略详解</a><a class="reading-toc-link level-3" href="#ops-3-2-拓扑更新">3.2 拓扑更新</a><a class="reading-toc-link level-3" href="#ops-3-3-拓扑查询">3.3 拓扑查询</a><a class="reading-toc-link level-4" href="#ops-实战查询场景">实战查询场景</a><a class="reading-toc-link level-3" href="#ops-3-4-拓扑分析">3.4 拓扑分析</a><a class="reading-toc-link level-2" href="#ops-4-技术实现">4. 技术实现</a><a class="reading-toc-link level-3" href="#ops-4-1-数据采集">4.1 数据采集</a><a class="reading-toc-link level-3" href="#ops-4-2-存储架构">4.2 存储架构</a><a class="reading-toc-link level-3" href="#ops-4-3-缓存策略">4.3 缓存策略</a><a class="reading-toc-link level-3" href="#ops-4-4-错误处理与边界场景">4.4 错误处理与边界场景</a><a class="reading-toc-link level-3" href="#ops-4-5-图分析引擎">4.5 图分析引擎</a><a class="reading-toc-link level-2" href="#ops-5-接口设计">5. 接口设计</a><a class="reading-toc-link level-3" href="#ops-5-1-rest-api">5.1 REST API</a><a class="reading-toc-link level-3" href="#ops-5-2-grpc-接口">5.2 gRPC 接口</a><a class="reading-toc-link level-3" href="#ops-5-3-kafka-事件流">5.3 Kafka 事件流</a><a class="reading-toc-link level-3" href="#ops-5-4-接口质量指标">5.4 接口质量指标</a><a class="reading-toc-link level-2" href="#ops-6-量化指标">6. 量化指标</a><a class="reading-toc-link level-3" href="#ops-6-1-性能指标">6.1 性能指标</a><a class="reading-toc-link level-3" href="#ops-6-2-准确指标">6.2 准确指标</a><a class="reading-toc-link level-3" href="#ops-6-3-可用指标">6.3 可用指标</a><a class="reading-toc-link level-2" href="#ops-7-部署架构">7. 部署架构</a><a class="reading-toc-link level-3" href="#ops-7-1-k8s-部署架构">7.1 K8s 部署架构</a></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/06/13/observable-ops-02-01-module-architecture/"><small>← 上一篇</small><span>模块 01 · 模块架构</span></a></div><div><a href="/2026/06/13/observable-ops-02-03-data-fusion/"><small>下一篇 →</small><span>模块 03 · 数据融合</span></a></div><a class="article-series-return" href="/categories/observable-ops/">返回系统运维可观测性 ↗</a></nav></article></main><footer class="portal-footer">
       <div class="content-width">
         <div class="footer-main">
           <div>

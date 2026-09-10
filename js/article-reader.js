@@ -1,5 +1,17 @@
 /* Enhance the static directory without requiring scripts for basic reading. */
 (()=>{
+ // The TOC aside and the prev/next pager are sometimes misplaced by the
+ // upstream HTML generator (nested inside post-body, or stuck inside the
+ // 2-column layout grid). Move them into the positions the CSS expects so
+ // the sticky sidebar and the full-width pager render correctly everywhere.
+ const layout=document.querySelector('.article-reading-layout');
+ if(layout){
+  const aside=document.querySelector('.article-toc-aside');
+  if(aside&&aside.parentElement!==layout) layout.appendChild(aside);
+  const pager=document.querySelector('.article-pager');
+  const parent=layout.parentElement;
+  if(pager&&parent&&pager.parentElement!==parent) parent.insertBefore(pager,null);
+ }
  const toc=document.querySelector('.reading-toc');if(!toc)return;
  const links=[...toc.querySelectorAll('a')],targets=links.map(a=>document.getElementById(decodeURIComponent(a.hash.slice(1))));
  const wide=matchMedia('(min-width: 1200px)'),sync=()=>{toc.open=wide.matches;};sync();wide.addEventListener('change',sync);

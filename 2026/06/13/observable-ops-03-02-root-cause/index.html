@@ -48,7 +48,7 @@
 
 
 
-<link rel="stylesheet" href="/css/portal.css?v=1"><link rel="stylesheet" href="/css/article.css?v=3"><script src="/js/portal.js?v=6" defer></script><script src="/js/article-reader.js?v=1" defer></script></head><body id="top" class="page-post personal-article" data-series="observable-ops"><svg
+<link rel="stylesheet" href="/css/portal.css?v=1"><link rel="stylesheet" href="/css/article.css?v=6"><link rel="stylesheet" href="/css/ops-series.css?v=1"><script src="/js/portal.js?v=6" defer></script><script src="/js/article-reader.js?v=2" defer></script></head><body id="top" class="page-post personal-article" data-series="observable-ops"><svg
       class="icon-definitions"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
@@ -179,8 +179,8 @@
 <p>本章节为根因分析模块（07-根因分析）和故障研判模块（06-故障研判）提供算法参考：覆盖统计方法、时序模型、图算法、因果推断四大类别，含代码示例与工程实践，并给出本方案的模块对应关系与选型建议。</p>
 </blockquote>
 <hr>
-<h2>1. 算法总览与分类框架</h2>
-<h3>1.1 四大类别概览</h3>
+<h2 id="ops-1-算法总览与分类框架">1. 算法总览与分类框架</h2>
+<h3 id="ops-1-1-四大类别概览">1.1 四大类别概览</h3>
 <p>根因推理算法按方法论分为四大类别，各有适用场景和局限性：</p>
 <table>
 <thead>
@@ -221,7 +221,7 @@
 <td>根因分析（因果推理）</td>
 </tr>
 </tbody></table>
-<h3>1.2 算法选型决策树</h3>
+<h3 id="ops-1-2-算法选型决策树">1.2 算法选型决策树</h3>
 <div class="mermaid">flowchart TD
     START[故障发生] --> Q1{是否有明确拓扑图？}
     Q1 -->|是| Q2{异常节点是否形成连通簇？}
@@ -251,7 +251,7 @@
     style PR fill:#e3f2fd
     style PRO fill:#fff9c4
     style SP fill:#e8f5e9
-    style HIT fill:#f3e5f5</div><h3>1.3 模块对应矩阵</h3>
+    style HIT fill:#f3e5f5</div><h3 id="ops-1-3-模块对应矩阵">1.3 模块对应矩阵</h3>
 <table>
 <thead>
 <tr>
@@ -293,8 +293,8 @@
 </tr>
 </tbody></table>
 <hr>
-<h2>2. 异常检测算法（统计方法）</h2>
-<h3>2.1 算法原理与数学基础</h3>
+<h2 id="ops-2-异常检测算法-统计方法">2. 异常检测算法（统计方法）</h2>
+<h3 id="ops-2-1-算法原理与数学基础">2.1 算法原理与数学基础</h3>
 <table>
 <thead>
 <tr>
@@ -329,7 +329,7 @@
 </tbody></table>
 <p><strong>关键修正因子 k（用于 MAD）：</strong></p>
 <pre><code>k = 1.4826  # 使 MAD 在正态分布下与 σ 等价</code></pre><p>这是 MAD 与标准差的转换因子，保证在正态分布下与 3σ 等价。</p>
-<h3>2.2 生产级代码实现</h3>
+<h3 id="ops-2-2-生产级代码实现">2.2 生产级代码实现</h3>
 <pre><code class="language-python">import numpy as np
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
@@ -437,7 +437,7 @@ class RobustAnomalyDetector:
             for a in anomalies:
                 a.timestamp += start
             results.extend(anomalies)
-        return results</code></pre><h3>2.3 三种方法的对比实验</h3>
+        return results</code></pre><h3 id="ops-2-3-三种方法的对比实验">2.3 三种方法的对比实验</h3>
 <table>
 <thead>
 <tr>
@@ -531,7 +531,7 @@ class RobustAnomalyDetector:
 <td>中位数方法天然适配双峰</td>
 </tr>
 </tbody></table>
-<h3>2.4 滑动窗口策略</h3>
+<h3 id="ops-2-4-滑动窗口策略">2.4 滑动窗口策略</h3>
 <p>静态阈值（一次性计算全局 μ/σ）的问题：长期运行后数据分布可能漂移，导致历史异常被「洗白」。</p>
 <p><strong>解决：滑动窗口（Sliding Window）</strong></p>
 <pre><code class="language-python">def sliding_window_detector(data: np.ndarray, method='mad', window=300, step=60, threshold=3.5):
@@ -559,8 +559,8 @@ class RobustAnomalyDetector:
             a.timestamp += start
             anomalies.append(a)
     return anomalies</code></pre><hr>
-<h2>3. 时序预测异常检测</h2>
-<h3>3.1 Prophet 算法详解</h3>
+<h2 id="ops-3-时序预测异常检测">3. 时序预测异常检测</h2>
+<h3 id="ops-3-1-prophet-算法详解">3.1 Prophet 算法详解</h3>
 <p><strong>核心思想：</strong> 将时序分解为加法模型，通过预测置信区间检测异常。</p>
 <pre><code>y(t) = trend(t) + seasonality(t) + holiday(t) + noise(t)</code></pre><table>
 <thead>
@@ -591,7 +591,7 @@ class RobustAnomalyDetector:
 <td>正常随机误差</td>
 </tr>
 </tbody></table>
-<h3>3.2 Prophet 生产级配置</h3>
+<h3 id="ops-3-2-prophet-生产级配置">3.2 Prophet 生产级配置</h3>
 <pre><code class="language-python">from prophet import Prophet
 import pandas as pd
 import numpy as np
@@ -683,7 +683,7 @@ class ProphetAnomalyDetector:
 <td>节假日效应成比例→乘法</td>
 </tr>
 </tbody></table>
-<h3>3.3 ARIMA vs Prophet 对比</h3>
+<h3 id="ops-3-3-arima-vs-prophet-对比">3.3 ARIMA vs Prophet 对比</h3>
 <table>
 <thead>
 <tr>
@@ -724,8 +724,8 @@ class ProphetAnomalyDetector:
 </tr>
 </tbody></table>
 <hr>
-<h2>4. 图算法（根因定位）</h2>
-<h3>4.1 PageRank 根因定位原理</h3>
+<h2 id="ops-4-图算法-根因定位">4. 图算法（根因定位）</h2>
+<h3 id="ops-4-1-pagerank-根因定位原理">4.1 PageRank 根因定位原理</h3>
 <p><strong>核心洞察：</strong> 在故障传播图中，根因节点被异常节点<strong>指向</strong>（依赖关系），而非指向异常节点。</p>
 <p><strong>数学定义：</strong> PageRank 通过迭代计算节点得分：</p>
 <pre><code>PR(i) = (1 - α) / N + α × Σ(j→i) PR(j) / out_degree(j)</code></pre><p>其中 α 是阻尼因子（通常 0.85），N 是节点总数。</p>
@@ -819,7 +819,7 @@ def pagerank_root_cause(
 <td>使环路中的节点分数不均匀化</td>
 </tr>
 </tbody></table>
-<h3>4.2 最短路径根因定位</h3>
+<h3 id="ops-4-2-最短路径根因定位">4.2 最短路径根因定位</h3>
 <p><strong>适用场景：</strong> 异常节点形成<strong>两个明确簇</strong>（异常簇 vs 健康簇），根因在连接两簇的最短路径起点。</p>
 <pre><code class="language-python">def shortest_path_root_cause(
     graph: nx.DiGraph,
@@ -860,7 +860,7 @@ def pagerank_root_cause(
     
     # 按路径长度排序（越短越可能是直接传播）
     candidates.sort(key=lambda x: x[2])
-    return candidates[:top_k]</code></pre><h3>4.3 弱连通分量（故障簇检测）</h3>
+    return candidates[:top_k]</code></pre><h3 id="ops-4-3-弱连通分量-故障簇检测">4.3 弱连通分量（故障簇检测）</h3>
 <p>当拓扑中存在多个故障簇时，说明有<strong>多个独立根因</strong>，需分别处理：</p>
 <pre><code class="language-python">def detect_fault_clusters(graph: nx.DiGraph, abnormal_nodes: set) -&gt; list[set]:
     """
@@ -912,7 +912,7 @@ def pagerank_root_cause(
 <td>根因是配置变更事件本身</td>
 </tr>
 </tbody></table>
-<h3>4.4 故障传播模型详解</h3>
+<h3 id="ops-4-4-故障传播模型详解">4.4 故障传播模型详解</h3>
 <div class="mermaid">flowchart LR
     subgraph 拓扑["原始拓扑（依赖关系）"]
         direction TB
@@ -961,7 +961,7 @@ def pagerank_root_cause(
     style DB fill:#ff6b6b
     style A_DB fill:#ff6b6b
     style PR_DB fill:#ff6b6b</div><p><strong>关键洞察：</strong> 在反向图中，被更多异常节点指向的节点 PageRank 分数更高——这正是根因应该具有的特征。</p>
-<h3>4.5 介数中心性与关键链路识别</h3>
+<h3 id="ops-4-5-介数中心性与关键链路识别">4.5 介数中心性与关键链路识别</h3>
 <pre><code class="language-python">def key_service_identification(graph: nx.DiGraph, top_k: int = 10) -&gt; list[tuple[str, float]]:
     """
     介数中心性识别关键链路
@@ -977,8 +977,8 @@ def pagerank_root_cause(
     centrality = nx.betweenness_centrality(graph, weight='weight')
     sorted_nodes = sorted(centrality.items(), key=lambda x: x[1], reverse=True)
     return sorted_nodes[:top_k]</code></pre><hr>
-<h2>5. 因果推断算法</h2>
-<h3>5.1 因果推断 vs 相关分析（核心区别）</h3>
+<h2 id="ops-5-因果推断算法">5. 因果推断算法</h2>
+<h3 id="ops-5-1-因果推断-vs-相关分析-核心区别">5.1 因果推断 vs 相关分析（核心区别）</h3>
 <table>
 <thead>
 <tr>
@@ -1010,7 +1010,7 @@ def pagerank_root_cause(
 <blockquote>
 <p><strong>因果推断的核心价值：</strong> 预测模型告诉我们「what」，因果模型告诉我们「why」和「which intervention works」。在根因定位中，我们需要的是因果关系，而非相关关系。</p>
 </blockquote>
-<h3>5.2 Granger 因果检验详解</h3>
+<h3 id="ops-5-2-granger-因果检验详解">5.2 Granger 因果检验详解</h3>
 <p><strong>原理：</strong> 如果 X 的历史数据有助于预测 Y（beyond Y&#39;s own history），则 X Granger 导致 Y。</p>
 <pre><code class="language-python">import numpy as np
 from statsmodels.tsa.stattools import grangercausalitytests
@@ -1132,7 +1132,7 @@ def granger_test(
 <td>无时序先后，需用 PC 算法</td>
 </tr>
 </tbody></table>
-<h3>5.3 PC 算法（因果发现）</h3>
+<h3 id="ops-5-3-pc-算法-因果发现">5.3 PC 算法（因果发现）</h3>
 <p><strong>原理：</strong> 通过条件独立性检验逐步发现因果结构。</p>
 <pre><code>核心思想：如果 X 和 Y 之间没有直接因果边，则存在某个变量 Z 使得 X ⊥ Y | Z</code></pre><pre><code class="language-python">from itertools import combinations
 import numpy as np
@@ -1220,7 +1220,7 @@ class PCAlgorithm:
 <td>需结合领域知识定向</td>
 </tr>
 </tbody></table>
-<h3>5.4 Causal Tree（异质性根因分析）</h3>
+<h3 id="ops-5-4-causal-tree-异质性根因分析">5.4 Causal Tree（异质性根因分析）</h3>
 <p><strong>原理：</strong> 估计条件平均处理效应（CATE），找出「哪些维度的差异导致了根因异质性」。</p>
 <pre><code class="language-python"># econml 库的 CausalForestDML 使用示例
 from econml.dml import CausalForestDML
@@ -1240,8 +1240,8 @@ def causal_tree_analysis(
     cate = model.effect(X)
     return cate</code></pre><p><strong>运维场景：</strong> 分析「同一故障模式在不同集群/服务/时段的根因是否相同」，用于识别影响根因准确率的因素。</p>
 <hr>
-<h2>6. 多源融合算法</h2>
-<h3>6.1 融合架构与数据流</h3>
+<h2 id="ops-6-多源融合算法">6. 多源融合算法</h2>
+<h3 id="ops-6-1-融合架构与数据流">6.1 融合架构与数据流</h3>
 <div class="mermaid">flowchart TB
     subgraph 输入["多源输入"]
         M[Metrics
@@ -1291,7 +1291,7 @@ Traces × Events]
     A2 --> J
     J --> R
     J --> P
-    J --> C</div><h3>6.2 告警-指标关联分析</h3>
+    J --> C</div><h3 id="ops-6-2-告警-指标关联分析">6.2 告警-指标关联分析</h3>
 <pre><code class="language-python">import pandas as pd
 from datetime import timedelta
 
@@ -1336,7 +1336,7 @@ def correlate_alert_metrics(
         combined = pd.concat(results, axis=1).fillna(0)
         combined['total_score'] = combined.sum(axis=1)
         return combined.sort_values('total_score', ascending=False)
-    return pd.DataFrame()</code></pre><h3>6.3 Cross-Attention 融合实现</h3>
+    return pd.DataFrame()</code></pre><h3 id="ops-6-3-cross-attention-融合实现">6.3 Cross-Attention 融合实现</h3>
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
@@ -1376,8 +1376,8 @@ class CrossAttentionFusion(nn.Module):
         out = self.norm(logs_emb + attended)
         out = self.norm(out + self.ffn(out))
         return out</code></pre><hr>
-<h2>7.实时流异常检测</h2>
-<h3>7.1 SPOT 算法详解</h3>
+<h2 id="ops-7-实时流异常检测">7.实时流异常检测</h2>
+<h3 id="ops-7-1-spot-算法详解">7.1 SPOT 算法详解</h3>
 <p><strong>原理：</strong> Streaming Peak Over Threshold，基于极值理论（EVT）的自适应阈值方法。</p>
 <pre><code>核心思想：
 1. 用初始窗口（normal data）估计数据分布的尾部参数
@@ -1460,7 +1460,7 @@ class SPOT:
             if len(self.init_data) &gt;= self.n_init:
                 self._fit_threshold()
         
-        return is_anomaly</code></pre><h3>7.2 DSPOT（双阈值 SPOT）</h3>
+        return is_anomaly</code></pre><h3 id="ops-7-2-dspot-双阈值-spot">7.2 DSPOT（双阈值 SPOT）</h3>
 <p><strong>SPOT 的问题：</strong> 只检测异常升高，不检测异常突降（如进程挂了 CPU突降）。</p>
 <p><strong>DSPOT 解决：</strong> 增加下限阈值，检测双向异常。</p>
 <pre><code class="language-python">class DSPOT(SPOT):
@@ -1509,7 +1509,7 @@ class SPOT:
             return 'high'
         if self.threshold_low is not None and value &lt; self.threshold_low:
             return 'low'
-        return 'normal'</code></pre><h3>7.3 流式 vs 批处理算法选型</h3>
+        return 'normal'</code></pre><h3 id="ops-7-3-流式-vs-批处理算法选型">7.3 流式 vs 批处理算法选型</h3>
 <table>
 <thead>
 <tr>
@@ -1564,42 +1564,42 @@ class SPOT:
 </tr>
 </tbody></table>
 <hr>
-<h2>8. 生产部署架构</h2>
-<h3>8.1 三通道架构</h3>
+<h2 id="ops-8-生产部署架构">8. 生产部署架构</h2>
+<h3 id="ops-8-1-三通道架构">8.1 三通道架构</h3>
 <div class="mermaid">flowchart LR
-    subgraph 实时["实时通道（< 1s延迟）"]
+    subgraph 实时["实时通道（&lt; 1s延迟）"]
         MQ[Kafka
-指标流] --> SPOT[SPOT 异常检测]
-        SPOT -->|异常事件| ALERT[告警引擎]
-        ALERT --> RCA_RT[实时根因
+指标流] --&gt; SPOT[SPOT 异常检测]
+        SPOT --&gt;|异常事件| ALERT[告警引擎]
+        ALERT --&gt; RCA_RT[实时根因
 规则引擎]
     end
 
     subgraph 近线["近线通道（1-60s 延迟）"]
         TS[TSDB
-历史指标] --> PROPHET[Prophet 预测]
-        PROPHET -->|趋势/周期| ANOMALY[异常标注]
-        ANOMALY --> RCA_NR[近线根因
+历史指标] --&gt; PROPHET[Prophet 预测]
+        PROPHET --&gt;|趋势/周期| ANOMALY[异常标注]
+        ANOMALY --&gt; RCA_NR[近线根因
 时序因果]
     end
 
     subgraph 离线["离线通道（分钟级延迟）"]
-        FULL[全量拓扑] --> PR[PageRank 计算]
-        FULL --> GC[Granger 检验]
-        PR & GC --> CACHE[结果缓存]
-        CACHE --> RCA_OFF[离线根因
+        FULL[全量拓扑] --&gt; PR[PageRank 计算]
+        FULL --&gt; GC[Granger 检验]
+        PR &amp; GC --&gt; CACHE[结果缓存]
+        CACHE --&gt; RCA_OFF[离线根因
 因果图谱]
     end
 
     subgraph 输出["统一输出"]
-        RCA_RT & RCA_NR & RCA_OFF --> MERGE[结果融合]
-        MERGE --> FINAL[根因结论
+        RCA_RT &amp; RCA_NR &amp; RCA_OFF --&gt; MERGE[结果融合]
+        MERGE --&gt; FINAL[根因结论
 +置信度]
     end
 
-    style实时 fill:#e3f2fd,stroke:#1565c0
+    style 实时 fill:#e3f2fd,stroke:#1565c0
     style 近线 fill:#fff9c4,stroke:#f57c00
-    style 离线 fill:#e8f5e9,stroke:#2e7d32</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/06/13/observable-ops-03-01-foundation/"><small>← 上一篇</small><span>参考 01 · 基础理论</span></a></div><div><a href="/2026/06/13/observable-ops-03-03-knowledge-graph/"><small>下一篇 →</small><span>参考 03 · 知识图谱</span></a></div><a class="article-series-return" href="/categories/observable-ops/">返回系统运维可观测性 ↗</a></nav></article></main><footer class="portal-footer">
+    style 离线 fill:#e8f5e9,stroke:#2e7d32</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#ops-1-算法总览与分类框架">1. 算法总览与分类框架</a><a class="reading-toc-link level-3" href="#ops-1-1-四大类别概览">1.1 四大类别概览</a><a class="reading-toc-link level-3" href="#ops-1-2-算法选型决策树">1.2 算法选型决策树</a><a class="reading-toc-link level-3" href="#ops-1-3-模块对应矩阵">1.3 模块对应矩阵</a><a class="reading-toc-link level-2" href="#ops-2-异常检测算法-统计方法">2. 异常检测算法（统计方法）</a><a class="reading-toc-link level-3" href="#ops-2-1-算法原理与数学基础">2.1 算法原理与数学基础</a><a class="reading-toc-link level-3" href="#ops-2-2-生产级代码实现">2.2 生产级代码实现</a><a class="reading-toc-link level-3" href="#ops-2-3-三种方法的对比实验">2.3 三种方法的对比实验</a><a class="reading-toc-link level-3" href="#ops-2-4-滑动窗口策略">2.4 滑动窗口策略</a><a class="reading-toc-link level-2" href="#ops-3-时序预测异常检测">3. 时序预测异常检测</a><a class="reading-toc-link level-3" href="#ops-3-1-prophet-算法详解">3.1 Prophet 算法详解</a><a class="reading-toc-link level-3" href="#ops-3-2-prophet-生产级配置">3.2 Prophet 生产级配置</a><a class="reading-toc-link level-3" href="#ops-3-3-arima-vs-prophet-对比">3.3 ARIMA vs Prophet 对比</a><a class="reading-toc-link level-2" href="#ops-4-图算法-根因定位">4. 图算法（根因定位）</a><a class="reading-toc-link level-3" href="#ops-4-1-pagerank-根因定位原理">4.1 PageRank 根因定位原理</a><a class="reading-toc-link level-3" href="#ops-4-2-最短路径根因定位">4.2 最短路径根因定位</a><a class="reading-toc-link level-3" href="#ops-4-3-弱连通分量-故障簇检测">4.3 弱连通分量（故障簇检测）</a><a class="reading-toc-link level-3" href="#ops-4-4-故障传播模型详解">4.4 故障传播模型详解</a><a class="reading-toc-link level-3" href="#ops-4-5-介数中心性与关键链路识别">4.5 介数中心性与关键链路识别</a><a class="reading-toc-link level-2" href="#ops-5-因果推断算法">5. 因果推断算法</a><a class="reading-toc-link level-3" href="#ops-5-1-因果推断-vs-相关分析-核心区别">5.1 因果推断 vs 相关分析（核心区别）</a><a class="reading-toc-link level-3" href="#ops-5-2-granger-因果检验详解">5.2 Granger 因果检验详解</a><a class="reading-toc-link level-3" href="#ops-5-3-pc-算法-因果发现">5.3 PC 算法（因果发现）</a><a class="reading-toc-link level-3" href="#ops-5-4-causal-tree-异质性根因分析">5.4 Causal Tree（异质性根因分析）</a><a class="reading-toc-link level-2" href="#ops-6-多源融合算法">6. 多源融合算法</a><a class="reading-toc-link level-3" href="#ops-6-1-融合架构与数据流">6.1 融合架构与数据流</a><a class="reading-toc-link level-3" href="#ops-6-2-告警-指标关联分析">6.2 告警-指标关联分析</a><a class="reading-toc-link level-3" href="#ops-6-3-cross-attention-融合实现">6.3 Cross-Attention 融合实现</a><a class="reading-toc-link level-2" href="#ops-7-实时流异常检测">7.实时流异常检测</a><a class="reading-toc-link level-3" href="#ops-7-1-spot-算法详解">7.1 SPOT 算法详解</a><a class="reading-toc-link level-3" href="#ops-7-2-dspot-双阈值-spot">7.2 DSPOT（双阈值 SPOT）</a><a class="reading-toc-link level-3" href="#ops-7-3-流式-vs-批处理算法选型">7.3 流式 vs 批处理算法选型</a><a class="reading-toc-link level-2" href="#ops-8-生产部署架构">8. 生产部署架构</a><a class="reading-toc-link level-3" href="#ops-8-1-三通道架构">8.1 三通道架构</a></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/06/13/observable-ops-03-01-foundation/"><small>← 上一篇</small><span>参考 01 · 基础理论</span></a></div><div><a href="/2026/06/13/observable-ops-03-03-knowledge-graph/"><small>下一篇 →</small><span>参考 03 · 知识图谱</span></a></div><a class="article-series-return" href="/categories/observable-ops/">返回系统运维可观测性 ↗</a></nav></article></main><footer class="portal-footer">
       <div class="content-width">
         <div class="footer-main">
           <div>

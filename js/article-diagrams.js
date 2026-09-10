@@ -118,23 +118,28 @@
         div.classList.remove('mermaid-loading');
       });
       if (nodes.length > 0) {
-        Promise.all(nodes.map(function(div) {
-          return mermaid.run({ nodes: [div] }).then(function() {
-            if (!div.querySelector('svg')) throw new Error('no SVG output');
-          }).catch(function(error) {
-            console.error('Mermaid diagram skipped:', error);
-            div.classList.remove('mermaid-loading');
-            if (!div.querySelector('svg')) {
-              div.classList.add('mermaid-error');
-              div.setAttribute('role', 'img');
-              div.setAttribute('aria-label', '图表解析失败');
-              div.innerHTML = '<p>图表暂时无法渲染，原始图示代码仍保留。</p><pre>' +
-                escapeDiagramSource(originalSources.get(div) || div.dataset.mermaidSource || '') + '</pre>';
+        // Mermaid 11 has shared internal state that mis-renders when many
+        // diagrams are kicked off concurrently: every div ends up with the
+        // same timestamp id and only one survives. Process them sequentially.
+        (async () => {
+          for (const div of nodes) {
+            try {
+              await mermaid.run({ nodes: [div] });
+              if (!div.querySelector('svg')) throw new Error('no SVG output');
+            } catch (error) {
+              console.error('Mermaid diagram skipped:', error);
+              div.classList.remove('mermaid-loading');
+              if (!div.querySelector('svg')) {
+                div.classList.add('mermaid-error');
+                div.setAttribute('role', 'img');
+                div.setAttribute('aria-label', '图表解析失败');
+                div.innerHTML = '<p>图表暂时无法渲染，原始图示代码仍保留。</p><pre>' +
+                  escapeDiagramSource(originalSources.get(div) || div.dataset.mermaidSource || '') + '</pre>';
+              }
             }
-          });
-        })).then(function() {
+          }
           mermaidDivs.forEach(wrapZoomable);
-        });
+        })();
       }
     } catch (e) {
       console.error('Mermaid init error:', e);
