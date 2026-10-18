@@ -8,18 +8,18 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/svg+xml" sizes="any" href="/images/jifu-mark.svg">
   <link rel="icon" type="image/svg+xml" href="/images/jifu-mark.svg">
-  <meta name="description" content="五层系列 03·单产品设计：做成 Agent 产品，从目标到可验收。设计卡与验收四柱。">
+  <meta name="description" content="以认证交付案例设计通用 Agent 平台，说明任务、项目、上下文、工具、验证、恢复、界面和执行器如何组成可复用的交付能力。">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="03 · 做成 Agent 产品：从目标到可验收">
+  <meta property="og:title" content="03 · 通用 Agent 平台：构建可复用的交付能力">
   <meta property="og:url" content="http://lianjifu.cn/2026/08/07/ai-agent-engineering/">
   <meta property="og:site_name" content="LianJiFu'blogs">
-  <meta property="og:description" content="五层系列 03·单产品设计：做成 Agent 产品，从目标到可验收。设计卡与验收四柱。">
+  <meta property="og:description" content="以认证交付案例设计通用 Agent 平台，说明任务、项目、上下文、工具、验证、恢复、界面和执行器如何组成可复用的交付能力。">
   <meta property="og:locale" content="zh_CN">
   <meta property="article:published_time" content="2026-08-07T00:00:00.000Z">
   <meta property="article:author" content="JiFuLian">
   <meta property="article:tag" content="AI Agent">
   <link rel="canonical" href="http://lianjifu.cn/2026/08/07/ai-agent-engineering/">
-  <title>03 · 做成 Agent 产品：从目标到可验收 | LianJiFu'blogs</title>
+  <title>03 · 通用 Agent 平台：构建可复用的交付能力 | LianJiFu'blogs</title>
 
   <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
   <link rel="stylesheet" href="/css/2026.css">
@@ -193,1110 +193,215 @@
         </nav>
       </div>
     </header><main id="main"><article class="post-block" itemscope itemtype="https://schema.org/Article"><header class="post-header"><div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/ai-agent/">AI Agent 工程实践</a></div>
-          <span class="article-kicker">03 ·</span><h1 class="post-title" itemprop="name headline">做成 Agent 产品：<span class="article-subtitle">从目标到可验收</span></h1>
-
-          <div class="post-meta"><span class="post-meta-item"><i class="far fa-calendar"></i> 发表于 2026-08-07</span><span class="post-meta-item"><i class="far fa-folder"></i> 分类于 <a href="/categories/ai-agent/">AI Agent</a></span><span class="post-meta-item"><i class="fas fa-tags"></i> 学习笔记 · 03 做成 · 单产品设计</span></div>
-        </header><div class="article-reading-layout"><div class="post-body" itemprop="articleBody" data-toc-mode="h2">
-          <h2 id="intro" data-toc="开篇">开篇 · 真实案例：把认证 Agent 做成可上线产品</h2>
-          <span class="section-kicker">00 / 案例背景</span>
-          <p class="section-summary">机制齐了不等于产品成了。产品成了的标志：用户目标可验收，失败可见，能上线——而不是又一个「什么都会聊」的对话框。</p>
-          <img class="chapter-image overview-image" src="/images/ai-agent-engineering/00-overview.png" alt="做成 Agent 产品总览">
-
-          <div class="content-block">
-            <h3>1. 产品背景：认证机制跑通后，为什么还要把它做成产品</h3>
-            <p>01 里阿明用契约、证据和工序把认证修到可合并；02 里小周补齐了 Agent 的运行时，能够读取现行代码、在受控范围内修改 session、运行测试与探针，并在失败时从 Checkpoint 继续。机制已经能跑，但业务后端同学仍无法直接拿它完成一次可交付的认证任务。</p>
-            <p>产品同学小林接下下一步：做一个<strong>“认证交付助手”</strong>。它服务于业务后端，而不是泛化成什么都能聊的窗口。用户应能提交明确的认证目标，看到当前步骤、证据与失败原因，在授权边界内让系统修改 auth 并验证“登出后 <code>GET /me</code> 返回 <code>401</code>”。</p>
-            <div class="warn-box"><strong>产品完成的定义：</strong>不是界面里出现了聊天、规划和工具按钮，而是目标可验收、能力边界可解释、失败状态可见、高危动作可控，并能在真实仓库与上线流程中承担责任。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么“Agent 能力清单”还不是可上线产品</h3>
-            <p>小林的第一版几乎把 02 的每个机制都搬进页面：会规划、会工具、会记忆、会反思。演示时，系统能展示一条漂亮的认证链路；接入真实仓库后，团队才发现它没有回答最重要的产品问题：谁是目标用户、这轮任务承诺什么、哪些操作明确不做、什么证据能让用户确认完成、失败后用户应如何继续。</p>
-            <p>没有这些答案，能力越多，责任反而越模糊。OAuth 会因为“顺便支持”进入范围，哈希路径可能因“自动修复”被触碰，测试失败只能显示“我再试试”，而负责人无法判断是等待、补充信息还是接管任务。此时它仍是机制演示壳，不是能上线的产品。</p>
-            <div class="callout"><strong>产品化的关键转译：</strong>把内部机制转换为用户可感知的目标、边界、进度、证据和闸门。用户不必了解 ReAct 或 Harness，但必须知道系统承诺做什么、做到哪里、凭什么说完成。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：第一版为何在真实仓库中失控</h3>
-            <p>下表记录的不是功能缺失，而是产品契约缺失。每一个现场问题都说明：机制没有被封装成用户、权限和验收都能共同理解的行为边界。</p>
-            <table class="comparison-table">
-              <tr><th>时间线</th><th>发生了什么</th><th>产品缺口</th></tr>
-              <tr><td>需求会</td><td>抄一堆能力：会规划、会工具、会记忆、会反思</td><td>没有用户与可否决成功标准</td></tr>
-              <tr><td>演示日</td><td>对话框里「全链路演示」很漂亮</td><td>范围未钉死，OAuth 顺手就进了</td></tr>
-              <tr><td>接真仓库</td><td>失败只回「我再试试」；哈希差点被改</td><td>失败不可见、无权限闸、无上线标准</td></tr>
-              <tr><td>复盘</td><td>结论：这是机制演示壳，不是可上线产品</td><td>缺问题表 → 规格 → 设计卡 → 四柱</td></tr>
-            </table>
-            <div class="mermaid">
-flowchart TB
-  Need["业务后端提出认证目标\n登出后 /me = 401"] --> Contract["产品契约\n用户、范围、验收、非目标"]
-  Contract --> Scope{"范围与权限\n是否允许本轮行动？"}
-  Scope -->|不清楚| Clarify["产品显示阻塞\n要求补充目标或授权"]
-  Scope -->|允许| Plan["可见计划\n步骤、进度、Checkpoint"]
-  Plan --> Execute["受控执行\n限域改 auth、跑测试与探针"]
-  Execute --> Evidence{"产品证据面板\n验收是否通过？"}
-  Evidence -->|通过| Deliver["可复查交付\n结果、Diff、run-id、probe-id"]
-  Evidence -->|失败| Recovery["可见失败状态\n补信息、重试、重规划或人工接管"]
-  Recovery --> Plan
-  Scope -->|高危| Gate["人工闸\n批准范围与时效"]
-  Gate -->|批准| Plan
-  Gate -->|拒绝| Stop["产品明确终止原因"]
-            </div>
-            <p>图中新增的不是一个更复杂的后端流程，而是产品必须露出的责任点：用户先确认目标和范围，系统才开始行动；执行结束后由证据面板而非模型自述裁定结果；失败、阻塞和高危审批都成为可理解、可接手的产品状态。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：按产品路径重做，先承诺再设计</h3>
-            <p>小林与阿明、小周重新对齐：02 解决“系统缺什么”，本篇解决<strong>如何封成可验收的单个产品</strong>。接下来的工作不再从“我们有哪些模型能力”开始，而是从用户、目标、验收和非目标开始，再选择本轮需要暴露的能力、状态与控制面。</p>
-            <div class="callout">
-              <strong>案例主线：</strong>钉用户与目标 → 机制映射成能力 → 勾选本轮能力 → 六项规格填实 → 一页设计卡 → 四柱验收放行。<br>
-              不重讲 Agent 原理；不扩到平台编制（那是 04）。
-            </div>
-            <div class="diag-flow">
-              <p><strong>进入产品设计前，先确认四件事：</strong></p>
-              <ol>
-                <li>目标用户是谁；一次认证交付替他减少了哪些不可跳过的人工作业？</li>
-                <li>本轮承诺的成功标准是否能由测试、探针与审计记录共同否决？</li>
-                <li>OAuth、多租户、改哈希、合主干等能力是否已被明确排除或进入人工闸？</li>
-                <li>失败、暂停、审批拒绝与人工接管是否都有用户能理解的状态和下一步？</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：产品不是把 Agent 能力摆出来，而是替用户承担一次可追溯的结果</h3>
-            <p>用户真正需要的不是“一个会规划的模型”，而是一次能看懂、能验收、出问题能接住的认证交付。机制越复杂，产品越应把复杂性收在系统内部，把目标、证据、风险和责任清楚地呈现出来。</p>
-            <p>从这一刻起，任何能力是否进入产品，都要先回答它如何帮助用户达成验收结果，以及失败时由谁、依据什么、以什么状态继续。</p>
-          </div>
-          <hr>
-
-          <h2 id="part-01" data-toc="产品问题">Part 01 · 产品问题：为谁、完成什么、怎样算成</h2>
-          <span class="section-kicker">01 / 用户与目标</span>
-          <p class="section-summary">不问「Agent 是什么」，先问：为谁、完成什么、怎样算成、明确不做什么。问题表写不满，不要进入能力设计。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/01-know-agent.png" alt="产品问题">
-
-          <div class="content-block">
-            <h3>1. 问题背景：为什么产品设计要先钉用户与完成态</h3>
-            <p>小林 v0 从“会规划、会工具、会记忆”开工，演示很炫，交付却很虚。能力本身无法说明它为谁服务、要承担什么结果，团队只能不断往清单里加入看似有用的功能。阿明作为首批用户，要的不是又一个聊天窗，而是一份能被合并与联调的认证增量。</p>
-            <p>因此，认证交付助手的起点不是模型或界面，而是产品问题表：具体用户处于什么场景，本轮目标的完成态是什么，哪几条外部证据可以否决完成，哪些看似合理的需求必须明确排除。问题表未定，后续的能力、规格和设计都没有稳定边界。</p>
-            <div class="warn-box">
-              <strong>成败标准：</strong>成功标准必须可外部观察。「更安全」「更好用」不能验收，等于没写目标。
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么“所有人都能用、什么认证都能做”必然失控</h3>
-            <p>当用户被写成“所有人”，场景被写成“做认证”，目标被写成“更安全”，系统就无法判断该选择哪种权限、跑哪些验证、向谁解释失败。范围会自然膨胀到 OAuth、多租户 SSO、自动合主干和生产密钥，任何一项都足以改变产品的风险模型和上线要求。</p>
-            <p>产品问题表的作用不是写一份漂亮的需求文档，而是拒绝不满足交付条件的任务。用户角色决定授权边界，场景决定所需证据，完成态决定计划终点，成功标准决定能否放行，非目标决定系统必须在何处停止。五项缺一，能力设计就会成为无上限的愿望清单。</p>
-            <div class="callout"><strong>产品准入原则：</strong>只有当“为谁、在什么场景、交出什么结果、如何否决、明确不做什么”都被写清，任务才允许进入下一章的能力映射。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：认证交付助手的问题表如何锁住边界</h3>
-            <p>以下定稿把阿明的真实工作对象、验收路径与禁区写成同一份产品输入。它不仅告诉团队要做什么，也告诉产品在哪些请求上必须阻塞、转人工或另开任务。</p>
-            <table class="comparison-table">
-              <tr><th>字段</th><th>本轮定稿</th><th>写糊会长什么样</th></tr>
-              <tr><td><strong>用户</strong></td><td>业务后端工程师（有仓库写权限；阿明是首批用户）</td><td>「所有人」→ 需求互相打架</td></tr>
-              <tr><td><strong>场景</strong></td><td>迭代里要交认证相关增量，怕一次生成踩哈希 / 泄密</td><td>场景虚 → 功能清单膨胀</td></tr>
-              <tr><td><strong>目标（完成态）</strong></td><td>在边界内完成注册 / 登录 / 登出相关改动，并通过约定验收</td><td>「做好认证」→ 无法判定完成</td></tr>
-              <tr><td><strong>成功标准</strong></td><td>① auth 单测绿 ② 手动：登录→/me 200→登出→/me 401 ③ 错误体不泄堆栈/路径 ④ 关键写操作可审计</td><td>形容词验收 → 假完成</td></tr>
-              <tr><td><strong>非目标</strong></td><td>不做 OAuth、不做多租户 SSO、不替人合主干、不碰生产密钥</td><td>缺非目标 → 范围漂（v0 翻车）</td></tr>
-            </table>
-            <div class="layer-grid">
-              <div class="layer-card content-block">
-                <span class="layer-tag">用户</span>
-                <h3>具体到角色与权限</h3>
-                <p class="right">有写权限的业务后端；不是「全公司」或「AI 爱好者」。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">成功标准</span>
-                <h3>可一票否决</h3>
-                <p class="right">每条对应命令或手动路径；第三方能按同一路径说「没过」。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">非目标</span>
-                <h3>挡住最易漂的三项</h3>
-                <p class="right">OAuth / 合主干 / 密钥——v0 演示里全踩过边。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">目标</span>
-                <h3>完成态语言</h3>
-                <p>写「边界内改完并证明」，不写「提供智能认证体验」。</p>
-              </div>
-            </div>
-            <div class="mermaid">
-flowchart TB
-  Start["提出认证产品需求"] --> User{"用户是否具体到\n角色与权限？"}
-  User -->|否| Narrow["收窄用户\n不能写成所有人"]
-  User -->|是| Scenario{"场景与任务范围\n是否明确？"}
-  Narrow --> User
-  Scenario -->|否| Clarify["补充场景\n例如认证增量交付"]
-  Scenario -->|是| Goal{"完成态是否可描述\n边界内改完并证明？"}
-  Clarify --> Scenario
-  Goal -->|否| Rewrite["重写目标\n拒绝形容词承诺"]
-  Goal -->|是| Acceptance{"成功标准是否\n可被测试或探针否决？"}
-  Rewrite --> Goal
-  Acceptance -->|否| Evidence["补充验收路径\n测试、探针、审计"]
-  Acceptance -->|是| NonGoal{"OAuth、合主干、密钥等\n非目标是否明确？"}
-  Evidence --> Acceptance
-  NonGoal -->|否| Fence["写入非目标与人工闸"]
-  NonGoal -->|是| Ready["问题表定稿\n允许进入能力设计"]
-  Fence --> NonGoal
-            </div>
-            <p>图中的每个判断都可以把需求挡在能力设计之前。缺用户就不能选择权限，缺验收就不能显示完成，缺非目标就不能阻止范围漂移。问题表不是一次性填写的表单，而是产品承诺的第一道闸门。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：问题表定稿后，才允许讨论能力与规格</h3>
-            <p>产品团队应将问题表视为能力设计的准入条件。它通过，不代表产品已经设计完成；它只意味着团队终于拥有了一个可以被检验的目标，可以据此选择目标理解、任务规划、工具调用等能力，并为每项能力继续写输入、输出、失败态和验收点。</p>
-            <div class="diag-flow">
-              <ol>
-                <li>能否指出「哪一条命令/手动路径」证明没过？不能 → 重写成功标准。</li>
-                <li>非目标是否挡住最容易漂的三项？没有 → 补 OAuth / 合主干 / 密钥。</li>
-                <li>用户是否具体到角色，而不是「所有人」？否 → 先收窄。</li>
-                <li>阿明能否用这张表向 reviewer 解释「助手何时算帮完」？不能 → 表未定稿。</li>
-              </ol>
-            </div>
-            <p><strong>补充判断：</strong>当新的需求试图加入 OAuth、自动合主干或生产密钥时，不应悄悄塞回本轮范围；应回到问题表重新评估用户、风险、验收与非目标，或建立新的产品任务。</p>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：产品问题表真正保护的不是文档完整度，而是用户对结果的预期</h3>
-            <p>用户愿意把认证改动交给助手，前提是知道它会做什么、不会做什么、何时能说完成。把这几件事写成可否决的问题，才能让能力设计服务于结果，而不是让结果迁就一张越来越长的功能清单。</p>
-            <p>问题表越具体，后面的产品选择越容易：哪些能力必须做、哪些必须延后、哪些风险必须在界面上提前说明，都会有可追溯的依据。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>产品从问题表开始。成功标准可一票否决，非目标挡住范围漂；写不满四行，不开能力设计。</div>
-          <hr>
-
-          <h2 id="part-02" data-toc="机制对照">Part 02 · 机制对照：把 02 翻成产品能力</h2>
-          <span class="section-kicker">02 / 映射</span>
-          <p class="section-summary">02 的机制名翻成产品能力名。本篇写规格与选型，不写原理课——机制名进抽屉，产品能力进规格。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/02-work-model.png" alt="机制对照">
-
-          <div class="content-block">
-            <h3>1. 映射背景：为什么不能把 02 的机制名直接搬进产品</h3>
-            <p>02 解决的是认证 Agent 在运行时缺什么：Context、Plan、Tool、Harness、Reflection、Routing 和 Governance 各自承担什么职责。产品设计面对的却是另一组问题：阿明在什么时候需要确认目标，为什么任务被阻塞，哪里可以看到依据和进度，工具被拒绝时如何理解，完成时凭什么相信结果。</p>
-            <p>因此，小周讲机制，小林问产品要什么。对照表不是把 02 再讲一遍，而是把内部运行能力翻译成可承诺的产品行为。每一格都必须回答：本产品要不要、要成什么样、用户如何感知、失败时显示什么。</p>
-            <div class="warn-box"><strong>避免术语直出：</strong>用户不需要一个名叫“Reflection”的按钮；他需要看到“验证未通过”的原因、对应证据和下一步。机制名没有被翻译为可见行为，就还没有进入产品规格。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么“有能力”不等于“用户能使用并验收”</h3>
-            <p>一个运行时能力只有被放进明确的产品边界后才有意义。Tool 若没有白名单、拒绝提示和审计入口，用户只会看到一次不可解释的失败；Harness 若没有暂停、恢复和交接状态，用户仍会在中断后重新提问；Reflection 若不展示测试与探针证据，完成标记依然只是模型自述。</p>
-            <p>产品能力应同时满足四个条件：它服务于 Part 01 的目标；能写出输入、输出、失败态和验收点；不与非目标冲突；用户能在界面或交付物中感知其成功与失败。缺少任何一项，能力都只是架构图上的名词，不应进入本轮承诺。</p>
-            <div class="callout"><strong>转译原则：</strong>把“系统怎么做”改写为“产品为用户提供什么状态、控制与证据”。内部实现可以迭代，用户可验收的行为必须稳定。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：认证助手如何把运行机制转成可感知能力</h3>
-            <p>下面的映射表为认证交付助手定义了最小的能力外观。它将运行时责任、产品承诺和用户可见的反馈放到同一行，避免出现“后台有能力，前台没有结果”的断层。</p>
-            <table class="comparison-table">
-              <tr><th>运行时机制（02）</th><th>产品能力</th><th>认证助手要什么</th><th>用户如何感知</th></tr>
-              <tr><td>目标 / Context</td><td>目标理解</td><td>澄清验收与非目标，歧义阻塞</td><td>可编辑契约卡；阻塞态可见</td></tr>
-              <tr><td>Plan</td><td>任务规划</td><td>可验证步骤，进度可见</td><td>步骤列表；卡在 Sx 可看见</td></tr>
-              <tr><td>Tool</td><td>工具调用</td><td>限域读改测；越权拒绝</td><td>拒绝原因弹层；审计可查</td></tr>
-              <tr><td>Context / Memory</td><td>上下文与记忆</td><td>本轮依据 + 短程进度</td><td>可展开「依据来源」</td></tr>
-              <tr><td>Harness 状态</td><td>状态与恢复</td><td>中断可续、可交接</td><td>暂停/恢复按钮；Brief 导出</td></tr>
-              <tr><td>Reflection</td><td>验证与反馈</td><td>回证据，禁假完成</td><td>通过/未通过 + 证据链接</td></tr>
-            </table>
-            <div class="mermaid">
-flowchart TB
-  Runtime["运行时机制\nContext · Plan · Tool · Harness · Reflection"] --> Translate["产品能力转译\n选择本轮要承诺的行为"]
-  Translate --> Goal["目标理解\n可编辑契约与阻塞态"]
-  Translate --> Planning["任务规划\n步骤、依赖与进度可见"]
-  Translate --> Tools["工具调用\n限域执行、拒绝原因、审计"]
-  Translate --> Memory["上下文与记忆\n依据来源可展开"]
-  Translate --> State["状态与恢复\n暂停、恢复与交接"]
-  Translate --> Verify["验证与反馈\n通过或未通过 + 证据"]
-  Goal --> Spec{"四段规格齐全？\n输入、输出、失败态、验收点"}
-  Planning --> Spec
-  Tools --> Spec
-  Memory --> Spec
-  State --> Spec
-  Verify --> Spec
-  Spec -->|是| Promise["写入产品能力组合\n进入 Part 03"]
-  Spec -->|否| Backlog["不承诺或补规格\n不能只列功能名"]
-            </div>
-            <p>图中的汇聚点说明：能力只有通过四段规格检查后才能进入产品承诺。产品可以在内部用不同模型或工具实现“目标理解”，但用户始终应看到可编辑契约与明确阻塞态；同理，验证能力的价值不在内部反思次数，而在界面能否给出通过、未通过与证据链接。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：先选用户可验收的能力，再决定内部实现</h3>
-            <p>Part 02 的输出不是一份技术架构，而是一张进入 Part 03 的能力候选表。每项能力都要基于 Part 01 的用户目标做取舍：目标不依赖的能力不承诺，无法写清四段规格的能力先补设计，与非目标冲突的能力要砍掉或降级为说明产出。</p>
-            <div class="diag-flow">
-              <ol>
-                <li>用户目标是否依赖该能力？否 → 本轮不承诺。</li>
-                <li>能否写出输入 / 输出 / 失败态 / 验收点？否 → 还是名词，不是产品能力。</li>
-                <li>是否与非目标冲突（如自动合主干）？是 → 砍掉或降级为说明产出。</li>
-                <li>用户能否在界面上<strong>感知</strong>该能力的成功与失败？不能 → 规格未落地。</li>
-              </ol>
-            </div>
-            <div class="tip-box"><strong>干货：</strong>Governance / Routing 在单产品里体现为权限表与上线闸门，不必再开两个「能力模块」名词吓唬人。</div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：产品能力的稳定性，来自用户可见的契约，而不是内部实现的固定</h3>
-            <p>模型、检索方案和工具链都可能替换，但“任务被阻塞时显示什么”“写操作被拒绝时如何解释”“完成时凭什么给出证据”不能随着实现变化而漂移。用户依赖的是这些稳定的行为边界，而不是某个机制名称。</p>
-            <p>完成映射后，团队才有资格讨论本轮到底勾选哪些能力。下一章的选择不再是“功能越多越好”，而是对每一项可验收承诺负责。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>对照表用来选型；每格要有「要什么 + 用户如何感知」。</div>
-          <hr>
-
-          <h2 id="part-03" data-toc="能力地图">Part 03 · 能力地图：本轮勾选，不贪多</h2>
-          <span class="section-kicker">03 / 组合</span>
-          <p class="section-summary">六项都是模块。勾选 = 承诺可验收的最小规格，不是愿望清单。v0 错在「全开 + 无规格」；本轮是「全开 + 每格可验收」。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/03-capability-map.png" alt="能力地图">
-
-          <div class="content-block">
-            <h3>1. 组合背景：为什么 v1 不能从“把能力全开”开始</h3>
-            <p>Part 02 已把运行机制翻译为产品能力，但映射不是承诺。小林的 v0 正是因为把“会规划、会工具、会记忆、会反思”一股脑放进演示，才让范围、权限和验收一起失去边界。每增加一项能力，产品就多了一份用户预期、失败状态和验收责任。</p>
-            <p>本轮的能力地图因此不是功能菜单，而是一份交付承诺：认证交付助手只勾选阿明完成本轮认证增量不可缺少的能力，并为每一项写下最小规格；任何无法证明价值、无法定义失败态或与非目标冲突的能力，都必须延后或拒绝。</p>
-            <div class="warn-box"><strong>勾选的含义：</strong>勾选不是“以后可能做”，而是“本轮用户可以依赖，并能验收成功或失败”。没有规格与验收点的能力，不能以“先放个入口”进入 v1。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么能力越多，不一定越接近可上线</h3>
-            <p>能力越多会扩大产品承诺面。自动合主干需要更严格的治理与人工闸，多租户和跨仓库编排需要新的身份、状态和隔离模型，长期跨项目记忆会带来脏数据与合规成本，OAuth/SSO 则已经超出当前认证增量的任务边界。把这些能力与“修复登出会话”一起交付，只会让测试、权限和支持成本同时失控。</p>
-            <p>正确的取舍不是追求能力数量，而是检查每项能力是否直接支撑 Part 01 的完成态：能否让目标变清楚、步骤可执行、写入受控、依据可靠、中断可恢复、完成可证明。若答案为否，或产品暂时无法承担其风险与验收，就不应进入本轮范围。</p>
-            <div class="callout"><strong>最小组合原则：</strong>为完成“边界内修改认证并证明登出后 <code>/me</code> 为 <code>401</code>”而选能力；不为展示 Agent 看起来更全能而扩张范围。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：认证交付助手本轮承诺什么，也明确不承诺什么</h3>
-            <p>六项必选能力共同构成一条可交付链路：先把目标写成契约，再把工作拆成可验证步骤，在限域工具和可信依据下执行，允许中断恢复，并以证据而非自述结束任务。它们都不是“高级功能”，而是本轮验收不可缺失的底座。</p>
-            <div class="principles" style="grid-template-columns:repeat(3,1fr)">
-              <div class="principle"><strong>目标理解</strong>必选 · Part 04</div>
-              <div class="principle"><strong>任务规划</strong>必选 · Part 05</div>
-              <div class="principle"><strong>工具调用</strong>必选 · Part 06</div>
-              <div class="principle"><strong>上下文与记忆</strong>必选 · Part 07</div>
-              <div class="principle"><strong>状态与恢复</strong>必选 · Part 08</div>
-              <div class="principle"><strong>验证与反馈</strong>必选 · Part 09</div>
-            </div>
-            <table class="comparison-table">
-              <tr><th>能力</th><th>为何必选（对阿明）</th><th>最小规格一句话</th></tr>
-              <tr><td>目标理解</td><td>防止「安全一点」开干</td><td>输出可编辑契约；歧义阻塞</td></tr>
-              <tr><td>任务规划</td><td>大 Diff 不可验收</td><td>步骤可勾选；未确认不往下</td></tr>
-              <tr><td>工具调用</td><td>要真改仓库</td><td>白名单写；拒绝可见</td></tr>
-              <tr><td>上下文与记忆</td><td>要吃对现行实现</td><td>依据可展开；密钥进不来</td></tr>
-              <tr><td>状态与恢复</td><td>联调会中断换人</td><td>可暂停；Brief 可交接</td></tr>
-              <tr><td>验证与反馈</td><td>防假完成</td><td>无证据不得标完成</td></tr>
-            </table>
-            <p><strong>明确砍掉同样是产品决策。</strong>下列能力不是“不重要”，而是在当前用户、范围与验收条件下不应由认证交付助手承担。它们必须写入非目标或路线图，防止在实现过程中以“顺手支持”的方式回潮。</p>
-            <table class="comparison-table">
-              <tr><th>砍掉项</th><th>原因</th><th>以后谁做</th></tr>
-              <tr><td>自动合主干</td><td>高危；本产品只产出可审查变更说明</td><td>治理更严的平台能力</td></tr>
-              <tr><td>多租户 / 跨仓库编排</td><td>超出单产品边界</td><td>04 数字员工平台</td></tr>
-              <tr><td>长期跨项目偏好记忆</td><td>易脏、难合规</td><td>可选增强，非 v1</td></tr>
-              <tr><td>OAuth / SSO 交付</td><td>非目标</td><td>另开产品问题表</td></tr>
-            </table>
-            <div class="mermaid">
-flowchart TB
-  Candidate["候选产品能力"] --> Goal{"是否直接服务\n认证完成态？"}
-  Goal -->|否| Defer["延后或另开产品问题表"]
-  Goal -->|是| Spec{"能否写清\n输入、输出、失败态、验收点？"}
-  Spec -->|否| Design["补规格\n暂不承诺"]
-  Spec -->|是| Boundary{"是否与非目标或\n风险边界冲突？"}
-  Boundary -->|是| Reject["砍掉或降级\n例如自动合主干、OAuth"]
-  Boundary -->|否| Visible{"用户是否能感知\n成功、失败与证据？"}
-  Visible -->|否| Surface["补状态与反馈设计"]
-  Visible -->|是| Commit["写入能力组合\n进入对应规格章节"]
-  Design --> Spec
-  Surface --> Visible
-            </div>
-            <p>图中的出口避免了“功能不是现在做、但页面先留着”的灰色地带。候选能力要么进入带验收点的本轮组合，要么补规格后再评估，要么明确进入路线图或非目标；没有第四种“默认会做”。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：能力组合通过门禁后，再逐项填实规格</h3>
-            <p>Part 03 的输出是一张受约束的能力组合，而不是产品设计终稿。每项勾选能力接下来都要在 Part 04 至 Part 09 中完成输入、输出、失败态和验收点；每项砍掉能力都要留在非目标或路线图中，确保范围变化时可以重新审查，而不是在实现中被悄悄恢复。</p>
-            <div class="diag-flow">
-              <ol>
-                <li>该项是否写入设计卡「能力组合」？</li>
-                <li>是否已有（或本篇将写）输入/输出/失败态/验收点？</li>
-                <li>砍掉项是否出现在非目标或路线图？未写 = 仍可能被悄悄做回来。</li>
-              </ol>
-            </div>
-            <p><strong>补充判断：</strong>当某项新能力进入候选列表，重新从“是否服务当前完成态”开始走门禁；不要因为它在技术上可实现，就跳过用户价值、风险边界与验收责任。</p>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：产品克制不是少做功能，而是让每项承诺都值得被用户相信</h3>
-            <p>认证交付助手不替人合主干、不碰生产密钥，并不是能力不足，而是把自动化停在当前产品能证明、能支持、能治理的边界内。对用户而言，一个可靠地完成六项承诺的助手，比一个承诺十项却无法解释失败的系统更有价值。</p>
-            <p>能力地图的真正作用，是让团队在开发之前就公开地做取舍，并在每次范围变化时重新承担这份取舍的后果。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>勾选即承诺最小可验收规格；砍掉项必须写明，防止能力回潮。</div>
-          <hr>
-
-          <h2 id="part-04" data-toc="目标理解">Part 04 · 规格：目标理解</h2>
-          <span class="section-kicker">04 / 目标理解</span>
-          <p class="section-summary">用户一句话进来，产品要输出可执行的目标契约字段；歧义未消就阻塞，不准开改。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/04-goal-understanding.png" alt="目标理解">
-
-          <div class="content-block">
-            <h3>1. 规格背景：为什么一句“把登录做安全一点”不能直接开改</h3>
-            <p>业务后端工程师通常从一句自然语言开始描述认证问题，例如“把登录做得安全一点”或“登出后用户好像还能访问”。这句话可以启动对话，却不能启动写操作：它没有说明要改哪个边界、成功如何验证、是否允许触碰 session 以外的路径，以及 OAuth、密钥等高风险范围是否被排除。</p>
-            <p>目标理解是认证交付助手的第一道产品能力。它将用户意图转成可编辑、可否决的目标契约，在歧义未消或范围冲突时向用户展示阻塞原因；只有用户确认契约后，任务规划和工具调用才有合法输入。</p>
-            <div class="warn-box"><strong>写入前提：</strong>自然语言不是授权。契约未确认时，全局写锁保持关闭；产品应显示缺什么、为什么阻塞、用户可如何补充，而不是让模型猜测后继续执行。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么目标理解必须产出结构化契约</h3>
-            <p>如果目标只停留在聊天记录中，用户、执行器和 reviewer 会分别理解成不同任务：有人认为只要改登录页，有人认为应重做密码策略，有人会顺手加入 OAuth。产品既无法确定可调用的工具，也无法为“完成”提供一致证据，失败时更无法说明究竟是目标缺失、权限不足还是实现未通过。</p>
-            <p>结构化契约把这一层不确定性拆成四个可检查字段：Goal 描述完成态，Boundary 限定可行动范围，Acceptance 给出外部可否决证据，Non-goals 明确系统必须停止的地方。它既是用户确认的产品对象，也是后续 Plan、Tool、验证与审计共同消费的输入。</p>
-            <div class="callout"><strong>契约的产品价值：</strong>不是替用户写得更正式，而是让用户能编辑和确认承诺，让系统能据此阻塞越界请求，让第三方能凭同一条 Acceptance 否决“已完成”。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：认证输入如何被转成可放行或可阻塞的契约</h3>
-            <p>认证交付助手的目标理解不以“模型给出一个合理建议”为终点，而以一张可展示的契约卡为终点。它必须能说明输入是什么、输出如何被用户编辑、哪些情况阻塞，以及什么证据证明契约已经足够进入规划。</p>
-            <table class="comparison-table">
-              <tr><th>段</th><th>认证交付助手</th></tr>
-              <tr><td>输入</td><td>工程师自然语言 + 可选仓库路径提示</td></tr>
-              <tr><td>输出</td><td>Goal / Boundary / Acceptance / Non-goals（结构化，可展示可编辑）</td></tr>
-              <tr><td>失败态</td><td>缺验收句、范围含 OAuth/密钥 → <strong>阻塞</strong>，要求人补全</td></tr>
-              <tr><td>验收点</td><td>输出契约可被第三方按 Acceptance 一票否决；禁止用形容词充数</td></tr>
-            </table>
-            <table class="comparison-table">
-              <tr><th>用户输入</th><th>产品应有状态</th><th>下一步</th></tr>
-              <tr><td>「把登录做得安全一点」</td><td><code>blocked_need_acceptance</code></td><td>UI 要求补可否决句</td></tr>
-              <tr><td>「顺便把 OAuth 也做了」</td><td><code>blocked_non_goal</code></td><td>标红非目标冲突，请删或另开任务</td></tr>
-              <tr><td>完整四字段 + 登出后 401</td><td><code>contract_ready</code></td><td>进入任务规划</td></tr>
-            </table>
-            <div class="contract-template"><code>示例输出（产品界面可见）：
-Goal: 修复登出后会话仍有效
-Boundary: 只改 auth/session 与对应测试；禁止改哈希
-Acceptance: auth.session.spec 绿；手动登出后 GET /me → 401
-Non-goals: 不引入 OAuth</code></div>
-            <div class="mermaid">
-flowchart TB
-  Input["用户输入\n自然语言 + 可选仓库提示"] --> Parse["提取候选契约\nGoal · Boundary · Acceptance · Non-goals"]
-  Parse --> Acceptance{"Acceptance 是否\n可被测试或探针否决？"}
-  Acceptance -->|否| NeedAcceptance["blocked_need_acceptance\n显示需补充的验收句"]
-  Acceptance -->|是| Boundary{"Boundary 与 Non-goals\n是否冲突或越权？"}
-  NeedAcceptance --> Edit["用户编辑契约卡"]
-  Boundary -->|是| NeedScope["blocked_non_goal\n标红 OAuth、密钥或越权范围"]
-  Boundary -->|否| Confirm{"用户确认\n本轮契约？"}
-  NeedScope --> Edit
-  Edit --> Parse
-  Confirm -->|否| Edit
-  Confirm -->|是| Ready["contract_ready\n打开规划，保持审计关联"]
-  Ready --> Plan["进入 Part 05 任务规划\n工具写权限仍按 Boundary 限制"]
-            </div>
-            <p>图中的阻塞状态不是产品失败，而是可靠产品行为。缺验收句时，用户看到 <code>blocked_need_acceptance</code> 并补充可否决证据；范围碰到 OAuth 或密钥时，用户看到 <code>blocked_non_goal</code> 并收窄任务或另开需求。只有契约被确认，系统才产生 <code>contract_ready</code>。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：契约未确认不规划，规划未完成不开写</h3>
-            <p>Goal、Boundary、Acceptance、Non-goals 与 01 的人侧任务契约同构，但在产品里它们必须是用户可见、可编辑、可审计的结构化对象。阿明确认前，系统可以解释、澄清和展示候选契约，却不得开始修改仓库；确认后，Plan 只能在 Boundary 内拆步，Tool 只能在相应白名单内行动。</p>
-            <div class="diag-flow">
-              <p><strong>目标理解的规格自检：</strong></p>
-              <ol>
-                <li>每个用户输入是否都能归入“可澄清、可阻塞或可确认”三种产品状态，而不是被静默猜测？</li>
-                <li>Acceptance 是否对应具体测试、探针或人工路径，使第三方能够明确指出“没有通过”？</li>
-                <li>Non-goals 是否覆盖 OAuth、合主干、密钥等最常见的范围漂移入口？</li>
-                <li><code>contract_ready</code> 是否是唯一允许进入任务规划的状态？</li>
-              </ol>
-            </div>
-            <div class="tip-box"><strong>干货：</strong>目标理解的产品验收不是“模型会不会总结需求”，而是“契约能不能否决完成，阻塞态能不能阻止越界开写”。</div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：澄清不是多问几轮，而是让系统只在承诺成立后行动</h3>
-            <p>用户有时会觉得阻塞多了一步，但缺少这一步的代价是让写操作在错误的目标、范围或验收下发生。好的目标理解不是让对话变长，而是让每一次追问都对应一个缺失字段，并在字段补齐后明确推进状态。</p>
-            <p>当用户能看见并确认这张契约卡，后续规划、工具调用和验证就不再是模型的私人推理，而是一份可以共同执行与复查的产品承诺。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>契约未确认 = 全局写锁关闭。阻塞态必须对用户可见。</div>
-          <hr>
-
-          <h2 id="part-05" data-toc="任务规划">Part 05 · 规格：任务规划</h2>
-          <span class="section-kicker">05 / 任务规划</span>
-          <p class="section-summary">输出可验证步骤与依赖；依赖不清则重规划并告知用户，不准闷头开改。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/05-task-planning.png" alt="任务规划">
-
-          <div class="content-block">
-            <h3>1. 规划背景：为什么契约确认后仍不能直接执行</h3>
-            <p><code>contract_ready</code> 说明用户、范围和验收已经对齐，但它还没有告诉系统应以什么顺序改动、每一步如何判断通过、哪一步可以并行、失败后从哪里恢复。若系统把整份认证需求一次性交给模型执行，用户最终只会得到一个大 Diff 和一句“应该修好了”，既无法审查，也无法定位失败。</p>
-            <p>任务规划的产品职责，是把已确认契约翻译为用户可见的步骤对象：每步有依赖、完成条件、风险与当前状态。阿明不需要阅读内部推理过程，但应能看见系统当前卡在 S3、为什么卡住、下一步被允许做什么，以及重规划后哪些已确认结果仍然保留。</p>
-            <div class="warn-box"><strong>执行前提：</strong>没有完成条件和依赖关系的“计划”只是散文。步骤对象未生成或依赖不清时，产品应显示规划阻塞或重规划，而不是闷头开始 patch。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么散文计划与静默重规划会破坏产品信任</h3>
-            <p>散文计划无法回答“现在完成了哪一步”“为什么 S3 可以开始”“测试失败后要回哪里”。更危险的是，系统在发现假设错误后若静默重写计划，用户会看到任务突然跳步或重复执行，却不知道范围、风险或验收条件是否已经变化。</p>
-            <p>产品级规划必须将计划变化视为可感知事件。步骤依赖约束执行顺序，Checkpoint 约束下游消费已确认输出，重规划记录原因和新版本，用户据此决定继续、补充信息或接管。这样，规划不再是模型的思考草稿，而是认证交付过程的共同工作面。</p>
-            <div class="callout"><strong>产品规划原则：</strong>用户看到步骤、状态、完成条件与变更原因；系统保留内部推理细节，但不能隐藏会改变范围、依赖或恢复点的计划变更。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：认证契约如何变成可勾选的 S1-S4 计划</h3>
-            <p>认证交付助手接收已确认契约后，输出的不是一篇执行方案，而是一组可被验证层勾选的步骤。下表定义产品在规划阶段必须展示和保存的字段，确保每一次前进都能解释“依据什么、如何通过、失败后到哪里”。</p>
-            <table class="comparison-table">
-              <tr><th>段</th><th>认证交付助手</th></tr>
-              <tr><td>输入</td><td>已确认契约（<code>contract_ready</code>）</td></tr>
-              <tr><td>输出</td><td>步骤列表：每步完成条件、依赖、风险；S1 登录 → S2 鉴权 → S3 登出 → S4 错误体</td></tr>
-              <tr><td>失败态</td><td>步骤无完成条件 / 依赖成环 → 重规划并告知用户</td></tr>
-              <tr><td>验收点</td><td>任一步可单独勾选「过/不过」；下一步不得消费未确认输出</td></tr>
-            </table>
-          </div>
-
-          <div class="content-block">
-            <h3>补充证据：步骤对象、依赖与重规划如何对用户可见</h3>
-            <div class="layer-grid">
-              <div class="layer-card content-block">
-                <span class="layer-tag">可见</span>
-                <h3>步骤对象，非散文</h3>
-                <p class="right">用户应能看到「当前卡在 S3」；只暴露产品字段，不暴露内部推理轨迹全文。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">重规划</span>
-                <h3>显式、可感知</h3>
-                <p>依赖变化或假设错误时，UI 显示原因与新步骤图，不静默改计划。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">依赖</span>
-                <h3>S3 不得抢跑</h3>
-                <p>S2 未确认前，禁止启动登出失效步骤——与 01 工序、02 Plan 同构。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">验收</span>
-                <h3>进度可见 + 步步可验</h3>
-                <p>每步完成条件映射到测试或探针；勾选由验证层驱动，不由模型自述。</p>
-              </div>
-            </div>
-            <div class="contract-template"><code>产品计划卡（用户可见）：
-S1 登录可用       完成条件：登录用例绿          状态：待执行
-S2 无会话 /me=401 完成条件：未登录探针返回 401   依赖：S1
-S3 登出后 /me=401 完成条件：登出探针返回 401     依赖：S2
-S4 错误体合规     完成条件：快照绿且无绝对路径   依赖：S2、S3
-
-当前：S3 · checkpoint：guard-401 · 可选出口：修复 / 补依据 / 重规划</code></div>
-            <div class="mermaid">
-flowchart TB
-  Contract["contract_ready\n认证目标与验收已确认"] --> Plan["生成计划 v1\n步骤、依赖、完成条件、风险"]
-  Plan --> S1["S1 登录可用\n登录用例绿"]
-  S1 --> C1["Checkpoint: login-ok"]
-  C1 --> S2["S2 无会话 /me = 401\n未登录探针通过"]
-  S2 --> C2["Checkpoint: guard-401"]
-  C2 --> S3["S3 登出后 /me = 401\n登出探针通过"]
-  C2 --> S4["S4 错误体合规\n快照无路径泄露"]
-  S3 --> C3["Checkpoint: logout-401"]
-  C3 --> S4
-  S4 --> C4["Checkpoint: error-body"]
-  C3 --> Review["交付审查"]
-  C4 --> Review
-  S3 -. "依赖变化或假设失效" .-> Replan["显式重规划 v2\n显示原因与保留的 Checkpoint"]
-  Replan --> Plan
-            </div>
-            <p>图中 S3 不得在 S2 确认前启动，S4 同时依赖鉴权与登出结果。若登出问题暴露出新的依赖或原假设错误，系统不会把 S1、S2 的绿点抹掉，而是生成可见的计划新版本；用户能看到为什么变化、哪些结果继续有效、下一步将从哪里恢复。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：下一步只消费已确认输出，重规划必须可见</h3>
-            <p>任务规划的验收不在于模型能否列出更多步骤，而在于用户能否据此审查推进过程。每个步骤必须有完成条件，下一步必须消费已经确认的 Checkpoint，验证失败必须停在当前或回到最近恢复点；范围、依赖或风险一旦变化，系统就必须以新版本计划说明原因，而非在后台静默改写。</p>
-            <div class="diag-flow">
-              <p><strong>规划规格自检：</strong></p>
-              <ol>
-                <li>每一步是否都有用户可理解的名称、依赖、完成条件和当前状态？</li>
-                <li>用户是否能看到当前卡在哪一步，而不是只看见一段模型总结？</li>
-                <li>后续步骤是否只消费已确认的 Checkpoint，禁止未验证抢跑？</li>
-                <li>重规划是否展示触发原因、新旧计划差异和仍然有效的 Checkpoint？</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：好的计划不是替用户预测一切，而是让变化发生时仍然可解释</h3>
-            <p>认证任务一定会遇到未知：测试可能暴露新约束，仓库状态可能变化，某一步也可能失败。计划的价值不在于一开始排得绝对正确，而在于把已确认的结果保留下来，让后续变化以可见、可审计、可恢复的方式发生。</p>
-            <p>当用户可以看见步骤、证据和重规划原因，系统就不再是在“替他思考”，而是在与他共享一条可以共同交付的工作路径。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>规划输出是可勾选的步骤对象；下一步只消费已确认输出；重规划必须可见。</div>
-          <hr>
-
-          <h2 id="part-06" data-toc="工具调用">Part 06 · 规格：工具调用</h2>
-          <span class="section-kicker">06 / 工具调用</span>
-          <p class="section-summary">工具是产品能力的手。越权与失败必须对用户可见，关键写操作可审计——「拒绝长什么样」比「能调什么」更重要。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/06-tool-calling.png" alt="工具调用">
-
-          <div class="content-block">
-            <h3>1. 调用背景：工具为什么不能只是模型的一只手</h3>
-            <p>计划进入 S1-S4 后，认证交付助手才需要读取仓库、编辑受限文件、运行测试和发起本地探针。工具调用把“建议”变成了对工作区的真实动作：一次错误的路径匹配可能改到密码哈希，一次未经约束的命令可能扩大变更范围，一次没有关联任务的 patch 则让用户无法判断它为何发生。</p>
-            <p>因此，工具层的产品职责不是尽可能多地开放能力，而是把当前步骤翻译为一次受限、可解释、可回溯的授权。模型可以提出调用意图，策略与运行时负责判断它是否符合已确认的契约、步骤和权限边界；用户看到的则是这次动作做了什么、依据什么被允许或拒绝。</p>
-            <div class="warn-box"><strong>调用前提：</strong>没有步骤 ID、目标路径、操作类型和策略版本的调用，不应获得写权限。工具并不替代任务规划，它只执行已经被规划和授权的下一步。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么“能跑通”仍可能是一次失控</h3>
-            <p>裸工具调用通常只关心命令是否成功，却回答不了“它是否应该执行”。例如，Agent 为让登录测试变绿而修改共享哈希工具，或为了调试直接读取 <code>.env</code>，即使短期测试通过，也已经越过本轮认证交付的边界。把成功退出码当成完成，会让风险以更快的速度积累。</p>
-            <p>另一种常见失控是拒绝不可见：系统只在内部跳过危险操作，用户最终看到一个缺失的 Diff，既不知道任务为何停住，也无法决定是收窄范围、补充授权还是人工接管。产品必须把“拒绝”设计成正常结果，而不是静默异常。</p>
-            <div class="callout"><strong>受控调用原则：</strong>每次调用都回答四个问题：谁在什么步骤提出了什么动作、将影响哪里、依据哪条策略被允许或拒绝、结果如何影响下一步。缺少其中任一项，系统就只能停在待确认状态。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：认证步骤如何变成可审计的工具调用</h3>
-            <p>当计划推进到 S3“登出后 <code>GET /me = 401</code>”时，系统不会把终端交给模型自由探索，而是为这个步骤生成最小调用许可：可读取现有 session 路由与相关测试，可修改认证实现和认证测试，可运行指定测试与本地探针；密码哈希、环境文件、密钥和合主干则始终不在许可内。</p>
-            <div class="contract-template"><code>权限矩阵（产品配置）：
-allow_write: src/auth/** , tests/auth/**
-deny: **/*hash* , **/.env* , **/secrets/**
-high_risk: 合主干 → 本产品不做，只产出 PR 草稿说明
-
-拒绝 UI 必含：
-reason_code · 触碰路径 · 对应策略版本 · 「请改范围或联系管理员」</code></div>
-            <table class="comparison-table">
-              <tr><th>步骤事件</th><th>允许的调用与用户可见结果</th><th>必须保留的证据</th></tr>
-              <tr><td>S3 读取现有会话逻辑</td><td><code>read</code> session 路由与登出测试；展示读取范围</td><td>step-id、文件清单、策略版本</td></tr>
-              <tr><td>S3 修复会话失效</td><td><code>patch</code> 仅限 <code>src/auth/**</code>；展示 Diff 摘要</td><td>调用参数、变更指纹、可回滚工作树状态</td></tr>
-              <tr><td>验证登出行为</td><td><code>test</code> + <code>probe</code>；展示 <code>GET /me</code> 的 401 结果</td><td>run-id、退出状态、日志与响应快照</td></tr>
-              <tr><td>试图改哈希或读取密钥</td><td>拒绝卡片：路径、原因码、下一步选择</td><td><code>DENY</code>、<code>FORBIDDEN_PATH</code>、策略版本</td></tr>
-            </table>
-            <div class="mermaid">
-flowchart TB
-  Step["当前步骤 S3\n登出后 /me = 401"] --> Intent["模型提出工具意图\nread / patch / test / probe"]
-  Intent --> Gate{"策略闸：步骤、路径、操作、权限\n是否同时匹配？"}
-  Gate -->|允许| Execute["受限执行\n记录 step-id 与策略版本"]
-  Execute --> Result{"结果是否满足完成条件？"}
-  Result -->|是| Evidence["保存 Diff、run-id、401 快照\n写入 checkpoint: logout-401"]
-  Evidence --> Next["解锁下一步或进入交付审查"]
-  Result -->|否| Failed["步骤标红\n附日志与失败证据"]
-  Failed --> Recover["回到当前步骤\n修复、补依据或重规划"]
-  Gate -->|拒绝| Deny["拒绝卡片\n原因码、路径、策略版本"]
-  Deny --> Choice["用户：收窄范围 / 申请授权 / 人工接管"]
-            </div>
-            <p>这个流程的关键不在于拦住所有调用，而在于把每个调用绑定到可验证的交付路径。允许的 patch 必须能追溯到 S3，测试失败必须让 S3 保持未完成，越权请求必须留下拒绝证据并给出用户可以采取的下一步。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：授权、执行、验收必须是同一条链</h3>
-            <p>工具调用的验收标准不是“工具能用”，而是任何写操作都不能脱离已确认的计划与边界。产品应在执行前完成策略判定，在执行中保存可审计事件，在执行后用测试或探针裁定步骤是否完成；策略拒绝、命令失败和验证失败都必须把任务送往可见的恢复入口。</p>
-            <div class="diag-flow"><code>准备：step-id + 调用意图 + 策略版本
-判定：允许 → 受限执行；拒绝 → 原因码与用户选项
-执行：读/改/测均写入审计；写操作保存 Diff 与工作树指纹
-验收：测试或探针通过 → checkpoint；失败 → 当前步骤回流
-边界：不读密钥、不改哈希、不合主干；超出边界交给用户决策</code></div>
-            <div class="checklist">
-              <strong>工具调用规格自检</strong>
-              <ol>
-                <li>每次 <code>patch</code> 是否都带有计划步骤 ID、允许路径和策略版本？</li>
-                <li>拒绝事件是否向用户展示原因、触碰范围与可执行的下一步，而不泄露敏感内容？</li>
-                <li>测试与探针结果是否回写到该步骤，而不是只显示一段孤立日志？</li>
-                <li>高风险动作是否明确停在产品边界外，并提供人工接管或 PR 草稿等替代产出？</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：真正的自主，不是少问人，而是知道何时必须停下</h3>
-            <p>用户把认证任务交给 Agent，并不等于把所有权限一并交出去。越是在看似简单的修复中，越需要让系统明确它能做什么、拒绝什么、失败后如何把控制权交还给人。</p>
-            <p>受控工具调用并没有削弱执行速度：它把无效探索和不可解释的返工挡在边界外，让每一次实际改动都更接近可合并、可复查的交付结果。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>手必须受控：白名单、拒绝可见、写操作可审计；合主干不做，只给说明产出。</div>
-          <hr>
-
-          <h2 id="part-07" data-toc="上下文记忆">Part 07 · 规格：上下文与记忆</h2>
-          <span class="section-kicker">07 / 上下文与记忆</span>
-          <p class="section-summary">产品要规定：存什么、召回什么、过期与越权数据进不来。价值是「正确时间给正确依据」，不是存得越多越好。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/07-context-memory.png" alt="上下文与记忆">
-
-          <div class="content-block">
-            <h3>1. 上下文背景：为什么认证 Agent 不能靠“记得很多”工作</h3>
-            <p>当认证任务走到 S3，系统需要同时理解已确认的契约、当前 Checkpoint、现有 session 实现、相关测试和最近一次失败的探针结果。它需要的不是整仓代码或所有历史聊天，而是一份足以裁定当前动作的依据包。少了关键约束，模型会猜；塞入无关或过期内容，模型又会在错误的事实之上推理。</p>
-            <p>上下文与记忆在产品中的职责，是为每一个步骤提供“此刻可用、来源可查、权限匹配”的最小事实集，并保存短程任务状态。用户不必阅读模型内部如何压缩文本，但应能展开查看：这一步依据哪些文件与验证结果，它们何时生成、是否仍有效、为什么某条信息没有被带入。</p>
-            <div class="warn-box"><strong>装载前提：</strong>只有能对应当前步骤、来源明确且未过期的内容，才能成为依据。上下文不是素材堆，更不是绕开工具权限读取敏感信息的通道。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么旧日志、整仓输入和长期偏好都会污染判断</h3>
-            <p>若系统为“避免遗忘”把整仓代码、旧 run 日志和历史偏好一并塞入上下文，当前步骤就失去优先级。一个早已修复的失败记录，可能让 Agent 重复无效补丁；一份与本轮无关的 OAuth 设计，可能把范围重新拉大；一段来自密钥或环境文件的内容，则直接突破了工具层设定的边界。</p>
-            <p>记忆失控的后果通常不像越权写入那样显眼。它会表现为模型引用过时实现、反复解释已被否决的方案，或声称“按照项目惯例”却没有可展开的来源。产品因此必须把存入、召回、驱逐和清理做成显式策略，而不是把它们留给一次不可见的上下文拼接。</p>
-            <div class="callout"><strong>治理原则：</strong>当前事实优先于历史摘要，任务内证据优先于跨任务偏好，授权范围优先于“可能有用”的信息。无法说明来源、有效期与授权关系的内容，默认不进入依据包。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：S3 的最小依据包如何生成、使用与淘汰</h3>
-            <p>针对“登出后 <code>GET /me</code> 仍返回 200”的 S3，认证交付助手只装载五类信息：已确认的登出验收句、<code>guard-401</code> Checkpoint、session 与登出路由、对应测试、最近一次 200 响应快照。系统把每项内容附上来源、获取时间和适用步骤；哈希、<code>.env</code>、密钥、旧 run 与 OAuth 文件即使被检索到，也必须在策略闸处被排除。</p>
-            <div class="layer-grid">
-              <div class="layer-card content-block">
-                <span class="layer-tag">存</span>
-                <h3>本任务级</h3>
-                <p>契约确认版、Checkpoint、本轮失败约束，以及每条依据的来源、时间和适用步骤。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">召回</span>
-                <h3>按步装载</h3>
-                <p>S3 只装 session、登出测试与 200 快照；不整仓灌入。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">驱逐</span>
-                <h3>过期与越权出局</h3>
-                <p>旧 run、密钥、非目标范围文件和失效快照，均由策略拒绝进入。</p>
-              </div>
-              <div class="layer-card content-block">
-                <span class="layer-tag">裁剪</span>
-                <h3>不做长期偏好</h3>
-                <p class="wrong">跨项目「个人偏好记忆」非 v1；任务结束可清理。</p>
-              </div>
-            </div>
-            <table class="comparison-table">
-              <tr><th>依据条目</th><th>何时可进入 S3</th><th>用户可见信息与失效条件</th></tr>
-              <tr><td>确认版契约</td><td>状态为 <code>contract_ready</code>，且 Acceptance 包含登出后 401</td><td>契约版本；用户撤回或修改范围即失效</td></tr>
-              <tr><td>session / 登出实现</td><td>路径落在当前工具读取白名单</td><td>文件来源与版本；工作树变化后重新获取</td></tr>
-              <tr><td>测试与 200 快照</td><td>绑定当前 S3 run 与同一环境</td><td>run-id、时间、响应摘要；新一轮执行后替换</td></tr>
-              <tr><td>密钥、哈希、OAuth 文件</td><td>永不进入本轮依据包</td><td>显示排除原因，不展示敏感正文</td></tr>
-            </table>
-            <div class="mermaid">
-flowchart TB
-  Step["当前步骤 S3\n登出后 /me 必须为 401"] --> Collect["候选依据\n契约、Checkpoint、session、测试、最近快照"]
-  Collect --> Filter{"来源、时效、步骤相关性、权限\n是否全部通过？"}
-  Filter -->|通过| Pack["生成最小依据包\n每项带 source / time / scope"]
-  Pack --> Execute["供受控 read / patch / test 使用"]
-  Execute --> Verify{"新的测试与探针结果"}
-  Verify -->|通过| Store["更新短程记忆\ncheckpoint: logout-401"]
-  Verify -->|失败| Refresh["保存失败证据\n替换过期快照后重新装载"]
-  Refresh --> Collect
-  Filter -->|拒绝| Exclude["排除：旧 run、越权文件、密钥、非目标内容"]
-  Exclude --> Notice["用户可展开排除原因\n不暴露敏感正文"]
-  Store --> Cleanup["任务结束：保留审计摘要\n清理任务级运行上下文"]
-            </div>
-            <div class="tip-box"><strong>与 Part 02 的分工：</strong>Context 治理在系统侧；产品侧必须呈现“本步依据来源”、排除原因和任务结束后的清理策略，让用户能判断系统是否在正确事实之上执行。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：记忆必须服务于当前步骤，并且允许被遗忘</h3>
-            <p>上下文与记忆的验收不在于保存了多少内容，而在于当前步骤是否能凭借一组可信事实做出正确动作。每一条进入依据包的内容都应有来源、有效期、适用范围与可见摘要；每一次新验证都应更新或淘汰旧证据；任务结束后则按策略清理运行上下文，仅保留交付所需的审计与结果摘要。</p>
-            <div class="diag-flow"><code>收集：仅取契约、当前 Checkpoint、授权文件、当前 run 证据；过滤：校验来源、时效、步骤相关性与权限，不通过即排除；装载：最小依据包随步骤进入受控执行，并可向用户展开来源；更新：新测试覆盖旧快照，失败证据回流到当前步骤；清理：任务结束移除短程上下文，不做跨项目长期偏好记忆。</code></div>
-            <div class="checklist">
-              <strong>上下文与记忆规格自检</strong>
-              <ol>
-                <li>用户能否看见当前步骤引用了哪些来源，以及这些来源为何仍然有效？</li>
-                <li>旧 run、过期快照、越权路径和敏感内容是否在进入模型前即被排除？</li>
-                <li>新的测试与探针结果是否会替换旧证据，而不是与旧结论并列造成冲突？</li>
-                <li>任务完成、取消或移交后，短程上下文是否按策略可清理、可审计？</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：可靠的记忆，不是把过去带得更远，而是把当前事实留得更清楚</h3>
-            <p>对认证 Agent 而言，真正有价值的“记住”是已确认的契约、仍然有效的证据和刚刚发生的失败，而不是把每一次聊天、每个文件和每个人的偏好永久保留。</p>
-            <p>当系统敢于排除无关信息、淘汰过期结论并在任务结束后清理上下文，用户才可以相信它是在当前边界内行动，而不是被过去的噪声推着继续改代码。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>记忆的产品验收 = 来源可展开 + 越权/密钥进不来 + 任务级可清理。</div>
-          <hr>
-
-          <h2 id="part-08" data-toc="状态恢复">Part 08 · 规格：状态与恢复</h2>
-          <span class="section-kicker">08 / 状态与恢复</span>
-          <p class="section-summary">演示可以一路顺风；产品必须回答：中断、换人、失败后怎么续——可暂停、可恢复、可交接。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/08-state-recovery.png" alt="状态与恢复">
-
-          <div class="content-block">
-            <h3>1. 状态背景：为什么“任务还在跑”不是一个可恢复的状态</h3>
-            <p>认证交付并不会总在一个连续会话中完成：浏览器可能关闭，工具调用可能超时，测试可能把任务停在 S3，也可能在联调时由另一位同事接手。若系统只把进度留在聊天记录或模型上下文中，恢复时它既无法确认上次做到哪里，也无法判断工作区是否已被外部改动。</p>
-            <p>状态与恢复的产品职责，是把任务从一次对话变成可持久化的工作对象。每次到达 Checkpoint、提交 patch、运行验证或等待人工时，系统都要保存可恢复快照：当前步骤、已确认输出、未完成动作、依据版本、工作树指纹和风险状态。恢复不是继续生成，而是先验证这些事实仍然成立。</p>
-            <div class="warn-box"><strong>恢复前提：</strong>系统只能从已确认 Checkpoint 恢复，不能凭“上次大概做到这里”自动猜测。工作树、契约或权限边界发生关键变化时，必须先重新裁定是否仍可续跑。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么静默续跑比明确中断更危险</h3>
-            <p>中断之后最危险的动作不是停止，而是系统在没有校验环境的情况下接着修改。阿明在暂停期间可能已经手动修过 session；同事也可能更新了测试基线。如果 Agent 仍按照旧上下文继续 patch，就会覆盖新改动、重复执行过时计划，甚至把一个已通过的 Checkpoint 重新变红。</p>
-            <p>另一个问题是交接信息不足。把“请继续修登出问题”留给接手人，需要他重新翻聊天、猜当前风险、定位上次日志。产品应该生成面向人的恢复 Brief，而不是假设下一位操作者能继承模型的短期记忆。无法证明一致性的任务也不能伪装成可恢复状态。</p>
-            <div class="callout"><strong>恢复原则：</strong>暂停是保存事实，不是冻结屏幕；恢复是重新核验，不是重新猜测；交接是导出状态对象，不是转发聊天记录；不可恢复是明确结果，不是让自动化继续试错。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：S3 中断后，系统凭什么允许另一人继续</h3>
-            <p>在 S3“登出后 <code>GET /me = 401</code>”中，系统已经确认 <code>guard-401</code>，并保存了最近的失败证据：登出后探针仍为 200、当前 patch 的 Diff 摘要、相关测试 run-id，以及工作树指纹。用户点击暂停时，任务状态转换为 <code>paused</code>，不再发起新的写操作；恢复或交接时，系统先检查契约版本、权限策略和工作树是否仍与快照兼容。</p>
-            <table class="comparison-table">
-              <tr><th>场景</th><th>产品行为</th><th>恢复依据与验收演练</th></tr>
-              <tr><td>中断</td><td>暂停 → 状态外置 → 禁止新写操作</td><td>关页 10 分钟再开，仍显示 S3、<code>guard-401</code> 与未通过的 200 快照</td></tr>
-              <tr><td>同人恢复</td><td>核验工作树与策略 → 从原 Checkpoint 续跑</td><td>无关键差异时仅重做 S3 的下一步，不重复已确认的 S1/S2</td></tr>
-              <tr><td>换人交接</td><td>导出 Brief；接手人确认后续跑</td><td>阿明停止，同事凭 Brief 在 S3 继续，不翻聊天记录</td></tr>
-              <tr><td>不可恢复</td><td>停止自动；提示重置、重规划或人工处理</td><td>外部大改工作树、契约撤回或权限变化后不得假续跑</td></tr>
-            </table>
-            <div class="contract-template"><code>交接 Brief 必含：task_id · 契约版本 · 当前步骤 · 已确认 Checkpoint · 最近 Diff 摘要 · 阻塞原因 · run-id / 日志入口 · 工作树指纹 · 禁区提醒 · 下一步可选操作</code></div>
-            <div class="mermaid">
-stateDiagram-v2
-  [*] --> Running: 计划批准后执行
-  Running --> Checkpointed: 验证通过并保存 checkpoint
-  Checkpointed --> Running: 解锁下一步骤
-  Running --> Paused: 用户暂停 / 会话中断
-  Paused --> VerifyResume: 用户恢复或交接
-  VerifyResume --> Running: 契约、策略、工作树均兼容
-  VerifyResume --> Replan: 假设或范围变化
-  VerifyResume --> WaitingHuman: 工作树冲突或高风险
-  Running --> WaitingHuman: 需要人工裁定
-  Replan --> Running: 新计划确认
-  WaitingHuman --> Running: 人工处理并确认恢复点
-  WaitingHuman --> [*]: 取消或重置任务
-            </div>
-            <p>流程图中的 <code>VerifyResume</code> 是恢复的关键闸门。它不检查模型“是否还记得”，而是检查当前工作区、契约和策略能否支持继续执行。只有三者一致，系统才回到 <code>Running</code>；否则进入重规划或等待人工，保留现场证据而不继续写入。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：恢复需要证据，不能只靠连续性</h3>
-            <p>状态能力的验收不是页面上有“继续”按钮，而是中断后仍能安全地解释和推进任务。产品必须在关键动作后保存状态快照，以 Checkpoint 为恢复边界，以工作树、契约和策略的一致性为恢复条件，以 Brief 为交接载体；一旦这些条件不满足，就停止自动执行并把选择权明确交还给用户。</p>
-            <div class="diag-flow"><code>保存：步骤、Checkpoint、Diff 摘要、run-id、依据/策略版本、工作树指纹；暂停：停止新的工具写入；恢复：核验工作树 + 契约 + 策略；一致则从 Checkpoint 续跑，不一致则重规划或人工；交接：导出 Brief，不依赖聊天；取消：清理运行态但保留审计摘要。</code></div>
-            <div class="checklist">
-              <strong>状态与恢复规格自检</strong>
-              <ol>
-                <li>关闭页面或工具超时后，任务是否仍能定位到最后一个已确认 Checkpoint？</li>
-                <li>恢复前是否核验工作树、契约版本和权限策略，而非直接继续执行旧计划？</li>
-                <li>另一位同事是否能仅凭 Brief 理解当前步骤、阻塞证据、禁区与下一步？</li>
-                <li>任务不可恢复时，产品是否停止自动写入并清楚提供重置、重规划或人工处理出口？</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：可恢复不是让系统永远不停，而是让每一次停下都不丢失判断</h3>
-            <p>长任务真正稀缺的不是连续运行时间，而是中断之后仍然能够辨认现场：哪些已经确认、哪些尚未完成、哪些假设已经失效，以及谁可以在什么条件下继续。</p>
-            <p>当暂停、恢复和交接都依赖同一份可审计状态，Agent 才不再是一次性的对话工具，而成为可以进入真实协作流程的执行对象。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>状态能力的验收 = 可暂停、可恢复、可交接；不可恢复必须诚实告知。</div>
-          <hr>
-
-          <h2 id="part-09" data-toc="验证反馈">Part 09 · 规格：验证与反馈</h2>
-          <span class="section-kicker">09 / 验证与反馈</span>
-          <p class="section-summary">产品不得在证据不足时显示「已完成」。未通过原因必须对用户可见——假完成进不了 UI。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/09-verify-feedback.png" alt="验证与反馈">
-
-          <div class="content-block">
-            <h3>1. 验证背景：为什么“代码写完了”还不能点亮完成</h3>
-            <p>认证 Agent 可以生成 patch、运行命令，甚至给出一段看起来很自信的总结，但这些都不是交付完成的证据。阿明真正需要确认的是：登录是否可用、未登录是否被拒绝、登出后会话是否失效、错误体是否没有泄露路径。只有这些契约中的 Acceptance 被独立证据逐条满足，任务才有资格结束。</p>
-            <p>验证与反馈的产品职责，是把模型产出与可裁定事实分开。系统接收当前步骤的产物、测试和探针结果，再按确认版契约逐条判定；它展示“哪条已通过、哪条未通过、证据在哪里、下一步可以做什么”，而不让模型的一句“应该修好了”替代裁定。</p>
-            <div class="warn-box"><strong>完成前提：</strong>完成状态只能由全部 Acceptance 与对应证据共同产生。没有 run-id、响应快照、测试日志或人工验收记录的结论，最多是待验证，不能成为“已完成”。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么绿灯、日志和模型自述都可能误导用户</h3>
-            <p>一组单测全绿并不必然覆盖真实会话链路；一次 <code>curl</code> 返回 401 也不一定来自正确的登出流程；模型摘要更可能遗漏未执行的验收项。如果产品把这些碎片化信号直接折叠为“成功”，用户会在联调或上线时才发现登出后 <code>/me</code> 仍然可访问，或者错误响应把内部路径带给了前端。</p>
-            <p>验证失败也不能一律重试。网络超时属于瞬时问题，session 假设错误需要重规划，缺少现行规范应补上下文，权限冲突或安全风险必须交给人裁定。没有证据分类的“再试一次”，只会让 Agent 在同一错误路径上循环。</p>
-            <div class="callout"><strong>裁定原则：</strong>每一条结论必须指向一个 Acceptance 和一份可复查证据；每一次失败必须说明它是瞬时、假设、依据还是风险问题。产品提供出口，但不替用户掩盖不确定性。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：认证任务如何从 S1-S4 汇总为可否决的完成态</h3>
-            <p>认证交付助手在交付审查时，将计划中的步骤证据回连到契约：S1 的登录用例证明凭证路径可用；S2 的未登录探针证明受保护接口返回 401；S3 的登出后探针证明会话已被清理；S4 的错误体快照证明没有服务器路径泄露。任何一项缺失、过期或失败，完成徽章都必须保持关闭。</p>
-            <table class="comparison-table">
-              <tr><th>Acceptance</th><th>最小证据</th><th>未满足时的用户可见状态</th></tr>
-              <tr><td>登录可用</td><td>S1 测试 run-id + 成功响应摘要</td><td>“登录链路未验证”，可查看日志或重试</td></tr>
-              <tr><td>未登录 <code>/me = 401</code></td><td>S2 无会话探针快照</td><td>“鉴权边界未满足”，回到 S2</td></tr>
-              <tr><td>登出后 <code>/me = 401</code></td><td>S3 登出序列与 401 响应快照</td><td>“会话未失效”，回到 S3 并保留 200 证据</td></tr>
-              <tr><td>错误体不泄露路径</td><td>S4 错误响应快照 / 安全断言</td><td>“错误体合规未通过”，回到 S4 或人工复核</td></tr>
-            </table>
-            <div class="mermaid">
-flowchart TB
-  Contract["确认版契约\nAcceptance A1-A4"] --> Gather["收集步骤证据\nS1-S4 run-id、快照、Diff、人工记录"]
-  Gather --> Match{"每份证据是否\n来源可信、未过期、对应 Acceptance？"}
-  Match -->|否| Missing["未通过：证据不足或无效\n完成徽章保持关闭"]
-  Match -->|是| Judge{"A1-A4 是否全部满足？"}
-  Judge -->|是| Complete["已通过\n展示验收清单与证据链接"]
-  Judge -->|否| Diagnose{"失败类型"}
-  Diagnose --> Retry["瞬时失败\n限次重试"]
-  Diagnose --> Replan["假设错误\n重规划并保留 checkpoint"]
-  Diagnose --> Context["依据不足\n补上下文后再验证"]
-  Diagnose --> Human["高风险或僵局\n生成 Brief，等待人工"]
-  Retry --> Gather
-  Replan --> Gather
-  Context --> Gather
-  Human --> Gather
-            </div>
-            <p>图中没有从“模型说完成”直接通往交付的箭头。模型可以解释证据、建议回流出口，但完成态只能由验证层写入；回流后重新收集的是新证据，已确认的 Checkpoint 仍被保留，避免每次失败都把整条认证链路重做一遍。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：把失败分类，把完成锁给证据</h3>
-            <p>验证能力的验收不在于页面展示了更多日志，而在于用户能据此做出正确决策。产品需要将每一条 Acceptance 绑定到最小证据和明确的未通过状态，禁止证据缺失时点亮完成；当失败发生时，根据其性质路由到重试、重规划、补上下文或人工处理，并把结果回写到原步骤和任务状态。</p>
-            <div class="layer-grid">
-              <div class="layer-card content-block"><span class="layer-tag">重试</span><h3>瞬时失败</h3><p>UI 显示限次重试与剩余次数，不改步骤假设。</p></div>
-              <div class="layer-card content-block"><span class="layer-tag">重规划</span><h3>假设错误</h3><p>展示新步骤图与原因；保留已确认 Checkpoint。</p></div>
-              <div class="layer-card content-block"><span class="layer-tag">补上下文</span><h3>证据不足</h3><p>引导补依据来源；补齐前不开写。</p></div>
-              <div class="layer-card content-block"><span class="layer-tag">人工</span><h3>僵局/高危</h3><p>生成 Brief，停自动执行，状态=waiting_human。</p></div>
-            </div>
-            <div class="diag-flow"><code>输入：契约 Acceptance + 当前步骤产物 + run-id / 快照；裁定：逐条匹配证据，证据不足即未通过；汇总：A1-A4 全部满足才点亮完成；回流：瞬时失败→重试，假设错误→重规划，依据不足→补上下文，高危/僵局→人工；输出：通过或未通过，均附可展开证据。</code></div>
-            <div class="checklist">
-              <strong>验证与反馈规格自检</strong>
-              <ol>
-                <li>每一条 Acceptance 是否都有独立、可复查且仍有效的最小证据？</li>
-                <li>证据缺失、测试未跑或探针环境不匹配时，完成状态是否被产品层禁止？</li>
-                <li>失败原因是否被分类并路由到恰当出口，而不是默认无限重试？</li>
-                <li>用户能否直接看到未通过的具体条目、证据入口与下一步，而非只收到模型摘要？</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：验证的价值，不是替系统宣布正确，而是让错误无法被悄悄带过去</h3>
-            <p>真正可靠的完成感并不来自一个醒目的绿色徽章，而来自任何人都能沿着验收条目回到测试、探针和变更记录，确认这次认证交付确实发生过、也确实符合边界。</p>
-            <p>当产品让证据决定完成、让失败带着原因回流，Agent 的速度才不会把不确定性更快地推向联调与生产环境。</p>
-          </div>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>验证能力的验收 = 假完成进不了 UI；原因与证据必须可见；四出口可点可选。</div>
-          <hr>
-
-          <h2 id="part-10" data-toc="设计卡">Part 10 · 一页设计卡：案例定稿</h2>
-          <span class="section-kicker">10 / 设计卡</span>
-          <p class="section-summary">把前面规格收成一页。填不实的格子，上线前必须补——九项都能被第三方挑刺，才叫做成了产品设计。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/10-agent-design.png" alt="设计卡">
-
-          <div class="content-block">
-            <h3>1. 定稿背景：为什么九章规格仍需要收成一张设计卡</h3>
-            <p>Part 01 至 Part 09 已分别回答用户目标、能力选择、契约、计划、工具、上下文、状态与验证。但它们分散在不同章节，评审者很难一眼判断这些承诺是否互相一致：成功标准是否被验证覆盖，工具权限是否支持计划步骤，失败出口能否接住状态恢复，非目标是否真的被产品边界挡住。</p>
-            <p>一页设计卡的职责不是压缩信息，而是把这些关键决策收束成可审查的产品合同。它让业务、工程和安全评审站在同一份对象前回答：为谁解决什么问题，系统可以做什么、不可以做什么，如何证明完成，失败后用户会看到什么，以及达到什么条件才允许灰度。</p>
-            <div class="warn-box"><strong>定稿前提：</strong>设计卡不是宣言，也不是功能愿望清单。每个字段都必须能回链到前文规格、界面状态或验证证据；写不出验证方式的承诺，不能进入 v1。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么“字段都填了”仍可能无法上线</h3>
-            <p>最常见的误区是把设计卡当成归档文档：目标写得宏大，权限写得笼统，失败时只写“提示用户”，上线标准则留给临近发布时再讨论。这样的卡片虽然没有空格，却无法回答具体的挑战，例如“Agent 想改哈希文件时，界面显示什么”“登出探针 200 时任务回到哪一步”“中断后同事凭什么恢复”。</p>
-            <p>真正的定稿需要消除字段之间的矛盾。若目标承诺完成认证，验证就必须覆盖登录、鉴权、登出和错误体；若工具允许写入，计划就要提供步骤 ID 和权限路径；若系统承诺可恢复，状态快照和 Brief 就不能缺失。设计卡的价值在于暴露这种不一致，而不是让它们隐藏在不同页面里。</p>
-            <div class="callout"><strong>定稿原则：</strong>每一项承诺都要同时有边界、失败态和验收点。没有失败态的能力不可支持，没有验收点的目标不可放行，没有边界的工具不可授权。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：认证交付助手 v1 如何收束为可评审合同</h3>
-            <p>下列设计卡不是重新发明规格，而是把前面已经确认的选择集中起来。它将“登出后 <code>/me = 401</code>”作为可否决目标，把 OAuth、密钥和自动合主干明确留在边界外，并要求所有工具写入、恢复和完成结论都能被同一条证据链解释。</p>
-            <div class="contract-template"><code>【设计卡 · 认证交付助手 v1】
-用户/场景: 业务后端工程师；认证相关迭代交付
-目标: 边界内完成注册/登录/登出相关改动并证明通过
-非目标: OAuth / 多租户 / 自动合主干 / 触碰密钥
-成功标准: 单测绿；登录→/me200→登出→/me401；错误体不泄密；写操作可审计
-能力组合: 目标理解·规划·工具·上下文记忆·状态恢复·验证（六项最小规格）
-工具与权限: allow auth/** + tests/auth/**；deny hash/.env/secrets；高危人工
-失败时用户看到: 未通过的 Acceptance + 证据 + 下一步选项
-验证: 单测 + http 探针；无证据不得标完成
-上线闸门: 安全清单（禁区、审计、假完成拦截）评审通过；灰度 1 个小队 1 周</code></div>
-            <table class="comparison-table">
-              <tr><th>设计卡字段</th><th>来自哪项既有规格</th><th>评审时应追问什么</th></tr>
-              <tr><td>用户、目标、非目标</td><td>Part 01、Part 04</td><td>目标是否可否决？OAuth 与密钥是否真被排除？</td></tr>
-              <tr><td>六项能力组合</td><td>Part 03、Part 05-09</td><td>每项能力是否都有最小行为、失败态与验收？</td></tr>
-              <tr><td>工具与权限</td><td>Part 06</td><td>每次写入是否带 step-id，越权是否可见且可审计？</td></tr>
-              <tr><td>失败、恢复与交接</td><td>Part 07、Part 08</td><td>证据过期、会话中断或工作树变化时会发生什么？</td></tr>
-              <tr><td>验证与上线闸门</td><td>Part 09</td><td>无证据能否完成？灰度前由谁依据什么签字？</td></tr>
-            </table>
-            <div class="mermaid">
-flowchart TB
-  Problem["产品问题\n用户、目标、非目标、成功标准"] --> Card["设计卡 v1\n一份可评审合同"]
-  Capability["能力规格\n目标理解、规划、工具、上下文、状态、验证"] --> Card
-  Boundary["权限与风险\nallow / deny / 人工闸"] --> Card
-  Evidence["验收与反馈\nAcceptance、证据、回流"] --> Card
-  Card --> Review{"独立评审\n字段能否逐项举证？"}
-  Review -->|否| Repair["打回对应规格\n补边界、失败态或验收"]
-  Repair --> Card
-  Review -->|是| Gate["上线闸门\n安全清单 + 灰度方案"]
-  Gate --> Pilot["1 个小队灰度 1 周\n收集真实使用证据"]
-  Pilot --> Decision{"四柱验收\n是否放行？"}
-  Decision -->|否| Repair
-  Decision -->|是| Release["进入可控发布"]
-            </div>
-            <p>这张图表明设计卡不是终点。它将分散规格交给独立评审，评审不通过就回到对应章节补齐；通过后仍需要安全清单与灰度验证。只有在真实使用证据也支持这份合同的前提下，才进入放行决策。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：空格和矛盾都必须成为上线前门禁</h3>
-            <p>设计卡的验收不是“文档已创建”，而是第三方能够据它走完一次挑战：从目标追到验收，从写操作追到权限，从失败追到恢复或人工出口，从灰度追到放行结论。任何字段缺失、相互矛盾或无法举证，都应定位到具体规格章节修复，而不是以“后续补齐”带入上线。</p>
-            <table class="comparison-table">
-              <tr><th>空格</th><th>风险</th><th>动作</th></tr>
-              <tr><td>成功标准含糊</td><td>假完成</td><td>补可否决句后再评</td></tr>
-              <tr><td>权限表缺失</td><td>越权改哈希</td><td>补 allow/deny 再联调</td></tr>
-              <tr><td>失败可见性未写</td><td>用户只看到「再试试」</td><td>补 UI 状态与证据链</td></tr>
-              <tr><td>Brief / 恢复未写</td><td>换人无法续</td><td>补状态规格与演练</td></tr>
-              <tr><td>上线闸门未写</td><td>演示直接当上线</td><td>补灰度与安全清单</td></tr>
-            </table>
-            <div class="diag-flow"><code>收卡：汇总目标、边界、六项能力、失败出口、证据与闸门；对齐：检查目标-计划-权限-状态-验证是否互相支持；挑刺：独立 reviewer 逐项追问证据；修复：答不上的格子回到对应规格；门禁：安全清单通过后才进入小队灰度；放行：四柱全绿才进入可控发布。</code></div>
-            <div class="checklist">
-              <strong>一页设计卡自检</strong>
-              <ol>
-                <li>用户、目标、非目标和成功标准是否能让第三方明确判断本轮做成还是没做成？</li>
-                <li>六项能力是否都已写明最小行为、边界、失败态和验收，而不是只有能力名称？</li>
-                <li>工具权限、上下文来源、恢复 Brief 与验证证据是否能在同一个任务 ID 下关联？</li>
-                <li>独立 reviewer 是否能根据设计卡识别空格或矛盾，并把问题准确打回对应规格？</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：一页的价值，不是把复杂系统变简单，而是让责任无法被藏起来</h3>
-            <p>认证 Agent 的内部机制可以很多，但用户只需要一份能被追问、能被验证、失败时也能找到责任边界的承诺。设计卡把这些承诺并排放在一起，让“没想清楚”无处躲藏。</p>
-            <p>当每个格子都能回到具体规格和证据，团队才是在定稿一个可以上线的产品，而不是为一次演示整理一张漂亮的总结页。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>一页设计卡是上线前的合同草稿；空格不放行，挑刺不过不进四柱。</div>
-          <hr>
-
-          <h2 id="part-11" data-toc="验收四柱">Part 11 · 验收四柱：放行还是打回</h2>
-          <span class="section-kicker">11 / 验收</span>
-          <p class="section-summary">验收对象是产品是否完成用户目标，不是模型会不会说话。任一柱不过，产品不放行——补规格与闸门，不补「请更认真」。</p>
-          <img class="chapter-image" src="/images/ai-agent-engineering/11-agent-acceptance.png" alt="验收四柱">
-
-          <div class="content-block">
-            <h3>1. 验收背景：为什么“演示跑通”不等于可以放行</h3>
-            <p>到 Part 10 为止，认证交付助手已经有了设计卡、权限边界、状态恢复和验证规则，但这些都是设计承诺。真正进入灰度前，团队还要回答一个更苛刻的问题：它是否稳定地完成用户目标，又是否能在失败、越权和中断时保持边界、留下解释、被人接住。</p>
-            <p>验收四柱把这个问题拆成正确、完整、可恢复、可解释四个互不替代的维度。正确防止“功能没做成却上线”，完整防止“做成了但越界”，可恢复防止“只能在演示者电脑上跑”，可解释防止“出了问题没人知道为什么”。任意一柱为红，整体就不具备放行条件。</p>
-            <div class="warn-box"><strong>放行前提：</strong>四柱不是平均分。它们是串联门禁：任一柱缺失证据、存在高风险缺口或无法说明回流路径，产品都只能打回对应规格，不能用其他柱的绿灯抵消。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么只验“结果正确”会把风险带进灰度</h3>
-            <p>如果团队只检查“登出后 <code>/me</code> 是否返回 401”，认证助手可能在演示环境看似正确，却依然允许改哈希、遇到中断就丢上下文、面对拒绝只给一句模糊提示。这样的产品在第一次范围漂移、人员交接或失败排障时就会失去控制，灰度只是把问题从演示环境扩大到真实协作。</p>
-            <p>四柱的意义在于把功能结果和交付质量一起验收。它要求评审者沿着同一个任务 ID 查看成功证据、越权拒绝记录、Checkpoint 与 Brief、失败和策略审计，而不是只看一段 demo 或一张全绿截图。验收对象始终是产品对用户的完整承诺。</p>
-            <div class="callout"><strong>验收原则：</strong>每一柱必须由独立证据支撑，并且明确“不过时回哪一章补”。不接受“模型会更小心”“再提示一下用户”之类没有可执行规格的修复方案。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：认证交付助手 v1 如何经受四柱审查</h3>
-            <p>小林组织一次独立走读，不要求演示者解释模型如何思考，而是按设计卡逐柱索证。三轮小队灰度中的登录、鉴权、登出和错误体记录支撑正确性；OAuth 与哈希拦截审计支撑完整性；暂停、恢复和换人 Brief 演练支撑可恢复性；证据链接、拒绝卡片和失败回流支撑可解释性。</p>
-            <table class="comparison-table">
-              <tr><th>柱</th><th>评审追问</th><th>本案例证据与结论</th><th>不过时打回哪里</th></tr>
-              <tr><td><strong>正确</strong></td><td>成功标准是否逐条满足？</td><td>三轮灰度均有登录、<code>/me 401</code>、错误体断言与单测 run-id → 过</td><td>Part 04 / 05 / 09：补验收句、探针与测试绑定</td></tr>
-              <tr><td><strong>完整</strong></td><td>是否越出非目标或权限边界？</td><td>OAuth、改哈希、读取密钥均被拦截，拒绝记录可查 → 过</td><td>Part 03 / 06：补非目标、权限表与拒绝 UI</td></tr>
-              <tr><td><strong>可恢复</strong></td><td>中断、换人和环境变化能否安全续跑？</td><td>暂停后恢复 S3、Brief 换人演练通过；冲突时进入人工闸 → 过</td><td>Part 07 / 08：补 Checkpoint、状态快照与 Brief</td></tr>
-              <tr><td><strong>可解释</strong></td><td>拒绝、失败和完成是否都能回到事实？</td><td>策略版本、Diff、run-id、失败回流与证据链接可展开 → 过</td><td>Part 06 / 09：补审计、证据链与完成拦截</td></tr>
-            </table>
-            <div class="mermaid">
-flowchart TB
-  Input["灰度交付物\n设计卡、权限表、状态快照、验证记录、审计"] --> Four["四柱走读\n正确 · 完整 · 可恢复 · 可解释"]
-  Four --> Correct{"正确\nAcceptance 与证据全绿？"}
-  Correct -->|否| BackVerify["打回验证/计划规格\n补测试、探针或验收句"]
-  Correct -->|是| Complete{"完整\n非目标与权限未越界？"}
-  Complete -->|否| BackBoundary["打回能力/工具规格\n补边界、拒绝或审计"]
-  Complete -->|是| Recoverable{"可恢复\n中断与交接演练通过？"}
-  Recoverable -->|否| BackState["打回上下文/状态规格\n补 Checkpoint、Brief、恢复闸"]
-  Recoverable -->|是| Explainable{"可解释\n失败、拒绝、完成均可追溯？"}
-  Explainable -->|否| BackEvidence["打回工具/验证规格\n补证据链与 UI 状态"]
-  Explainable -->|是| Gate["签署闸门结论\n进入受控发布"]
-  BackVerify --> Input
-  BackBoundary --> Input
-  BackState --> Input
-  BackEvidence --> Input
-            </div>
-            <p>流程中的打回不是抽象的“优化”。每一条红柱都回到它所属的规格：正确性回到验收与计划，完整性回到边界与工具，可恢复性回到上下文与状态，可解释性回到审计与验证。这样，团队修复的是系统缺口，而不是要求模型“下次认真一点”。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：放行是一次可复核的决定，不是一句口头认可</h3>
-            <p>放行会议的输出不应是“看起来没问题”，而应是一份可追溯的闸门结论：四柱各自的证据链接、未解决风险、参与评审者、灰度范围与回滚条件。只要任一柱转红，系统立即停止扩大范围，带着证据返回对应规格；只有四柱全绿，才进入限定小队、限定时间的受控发布。</p>
-            <div class="deliverables">
-              <div class="deliverable"><strong>设计卡</strong></div>
-              <div class="deliverable"><strong>六项规格摘要</strong></div>
-              <div class="deliverable"><strong>权限表</strong></div>
-              <div class="deliverable"><strong>验证记录</strong></div>
-              <div class="deliverable"><strong>闸门结论</strong></div>
-            </div>
-            <div class="diag-flow"><code>输入：设计卡、六项规格、灰度记录、审计与恢复演练；走读：独立 reviewer 逐柱举证；判定：任一柱红即停止放行并打回具体规格；放行：四柱全绿后签闸门结论，限定 1 个小队、1 周观察；回滚：新增高危拒绝、完成证据失效或恢复演练失败时立即停止扩大范围。</code></div>
-            <div class="checklist">
-              <strong>验收四柱自检</strong>
-              <ol>
-                <li>正确性是否覆盖所有确认的 Acceptance，而不只是单测绿或单个接口返回正确？</li>
-                <li>完整性是否同时证明非目标、敏感路径和高风险动作都被产品边界拦住？</li>
-                <li>可恢复性是否经过中断、换人和工作树变化的演练，而不是停留在流程描述？</li>
-                <li>可解释性是否允许第三方从每个结论回到策略、Diff、run-id、快照或人工记录？</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：放行不是对系统说“你已经够好”，而是对风险说“我们知道如何接住你”</h3>
-            <p>一个可上线的 Agent 并不意味着它再也不会失败。它意味着团队已经确认：失败时不会越权，不会假装完成，不会因中断丢失现场，也不会让用户面对无法解释的黑箱。</p>
-            <p>四柱把这种把握变成可以被重复执行的决策标准。真正值得签字的，不是一次漂亮演示，而是任何一根柱子转红时，团队仍然知道该停在哪里、该补什么、由谁来决定下一步。</p>
-          </div>
-
-          <div class="chapter-close"><strong>这一幕带走：</strong>四柱是放行开关；交付物是审计与复盘底稿。柱红补规格，不补口号。</div>
-          <hr>
-
-          <h2 id="closing" data-toc="结语">结语 · 产品做成之后</h2>
-          <span class="section-kicker">收束</span>
-          <p class="section-summary">认证交付助手从「会聊机制」变成「可上线产品」，靠的是问题、规格、设计卡与四柱，而不是更长的功能列表。</p>
-
-          <div class="content-block">
-            <h3>1. 收束背景：产品放行后，工作才刚刚从“做出来”进入“跑得住”</h3>
-            <p>认证交付助手通过四柱验收，并不意味着它从此不需要治理。灰度中的每一次任务、拒绝、失败和人工接管，都会继续检验设计卡中的承诺：用户目标是否仍清楚，权限边界是否仍有效，证据能否支撑完成，恢复机制能否在真实协作中接住中断。</p>
-            <p>本篇的终点因此不是“做出一个会调用工具的 Agent”，而是建立一套让产品能够持续被审查和修正的工作方式。小林和阿明得到的不是一套固定实现，而是一张从需求、规格、执行到放行都可以复用的责任地图。</p>
-            <div class="warn-box"><strong>产品后的前提：</strong>灰度不是取消门禁，而是把门禁带进真实使用。任何新场景、权限变化或反复失败，都应重新回到问题、规格和四柱，而不是默许范围在运行中漂移。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>2. 核心问题：为什么能力清单通过演示，仍然不等于一个可运营产品</h3>
-            <p>v0 的失败并不在于模型不能生成认证代码，而在于团队把机制名称当成产品能力：它能规划、能调用工具、能记住上下文，却没有为谁服务、做到什么算完成、什么不能做、失败时由谁接手的明确答案。演示时的连贯输出掩盖了边界、状态和证据的缺口。</p>
-            <p>即便 v1 已完成灰度，也不能退回“功能越多越好”的节奏。OAuth、多租户、跨仓库协作和自动合主干都会改变权限、状态、审计和验收模型；它们不是在现有产品旁边加一个按钮，而是新的产品问题。没有新的契约与规格，就不应借用 v1 的放行结论。</p>
-            <div class="callout"><strong>持续治理原则：</strong>每次能力扩展都重新回答四件事：用户目标是否变化，边界是否变化，失败出口是否足够，四柱证据是否仍然成立。答案不清楚时，系统应保持在当前可证明的范围内。</div>
-          </div>
-
-          <div class="content-block">
-            <h3>3. 事实证据：小林究竟把什么从演示壳变成了可上线产品</h3>
-            <p>v0 能力清单演示翻车后，团队没有要求模型“更聪明”，而是按本篇路径重做：问题表钉死阿明的验收；六项能力写成输入、输出、失败态和验收点；设计卡经得起独立 reviewer 挑刺；四柱以灰度记录、审计、Brief 和证据链决定放行。产品成了的标志不是“会更多机制”，而是<strong>用户目标可验收、失败可见、能上线且能继续治理</strong>。</p>
-            <table class="comparison-table">
-              <tr><th></th><th>v0 演示壳</th><th>可上线产品</th></tr>
-              <tr><td>起点</td><td>能力名词堆砌</td><td>产品问题表钉死用户与验收</td></tr>
-              <tr><td>范围</td><td>OAuth 漂移</td><td>非目标 + 权限表挡住</td></tr>
-              <tr><td>失败</td><td>「我再试试」</td><td>证据可见 + 四出口</td></tr>
-              <tr><td>续跑</td><td>靠聊天记忆</td><td>Checkpoint + Brief 交接</td></tr>
-              <tr><td>放行</td><td>演示通过即上线</td><td>四柱 + 闸门 + 灰度</td></tr>
-            </table>
-            <div class="deliverables">
-              <div class="deliverable"><strong>产品问题表</strong>用户·目标·成功·非目标</div>
-              <div class="deliverable"><strong>六项规格</strong>输入·输出·失败态·验收点</div>
-              <div class="deliverable"><strong>一页设计卡</strong>可挑刺的合同草稿</div>
-              <div class="deliverable"><strong>验收四柱</strong>正确·完整·可恢复·可解释</div>
-            </div>
-            <div class="mermaid">
-flowchart TB
-  Incident["v0 翻车\n能力清单无法交付"] --> Problem["产品问题表\n用户、目标、非目标、成功标准"]
-  Problem --> Scope["能力选择\n只保留本轮可承诺的六项"]
-  Scope --> Specs["六项规格\n契约、计划、工具、上下文、状态、验证"]
-  Specs --> Card["一页设计卡\n把承诺、边界和闸门收束"]
-  Card --> Pilot["小队灰度\n真实任务、审计、Brief、验证记录"]
-  Pilot --> Pillars{"验收四柱\n正确、完整、可恢复、可解释"}
-  Pillars -->|任一柱红| Repair["回到对应问题或规格\n修复后重新举证"]
-  Repair --> Specs
-  Pillars -->|全绿| Release["受控发布\n持续收集失败与使用证据"]
-  Release --> Evolve["能力扩展或风险变化\n重新定义问题与边界"]
-  Evolve --> Problem
-            </div>
-            <p>这条路径不是线性项目流程，而是一个受证据驱动的闭环。系统通过放行后仍会遇到新失败、新范围和新风险；这些事实再次进入问题表与规格，避免团队把旧结论错误地套用到新的产品承诺上。</p>
-          </div>
-
-          <div class="content-block">
-            <h3>4. 执行结论：把四件套带回每一次 Agent 产品决策</h3>
-            <p>面对下一项 Agent 能力，不必先问该接哪个模型或要不要多加一个自动化动作。先写产品问题表，选择能够支撑该目标的最小能力，逐项补齐输入、输出、失败态和验收点，再把它们收成设计卡，最后用四柱决定放行或打回。这个顺序让复杂机制服务于交付，而不是反过来决定用户要接受什么。</p>
-            <div class="diag-flow"><code>开始：用问题表定义用户、目标、非目标与成功标准；设计：选择最小能力组合，写清边界和失败出口；运行：计划、工具、上下文、状态和验证共同留下证据；定稿：设计卡让独立 reviewer 挑刺；放行：四柱全绿才灰度；演进：新能力、新风险、新场景一律重新走这条链。</code></div>
-            <div class="checklist">
-              <strong>产品做成之后的复查</strong>
-              <ol>
-                <li>灰度中的真实任务，是否仍能逐条对应原先的用户目标与成功标准？</li>
-                <li>新增失败、拒绝或人工接管，是否都被沉淀为可复用的规格、证据或风险规则？</li>
-                <li>能力扩展时，团队是否重新定义了边界、权限、状态和验收，而非沿用旧放行结论？</li>
-                <li>四柱是否仍由独立证据支撑，并能在风险变化时触发停止扩大范围？</li>
-              </ol>
-            </div>
-            <div class="tip-box"><strong>下一步：</strong>
-              <a href="/2026/08/09/digital-employee-platform/">04 · 建成数字员工平台：从岗位到可运营</a>
-              · 机制层
-              <a href="/2026/08/08/llm-agent-principles/">02 · Agent 平台原理：理解一次交付如何发生</a>
-              · 用法层
-              <a href="/2026/08/06/ai-programming-engineering/">01 · 现有 Agent 平台：完成一次项目交付</a></div>
-          </div>
-
-          <div class="content-block">
-            <h3 class="reflection-title">思考：产品真正做成的时刻，不是 Agent 开始自动行动，而是团队开始对它的行动负责</h3>
-            <p>机制齐了只是原料。只有当用户目标被写清、边界被守住、失败可以被看见和接住、完成能够由证据裁定时，自动化才从一次有趣的演示变成值得托付的产品能力。</p>
-            <p>这也是下一阶段要面对的挑战：当多个 Agent 产品进入组织，不能只把它们并排部署，而要继续把岗位、权限、指标和治理做成同样可审查、可恢复、可放行的系统。</p>
-          </div>
-
-          <div class="chapter-close"><strong>全文带走：</strong>机制齐了只是原料。问题 → 规格 → 设计卡 → 四柱 → 持续治理，产品才真正做成。</div>
-          <p><em>Last updated: 2026-08-07 · P01–P11 与结语加厚修订</em></p>
-
-          <div class="chapter-nav">
-            <a href="/2026/08/08/llm-agent-principles/" class="chapter-prev">← Agent 平台原理</a>
-            <a href="/2026/08/09/digital-employee-platform/" class="chapter-next">建成数字员工平台 →</a>
-          </div>
-        </div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#intro">开篇</a><a class="reading-toc-link level-2" href="#part-01">产品问题</a><a class="reading-toc-link level-2" href="#part-02">机制对照</a><a class="reading-toc-link level-2" href="#part-03">能力地图</a><a class="reading-toc-link level-2" href="#part-04">目标理解</a><a class="reading-toc-link level-2" href="#part-05">任务规划</a><a class="reading-toc-link level-2" href="#part-06">工具调用</a><a class="reading-toc-link level-2" href="#part-07">上下文记忆</a><a class="reading-toc-link level-2" href="#part-08">状态恢复</a><a class="reading-toc-link level-2" href="#part-09">验证反馈</a><a class="reading-toc-link level-2" href="#part-10">设计卡</a><a class="reading-toc-link level-2" href="#part-11">验收四柱</a><a class="reading-toc-link level-2" href="#closing">结语</a></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/08/08/llm-agent-principles/"><small>← 上一篇</small><span>02 · Agent 平台原理：理解一次交付如何发生</span></a></div><div><a href="/2026/08/09/digital-employee-platform/"><small>下一篇 →</small><span>04 · 建成数字员工平台：从岗位到可运营</span></a></div><a class="article-series-return" href="/categories/ai-agent/">返回AI Agent 工程实践 ↗</a></nav></article></main><footer class="portal-footer">
+          <span class="article-kicker">03 ·</span><h1 class="post-title" itemprop="name headline">通用 Agent 平台：<span class="article-subtitle">构建可复用的交付能力</span></h1>
+
+          <div class="post-meta"><span class="post-meta-item"><i class="far fa-calendar"></i> 发表于 2026-08-07</span><span class="post-meta-item"><i class="far fa-folder"></i> 分类于 <a href="/categories/ai-agent/">AI Agent</a></span><span class="post-meta-item"><i class="fas fa-tags"></i> 学习笔记 · 03 通用 Agent 平台 · 可复用交付能力</span></div>
+        </header><div class="article-reading-layout"><div class="post-body" itemprop="articleBody" data-toc-mode="h2"><h2 id="intro" data-toc="01 开篇：从一次交付，到一个通用平台">01 · 开篇：从一次交付，到一个通用平台</h2><p class="section-summary"><strong>本章要回答：</strong>一次交付怎样被拆成可配置的产品能力，并最终让不同的人、不同的项目都能重复使用。</p>
+<p>阿明第一次接到认证项目时，只需要把事情做成：读懂仓库、补齐注册和登录、接入页面、运行测试，再把改动交给团队。现有 Agent 平台帮他完成了大量工作，但真正决定结果的内容散落在他的操作顺序、临时提示和判断里。比如，他知道退出接口返回 200 还不够，还要确认旧凭据再次访问时确实得到 401；他知道测试服务重启后要重新检查环境；他也知道代码写入一半中断时，应该先读取当前差异，再继续执行。</p>
+<p>项目第二次发生时，问题就从“能不能做成”变成了“别人能不能稳定做成”。小林接手同一个仓库，却不知道哪些事实已经确认、哪些命令可以执行、哪些动作必须审批，也看不见阿明判断 A4 通过时依据的证据。团队只能把记忆重新写进提示词，再靠另一次对话补齐遗漏。个人经验可以救急，却不能天然成为产品能力。</p>
+<p>因此，本章的起点不是再造一个聊天框，而是追问：<strong>一次成功交付中，哪些判断、资料、动作、状态和证据必须被平台保存、约束和复用？</strong>答案会落到一组可实现的模块：工作空间承载边界，Agent 配置承载职责，任务契约承载目标，Context 承载事实，Graph 组织依赖，工具网关控制动作，运行中心保存状态，验证中心判断完成，资产中心沉淀下一次交付。</p>
+<figure><figcaption>图 1 · 从一次交付经验到通用平台能力</figcaption><div class="mermaid">flowchart LR
+ U["用户提交委托\n目标与约束"] --> F["平台补齐事实\n项目、环境、规则"]
+ F --> X["平台组织执行\nAgent、Graph、工具"]
+ X --> V["平台返回证据\n验证、状态、交付物"]
+ V --> A["平台沉淀资产\n模板、策略、评测"]
+ A --> N["下一位用户\n复用并调整"]
+ N --> U</div></figure>
+<h3>01.1 先看清变化：从“我会做”到“平台能让别人做”</h3>
+<p>个人使用 Agent 时，交付链条可以藏在一次对话里；通用平台必须把链条显式化。用户要能看见自己提交了什么、平台读取了哪些事实、Agent 获得了哪些权限、任务当前卡在哪里，以及结果由哪条证据支持。只有这些信息有稳定的对象和界面，系统才可能被审计、恢复和复用。</p>
+<table class="comparison-table"><thead><tr><th scope="col">一次性使用</th><th scope="col">通用 Agent 平台</th></tr></thead><tbody><tr><td>目标留在对话上下文中</td><td>目标形成有版本的 Task Contract，可追踪变更</td></tr><tr><td>事实靠用户临时粘贴</td><td>Project 与 Context Center 注册来源、权限、版本和新鲜度</td></tr><tr><td>模型建议直接触发动作</td><td>Graph、Tool Gateway 和 Policy 决定何时、能否、以什么范围执行</td></tr><tr><td>失败后重新讲一遍背景</td><td>Run、Event、Checkpoint 支持暂停、恢复、重试和人工接管</td></tr><tr><td>结果停在聊天记录里</td><td>Evidence、Artifact、Verifier 和 Template 让交付可核对、可复用</td></tr></tbody></table>
+<h3>01.2 本文要带读者完成什么</h3>
+<p>本文会沿着一条实际用户路径展开：先创建工作空间并接入项目，再选择或配置 Agent，提交任务并确认验收契约；随后平台准备上下文，生成 Graph，调用受控工具运行；遇到失败时保存检查点并恢复，最后用证据完成验收，并把稳定的配置沉淀为模板。每一章都同时回答三个问题：用户在页面上做什么，平台需要哪些功能模块，后台如何把模块连成可运行的系统。</p>
+<div class="callout"><strong>贯穿案例：</strong>认证项目只承担“验证平台能力”的角色。它会验证项目接入、Agent 配置、任务契约、Graph 编排、工具权限、运行恢复、结果验收和模板复用；如果把认证任务替换成数据迁移、报表生成或接口改造，平台的核心对象和执行链仍然成立。</div>
+<div class="chapter-close"><strong>思考：</strong>平台化不是把一次提示词复制成一个按钮，而是把交付中依赖个人记忆的判断，变成可配置的对象、可观察的状态、可验证的证据和可复用的资产。</div>
+<h2 id="part-01" data-toc="02 平台目标：通用 Agent 平台到底要解决什么">02 · 平台目标：通用 Agent 平台到底要解决什么</h2><p class="section-summary"><strong>本章要回答：</strong>平台为谁服务、承诺什么结果、第一版做到什么程度，以及怎样判断目标已经达成。</p>
+<p>“通用”不是把更多模型、工具和按钮堆在一起，而是让一套稳定的交付机制适用于多个项目。平台要解决的核心问题是：用户只说明要交付什么，系统就能在明确边界内取得事实、安排执行、处理异常、给出证据，并让下一次任务复用已经验证过的配置。</p>
+<p>认证项目可以帮助我们验证这个目标。用户要补齐注册、登录、退出和页面接入，平台需要知道仓库和环境，选择合适的 Agent，生成任务计划，允许它读取和修改测试目录，禁止越权操作，并用“退出后旧凭据必须返回 401”等验收条件判断结果。换成数据迁移或报表生成，具体工具会变化，但目标确认、事实准备、受控执行和证据验收仍然存在。</p>
+<h3>02.1 平台的核心承诺</h3>
+<pre><code>让授权用户能够：
+  选择或配置一个有明确职责的 Agent
+  接入项目、环境、规则和上下文来源
+  把自然语言委托变成可确认的任务契约
+  查看计划、依赖、权限和预期交付物
+  在受控范围内连续执行工具动作
+  观察运行状态、日志、事件和检查点
+  在失败、等待或审批时恢复或接管
+  用验收规则和证据判断是否完成
+  将稳定的任务配置沉淀为模板并复用</code></pre>
+<p>这组承诺把平台从“模型调用服务”区分出来。模型只负责提出判断和动作建议，平台负责确认目标、补齐事实、约束权限、保存状态、执行工具和核对结果。平台可以允许模型犯错，但不能让错误无记录地改变项目，也不能把一段未经验证的回答包装成交付。</p>
+<table class="comparison-table"><thead><tr><th scope="col">平台承诺</th><th scope="col">用户能看到的结果</th><th scope="col">后台必须提供</th></tr></thead><tbody><tr><td>目标可确认</td><td>任务契约、范围、非目标和验收条件清楚</td><td>Task / Contract 版本与差异记录</td></tr><tr><td>执行可控制</td><td>知道 Agent 能读取、修改和调用什么</td><td>Tool Gateway、Policy、审批和审计</td></tr><tr><td>过程可观察</td><td>看到当前节点、等待原因和下一步</td><td>Run、Event、Graph 状态和日志</td></tr><tr><td>结果可验证</td><td>每个结论都有测试、差异或外部检查证据</td><td>Verifier、Evidence 和 Delivery</td></tr><tr><td>失败可恢复</td><td>中断后能继续、重试、回滚或交给人处理</td><td>Checkpoint、Retry、Pause、Resume、Handoff</td></tr><tr><td>能力可复用</td><td>下一次任务可以从模板开始并比较版本</td><td>Asset、Template、评测和发布机制</td></tr></tbody></table>
+<h3>02.2 平台服务哪些角色</h3>
+<p>同一个平台会被不同角色以不同方式使用。角色划分不是为了增加组织层级，而是为了明确谁可以配置、谁可以执行、谁可以批准、谁对结果负责。</p>
+<table class="comparison-table"><thead><tr><th scope="col">角色</th><th scope="col">主要任务</th><th scope="col">需要的平台能力</th><th scope="col">认证案例中的动作</th></tr></thead><tbody><tr><td>任务用户</td><td>提交目标、查看进度、接收交付</td><td>Task Center、状态、证据和交付页</td><td>创建认证任务并复查 A1–A5</td></tr><tr><td>Agent 构建者</td><td>配置职责、模型、工具、上下文和输出契约</td><td>Agent Studio、版本、样例和评测</td><td>发布认证交付 Agent</td></tr><tr><td>项目管理员</td><td>接入仓库、环境、凭据和项目规则</td><td>Project Center、Credential、Policy</td><td>绑定测试分支和本地服务</td></tr><tr><td>平台运营者</td><td>观察成本、失败率、耗时和模板复用</td><td>Runtime Center、指标、审计和告警</td><td>比较 R1、R2、R3 三次运行</td></tr><tr><td>Reviewer</td><td>审批高风险动作、接管异常、确认交付</td><td>Decision、Handoff、Evidence</td><td>确认退出探针和最终说明</td></tr></tbody></table>
+<h3>02.3 第一版平台的范围与非目标</h3>
+<p>第一版应选择一类可以被验证的交付任务，先把闭环做完整，再扩展行业和工具。本文选择“已有项目中的受控代码交付”作为范围：任务有明确仓库和环境，Agent 需要读取、修改、测试和提交说明，关键结果可以用自动化检查或人工复核确认。</p>
+<ul><li>不覆盖所有行业、语言、模型和部署环境。</li><li>不让 Agent 无限自主运行，长任务必须有预算、超时和停止条件。</li><li>不默认接管生产环境和生产密钥，敏感动作需要显式授权或审批。</li><li>不把所有工具开放给所有用户，工具访问必须绑定 Project、Environment 和 Policy。</li><li>不把一次案例的个人经验直接包装成通用能力，模板必须经过样例运行和验收。</li><li>不把“模型说完成了”当成完成，交付必须带有可核对的证据。</li></ul>
+<p>这些边界会直接决定后续设计：权限中心要能拒绝生产写入，Agent 配置要声明适用项目，运行中心要支持暂停和恢复，验收中心要允许证据否决模型结论，资产中心要记录模板的版本和适用范围。</p>
+<h3>02.4 怎样判断平台目标达成</h3>
+<p>平台目标不能只用“页面做出来了”验收，而要用同一套任务换用户、换项目或换 Agent 版本进行复测。认证案例的最低验收可以写成四个问题：</p>
+<ol class="step-list"><li><strong>换人：</strong>没有阿明的口头说明，小林能否根据平台记录启动并完成任务？</li><li><strong>换环境：</strong>从开发环境切到测试环境后，平台是否重新计算上下文、凭据和权限？</li><li><strong>换结果：</strong>当退出接口表面返回 200 但旧凭据仍有效时，验证器能否拒绝交付？</li><li><strong>换运行：</strong>在写入代码后中断，平台能否从检查点恢复，并保留前一次失败的证据？</li></ol>
+<p>如果这些问题只能依靠某个人记得“应该怎么做”，平台仍然是一次性工具；如果它们都有稳定对象、明确状态和可追溯证据，才开始具备通用交付能力。</p>
+<div class="callout"><strong>本章产物：</strong>平台定位、核心承诺、角色模型、第一版范围、非目标，以及一组可以在认证案例中复测的验收问题。</div>
+<h2 id="part-02" data-toc="03 用户如何使用通用 Agent 平台">03 · 用户如何使用通用 Agent 平台</h2><p class="section-summary"><strong>本章要回答：</strong>用户从第一次进入平台到收到交付，怎样走完一条连续、可理解、可中断的使用路径。</p>
+<p>用户不应该先学习平台内部的对象名，才能完成任务。平台的默认入口应是“我要交付什么”，再根据任务逐步呈现项目、Agent、权限、计划和验收信息。复杂能力藏在流程背后，但关键决定必须在用户看得懂的地方出现。</p>
+<figure><figcaption>图 2 · 用户从委托到交付的主路径</figcaption><div class="mermaid">flowchart LR
+ A["提交目标"] --> B["选择项目与环境"] --> C["选择 Agent"] --> D["确认契约"] --> E["查看计划与权限"] --> F["启动 Run"] --> G["处理等待或失败"] --> H["复查证据"] --> I["接收交付"]</div></figure>
+<h3>03.1 用户看到的十个动作</h3>
+<ol class="step-list"><li><strong>创建工作空间：</strong>选择个人或团队归属，确定任务、资料和资产的隔离边界。</li><li><strong>接入项目：</strong>连接仓库、分支、环境、规则和可用凭据。</li><li><strong>选择 Agent：</strong>从模板选择，或查看职责、工具和适用范围后配置新的 Agent。</li><li><strong>创建任务：</strong>说明目标、约束、非目标、期望交付物和时间要求。</li><li><strong>确认契约：</strong>检查平台解析出的范围、验收条件和权限，必要时修改。</li><li><strong>查看计划：</strong>阅读 Graph 节点、依赖、风险和人工介入点。</li><li><strong>启动运行：</strong>授权平台按当前版本的 Contract、Graph 和 Policy 执行。</li><li><strong>处理等待：</strong>补充事实、审批动作、解决冲突，或把任务交给 Reviewer。</li><li><strong>复查证据：</strong>查看差异、测试、环境、日志和未决事项，而不是只看一句总结。</li><li><strong>接收交付：</strong>接受、返工、阻塞或将稳定配置保存为模板。</li></ol>
+<h3>03.2 同一条路径如何映射到产品模块</h3>
+<table class="comparison-table"><thead><tr><th scope="col">用户阶段</th><th scope="col">用户关心的问题</th><th scope="col">主要模块</th></tr></thead><tbody><tr><td>准备</td><td>任务属于哪个团队、项目和环境？</td><td>Workspace / Project Center</td></tr><tr><td>委托</td><td>平台到底理解了什么？</td><td>Task Center / Contract</td></tr><tr><td>执行</td><td>Agent 要做什么，能做什么？</td><td>Agent Studio / Graph / Tool Gateway</td></tr><tr><td>观察</td><td>现在进行到哪里，为什么等待？</td><td>Runtime Center / Event Stream</td></tr><tr><td>验收</td><td>结果凭什么算完成？</td><td>Verification Center / Evidence</td></tr><tr><td>复用</td><td>下一次能否少做重复配置？</td><td>Asset & Template Center</td></tr></tbody></table>
+<h3>03.3 认证案例怎样走过这条路径</h3>
+<table class="comparison-table"><thead><tr><th scope="col">用户动作</th><th scope="col">认证案例</th><th scope="col">平台返回</th></tr></thead><tbody><tr><td>接入项目</td><td>后台仓库、测试分支、本地服务</td><td>Project Profile 与环境状态</td></tr><tr><td>选择 Agent</td><td>认证交付 Agent</td><td>职责、工具、预算和版本</td></tr><tr><td>创建任务</td><td>补齐注册、登录、退出和页面</td><td>Contract 草稿和 A1–A5 验收</td></tr><tr><td>查看计划</td><td>T01–T06 节点及失败出口</td><td>Graph 依赖、权限和风险</td></tr><tr><td>处理失败</td><td>A4 失败后修复并重验</td><td>Run、Checkpoint 和差异</td></tr><tr><td>接收交付</td><td>R3 的代码、测试、说明和证据</td><td>Delivery 与可复用模板</td></tr></tbody></table>
+<div class="chapter-close"><strong>思考：</strong>好的平台不是让用户点击更多按钮，而是让用户只提交一次清楚委托，并在真正需要决定的地方看到一个明确问题和足够证据。</div>
+<h2 id="part-03" data-toc="04 工作空间与项目：平台从哪里开始">04 · 工作空间与项目：平台从哪里开始</h2><p class="section-summary"><strong>本章要回答：</strong>项目、环境、规则和权限怎样成为 Agent 可安全工作的基础容器。</p>
+<p>任务不能从一段孤立的文本开始。平台必须先知道任务属于谁、代码和资料在哪里、当前使用哪个版本、允许连接什么环境，以及哪些规则优先于模型建议。Workspace 和 Project 就是这层事实与权限边界。</p>
+<h3>04.1 基础对象如何分工</h3>
+<table class="comparison-table"><thead><tr><th scope="col">对象</th><th scope="col">解决的问题</th><th scope="col">认证案例</th></tr></thead><tbody><tr><td>Organization</td><td>谁拥有团队、成员和治理规则</td><td>认证项目所属团队</td></tr><tr><td>Workspace</td><td>哪些任务、Agent、运行和资产可以一起工作</td><td>认证交付工作区</td></tr><tr><td>Project</td><td>代码、资料、分支和项目规则在哪里</td><td>后台认证仓库</td></tr><tr><td>Environment</td><td>本次执行连接开发、测试还是生产</td><td>本地测试服务</td></tr><tr><td>Credential</td><td>如何安全引用账号、令牌和服务凭据</td><td>测试用户和服务凭据</td></tr><tr><td>Policy</td><td>哪些动作、路径、预算和风险被允许</td><td>禁止生产写入</td></tr></tbody></table>
+<h3>04.2 用户接入项目时发生什么</h3>
+<figure><figcaption>图 3 · Project Center 生成项目工作画像</figcaption><div class="mermaid">flowchart TD
+ A["选择 Workspace"] --> B["连接仓库或目录"] --> C["选择 Branch 与 Environment"] --> D["读取规则、依赖和测试入口"] --> E["绑定 Credential 引用"] --> F["计算 Policy"] --> G["生成 Project Profile"]</div></figure>
+<p>Project Profile 不只是仓库 URL。它至少要保存代码版本、分支、运行入口、测试命令、规则来源、可访问目录、环境标签、凭据引用和最后探测时间。切换分支或环境时，平台重新计算 Context Package 和 Policy，避免 Agent 继续使用旧事实。</p>
+<h3>04.3 隔离、共享与变更</h3>
+<p>不同 Workspace 默认隔离任务、运行和敏感资料；同一 Workspace 可以共享 Agent、验收模板和项目规则，但共享资产不能扩大访问权限。用户能看到什么、Agent 能读取什么、工具能写入什么，分别由成员角色、Project Policy 和 Environment Policy 共同决定。</p>
+<p>项目配置发生变化时，平台应生成变更事件并标记受影响的任务。比如认证仓库切换分支后，旧 Run 仍保留原证据，新 Run 必须绑定新的 commit、环境探测和权限快照。</p>
+<div class="callout"><strong>本章产物：</strong>Workspace 模型、Project Profile、环境配置、凭据引用、项目规则、权限隔离和项目变更记录。</div>
+<h2 id="part-04" data-toc="05 Agent 配置：如何从模型变成可使用的 Agent">05 · Agent 配置：如何从模型变成可使用的 Agent</h2><p class="section-summary"><strong>本章要回答：</strong>平台如何把模型、提示、上下文、工具、策略、Graph、验证器和输出契约组合成一个可使用的 Agent。</p>
+<p>模型只是推理引擎，不是完整的 Agent。一个能被团队复用的 Agent 必须有明确职责、输入来源、工具边界、执行流程、验收方式和版本记录。配置的目标是把“会回答”变成“能在边界内完成一类工作”。</p>
+<h3>05.1 Agent 的配置合同</h3>
+<pre><code>Agent Version
+= Model + Prompt
++ Context Sources + Tools
++ Policy + Graph
++ Verifier + Output Contract
++ Budget + Version</code></pre>
+<table class="comparison-table"><thead><tr><th scope="col">配置项</th><th scope="col">用户要回答什么</th><th scope="col">认证交付 Agent</th></tr></thead><tbody><tr><td>职责</td><td>为谁解决哪类问题，什么情况不适用</td><td>已有项目的认证交付</td></tr><tr><td>模型与提示</td><td>如何分析任务、何时停下并请求确认</td><td>代码分析和受控执行</td></tr><tr><td>上下文源</td><td>从哪些项目、规则和知识取事实</td><td>仓库、Session 规则、测试环境</td></tr><tr><td>工具与 Policy</td><td>可以读、写、测试和访问什么</td><td>测试目录，禁止生产操作</td></tr><tr><td>Graph 与 Verifier</td><td>如何分步执行，如何判断每步完成</td><td>T01–T06、A1–A5</td></tr><tr><td>输出契约</td><td>交付必须包含哪些结果和证据</td><td>差异、测试、说明、Evidence</td></tr></tbody></table>
+<h3>05.2 Agent Studio 的配置流程</h3>
+<ol class="step-list"><li>填写职责、适用项目和不适用场景。</li><li>选择模型、参数、上下文预算、超时和费用上限。</li><li>绑定 Context Source，并指定哪些资料必须引用来源。</li><li>选择工具，配置路径、环境、审批和风险策略。</li><li>连接 Graph、Verifier 与 Output Contract。</li><li>用认证任务和边界样例运行评测，记录失败原因。</li><li>发布新版本，保留草稿、评测、回滚和停用入口。</li></ol>
+<p>每次模型、Prompt、工具、Graph、Policy 或 Verifier 变化，都必须产生新的 Agent Version。历史 Run 绑定自己的版本，不能因为 Agent 后来发布新配置而改变过去的执行含义。</p>
+<div class="callout"><strong>本章产物：</strong>Agent Schema、Agent Studio、职责说明、版本管理、评测样例、发布和回滚机制。</div>
+<h2 id="part-05" data-toc="06 任务与契约：用户如何向 Agent 发出委托">06 · 任务与契约：用户如何向 Agent 发出委托</h2><p class="section-summary"><strong>本章要回答：</strong>平台如何把自然语言委托变成双方确认过的目标、范围、验收和交付契约。</p>
+<p>任务创建不是把一段话塞进聊天框，而是让用户确认平台理解了什么。平台可以先解析自然语言，再生成 Contract 草稿；用户确认后才允许进入执行，避免 Agent 在错误目标上连续工作。</p>
+<h3>06.1 Task Center 要收集什么</h3>
+<table class="comparison-table"><thead><tr><th scope="col">字段</th><th scope="col">用户填写或确认</th><th scope="col">认证案例</th></tr></thead><tbody><tr><td>目标</td><td>希望交付什么可观察结果</td><td>补齐认证并接入页面</td></tr><tr><td>Project / Environment</td><td>在哪个项目、分支和环境执行</td><td>后台仓库测试分支</td></tr><tr><td>约束</td><td>必须遵守哪些已有规则</td><td>沿用 Session 和错误响应</td></tr><tr><td>Non-goal</td><td>明确本次不做什么</td><td>不做 OAuth、不碰生产密钥</td></tr><tr><td>Acceptance</td><td>怎样判断目标完成</td><td>A1–A5</td></tr><tr><td>Execution Scope</td><td>工具、目录、预算和审批</td><td>测试目录和测试服务</td></tr><tr><td>Output</td><td>最终交回哪些结果、证据和限制</td><td>差异、测试、说明和 Evidence</td></tr></tbody></table>
+<h3>06.2 从自然语言到 Contract</h3>
+<figure><figcaption>图 4 · Task 创建到执行契约确认</figcaption><div class="mermaid">flowchart LR
+ U["自然语言委托"] --> P["解析目标、项目、约束"] --> C["生成 Contract 草稿"] --> R["用户确认范围与验收"] --> G["生成可执行 Graph"] --> X["允许启动 Run"]
+ C --> Q["缺少事实或权限"] --> U
+ R --> D["需要决策"] --> U</div></figure>
+<p>解析器可以帮助用户补全字段，但不能替用户默默扩大范围。平台要把推断出的内容标为“待确认”，把用户原话、平台推断、用户修改和最终版本都保存下来。</p>
+<h3>06.3 变更、拒绝与版本</h3>
+<p>目标、验收或权限发生变化时，平台创建新的 Contract Version，展示差异并标记受影响的 Graph 节点。已经完成的节点是否需要重跑，由影响关系决定；不能通过编辑原文本让旧证据看起来像是针对新目标产生的。</p>
+<div class="callout"><strong>本章产物：</strong>Task Center、Contract Schema、Acceptance 模板、范围变更、Decision 记录和任务输出契约。</div>
+<h2 id="part-06" data-toc="07 上下文与知识：Agent 如何取得项目事实">07 · 上下文与知识：Agent 如何取得项目事实</h2><p class="section-summary"><strong>本章要回答：</strong>平台如何按任务和节点构建有来源、有权限、有新鲜度的 Context Package。</p>
+<p>Agent 不会因为“知道项目名称”就自动知道项目事实。平台要管理的是文件、规则、知识、历史运行、环境状态和外部资料的来源、权限、版本与新鲜度，并在需要时把相关内容送到当前节点。</p>
+<h3>07.1 Context Center 管理哪些资料</h3>
+<table class="comparison-table"><thead><tr><th scope="col">资料类型</th><th scope="col">来源</th><th scope="col">需要记录的元数据</th><th scope="col">认证案例</th></tr></thead><tbody><tr><td>项目文件</td><td>仓库、分支和工作区</td><td>路径、commit、更新时间</td><td>认证路由和 Session 代码</td></tr><tr><td>项目规则</td><td>规则文件、README、配置</td><td>来源、优先级、适用范围</td><td>错误响应和启动规则</td></tr><tr><td>知识资料</td><td>知识库、规范、接口说明</td><td>权限、版本、有效期</td><td>认证验收约定</td></tr><tr><td>运行事实</td><td>Tool Call、Observation、Check</td><td>Run、节点、时间、环境</td><td>退出探针结果</td></tr><tr><td>环境状态</td><td>服务、依赖、测试数据</td><td>探测时间、健康状态</td><td>本地测试服务状态</td></tr></tbody></table>
+<h3>07.2 Context Builder 怎样按需组装</h3>
+<p>Context Builder 接收 Contract、Project Profile 和当前 Graph 节点，先根据权限筛选来源，再按相关性和预算取资料，最后生成带引用的 Context Package。它不会把整个仓库或所有历史对话一次性塞给模型。</p>
+<figure><figcaption>图 5 · 当前节点的上下文组装</figcaption><div class="mermaid">flowchart TD
+ A["Contract + Project + Node"] --> B["选择允许的来源"] --> C["检索相关事实"] --> D["过滤过期与敏感内容"] --> E["压缩并附来源"] --> F["Context Package"] --> G["Agent 推理"]
+ G --> H["产生新 Observation"] --> D</div></figure>
+<p>例如认证任务 T04 只需要退出路由、Session 配置、`/me` 实现、A4 条件、原凭据请求和测试环境状态。无关的页面样式和过期摘要不应默认进入上下文。用户应能查看 Agent 使用了哪些资料、哪些资料无权限、哪些资料已过期。</p>
+<h3>07.3 上下文的治理规则</h3>
+<ul><li>事实、假设、规则、摘要和决定分开存储。</li><li>每项资料保留来源、版本、时间、权限和适用环境。</li><li>代码、分支、环境或 Contract 变化时触发刷新。</li><li>敏感资料使用凭据引用或脱敏结果，而不是原文直接注入。</li><li>无法追溯的摘要只能作为线索，不能直接成为验收证据。</li></ul>
+<div class="callout"><strong>本章产物：</strong>Context Center、Source Registry、Context Package、资料权限、新鲜度、刷新和引用机制。</div>
+<h2 id="part-07" data-toc="08 工作流与 Graph：平台如何组织复杂任务">08 · 工作流与 Graph：平台如何组织复杂任务</h2><p class="section-summary"><strong>本章要回答：</strong>平台如何用节点、依赖、分支、循环、审批和失败出口，把长任务变成可推进的执行图。</p>
+<p>Graph 是通用平台的编排模块。它不是只给工程师看的流程图，而是定义任务可以怎样推进、什么条件下等待、哪些结果需要重验，以及失败后从哪里恢复的运行结构。</p>
+<h3>08.1 Graph 的基本能力</h3>
+<table class="comparison-table"><thead><tr><th scope="col">能力</th><th scope="col">平台行为</th><th scope="col">认证案例</th></tr></thead><tbody><tr><td>节点</td><td>定义输入、动作、输出和验收</td><td>T01–T06</td></tr><tr><td>依赖</td><td>只有前置结果满足时节点才 ready</td><td>T04 依赖 T03</td></tr><tr><td>条件分支</td><td>根据 Check 结果进入通过、修复或人工路径</td><td>A4 通过或失败</td></tr><tr><td>循环</td><td>在次数、时间和成本预算内重试或重验</td><td>修复后重跑 A4</td></tr><tr><td>人工节点</td><td>等待审批、补事实或接管</td><td>允许测试环境修改</td></tr><tr><td>影响关系</td><td>判断哪些验收和节点需要重新执行</td><td>T04 影响 A2、A3、A4</td></tr><tr><td>子图</td><td>把常用流程封装成可复用模块</td><td>认证回归子图</td></tr></tbody></table>
+<h3>08.2 认证 Graph 示例</h3>
+<figure><figcaption>图 6 · 认证交付的可恢复 Graph</figcaption><div class="mermaid">flowchart TD
+ T01["T01 读取项目与规则"] --> T02["T02 盘点认证缺口"] --> T03["T03 实现认证接口"] --> T04["T04 接入页面与会话"] --> T05["T05 运行 A1–A5"]
+ T05 --> D{"验收通过？"}
+ D -- "是" --> T06["T06 生成交付说明"]
+ D -- "否" --> R["记录失败证据"] --> F["修复或请求人工决策"] --> T05
+ T03 --> P["保存检查点"]
+ P --> T04</div></figure>
+<h3>08.3 Graph Builder 的用户体验与实现</h3>
+<p>Agent 构建者配置节点、输入输出、工具、依赖、重试预算和人工出口；任务用户主要查看当前节点、等待原因和下一步，不必编辑复杂 Graph。后台需要保存 Graph Schema、版本和节点状态，运行时将每次状态变化写入 Event，并让 Checkpoint 指向可恢复的节点输入。</p>
+<div class="callout"><strong>本章产物：</strong>Graph Builder、节点 Schema、依赖和影响模型、审批节点、重试循环、子图和 Graph Version。</div>
+<h2 id="part-08" data-toc="09 工具与权限：Agent 如何真正做事">09 · 工具与权限：Agent 如何真正做事</h2><p class="section-summary"><strong>本章要回答：</strong>平台如何把 Agent 的动作建议变成经过范围、参数、权限和风险检查的真实动作。</p>
+<p>模型只能提出 Tool Proposal，不能直接访问文件、Shell、HTTP、浏览器、数据库或外部 API。Tool Gateway 是模型与真实世界之间的闸门：它检查请求，执行允许的动作，保存结果，并在不确定时停止扩大副作用。</p>
+<h3>09.1 Tool Center 管理什么</h3>
+<table class="comparison-table"><thead><tr><th scope="col">工具类型</th><th scope="col">认证案例</th><th scope="col">关键配置</th></tr></thead><tbody><tr><td>文件工具</td><td>读取和修改认证代码</td><td>路径、读写、差异、回滚</td></tr><tr><td>Shell / Test</td><td>运行单测和回归</td><td>命令白名单、超时、资源预算</td></tr><tr><td>HTTP</td><td>登录、退出、/me 探针</td><td>目标地址、凭据引用、请求次数</td></tr><tr><td>Browser</td><td>页面登录和退出检查</td><td>测试环境、脱敏、只读默认</td></tr><tr><td>Git</td><td>读取分支和差异</td><td>仓库、分支、提交和合并权限</td></tr><tr><td>Production</td><td>第一版不提供</td><td>另建发布系统和人工审批</td></tr></tbody></table>
+<p>每个工具都应有稳定的 Schema：输入参数、输出结构、错误类型、幂等性、可能副作用和所需权限。这样 Agent 可以发现工具，平台也可以在执行前做静态检查，而不依赖一段自然语言描述。</p>
+<h3>09.2 Tool Gateway 如何判断一次调用</h3>
+<figure><figcaption>图 7 · Tool Proposal 到真实动作</figcaption><div class="mermaid">flowchart LR
+ A["Agent Tool Proposal"] --> B["校验参数与目标"] --> C["匹配 Project / Environment Policy"] --> D{"需要审批？"}
+ D -- "是" --> E["等待 Decision"] --> F["执行或拒绝"]
+ D -- "否" --> F
+ F --> G["返回结果、风险和证据"]</div></figure>
+<pre><code>Tool Policy
+谁：用户、Agent、Reviewer
+对什么：项目、目录、数据和服务
+在哪里：Workspace、Branch、Environment
+做多久：Task、Run 和授权时段
+做多少：次数、CPU、时间和输出预算
+风险：读、写、外发、生产和不可逆动作</code></pre>
+<p>用户需要看到 Agent 将执行什么、为什么执行、访问什么资源、是否需要审批和结果状态。结果不明时，平台保存 <code>unknown</code>，先查询或人工确认，不能把可能已经产生副作用的动作无条件重试。</p>
+<div class="callout"><strong>本章产物：</strong>Tool Center、Tool Schema、Tool Gateway、Policy、风险分级、预算、幂等、审批和审计。</div>
+<h2 id="part-09" data-toc="10 运行中心：平台如何管理 Agent 执行">10 · 运行中心：平台如何管理 Agent 执行</h2><p class="section-summary"><strong>本章要回答：</strong>平台如何把一次 Agent 执行变成可观察、可暂停、可恢复、可审计的 Run。</p>
+<p>运行中心是通用平台区别于普通聊天产品的关键。它不只展示消息，而是管理一个有生命周期的 Run：绑定配置快照，推进 Graph，记录工具和用户事件，保存检查点，并在异常时告诉人下一步怎样处理。</p>
+<h3>10.1 Runtime Center 的核心对象</h3>
+<table class="comparison-table"><thead><tr><th scope="col">对象</th><th scope="col">作用</th><th scope="col">认证案例</th></tr></thead><tbody><tr><td>Run</td><td>一次具体执行，绑定 Agent、Graph、Contract、代码和环境版本</td><td>R1、R2、R3</td></tr><tr><td>Process</td><td>实际运行的进程、队列或执行器</td><td>本地服务与测试进程</td></tr><tr><td>Event</td><td>状态、工具、检查和用户操作事件</td><td>Tool Call、A4 失败</td></tr><tr><td>Checkpoint</td><td>中断后恢复所需的状态和引用</td><td>写入代码后的恢复点</td></tr><tr><td>Retry</td><td>有边界的重新执行策略</td><td>修复后重验</td></tr><tr><td>Decision</td><td>审批、范围确认和人工判断</td><td>允许测试工具继续</td></tr></tbody></table>
+<h3>10.2 用户如何处理运行状态</h3>
+<ol class="step-list"><li><strong>查看：</strong>打开 Run，看到当前节点、最近事件、成本、权限和待办。</li><li><strong>暂停：</strong>平台停止继续取新动作，保存 Checkpoint 和原因。</li><li><strong>恢复：</strong>重新核对工作区、代码差异、环境健康和授权是否仍有效。</li><li><strong>重试：</strong>只重跑有明确策略的节点，不覆盖原 Run 的证据。</li><li><strong>取消：</strong>终止后续动作，保存已产生的副作用和未完成节点。</li><li><strong>接管：</strong>将待处理问题和上下文交给 Reviewer 或任务用户。</li></ol>
+<h3>10.3 运行可靠性规则</h3>
+<table class="comparison-table"><thead><tr><th scope="col">问题</th><th scope="col">平台规则</th></tr></thead><tbody><tr><td>重复创建</td><td>使用幂等键、唯一约束和副作用记录</td></tr><tr><td>事件断线</td><td>事件序号、游标补读和重放</td></tr><tr><td>旧 Run 迟到</td><td>版本和状态条件更新，不能覆盖新 Run</td></tr><tr><td>中断恢复</td><td>先核对 Checkpoint、工作区、权限和副作用</td></tr><tr><td>成本失控</td><td>模型、工具、时间、并发和输出预算</td></tr><tr><td>结果不明</td><td>进入 unknown，要求查询或人工决定</td></tr></tbody></table>
+<div class="callout"><strong>本章产物：</strong>Runtime Center、Run 状态机、Event Stream、Checkpoint、Pause / Resume / Cancel、Retry 和人工接管。</div>
+<h2 id="part-10" data-toc="11 验证、证据与交付：平台如何判断完成">11 · 验证、证据与交付：平台如何判断完成</h2><p class="section-summary"><strong>本章要回答：</strong>平台如何把观察转成检查、证据、验收和交付，避免把工具成功误认为业务完成。</p>
+<p>“命令返回 0”“接口返回 200”都只是 Observation，不等于业务目标已经达成。平台的结果层需要建立一条可追溯的证据链：</p>
+<pre><code>Observation → Check → Evidence → Acceptance → Artifact → Delivery</code></pre>
+<h3>11.1 认证案例的 A4 验收</h3>
+<p>退出接口返回 200 只说明请求被处理。平台必须保存退出前签发的原凭据，用同一凭据再次访问 <code>/me</code>，确认返回 401，才能证明 A4 通过。证据还要关联 Agent Version、Contract、代码版本、环境和产生时间，方便另一位用户复查。</p>
+<figure><figcaption>图 8 · 从观察到交付的证据链</figcaption><div class="mermaid">flowchart LR
+ O["工具观察
+退出返回 200"] --> C["验证检查
+原凭据访问 /me"] --> E{"返回 401？"}
+ E -- "是" --> P["Evidence 通过"] --> A["Acceptance A4"]
+ E -- "否" --> F["Evidence 失败"] --> R["修复并重新运行"] --> C
+ A --> D["Delivery 交付"]</div></figure>
+<h3>11.2 Verification Center 的用户视图</h3>
+<table class="comparison-table"><thead><tr><th scope="col">页面内容</th><th scope="col">用户需要知道什么</th></tr></thead><tbody><tr><td>验收状态</td><td>通过、失败、待复核、阻塞或证据过期</td></tr><tr><td>证据来源</td><td>哪次 Run、哪个工具、哪个代码和环境</td></tr><tr><td>检查方法</td><td>执行了什么输入、规则和比较</td></tr><tr><td>影响范围</td><td>哪些验收和节点需要重新运行</td></tr><tr><td>交付物</td><td>差异、测试、页面、说明和限制</td></tr><tr><td>未决事项</td><td>谁来处理、何时处理、阻塞什么</td></tr></tbody></table>
+<h3>11.3 完成门槛</h3>
+<ol class="step-list"><li>当前 Contract 的目标、范围和非目标满足。</li><li>所有必需 Acceptance 通过，失败项有明确处理结论。</li><li>Evidence 绑定当前 Agent、代码、环境和来源版本。</li><li>没有未处理的高风险、权限和阻塞事项。</li><li>Delivery 可以被另一位授权用户复查并重新执行关键检查。</li></ol>
+<div class="callout"><strong>本章产物：</strong>Verifier、Check、Evidence、Acceptance、Artifact、Delivery、验收模板和交付报告。</div>
+<h2 id="part-11" data-toc="12 平台管理与复用：如何把一次任务变成平台资产">12 · 平台管理与复用：如何把一次任务变成平台资产</h2><p class="section-summary"><strong>本章要回答：</strong>平台如何判断哪些经验值得沉淀，并让下一次任务在边界清楚的前提下复用。</p>
+<p>一次 Run 完成后，平台不能把所有临时内容都打包成模板。真正可复用的是经过验证的对象和关系；项目路径、临时凭据、一次性假设和未确认的模型总结，应继续留在原任务中。</p>
+<h3>12.1 可以沉淀哪些资产</h3>
+<table class="comparison-table"><thead><tr><th scope="col">资产</th><th scope="col">认证案例沉淀</th><th scope="col">复用时需要重新确认</th></tr></thead><tbody><tr><td>Agent Template</td><td>认证交付 Agent</td><td>模型版本、职责、适用项目</td></tr><tr><td>Task Template</td><td>认证任务创建表单</td><td>目标、范围、项目和时限</td></tr><tr><td>Graph Template</td><td>T01–T06 与失败出口</td><td>节点输入、工具和重试预算</td></tr><tr><td>Tool Set</td><td>代码、测试、HTTP、浏览器</td><td>环境、路径、凭据和 Policy</td></tr><tr><td>Acceptance Template</td><td>A1–A5</td><td>领域检查器和通过门槛</td></tr><tr><td>Context Template</td><td>Session、路由、/me、测试环境</td><td>项目来源、版本和权限</td></tr><tr><td>Evaluation Set</td><td>A4 旧凭据失效回归</td><td>样例输入、预期输出和评分规则</td></tr><tr><td>Delivery Template</td><td>差异、测试、运行说明</td><td>交付对象、收件人和限制</td></tr></tbody></table>
+<h3>12.2 Asset Center 的管理流程</h3>
+<figure><figcaption>图 9 · 从一次 Run 到可复用模板</figcaption><div class="mermaid">flowchart LR
+ R["完成 Run"] --> S["选择可沉淀对象"] --> C["去除项目敏感信息"] --> E["样例与边界评测"] --> P["发布版本"] --> U["授权复用"] --> M["收集指标与反馈"] --> S</div></figure>
+<p>管理中心要提供资产版本、发布、权限、适用范围、依赖关系、运行指标和回滚。复制 Agent 模板后应形成新版本；Graph、Tool、Policy 或 Acceptance 变化时，要显示影响，不能让历史 Run 静默引用未来配置。</p>
+<h3>12.3 从认证复用到相似项目</h3>
+<p>换一个权限或资料导出任务时，可以复用 Workspace、Project 接入、Task 生命周期、Runtime Center、Evidence 和 Delivery 页面，只替换 Agent 职责、领域 Graph、工具参数和验收模板。通用性体现在机制和边界可以复用，而不是把认证项目的路径和提示词原样复制。</p>
+<div class="callout"><strong>本章产物：</strong>资产中心、模板、版本、发布、评测集、依赖关系、使用范围、指标、回滚和复用策略。</div>
+<h2 id="part-12" data-toc="13 平台实现与验收：如何证明它是通用平台">13 · 平台实现与验收：如何证明它是通用平台</h2><p class="section-summary"><strong>本章要回答：</strong>平台如何从页面、API、领域对象、编排器、工具网关和事件流落地，并通过复用验收证明它不是案例 Demo。</p>
+<p>最后验收的不是一套漂亮页面，而是一条能够被不同用户重复走通的产品链。认证项目是第一条验证链；平台是否通用，要看换用户、换项目、换 Agent 和换相似任务后，核心对象、状态和证据契约是否仍然成立。</p>
+<h3>13.1 最小实现架构</h3>
+<table class="comparison-table"><thead><tr><th scope="col">实现层</th><th scope="col">关键模块</th><th scope="col">第一版验收</th></tr></thead><tbody><tr><td>前端</td><td>Workspace、Project、Agent、Task、Runtime、Evidence、Delivery</td><td>用户能完成完整使用路径</td></tr><tr><td>API</td><td>任务、运行、事件、工具、证据和资产接口</td><td>对象和状态可查询、可更新</td></tr><tr><td>领域层</td><td>Contract、Plan、Run、Check、Evidence、Asset</td><td>关系、版本和权限正确保存</td></tr><tr><td>执行层</td><td>Orchestrator、Context Builder、Tool Gateway、Verifier</td><td>T04 纵向切片跑通</td></tr><tr><td>基础设施</td><td>数据库、队列、对象存储、事件流和审计</td><td>中断、重放和恢复可验证</td></tr></tbody></table>
+<h3>13.2 一条纵向切片怎样跑通</h3>
+<p>第一版不必同时实现所有行业能力，应先选择认证任务中的 T04→A4→Delivery 作为纵向切片：页面创建 Task，API 生成 Contract，领域层保存版本，Orchestrator 取上下文并调用 Tool Gateway，Verifier 产生 Evidence，Runtime Center 推送状态，Delivery 页面展示结果。切片跑通后，再扩展其他节点和模板。</p>
+<figure><figcaption>图 10 · 从页面到执行器的最小闭环</figcaption><div class="mermaid">flowchart LR
+ UI["Task / Runtime / Evidence 页面"] --> API["API 与权限校验"] --> D["领域对象与数据库"] --> O["Orchestrator"]
+ O --> C["Context Builder"] --> T["Tool Gateway"] --> V["Verifier"] --> E["Event / Evidence"] --> UI</div></figure>
+<h3>13.3 四层平台验收</h3>
+<table class="comparison-table"><thead><tr><th scope="col">验收层</th><th scope="col">验证问题</th><th scope="col">通过标准</th></tr></thead><tbody><tr><td>功能验收</td><td>平台能否完成认证项目？</td><td>A1–A5、失败修复、中断恢复通过</td></tr><tr><td>用户验收</td><td>用户能否独立使用平台？</td><td>能创建、运行、处理等待、接收交付</td></tr><tr><td>稳定性验收</td><td>异常时平台是否可靠？</td><td>重复请求、断线、超时、unknown 可处理</td></tr><tr><td>复用验收</td><td>换人、换项目、换 Agent 后是否仍可用？</td><td>核心模块和资产边界不需要重做</td></tr></tbody></table>
+<h3>13.4 认证项目如何证明平台通用</h3>
+<ol class="step-list"><li><strong>换用户：</strong>不提供阿明聊天记录，另一位授权用户仍能创建和完成任务。</li><li><strong>换运行：</strong>R1 失败、R2 修复、R3 交付之间状态和证据不互相覆盖。</li><li><strong>换项目：</strong>替换仓库、分支和环境后，Project 和 Context 能重新建立。</li><li><strong>换 Agent：</strong>替换模型或 Prompt 版本后，Task、Graph、Tool 和 Evidence 契约仍然稳定。</li><li><strong>换相似任务：</strong>权限或资料导出任务可以复用平台生命周期和运行中心。</li></ol>
+<h3>13.5 平台放行条件</h3>
+<pre><code>Platform Acceptance Report
+功能：认证交付 A1–A5
+用户：创建、运行、等待、接管、接收
+稳定性：失败、中断、重复、超时、unknown
+复用：换用户、项目、Agent、相似任务
+资产：Agent、Task、Graph、Tool、Policy、验收模板
+结论：ready / needs_rework / blocked</code></pre>
+<p>如果平台只能让阿明完成认证项目，它是案例工具；如果平台能够让不同用户通过配置完成认证、权限、资料导出等相似任务，它才具备通用交付能力。下一步才是把这些能力绑定到岗位、职责、知识和指标，进入数字员工平台。</p>
+<div class="callout"><strong>本章产物：</strong>平台模块架构、API 与领域对象、纵向实现路线、四层验收、复用验收和平台放行报告。</div>
+<div class="chapter-close"><strong>思考：</strong>通用 Agent 平台的完成标准，不是模型变得更聪明，而是用户能在明确边界内完成任务，系统能留下状态和证据，并让下一次交付复用已经验证过的能力。</div>
+<span id="part-13" aria-hidden="true"></span><span id="closing" aria-hidden="true"></span><span id="part-bridge" aria-hidden="true"></span></div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#intro">开篇</a><a class="reading-toc-link level-2" href="#part-01">产品问题</a><a class="reading-toc-link level-2" href="#part-02">机制对照</a><a class="reading-toc-link level-2" href="#part-03">能力地图</a><a class="reading-toc-link level-2" href="#part-04">目标理解</a><a class="reading-toc-link level-2" href="#part-05">任务规划</a><a class="reading-toc-link level-2" href="#part-06">工具调用</a><a class="reading-toc-link level-2" href="#part-07">上下文记忆</a><a class="reading-toc-link level-2" href="#part-08">状态恢复</a><a class="reading-toc-link level-2" href="#part-09">验证反馈</a><a class="reading-toc-link level-2" href="#part-10">设计卡</a><a class="reading-toc-link level-2" href="#part-11">验收四柱</a><a class="reading-toc-link level-2" href="#closing">结语</a></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/08/08/llm-agent-principles/"><small>← 上一篇</small><span>02 · Agent 平台原理：理解一次交付如何发生</span></a></div><div><a href="/2026/08/09/digital-employee-platform/"><small>下一篇 →</small><span>04 · 建成数字员工平台：从岗位到可运营</span></a></div><a class="article-series-return" href="/categories/ai-agent/">返回AI Agent 工程实践 ↗</a></nav></article></main><footer class="portal-footer">
       <div class="content-width">
         <div class="footer-main">
           <div>
