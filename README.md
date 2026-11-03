@@ -14,7 +14,7 @@
 [![部署](https://img.shields.io/badge/部署-GitHub%20Pages-111827?style=flat-square)](https://github.com/Lianjifu/Lianjifu.github.io)
 [![静态站点](https://img.shields.io/badge/类型-Static%20Site-10b981?style=flat-square)](#-技术实现)
 
-[项目介绍](#-项目介绍) · [内容专题](#-内容专题) · [页面能力](#-页面能力) · [本地预览](#-本地预览) · [技术实现](#-技术实现) · [仓库结构](#-仓库结构) · [验证与维护](#-验证与维护) · [文档索引](#-文档索引)
+[项目介绍](#-项目介绍) · [内容专题](#-内容专题) · [页面能力](#-页面能力) · [技术实现](#-技术实现) · [仓库结构](#-仓库结构) · [文档索引](#-文档索引)
 
 </div>
 
@@ -61,41 +61,18 @@
 | 长文阅读 | 文章页提供静态目录、章节高亮、移动端折叠、代码复制和专题内上一篇 / 下一篇导航。 |
 | Mermaid 图示 | CDN 优先、本地资源回退；支持图示放大，解析失败时保留源文本。 |
 | 响应式布局 | 面向桌面和移动端适配，浏览器检查覆盖 390px 与 1440px 等常用视口。 |
-| GitHub Pages | 使用仓库根目录静态文件部署，自定义域名由 CNAME 指定。 |
-
-## ✦ 本地预览
-
-仓库可以直接通过 Python HTTP 服务预览，不需要安装 Node.js、Hexo 或 npm 依赖：
-
-~~~bash
-python3 -m http.server 4000 --bind 127.0.0.1
-~~~
-
-然后打开 <http://127.0.0.1:4000/>。静态资源使用根路径，必须通过 HTTP 服务访问，不要直接双击 HTML 文件。停止服务按 Ctrl+C。
-
-常用页面：
-
-- <http://127.0.0.1:4000/about/>
-- <http://127.0.0.1:4000/archives/>
-- <http://127.0.0.1:4000/categories/ai-agent/>
-- <http://127.0.0.1:4000/categories/claude-code/>
-
-如果本地请求受到代理影响，可以使用：
-
-~~~bash
-curl --noproxy '*' -I http://127.0.0.1:4000/
-~~~
+| GitHub Pages | 使用仓库根目录静态文件部署，自定义域名由 CNAME 指定为 `www.lianjifu.cn`。 |
 
 ## ✦ 技术实现
 
 | 层次 | 当前实现 |
 | --- | --- |
-| 站点来源 | Hexo 5.4.0 + NexT 7.8.0（Pisces）生成的静态输出 |
+| 站点来源 | Hexo + NexT（Pisces）生成的静态输出 |
 | 页面层 | 独立 HTML、CSS 与原生 JavaScript，无构建步骤 |
 | 首页场景 | 本地 Three.js 0.169.0（MIT），只在首页按需加载 |
 | 文章图示 | Mermaid，CDN 优先、本地资源回退 |
 | 历史资源 | NexT、Velocity.js、Font Awesome、本地搜索等资源继续保留在旧页面 |
-| 发布方式 | GitHub Pages + CNAME 自定义域名 |
+| 发布方式 | GitHub Pages + `CNAME`（`www.lianjifu.cn`） |
 
 ### 静态输出边界
 
@@ -159,43 +136,6 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 | [js/article-reader.js](./js/article-reader.js) | 文章目录高亮、移动折叠和代码复制 |
 | [js/article-diagrams.js](./js/article-diagrams.js) | Mermaid 图示、放大和引导表折叠 |
 
-## ✦ 验证与维护
-
-### 基础检查
-
-无需安装 npm 依赖即可运行：
-
-~~~bash
-node scripts/verify-articles.cjs
-node --check js/portal.js
-node --check js/article-reader.js
-node --check js/article-diagrams.js
-git diff --check
-~~~
-
-正文校验按文章清单检查 91 篇文章的正文 SHA-256 和新版页面结构。修改正文后，需要重新审核对应基准，并同步检查专题、归档、首页统计、搜索索引和订阅文件。
-
-### 浏览器检查
-
-先启动本地 HTTP 服务，再使用 Playwright CLI：
-
-~~~bash
-mkdir -p output/playwright
-npx --yes --package @playwright/cli playwright-cli -s=blog-check open http://127.0.0.1:4000/ --headed
-npx --yes --package @playwright/cli playwright-cli -s=blog-check run-code --filename=scripts/verify-homepage.js
-npx --yes --package @playwright/cli playwright-cli -s=blog-check run-code --filename=scripts/verify-articles-browser.js
-~~~
-
-浏览器脚本是 Playwright CLI 接收的函数表达式，不能直接用 node 执行。文章检查应返回空的 failures 和 errors；布局检查通过不代表原文中的所有 Mermaid 图示均无解析错误。
-
-### 维护约定
-
-- 修改 CSS 或 JavaScript 后，同步更新 HTML 中对应资源的 ?v= 版本参数。
-- 修改文章正文前，先阅读 [docs/article-pages.md](./docs/article-pages.md)。
-- 新增文章时，同步专题页、归档、首页统计、搜索索引、订阅文件和文章清单。
-- 重新生成 Hexo 输出前，在源仓库同步页面模板；生成后核对并恢复本仓库的页面定制。
-- 不在代码、日志和文档中写入密钥、令牌或个人敏感信息。
-
 ## ✦ 文档索引
 
 | 文档 | 用途 |
@@ -208,7 +148,7 @@ npx --yes --package @playwright/cli playwright-cli -s=blog-check run-code --file
 
 ## ✦ 已知限制
 
-- atom.xml 当前仍有历史 XML 转义问题：ATT&CK 未写成 ATT&amp;CK，严格 XML 解析会在第 528 行失败。
+- atom.xml 当前仍有历史 XML 转义问题：`ATT&CK` 未写成 `ATT&amp;CK`，严格 XML 解析会在第 528 行失败。
 - /categories/ 没有分类总览页，请使用四个专题入口或 [/archives/](https://lianjifu.cn/archives/)。
 - Mermaid 使用 CDN 优先、本地资源回退；网络不可用时，页面可能保留 Mermaid 源文本。
 
