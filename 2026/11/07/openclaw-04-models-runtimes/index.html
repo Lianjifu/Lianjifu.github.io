@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
   <meta name="theme-color" content="#0f172a">
-  <title>第 4 章：LLM Provider 与 Runtime 适配 | OpenClaw 源码笔记</title>
-  <meta name="description" content="模块 04 · LLM Provider 与 Runtime 适配。30+ LLM + 5 种 Runtime = 单一 LLM 抽象层——OpenClaw 把&quot;模型训练&quot;留给 OpenAI/Anthropic，自己做&quot;协调层&quot;。Provider 是 LLM 适配，Runtime 是 Agent 调度。本模块拆解两层的抽象、选型、故障转移。">
+  <title>第 4 章：模型与运行时——Provider 与 Runtime 适配 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 04 · 模型与运行时——Provider 与 Runtime 适配。30+ LLM + 5 种 Runtime = 单一 LLM 抽象层——OpenClaw 把&quot;模型训练&quot;留给 OpenAI/Anthropic，自己做&quot;协调层&quot;。Provider 是 LLM 适配，Runtime 是 Agent 调度。本模块拆解两层的抽象、选型、故障转移。">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="第 4 章：LLM Provider 与 Runtime 适配">
+  <meta property="og:title" content="第 4 章：模型与运行时——Provider 与 Runtime 适配">
   <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-04-models-runtimes/">
   <meta property="og:site_name" content="LianJiFu'blogs">
-  <meta property="og:description" content="模块 04 · LLM Provider 与 Runtime 适配。30+ LLM + 5 种 Runtime = 单一 LLM 抽象层——OpenClaw 把&quot;模型训练&quot;留给 OpenAI/Anthropic，自己做&quot;协调层&quot;。Provider 是 LLM 适配，Runtime 是 Agent 调度。本模块拆解两层的抽象、选型、故障转移。">
+  <meta property="og:description" content="模块 04 · 模型与运行时——Provider 与 Runtime 适配。30+ LLM + 5 种 Runtime = 单一 LLM 抽象层——OpenClaw 把&quot;模型训练&quot;留给 OpenAI/Anthropic，自己做&quot;协调层&quot;。Provider 是 LLM 适配，Runtime 是 Agent 调度。本模块拆解两层的抽象、选型、故障转移。">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
   <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="/css/2026.css?v=2">
   <link rel="stylesheet" href="/css/portal.css?v=11">
   <link rel="stylesheet" href="/css/article.css?v=7">
-  <link rel="stylesheet" href="/css/openclaw.css?v=7">
+  <link rel="stylesheet" href="/css/openclaw.css?v=9">
   <script src="/js/portal.js?v=7" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -148,7 +148,7 @@
     <header class="post-header">
       <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
       <span class="article-kicker">第 4 章：模型抽象</span>
-      <h1 class="post-title" itemprop="name headline">LLM Provider 与 Runtime 适配</h1>
+      <h1 class="post-title" itemprop="name headline">模型与运行时——Provider 与 Runtime 适配</h1>
       <div class="post-meta">
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
@@ -217,12 +217,55 @@
 
 
 
-  <h2 id="sec-1">4.1 一句话定位</h2>
+  <div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p>一次委托交出去之后，Gateway 要回答三个问题：<strong>用哪个模型</strong>（Provider / Model）、<strong>怎么跑</strong>（Runtime）、<strong>跑在什么隔离环境里</strong>（Harness）。这一章把三件事拆成四层正交的抽象。</p>
+  <p>关键认知是：<strong>Provider/Model 是身份，Runtime/Harness 是执行方式</strong>。两者互不干扰，所以「30+ Provider × 5 Runtime × 5 Harness」的全组合都成立——这是不被任何单一厂商绑死的技术前提。</p>
+  <p>落到日常使用：选 Runtime 看决策树，选模型走 4 级查找，模型挂了有 Fallback 链兜底，接新 Provider 几乎只要改一个 baseUrl。</p>
+</div>
 
-  <div>
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>一次委托交给谁、用什么方式执行、跑在什么隔离环境里</td></tr>
+    <tr><td>核心机制</td><td>Provider/Model（身份）+ Runtime（执行方式）+ Harness（隔离）+ 4 级选择 + Fallback 链</td></tr>
+    <tr><td>关键数字</td><td>30+ Provider · 5 种 Runtime · 5 种 Harness · 4 级模型选择</td></tr>
+    <tr><td>读完能做什么</td><td>为一个任务选好 Runtime、查清当前生效的模型、把新 Provider 接进来</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 定位与原则</div>
+    <div>身份与执行方式的区分，以及本章的读法。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 四层抽象</div>
+    <div>四层怎么正交组合，一份完整配置怎么读。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · Runtime 与选型</div>
+    <div>五种 Runtime 的差别，以及模型按哪四级查找。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · Provider 生态</div>
+    <div>Fallback、优先级、调试与 30+ Provider 的接法。</div>
+  </div>
+  <div class="oc-card">
+    <div>收束 · 本章结论</div>
+    <div>可以带走的结论，以及下一章的接口。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">4.1 定位与原则</h2><div class="oc-part-lead"><strong>第一段 · 定位与原则</strong>先把「身份」和「执行方式」拆开：Provider/Model 是身份，Runtime/Harness 是执行方式。</div><h3 id="sec-1.1">4.1.1 一句话定位</h3><div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">Provider/Model 是身份，Runtime/Harness 是执行方式。</p>OpenClaw 让你把这两件事<strong>独立配置、组合使用</strong>——同一模型可换不同 Runtime，同一 Runtime 可换不同模型，所有组合都能在 <code>openclaw.json5</code> 里声明。
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>Provider/Model 是<strong>身份</strong>，Runtime/Harness 是<strong>执行方式</strong>。这个区分是整章的钥匙：换模型是换身份，换 Runtime 是换执行方式，两者互不干扰。</p>
 </div>
+
+
 
   <table>
 <thead>
@@ -248,7 +291,10 @@
 
 
 
-  <h2 id="sec-2">4.2 推理层的三个原则</h2>
+  <h3 id="sec-1.2">4.1.2 推理层的三个原则</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>推理层最容易滑向「把所有事情都塞给模型」。三条原则划清了界限：<strong>模型只负责判断，执行交给 Runtime，约束交给 Policy</strong>。</p>
+</div>
 
   <table>
 <thead>
@@ -266,7 +312,10 @@
 
 
 
-  <h2 id="sec-3">4.3 模块位置</h2>
+  <h3 id="sec-1.3">4.1.3 模块位置</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>读法三条：<strong>要接一个新 Provider</strong>看自定义一节；<strong>要决定用哪种 Runtime</strong>看决策树；<strong>要查线上实际生效的是哪个模型</strong>看调试一节。</p>
+</div>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -282,7 +331,10 @@ flowchart LR
   style E fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
 </div><figcaption>图 4.8 · 模块 04 是 L3 推理层的具体实现——它定义了"模型如何被调用"。</figcaption></figure>
 
-  <h2 id="sec-4">4.4 四层抽象栈</h2>
+  <h2 id="seg-2">4.2 四层抽象</h2><div class="oc-part-lead"><strong>第二段 · 四层抽象</strong>Provider、Model、Runtime、Harness 四层如何正交组合，以及一份完整配置怎么读。</div><h3 id="sec-2.1">4.2.1 四层抽象栈</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>四层是层层收窄的：Provider 是「谁能提供」，Model 是「提供哪一个」，Runtime 是「怎么跑」，Harness 是「用什么跑」。上层的选择会限定下层的可选范围。</p>
+</div>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -306,39 +358,51 @@ flowchart LR
 
 
 
-  <h2 id="sec-5">4.5 四层详解</h2>
+  <h3 id="sec-2.2">4.2.2 四层详解</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">学习要点</p>
+<ul>
+  <li>Provider 适配层在架构中的定位是什么？Agent 调用和底层 Provider 如何解耦？</li>
+  <li>OpenClaw 支持哪些 Provider？各自的认证方式和特点是什么？</li>
+  <li>模型选择流程考虑哪些因素？primary + fallbacks 的配置模式如何工作？</li>
+  <li>Provider 适配层的三层架构（调用层 → 适配层 → 实现层）如何协同？</li>
+</ul>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">类比</p>：Provider 像"快递公司"——UPS / FedEx / DHL。他们是送货的，但送什么包裹是另一回事。
+<p><strong>要点</strong></p>
+<p class="oc-callout-lead">同 Provider 多 Model</p>：Anthropic Provider 提供 <code>claude-opus-4</code> / <code>claude-sonnet-4</code> / <code>claude-haiku-4</code>。OpenClaw 把它们都列在 Anthropic Provider 下，但每个都有独立的 context window、价格、benchmark 分数。
+<p><strong>要点</strong></p>
+<p class="oc-callout-lead">Runtime 与 Model 正交</p>：同一个模型（比如 <code>claude-sonnet-4</code>）可以用 Single-shot 调一次，也可用 Loop 跑 Agent。Runtime 是<strong>调用模式</strong>，不是模型特性。
+<p><strong>要点</strong></p>
+<p class="oc-callout-lead">为什么需要 Harness 层</p>：有些场景你只想要一个简单的 LLM 调用器（比如 <code>codex</code>），不需要 OpenClaw 的全部治理能力。Harness 层让你按场景切换"执行后端"。
+</div>
 
   <div class="oc-card">
 <span class="oc-chip">LAYER 1 · 提供者</span>
-    <h3 id="sec-5.1">4.5.1 Provider（提供者）</h3>
+    <h4 id="sec-2.2.1" data-toc-skip>Provider（提供者）</h4>
     <p><strong>是什么</strong>：提供 LLM API 的厂商——Anthropic、OpenAI、Ollama、DeepSeek 等。</p>
     <p><strong>关心什么</strong>：API 协议、鉴权方式、配额限制、价格、地区限制。</p>
     <p><strong>不关心什么</strong>：具体哪个模型（那是 Model 层）。</p>
     <p><strong>代码位置</strong>:<code>src/providers/[name]/</code>（每个 Provider 一个目录，如 <code>anthropic/</code>、<code>openai/</code>、<code>ollama/</code>)</p>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">类比</p>：Provider 像"快递公司"——UPS / FedEx / DHL。他们是送货的，但送什么包裹是另一回事。
-</div>
+
 
   <div class="oc-card">
 <span class="oc-chip">LAYER 2 · 模型</span>
-    <h3 id="sec-5.2">4.5.2 Model（模型）</h3>
+    <h4 id="sec-2.2.2" data-toc-skip>Model（模型）</h4>
     <p><strong>是什么</strong>：具体的模型 ID——<code>claude-sonnet-4</code>、<code>gpt-4o</code>、<code>qwen2.5-72b</code>。</p>
     <p><strong>关心什么</strong>：上下文窗口、最大输出、价格、能力评测、是否支持工具调用。</p>
     <p><strong>不关心什么</strong>：由谁提供（那是 Provider）。</p>
     <p><strong>代码位置</strong>:<code>src/providers/[name]/models.ts</code>（每个 Provider 目录下的模型清单）</p>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">同 Provider 多 Model</p>：Anthropic Provider 提供 <code>claude-opus-4</code> / <code>claude-sonnet-4</code> / <code>claude-haiku-4</code>。OpenClaw 把它们都列在 Anthropic Provider 下，但每个都有独立的 context window、价格、benchmark 分数。
-</div>
+
 
   <div class="oc-card">
 <span class="oc-chip">LAYER 3 · 运行时</span>
-    <h3 id="sec-5.3">4.5.3 Runtime（运行时）</h3>
+    <h4 id="sec-2.2.3" data-toc-skip>Runtime（运行时）</h4>
     <p><strong>是什么</strong>：调用 LLM 的执行模式——一次就够还是多轮循环？流式还是批量？</p>
     <p><strong>5 种 Runtime</strong>:</p>
     <ul>
@@ -351,14 +415,11 @@ flowchart LR
     <p><strong>代码位置</strong>:<code>src/runtimes/[type].ts</code></p>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">Runtime 与 Model 正交</p>：同一个模型（比如 <code>claude-sonnet-4</code>）可以用 Single-shot 调一次，也可用 Loop 跑 Agent。Runtime 是<strong>调用模式</strong>，不是模型特性。
-</div>
+
 
   <div class="oc-card">
 <span class="oc-chip">LAYER 4 · 执行后端</span>
-    <h3 id="sec-5.4">4.5.4 Harness（执行后端）</h3>
+    <h4 id="sec-2.2.4" data-toc-skip>Harness（执行后端）</h4>
     <p><strong>是什么</strong>：真正执行 Runtime 循环的进程——OpenClaw 自带一个，但也支持第三方 Harness。</p>
     <p><strong>5 种 Harness</strong>(v2026.9.2):</p>
     <ul>
@@ -371,24 +432,12 @@ flowchart LR
     <p><strong>代码位置</strong>:<code>src/harness/[name].ts</code></p>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">为什么需要 Harness 层</p>：有些场景你只想要一个简单的 LLM 调用器（比如 <code>codex</code>），不需要 OpenClaw 的全部治理能力。Harness 层让你按场景切换"执行后端"。
-</div>
 
-<h3 id="deep-24">4.5.5 Provider 适配层</h3>
-<div>
-<h3>本章要点</h3>
-<p class="oc-callout-lead">学习要点</p>
-<ul>
-  <li>Provider 适配层在架构中的定位是什么？Agent 调用和底层 Provider 如何解耦？</li>
-  <li>OpenClaw 支持哪些 Provider？各自的认证方式和特点是什么？</li>
-  <li>模型选择流程考虑哪些因素？primary + fallbacks 的配置模式如何工作？</li>
-  <li>Provider 适配层的三层架构（调用层 → 适配层 → 实现层）如何协同？</li>
-</ul>
-</div>
+
+<h4 id="sec-2.2.5" data-toc-skip>Provider 适配层</h4>
+
 <hr>
-<h4 id="deep-01-provider-adapters-1" data-toc-skip>Provider 层概述</h4>
+<h5 id="deep-01-provider-adapters-1" data-toc-skip>Provider 层概述</h5>
 <p>AI Provider 层是 Gateway 的<strong>模型中枢</strong>，负责对接各种 LLM 提供商，提供统一的模型调用接口。</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -417,7 +466,7 @@ flowchart LR
     classDef prov fill:#dbeafe,stroke:#3b82f6,color:#1e40af
 </div><figcaption>图 6.2 · 四层详解</figcaption></figure>
 <hr>
-<h4 id="deep-01-provider-adapters-2" data-toc-skip>支持 Provider 一览</h4>
+<h5 id="deep-01-provider-adapters-2" data-toc-skip>支持 Provider 一览</h5>
 <table>
   <thead>
     <tr><th>Provider</th><th>认证方式</th><th>模型示例</th><th>特点</th></tr>
@@ -435,7 +484,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-provider-adapters-3" data-toc-skip>适配架构</h4>
+<h5 id="deep-01-provider-adapters-3" data-toc-skip>适配架构</h5>
 <p>Provider 适配层采用<strong>三层架构</strong>，上层（调用层）无需关心底层使用哪个 Provider：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -467,7 +516,7 @@ flowchart LR
     classDef adapter fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef impl fill:#dbeafe,stroke:#3b82f6,color:#1e40af
 </div><figcaption>图 6.3 · 四层详解</figcaption></figure>
-<h4 id="sec-23-5-1" data-toc-skip>模型命名规范</h4>
+<h5 id="sec-23-5-1" data-toc-skip>模型命名规范</h5>
 <p>OpenClaw 使用 `provider/model` 格式唯一标识一个模型：</p>
 <pre>{
   agents: {
@@ -491,7 +540,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-provider-adapters-4" data-toc-skip>模型选择流程</h4>
+<h5 id="deep-01-provider-adapters-4" data-toc-skip>模型选择流程</h5>
 <p>当 Agent 发起模型调用时，按以下流程选择模型：</p>
 <figure><div class="mermaid">
 flowchart TB
@@ -522,7 +571,7 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-provider-adapters-5" data-toc-skip>模型配置示例</h4>
+<h5 id="deep-01-provider-adapters-5" data-toc-skip>模型配置示例</h5>
 <pre>{
   agents: {
     defaults: {
@@ -538,14 +587,14 @@ flowchart TB
     },
   },
 }</pre>
-<h4 id="sec-23-8-1" data-toc-skip>CLI 快速查看</h4>
+<h5 id="sec-23-8-1" data-toc-skip>CLI 快速查看</h5>
 <pre># 列出可用模型
 openclaw models list
 
 # 查看当前配置
 openclaw config get agents.defaults.model</pre>
 <hr>
-<h4 id="deep-01-provider-adapters-6" data-toc-skip>关键源码文件</h4>
+<h5 id="deep-01-provider-adapters-6" data-toc-skip>关键源码文件</h5>
 <table>
   <thead>
     <tr><th>文件</th><th>作用</th></tr>
@@ -567,11 +616,15 @@ openclaw config get agents.defaults.model</pre>
 
 
 
-  <h2 id="sec-6">4.6 四层如何组合？</h2>
+  <h3 id="sec-2.3">4.2.3 四层如何组合？</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">同一 Provider + Model 可用不同 Harness</p>:<code>research</code> 用 <code>openclaw</code>（完整治理）；<code>quick_translate</code> 用 <code>codex</code>（轻量）。模型一样（都 Anthropic），但执行后端不同。
+
+</div>
 
   <p>四层是正交的——任意组合都可以。</p>
 
-  <pre>{
+<pre>{
   <span>agents</span>: {
     <span>research</span>: {
       <span>model</span>: {
@@ -598,14 +651,14 @@ openclaw config get agents.defaults.model</pre>
   }
 }</pre>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">同一 Provider + Model 可用不同 Harness</p>:<code>research</code> 用 <code>openclaw</code>（完整治理）；<code>quick_translate</code> 用 <code>codex</code>（轻量）。模型一样（都 Anthropic），但执行后端不同。
+
+
+
+
+  <h3 id="sec-2.4">4.2.4 四层对照</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>对照表的价值在于看清「<strong>谁决定什么</strong>」：模型身份由 Provider/Model 决定，执行形态由 Runtime 决定，隔离与沙箱由 Harness 决定。排查问题时先分清是哪一层在起作用。</p>
 </div>
-
-
-
-  <h2 id="sec-7">4.7 四层对照</h2>
 
   <table>
 <thead><tr><th>层</th><th>回答的问题</th><th>粒度</th><th>变更频率</th></tr></thead>
@@ -619,9 +672,12 @@ openclaw config get agents.defaults.model</pre>
 
 
 
-  <h2 id="sec-8">4.8 完整 4 层配置示例</h2>
+  <h3 id="sec-2.5">4.2.5 完整 4 层配置示例</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>一份完整配置从上到下读：先看 Provider/Model 确定身份，再看 Runtime 确定执行方式，最后看 Harness 确定隔离边界——三段各自独立，改一段不影响另两段。</p>
+</div>
 
-  <pre>{
+<pre>{
   <span>providers</span>: {                                    <span>// L1 · Provider</span>
     <span>anthropic</span>: {
       <span>apiKey</span>: <span>"${ANTHROPIC_API_KEY}"</span>,
@@ -654,7 +710,10 @@ openclaw config get agents.defaults.model</pre>
 
 
 
-  <h2 id="sec-9">4.9 5 种 Runtime 一览</h2>
+  <h2 id="seg-3">4.3 Runtime 与选型</h2><div class="oc-part-lead"><strong>第三段 · Runtime 与选型</strong>五种 Runtime 的差别本质上是「谁让 Agent 停下来」，以及模型该按哪四级查找。</div><h3 id="sec-3.1">4.3.1 5 种 Runtime 一览</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>五种 Runtime 不是「功能多少」的差别，而是「<strong>循环由谁驱动</strong>」：single-shot 一次返回，loop 自己转，streaming 边生成边推，其余两种是这两者的组合。</p>
+</div>
 
   <div class="oc-cards">
 <div class="oc-card">
@@ -687,11 +746,14 @@ Hybrid<small>并行 + 流式</small>
 
 
 
-  <h2 id="sec-10">4.10 5 种 Runtime 详解</h2>
+  <h3 id="sec-3.2">4.3.2 5 种 Runtime 详解</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>选 Runtime 实际上是在选「<strong>谁负责让 Agent 停下来</strong>」：single-shot 靠模型自己判断，loop 靠上限与收敛条件，streaming 靠流的结束信号。</p>
+</div>
 
   <div>
     <span class="oc-chip">RUNTIME 1 · 最简单</span>
-    <h3 id="sec-10.1">4.10.1 Single-shot（一次性）</h3>
+    <h4 id="sec-3.2.1" data-toc-skip>Single-shot（一次性）</h4>
     <p>一次 LLM 调用就返回结果——没有循环、没有工具调用。</p>
 
     <div class="oc-sub">
@@ -728,7 +790,7 @@ Hybrid<small>并行 + 流式</small>
 
   <div>
     <span class="oc-chip">RUNTIME 2 · 默认</span>
-    <h3 id="sec-10.2">4.10.2 Loop（ReAct 循环）</h3>
+    <h4 id="sec-3.2.2" data-toc-skip>Loop（ReAct 循环）</h4>
     <p>多轮循环——LLM 思考 → 调用工具 → 观察结果 → 再思考 → 直到完成。这是 Agent 的默认模式。</p>
 
     <div class="oc-sub">
@@ -779,7 +841,7 @@ flowchart LR
 
   <div>
     <span class="oc-chip">RUNTIME 3 · UX 优先</span>
-    <h3 id="sec-10.3">4.10.3 Streaming（流式生成）</h3>
+    <h4 id="sec-3.2.3" data-toc-skip>Streaming（流式生成）</h4>
     <p>单次调用，但边生成边返回——用户能看到文本逐字出现，无需等完整响应。</p>
 
     <div class="oc-sub">
@@ -817,7 +879,7 @@ flowchart LR
 
   <div>
     <span class="oc-chip">RUNTIME 4 · 批量并发</span>
-    <h3 id="sec-10.4">4.10.4 Parallel（并行执行）</h3>
+    <h4 id="sec-3.2.4" data-toc-skip>Parallel（并行执行）</h4>
     <p>多个独立任务并发执行——每个任务是一个独立 LLM 调用，最终聚合成一个结果。</p>
 
     <div class="oc-sub">
@@ -874,7 +936,7 @@ flowchart LR
 
   <div>
     <span class="oc-chip">RUNTIME 5 · v2026.9.2 新增</span>
-    <h3 id="sec-10.5">4.10.5 Hybrid（并行 + 流式）</h3>
+    <h4 id="sec-3.2.5" data-toc-skip>Hybrid（并行 + 流式）</h4>
     <p>Parallel + Streaming + Loop 的组合——并行多个子任务，每个子任务可流式返回，主任务协调它们。</p>
 
     <div class="oc-sub">
@@ -930,7 +992,10 @@ flowchart LR
 
 
 
-  <h2 id="sec-11">4.11 Runtime 选择决策树</h2>
+  <h3 id="sec-3.3">4.3.3 Runtime 选择决策树</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>决策树只问两个问题：需要工具调用吗？需要流式输出吗？两个都「否」用 single-shot，要流式用 streaming，要工具循环用 loop，两者都要用 hybrid。</p>
+</div>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -953,7 +1018,10 @@ flowchart LR
 
 
 
-  <h2 id="sec-12">4.12 4 级选择流程</h2>
+  <h3 id="sec-3.4">4.3.4 4 级选择流程</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>4 级查找是「<strong>越精确越优先</strong>」：Agent 级 &gt; 账号级 &gt; Workspace 级 &gt; 全局默认。查「为什么用了这个模型」时，按这个顺序逐级排除就行。</p>
+</div>
 
   <p>当用户问"用哪个模型"时，OpenClaw 有 4 层查找机制——越往后越通用，越靠前越精确。</p>
 
@@ -982,11 +1050,20 @@ flowchart TB
 
 
 
-  <h2 id="sec-13">4.13 4 级详解</h2>
+  <h3 id="sec-3.5">4.3.5 4 级详解</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">何时用</p>：Agent 性质决定了模型选择——比如 <code>research</code> 用 Sonnet（质量优先），<code>translator</code> 用本地 qwen2.5-7b（成本优先）。
+<p><strong>要点</strong></p>
+<p class="oc-callout-lead">何时用</p>：不同身份用不同模型——工作 bot 必须高质量，个人 bot 优先成本。
+<p><strong>要点</strong></p>
+<p class="oc-callout-lead">何时用</p>：项目级别的策略——比如金融项目强制用 Opus（质量优先），个人项目用 Sonnet（成本优先）。
+<p><strong>要点</strong></p>
+<p class="oc-callout-lead">必须配置 defaults</p>：OpenClaw 强制要求至少有一个 fallback——防止 Agent 误用随机模型。
+</div>
 
   <div class="oc-card">
 <span class="oc-chip">LEVEL 1 · 最高优先级</span>
-    <h3 id="sec-13.1">4.13.1 Agent 级配置</h3>
+    <h4 id="sec-3.5.1" data-toc-skip>Agent 级配置</h4>
     <p><strong>适用</strong>：某个 Agent 必须用某个模型。</p>
     <p><strong>配置位置</strong>:<code>openclaw.json5</code> → <code>agents.[name].model</code></p>
 
@@ -1004,14 +1081,11 @@ flowchart TB
     <p>这是<strong>最高优先级</strong>——只要 Agent 级配了模型，后续的 Level 2/3/4 都被忽略。</p>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">何时用</p>：Agent 性质决定了模型选择——比如 <code>research</code> 用 Sonnet（质量优先），<code>translator</code> 用本地 qwen2.5-7b（成本优先）。
-</div>
+
 
   <div class="oc-card">
 <span class="oc-chip">LEVEL 2 · 通道覆盖</span>
-    <h3 id="sec-13.2">4.13.2 Channel（账号）级配置</h3>
+    <h4 id="sec-3.5.2" data-toc-skip>Channel（账号）级配置</h4>
     <p><strong>适用</strong>：某个通道/账号的所有消息都用特定模型。</p>
     <p><strong>配置位置</strong>:<code>channels.[name].accounts.[acc].model</code></p>
 
@@ -1033,14 +1107,11 @@ flowchart TB
     <p><strong>回退触发</strong>：Agent 级未配置 → 使用 Channel 级。</p>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">何时用</p>：不同身份用不同模型——工作 bot 必须高质量，个人 bot 优先成本。
-</div>
+
 
   <div class="oc-card">
 <span class="oc-chip">LEVEL 3 · 工作区</span>
-    <h3 id="sec-13.3">4.13.3 Workspace 级配置</h3>
+    <h4 id="sec-3.5.3" data-toc-skip>Workspace 级配置</h4>
     <p><strong>适用</strong>：某个工作目录的所有 Agent 都用同一模型。</p>
     <p><strong>配置位置</strong>：工作目录的 <code>.openclaw/config.json5</code></p>
 
@@ -1052,14 +1123,11 @@ flowchart TB
     <p>Workspace 配置会<strong>覆盖</strong>用户根目录的默认，但被 Agent 级 / Channel 级覆盖。</p>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">何时用</p>：项目级别的策略——比如金融项目强制用 Opus（质量优先），个人项目用 Sonnet（成本优先）。
-</div>
+
 
   <div class="oc-card">
 <span class="oc-chip">LEVEL 4 · 兜底默认</span>
-    <h3 id="sec-13.4">4.13.4 全局默认</h3>
+    <h4 id="sec-3.5.4" data-toc-skip>全局默认</h4>
     <p><strong>适用</strong>：其他所有级别都没配置。</p>
     <p><strong>配置位置</strong>:<code>openclaw.json5</code> → <code>defaults.model</code></p>
 
@@ -1072,18 +1140,18 @@ flowchart TB
     <p>如果没有配置 <code>defaults.model</code>，OpenClaw 会<strong>报错并拒绝启动</strong>（fail-closed）。</p>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">必须配置 defaults</p>：OpenClaw 强制要求至少有一个 fallback——防止 Agent 误用随机模型。
+
+
+
+
+  <h3 id="sec-3.6">4.3.6 auto 模式 · 让 OpenClaw 选</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>auto 模式不是「随便挑一个」，而是按任务特征在候选里匹配——它省掉的是配置负担，不是可预测性。<strong>要可预测，就手动指定。</strong></p>
 </div>
-
-
-
-  <h2 id="sec-14">4.14 auto 模式 · 让 OpenClaw 选</h2>
 
   <p>除了手动指定，你可以让 OpenClaw <strong>自动选择</strong>最适合的模型：</p>
 
-  <pre>{
+<pre>{
   <span>agents</span>: {
     <span>smart_router</span>: {
       <span>model</span>: <span>"auto"</span>           <span>// OpenClaw 自动选</span>
@@ -1106,7 +1174,20 @@ flowchart TB
 
 
 
-  <h2 id="sec-15">4.15 Fallback · 模型故障切换</h2>
+  <h2 id="seg-4">4.4 Provider 生态</h2><div class="oc-part-lead"><strong>第四段 · Provider 生态</strong>Fallback 链、优先级、调试手段，以及 30+ Provider 的接法与选型。</div><h3 id="sec-4.1">4.4.1 Fallback · 模型故障切换</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">学习要点</p>
+<ul>
+  <li>模型故障转移的两阶段处理分别做什么？失败后如何逐级降级？</li>
+  <li>Profile 轮换的优先顺序是什么？冷却（Cooldown）的指数退避如何工作？</li>
+  <li>账单禁用（Billing Disable）的退避策略和普通冷却有什么不同？</li>
+  <li>Fallback 模型切换的适用场景和不适用场景分别是什么？</li>
+</ul>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">本地模型作为最终兜底</p>：把 <code>ollama/qwen2.5-72b</code> 放在 fallback 链尾，确保云服务完全不可用时仍能工作。
+
+</div>
 
   <p>如果首选模型调用失败（限流、断网、错误），OpenClaw 自动切换到下一个候选：</p>
 
@@ -1126,7 +1207,7 @@ flowchart TB
   style T fill:#fef3c7,stroke:#d97706,color:#1a1f2b
 </div><figcaption>图 4.7 · Fallback 链路——第一个模型失败自动尝试下一个，直到成功或全部失败。</figcaption></figure>
 
-  <pre>{
+<pre>{
   <span>agents</span>: {
     <span>resilient</span>: {
       <span>model</span>: {
@@ -1145,24 +1226,12 @@ flowchart TB
   }
 }</pre>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">本地模型作为最终兜底</p>：把 <code>ollama/qwen2.5-72b</code> 放在 fallback 链尾，确保云服务完全不可用时仍能工作。
-</div>
 
-<h3 id="deep-25">4.15.1 模型故障转移</h3>
-<div>
-<h3>本章要点</h3>
-<p class="oc-callout-lead">学习要点</p>
-<ul>
-  <li>模型故障转移的两阶段处理分别做什么？失败后如何逐级降级？</li>
-  <li>Profile 轮换的优先顺序是什么？冷却（Cooldown）的指数退避如何工作？</li>
-  <li>账单禁用（Billing Disable）的退避策略和普通冷却有什么不同？</li>
-  <li>Fallback 模型切换的适用场景和不适用场景分别是什么？</li>
-</ul>
-</div>
+
+<h4 id="sec-4.1.1" data-toc-skip>模型故障转移</h4>
+
 <hr>
-<h4 id="deep-02-model-failover-1" data-toc-skip>两阶段故障处理</h4>
+<h5 id="deep-02-model-failover-1" data-toc-skip>两阶段故障处理</h5>
 <p>模型故障转移是 OpenClaw 的<strong>韧性保障</strong>，确保单模型失败不会导致整个系统不可用。</p>
 <figure><div class="mermaid">flowchart TD
     subgraph 阶段一["阶段一：主模型 Profile 轮换"]
@@ -1201,7 +1270,7 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-02-model-failover-2" data-toc-skip>Profile 轮换顺序</h4>
+<h5 id="deep-02-model-failover-2" data-toc-skip>Profile 轮换顺序</h5>
 <p>当主模型配置了多个认证 Profile 时，按以下优先级轮换：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1213,13 +1282,13 @@ flowchart LR
 
     classDef order fill:#fef3c7,stroke:#f59e0b,color:#92400e
 </div><figcaption>图 16.4 · Fallback · 模型故障切换</figcaption></figure>
-<h4 id="sec-23-13-1" data-toc-skip>凭证类型</h4>
+<h5 id="sec-23-13-1" data-toc-skip>凭证类型</h5>
 <pre>// API Key 类型
 { type: &quot;api_key&quot;, provider: &quot;anthropic&quot;, key: &quot;sk-ant-...&quot; }
 
 // OAuth 类型
 { type: &quot;oauth&quot;, provider: &quot;google-antigravity&quot;, access: &quot;...&quot;, refresh: &quot;...&quot;, expires: 123, email: &quot;user@gmail.com&quot; }</pre>
-<h4 id="sec-23-14-1" data-toc-skip>Profile ID 格式</h4>
+<h5 id="sec-23-14-1" data-toc-skip>Profile ID 格式</h5>
 <table>
   <thead>
     <tr><th>类型</th><th>格式</th><th>示例</th></tr>
@@ -1230,7 +1299,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-02-model-failover-3" data-toc-skip>冷却机制（Cooldown）</h4>
+<h5 id="deep-02-model-failover-3" data-toc-skip>冷却机制（Cooldown）</h5>
 <p>当 Profile 由于认证/速率限制错误失败时，OpenClaw 将其标记为<strong>冷却</strong>并移到下一个 Profile：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1242,7 +1311,7 @@ flowchart LR
     classDef cool fill:#fce7f3,stroke:#ec4899,color:#9d174d
     classDef cool_max fill:#fee2e2,stroke:#ef4444,color:#991b1b
 </div><figcaption>图 16.5 · Fallback · 模型故障切换</figcaption></figure>
-<h4 id="sec-23-16-1" data-toc-skip>冷却状态存储</h4>
+<h5 id="sec-23-16-1" data-toc-skip>冷却状态存储</h5>
 <pre>{
   usageStats: {
     &quot;anthropic:default&quot;: {
@@ -1253,7 +1322,7 @@ flowchart LR
   },
 }</pre>
 <hr>
-<h4 id="deep-02-model-failover-4" data-toc-skip>账单禁用（Billing Disable）</h4>
+<h5 id="deep-02-model-failover-4" data-toc-skip>账单禁用（Billing Disable）</h5>
 <p>当遇到 "insufficient credits" 等账单/额度失败时，使用<strong>更长退避</strong>，不适用短冷却：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1278,7 +1347,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-02-model-failover-5" data-toc-skip>模型回退（Model Fallback）</h4>
+<h5 id="deep-02-model-failover-5" data-toc-skip>模型回退（Model Fallback）</h5>
 <p>如果提供商的所有 Profile 都失败，OpenClaw 移到 `agents.defaults.model.fallbacks` 中的下一个模型。</p>
 <table>
   <thead>
@@ -1291,7 +1360,7 @@ flowchart LR
   </tbody>
 </table>
 <blockquote><p>当运行以模型覆盖（钩子或 CLI）启动时，回退在尝试所有 fallback 后，最终回退到 `agents.defaults.model.primary`。</p></blockquote>
-<h4 id="sec-23-19-1" data-toc-skip>配置</h4>
+<h5 id="sec-23-19-1" data-toc-skip>配置</h5>
 <pre>{
   agents: {
     defaults: {
@@ -1302,7 +1371,7 @@ flowchart LR
     },
   },
 }</pre>
-<h4 id="sec-23-20-1" data-toc-skip>完整配置示例</h4>
+<h5 id="sec-23-20-1" data-toc-skip>完整配置示例</h5>
 <pre>{
   auth: {
     profiles: { &quot;...&quot;: &quot;...&quot; },
@@ -1328,8 +1397,8 @@ flowchart LR
 
 
 
-<h3 id="deep-26">4.15.2 认证管理</h3>
-<div>
+<h4 id="sec-4.1.2" data-toc-skip>认证管理</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1339,7 +1408,7 @@ flowchart LR
 </ul>
 </div>
 <hr>
-<h4 id="deep-03-auth-cooldown-1" data-toc-skip>认证体系</h4>
+<h5 id="deep-03-auth-cooldown-1" data-toc-skip>认证体系</h5>
 <p>OpenClaw 的认证管理负责所有 Provider 的 API Key、OAuth Token 等凭证的存储、轮换和故障恢复。</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1374,8 +1443,8 @@ flowchart LR
     classDef prov fill:#fce7f3,stroke:#ec4899,color:#9d174d
 </div><figcaption>图 16.7 · Fallback · 模型故障切换</figcaption></figure>
 <hr>
-<h4 id="deep-03-auth-cooldown-2" data-toc-skip>凭证存储</h4>
-<h4 id="sec-23-24-1" data-toc-skip>存储路径</h4>
+<h5 id="deep-03-auth-cooldown-2" data-toc-skip>凭证存储</h5>
+<h5 id="sec-23-24-1" data-toc-skip>存储路径</h5>
 <table>
   <thead>
     <tr><th>类型</th><th>路径</th><th>说明</th></tr>
@@ -1386,7 +1455,7 @@ flowchart LR
     <tr><td><strong>旧版兼容</strong></td><td><code>~/.openclaw/agent/auth-profiles.json</code></td><td>旧版本使用的路径</td></tr>
   </tbody>
 </table>
-<h4 id="sec-23-25-1" data-toc-skip>凭证类型</h4>
+<h5 id="sec-23-25-1" data-toc-skip>凭证类型</h5>
 <pre>// API Key 类型
 {
   type: &quot;api_key&quot;,
@@ -1413,7 +1482,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-auth-cooldown-3" data-toc-skip>Profile 轮换顺序</h4>
+<h5 id="deep-03-auth-cooldown-3" data-toc-skip>Profile 轮换顺序</h5>
 <p>当 Provider 配置了多个认证 Profile 时，按以下优先级依次尝试：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1427,7 +1496,7 @@ flowchart LR
     classDef mid fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef low fill:#f1f5f9,stroke:#64748b,color:#1e293b
 </div><figcaption>图 16.8 · Fallback · 模型故障切换</figcaption></figure>
-<h4 id="sec-23-27-1" data-toc-skip>Profile ID 格式</h4>
+<h5 id="sec-23-27-1" data-toc-skip>Profile ID 格式</h5>
 <table>
   <thead>
     <tr><th>类型</th><th>格式</th><th>示例</th></tr>
@@ -1438,7 +1507,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-auth-cooldown-4" data-toc-skip>环境变量注入</h4>
+<h5 id="deep-03-auth-cooldown-4" data-toc-skip>环境变量注入</h5>
 <p>推荐将敏感凭证通过环境变量注入，避免明文存储在配置文件中：</p>
 <pre>{
   models: {
@@ -1452,7 +1521,7 @@ flowchart LR
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-proj-...
 GEMINI_API_KEY=AIza...</pre>
-<h4 id="sec-23-29-1" data-toc-skip>替换规则</h4>
+<h5 id="sec-23-29-1" data-toc-skip>替换规则</h5>
 <table>
   <thead>
     <tr><th>语法</th><th>行为</th></tr>
@@ -1464,7 +1533,7 @@ GEMINI_API_KEY=AIza...</pre>
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-auth-cooldown-5" data-toc-skip>认证与配置热重载</h4>
+<h5 id="deep-03-auth-cooldown-5" data-toc-skip>认证与配置热重载</h5>
 <p>认证配置变更通过 Gateway 的热重载机制动态生效：</p>
 <table>
   <thead>
@@ -1478,7 +1547,7 @@ GEMINI_API_KEY=AIza...</pre>
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-auth-cooldown-6" data-toc-skip>关键源码文件</h4>
+<h5 id="deep-03-auth-cooldown-6" data-toc-skip>关键源码文件</h5>
 <table>
   <thead>
     <tr><th>文件</th><th>作用</th></tr>
@@ -1497,7 +1566,10 @@ GEMINI_API_KEY=AIza...</pre>
 
 
 
-  <h2 id="sec-16">4.16 优先级总结</h2>
+  <h3 id="sec-4.2">4.4.2 优先级总结</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>优先级只有一条规则：<strong>越靠近使用点越优先</strong>。记住这条，就不用背整张表了。</p>
+</div>
 
   <table>
 <thead><tr><th>级别</th><th>优先级</th><th>配置位置</th><th>回退到</th></tr></thead>
@@ -1511,7 +1583,10 @@ GEMINI_API_KEY=AIza...</pre>
 
 
 
-  <h2 id="sec-17">4.17 调试 · 如何看当前生效的模型？</h2>
+  <h3 id="sec-4.3">4.4.3 调试 · 如何看当前生效的模型？</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>先 <code>doctor</code> 再 <code>inspect</code>：前者给全局健康与当前配置，后者给单个 Agent 的实际生效值。排查「模型不对」，从这两条命令开始比翻配置快得多。</p>
+</div>
 
   <p>运行时调用 <code>openclaw doctor</code> 或 <code>openclaw inspect agent [name]</code>，会显示该 Agent 当前生效的模型来源：</p>
 
@@ -1528,7 +1603,11 @@ Agent: research
 
 
 
-  <h2 id="sec-18">4.18 30+ Provider 总览矩阵</h2>
+  <h3 id="sec-4.4">4.4.4 30+ Provider 总览矩阵</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">自定义 Provider</p>：如果你的 LLM API 兼容 OpenAI 协议（很多都兼容），用 <code>custom</code> Provider + <code>baseUrl</code> 即可接入，无需写新代码。
+
+</div>
 
   <p>OpenClaw 内置 30+ LLM Provider——云服务、本地推理、企业网关、聚合、自定义。接入前查这张表。</p>
 
@@ -1557,24 +1636,25 @@ Agent: research
 </tbody>
 </table>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">自定义 Provider</p>：如果你的 LLM API 兼容 OpenAI 协议（很多都兼容），用 <code>custom</code> Provider + <code>baseUrl</code> 即可接入，无需写新代码。
+
+
+
+
+  <h3 id="sec-4.5">4.4.5 云 / 本地 / 企业——三大类 Provider</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">本地模型作为 fallback</p>：把 Ollama 放在 fallback 链尾，云服务完全不可用时仍能工作——是最稳健的离线兜底。
+
 </div>
 
-
-
-  <h2 id="sec-19">4.19 云 / 本地 / 企业——三大类 Provider</h2>
-
-  <h3 id="sec-19.1">4.19.1 云服务——主力 + 主流 + 中文优化</h3>
+  <h4 id="sec-4.5.1" data-toc-skip>云服务——主力 + 主流 + 中文优化</h4>
 
   <div class="oc-card">
 <span class="oc-chip">CLOUD · 主力</span>
-    <h3 id="sec-19.2">4.19.2 Anthropic</h3>
+    <h4 id="sec-4.5.2" data-toc-skip>Anthropic</h4>
     <p><strong>代表模型</strong>:<code>claude-opus-4</code> · <code>claude-sonnet-4</code> · <code>claude-haiku-4</code></p>
     <p><strong>特色</strong>：200k 上下文 · prompt caching · 工具调用一流 · Computer Use（beta）</p>
 
-    <pre>{
+<pre>{
   <span>providers</span>: {
     <span>anthropic</span>: {
       <span>apiKey</span>: <span>"${ANTHROPIC_API_KEY}"</span>,
@@ -1588,11 +1668,11 @@ Agent: research
 
   <div class="oc-card">
 <span class="oc-chip">CLOUD · 主流</span>
-    <h3 id="sec-19.3">4.19.3 OpenAI</h3>
+    <h4 id="sec-4.5.3" data-toc-skip>OpenAI</h4>
     <p><strong>代表模型</strong>:<code>gpt-4o</code> · <code>gpt-4-turbo</code> · <code>o1</code> · <code>o3-mini</code></p>
     <p><strong>特色</strong>：structured outputs · 视觉理解 · 工具调用</p>
 
-    <pre>{
+<pre>{
   <span>providers</span>: {
     <span>openai</span>: {
       <span>apiKey</span>: <span>"${OPENAI_API_KEY}"</span>,
@@ -1605,11 +1685,11 @@ Agent: research
 
   <div class="oc-card">
 <span class="oc-chip">CLOUD · 中文优化</span>
-    <h3 id="sec-19.4">4.19.4 DeepSeek</h3>
+    <h4 id="sec-4.5.4" data-toc-skip>DeepSeek</h4>
     <p><strong>代表模型</strong>:<code>deepseek-chat</code> · <code>deepseek-coder</code> · <code>deepseek-r1</code></p>
     <p><strong>特色</strong>：极低成本 · 中文优化 · 推理模型强</p>
 
-    <pre>{
+<pre>{
   <span>providers</span>: {
     <span>deepseek</span>: {
       <span>apiKey</span>: <span>"${DEEPSEEK_API_KEY}"</span>,
@@ -1621,11 +1701,11 @@ Agent: research
 
   <div class="oc-card">
 <span class="oc-chip">CLOUD · 国内中文</span>
-    <h3 id="sec-19.5">4.19.5 Alibaba（通义千问）</h3>
+    <h4 id="sec-4.5.5" data-toc-skip>Alibaba（通义千问）</h4>
     <p><strong>代表模型</strong>:<code>qwen-max</code> · <code>qwen-plus</code> · <code>qwen-turbo</code></p>
     <p><strong>特色</strong>：中文最强 · 国内访问快 · DashScope API</p>
 
-    <pre>{
+<pre>{
   <span>providers</span>: {
     <span>alibaba</span>: {
       <span>apiKey</span>: <span>"${DASHSCOPE_API_KEY}"</span>,
@@ -1635,15 +1715,15 @@ Agent: research
 }</pre>
 </div>
 
-  <h3 id="sec-19.6">4.19.6 本地推理——隐私优先 + 高性能</h3>
+  <h4 id="sec-4.5.6" data-toc-skip>本地推理——隐私优先 + 高性能</h4>
 
   <div class="oc-card">
 <span class="oc-chip">LOCAL · 隐私优先</span>
-    <h3 id="sec-19.7">4.19.7 Ollama</h3>
+    <h4 id="sec-4.5.7" data-toc-skip>Ollama</h4>
     <p><strong>代表模型</strong>:<code>qwen2.5-72b</code> · <code>llama3.3-70b</code> · <code>mistral-large</code> · <code>codellama</code></p>
     <p><strong>特色</strong>：本地运行 · 完全离线 · 无 API 费用</p>
 
-    <pre>{
+<pre>{
   <span>providers</span>: {
     <span>ollama</span>: {
       <span>baseUrl</span>: <span>"http://localhost:11434"</span>,
@@ -1658,10 +1738,10 @@ Agent: research
 
   <div class="oc-card">
 <span class="oc-chip">LOCAL · 高性能</span>
-    <h3 id="sec-19.8">4.19.8 vLLM</h3>
+    <h4 id="sec-4.5.8" data-toc-skip>vLLM</h4>
     <p><strong>特色</strong>：高性能推理服务 · PagedAttention · 适合并发</p>
 
-    <pre>{
+<pre>{
   <span>providers</span>: {
     <span>vllm</span>: {
       <span>baseUrl</span>: <span>"http://localhost:8000/v1"</span>,     <span>// OpenAI 兼容</span>
@@ -1671,20 +1751,17 @@ Agent: research
 }</pre>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">本地模型作为 fallback</p>：把 Ollama 放在 fallback 链尾，云服务完全不可用时仍能工作——是最稳健的离线兜底。
-</div>
 
-  <h3 id="sec-19.9">4.19.9 企业网关——合规 + SLA</h3>
+
+  <h4 id="sec-4.5.9" data-toc-skip>企业网关——合规 + SLA</h4>
 
   <div class="oc-card">
 <span class="oc-chip">ENTERPRISE · 合规</span>
-    <h3 id="sec-19.10">4.19.10 AWS Bedrock</h3>
+    <h4 id="sec-4.5.10" data-toc-skip>AWS Bedrock</h4>
     <p><strong>代表模型</strong>：Claude（Anthropic）、Llama（Meta）、Titan（Amazon）、Mistral——都在 AWS 上</p>
     <p><strong>特色</strong>：VPC 私有部署 · 合规（SOC2、HIPAA） · 区域隔离</p>
 
-    <pre>{
+<pre>{
   <span>providers</span>: {
     <span>bedrock</span>: {
       <span>region</span>: <span>"us-east-1"</span>,
@@ -1700,11 +1777,11 @@ Agent: research
 
   <div class="oc-card">
 <span class="oc-chip">ENTERPRISE · SLA</span>
-    <h3 id="sec-19.11">4.19.11 Azure OpenAI</h3>
+    <h4 id="sec-4.5.11" data-toc-skip>Azure OpenAI</h4>
     <p><strong>代表模型</strong>：OpenAI 全系列 · 部署在 Azure 上</p>
     <p><strong>特色</strong>：SLA · 区域 · 企业合规</p>
 
-    <pre>{
+<pre>{
   <span>providers</span>: {
     <span>azure-openai</span>: {
       <span>apiKey</span>: <span>"${AZURE_OPENAI_KEY}"</span>,
@@ -1718,11 +1795,15 @@ Agent: research
 
 
 
-  <h2 id="sec-20">4.20 自定义 · 任何 OpenAI 兼容 API</h2>
+  <h3 id="sec-4.6">4.4.6 自定义 · 任何 OpenAI 兼容 API</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">协议兼容列表</p>:<code>openai-compatible</code>（绝大多数）、<code>anthropic-compatible</code>（部分）、<code>custom-http</code>（完全自定义，需要写 JSON Schema 转换）。
+
+</div>
 
   <p>几乎所有 LLM 都提供 OpenAI 兼容 API（改 baseUrl 即可）。OpenClaw 用 <code>custom</code> Provider 一键接入：</p>
 
-  <pre>{
+<pre>{
   <span>providers</span>: {
     <span>my-llm</span>: {                                    <span>// 任意名字</span>
       <span>type</span>: <span>"custom"</span>,
@@ -1734,12 +1815,9 @@ Agent: research
   }
 }</pre>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">协议兼容列表</p>:<code>openai-compatible</code>（绝大多数）、<code>anthropic-compatible</code>（部分）、<code>custom-http</code>（完全自定义，需要写 JSON Schema 转换）。
-</div>
 
-  <h3 id="sec-20.1">4.20.1 怎么选 Provider？</h3>
+
+  <h4 id="sec-4.6.1" data-toc-skip>怎么选 Provider？</h4>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -1761,19 +1839,25 @@ flowchart LR
 
 
 
-  <h2 id="sec-21">4.21 总结</h2>
+  <h2 id="seg-5">4.5 总结</h2><div class="oc-part-lead"><strong>收束 · 本章结论</strong>把四层抽象的判断收成几条结论，并交代下一章的接口。</div>
 
-  <h3 id="sec-21.1">4.21.1 一句话总结</h3>
+  <h3 id="sec-5.1">4.5.1 一句话总结</h3>
   <div class="thinking-note">
-<h3>要点</h3>
+<h3>思考笔记</h3>
 <p class="oc-callout-lead">Provider/Model 是身份，Runtime/Harness 是执行方式——30+ Provider × 5 Runtime × 5 Harness 的全组合，加上 4 级选择 + Fallback 链路，让你不被任何单一厂商绑死。</p>
     <br><br>
     至少配 <code>defaults.model</code> 和至少 1 个 fallback；生产推荐云服务主用 + Ollama fallback。
 </div>
 
-  <h3 id="sec-21.2">4.21.2 相关阅读</h3>
+  <h3 id="sec-5.2">4.5.2 本章结论</h3><ol class="oc-points">
+  <li><strong>身份与执行方式是两件事。</strong>换 Provider/Model 不影响 Runtime，换 Runtime 也不影响用哪个模型。</li>
+  <li><strong>四层正交，任意组合都成立。</strong>这正是「不被单一厂商绑死」的技术前提，而不是一句宣传。</li>
+  <li><strong>Runtime 的差别本质是「谁让 Agent 停下来」。</strong>模型自判、上限收敛、流结束信号——三种机制对应三种风险。</li>
+  <li><strong>模型选择是四级查找：越靠近使用点越优先。</strong>Agent &gt; 账号 &gt; Workspace &gt; 全局默认。</li>
+  <li><strong>Fallback 与 auto 解决的是可用性，不是能力。</strong>能力上限永远由链路里最弱的那一环决定。</li>
+</ol><h3 id="sec-5.3">4.5.3 下一章</h3><p>下一章 <strong>第 5 章 · 会话与状态——生命周期与状态管理</strong>：模型和 Runtime 定了，接下来的问题是「它记得什么」——会话类型、存储分层、Prompt 栈与隔离策略。</p><h3 id="sec-5.4">4.5.4 相关阅读</h3>
   <ul>
-<li><a href="/2026/11/07/openclaw-02-architecture/#sec-4"><strong>02.2 · 架构 四层架构</strong></a> — L1 接入 / L2 协议 / L3 推理 / L4 资源——模块 04 占据 L3 推理层的具体实现。</li>
+<li><a href="/2026/11/07/openclaw-02-architecture/#sec-2.1"><strong>02 · 核心架构 四层架构</strong></a> — L1 接入 / L2 协议 / L3 推理 / L4 资源——模块 04 占据 L3 推理层的具体实现。</li>
 <li><a href="/2026/11/07/openclaw-05-sessions/"><strong>05 · 会话 会话与状态</strong></a> — 模型选择如何与会话路由结合？Channel 级 model 如何影响消息分发？</li>
 <li><a href="/2026/11/07/openclaw-06-tools-hooks/"><strong>06 · 工具 工具与钩子</strong></a> — Runtime 是如何调用工具的？Loop Runtime 与工具调用链的关系。</li>
 <li><a href="/2026/11/07/openclaw-08-performance/"><strong>08 · 性能 性能与延迟</strong></a> — 5 种 Runtime 的实测延迟对比；Streaming 与 Parallel 的端到端优化策略。</li>
@@ -1781,9 +1865,9 @@ flowchart LR
 
 
 
-</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">4.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">4.2 推理层的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">4.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">4.4 四层抽象栈</a><a class="reading-toc-link level-2" href="#sec-5">4.5 四层详解</a><a class="reading-toc-link level-3" href="#sec-5.1">4.5.1 Provider（提供者）</a><a class="reading-toc-link level-3" href="#sec-5.2">4.5.2 Model（模型）</a><a class="reading-toc-link level-3" href="#sec-5.3">4.5.3 Runtime（运行时）</a><a class="reading-toc-link level-3" href="#sec-5.4">4.5.4 Harness（执行后端）</a><a class="reading-toc-link level-3" href="#deep-24">4.5.5 Provider 适配层</a><a class="reading-toc-link level-2" href="#sec-6">4.6 四层如何组合？</a><a class="reading-toc-link level-2" href="#sec-7">4.7 四层对照</a><a class="reading-toc-link level-2" href="#sec-8">4.8 完整 4 层配置示例</a><a class="reading-toc-link level-2" href="#sec-9">4.9 5 种 Runtime 一览</a><a class="reading-toc-link level-2" href="#sec-10">4.10 5 种 Runtime 详解</a><a class="reading-toc-link level-3" href="#sec-10.1">4.10.1 Single-shot（一次性）</a><a class="reading-toc-link level-3" href="#sec-10.2">4.10.2 Loop（ReAct 循环）</a><a class="reading-toc-link level-3" href="#sec-10.3">4.10.3 Streaming（流式生成）</a><a class="reading-toc-link level-3" href="#sec-10.4">4.10.4 Parallel（并行执行）</a><a class="reading-toc-link level-3" href="#sec-10.5">4.10.5 Hybrid（并行 + 流式）</a><a class="reading-toc-link level-2" href="#sec-11">4.11 Runtime 选择决策树</a><a class="reading-toc-link level-2" href="#sec-12">4.12 4 级选择流程</a><a class="reading-toc-link level-2" href="#sec-13">4.13 4 级详解</a><a class="reading-toc-link level-3" href="#sec-13.1">4.13.1 Agent 级配置</a><a class="reading-toc-link level-3" href="#sec-13.2">4.13.2 Channel（账号）级配置</a><a class="reading-toc-link level-3" href="#sec-13.3">4.13.3 Workspace 级配置</a><a class="reading-toc-link level-3" href="#sec-13.4">4.13.4 全局默认</a><a class="reading-toc-link level-2" href="#sec-14">4.14 auto 模式 · 让 OpenClaw 选</a><a class="reading-toc-link level-2" href="#sec-15">4.15 Fallback · 模型故障切换</a><a class="reading-toc-link level-3" href="#deep-25">4.15.1 模型故障转移</a><a class="reading-toc-link level-3" href="#deep-26">4.15.2 认证管理</a><a class="reading-toc-link level-2" href="#sec-16">4.16 优先级总结</a><a class="reading-toc-link level-2" href="#sec-17">4.17 调试 · 如何看当前生效的模型？</a><a class="reading-toc-link level-2" href="#sec-18">4.18 30+ Provider 总览矩阵</a><a class="reading-toc-link level-2" href="#sec-19">4.19 云 / 本地 / 企业——三大类 Provider</a><a class="reading-toc-link level-3" href="#sec-19.1">4.19.1 云服务——主力 + 主流 + 中文优化</a><a class="reading-toc-link level-3" href="#sec-19.2">4.19.2 Anthropic</a><a class="reading-toc-link level-3" href="#sec-19.3">4.19.3 OpenAI</a><a class="reading-toc-link level-3" href="#sec-19.4">4.19.4 DeepSeek</a><a class="reading-toc-link level-3" href="#sec-19.5">4.19.5 Alibaba（通义千问）</a><a class="reading-toc-link level-3" href="#sec-19.6">4.19.6 本地推理——隐私优先 + 高性能</a><a class="reading-toc-link level-3" href="#sec-19.7">4.19.7 Ollama</a><a class="reading-toc-link level-3" href="#sec-19.8">4.19.8 vLLM</a><a class="reading-toc-link level-3" href="#sec-19.9">4.19.9 企业网关——合规 + SLA</a><a class="reading-toc-link level-3" href="#sec-19.10">4.19.10 AWS Bedrock</a><a class="reading-toc-link level-3" href="#sec-19.11">4.19.11 Azure OpenAI</a><a class="reading-toc-link level-2" href="#sec-20">4.20 自定义 · 任何 OpenAI 兼容 API</a><a class="reading-toc-link level-3" href="#sec-20.1">4.20.1 怎么选 Provider？</a><a class="reading-toc-link level-2" href="#sec-21">4.21 总结</a><a class="reading-toc-link level-3" href="#sec-21.1">4.21.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-21.2">4.21.2 相关阅读</a></nav></details></aside>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">4.1 定位与原则</a><a class="reading-toc-link level-3" href="#sec-1.1">4.1.1 一句话定位</a><a class="reading-toc-link level-3" href="#sec-1.2">4.1.2 推理层的三个原则</a><a class="reading-toc-link level-3" href="#sec-1.3">4.1.3 模块位置</a><a class="reading-toc-link level-2" href="#seg-2">4.2 四层抽象</a><a class="reading-toc-link level-3" href="#sec-2.1">4.2.1 四层抽象栈</a><a class="reading-toc-link level-3" href="#sec-2.2">4.2.2 四层详解</a><a class="reading-toc-link level-3" href="#sec-2.3">4.2.3 四层如何组合？</a><a class="reading-toc-link level-3" href="#sec-2.4">4.2.4 四层对照</a><a class="reading-toc-link level-3" href="#sec-2.5">4.2.5 完整 4 层配置示例</a><a class="reading-toc-link level-2" href="#seg-3">4.3 Runtime 与选型</a><a class="reading-toc-link level-3" href="#sec-3.1">4.3.1 5 种 Runtime 一览</a><a class="reading-toc-link level-3" href="#sec-3.2">4.3.2 5 种 Runtime 详解</a><a class="reading-toc-link level-3" href="#sec-3.3">4.3.3 Runtime 选择决策树</a><a class="reading-toc-link level-3" href="#sec-3.4">4.3.4 4 级选择流程</a><a class="reading-toc-link level-3" href="#sec-3.5">4.3.5 4 级详解</a><a class="reading-toc-link level-3" href="#sec-3.6">4.3.6 auto 模式 · 让 OpenClaw 选</a><a class="reading-toc-link level-2" href="#seg-4">4.4 Provider 生态</a><a class="reading-toc-link level-3" href="#sec-4.1">4.4.1 Fallback · 模型故障切换</a><a class="reading-toc-link level-3" href="#sec-4.2">4.4.2 优先级总结</a><a class="reading-toc-link level-3" href="#sec-4.3">4.4.3 调试 · 如何看当前生效的模型？</a><a class="reading-toc-link level-3" href="#sec-4.4">4.4.4 30+ Provider 总览矩阵</a><a class="reading-toc-link level-3" href="#sec-4.5">4.4.5 云 / 本地 / 企业——三大类 Provider</a><a class="reading-toc-link level-3" href="#sec-4.6">4.4.6 自定义 · 任何 OpenAI 兼容 API</a><a class="reading-toc-link level-2" href="#seg-5">4.5 总结</a><a class="reading-toc-link level-3" href="#sec-5.1">4.5.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-5.2">4.5.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-5.3">4.5.3 下一章</a><a class="reading-toc-link level-3" href="#sec-5.4">4.5.4 相关阅读</a></nav></details></aside>
     </div>
-    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-03-channels/"><small>← 上一篇</small><span>消息通道与适配器协议</span></a></div><div><a href="/2026/11/07/openclaw-05-sessions/"><small>下一篇 →</small><span>会话生命周期与状态管理</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-03-channels/"><small>← 上一篇</small><span>消息通道——适配器协议与统一信封</span></a></div><div><a href="/2026/11/07/openclaw-05-sessions/"><small>下一篇 →</small><span>会话与状态——生命周期与状态管理</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
   </article>
 </main>
 <footer class="portal-footer">

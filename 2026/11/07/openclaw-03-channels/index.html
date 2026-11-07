@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
   <meta name="theme-color" content="#0f172a">
-  <title>第 3 章：消息通道与适配器协议 | OpenClaw 源码笔记</title>
-  <meta name="description" content="模块 03 · 消息通道与适配器协议。15+ 消息通道 = 1 个统一适配器协议——通道不是 OpenClaw 的&quot;产品&quot;，而是它的&quot;输入端&quot;。Gateway 看不到 WhatsApp 和 Slack 的差异，只看到统一的 Envelope。本模块展开所有内置通道的协议、凭据管理、消息路由与边界条件。">
+  <title>第 3 章：消息通道——适配器协议与统一信封 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 03 · 消息通道——适配器协议与统一信封。15+ 消息通道 = 1 个统一适配器协议——通道不是 OpenClaw 的&quot;产品&quot;，而是它的&quot;输入端&quot;。Gateway 看不到 WhatsApp 和 Slack 的差异，只看到统一的 Envelope。本模块展开所有内置通道的协议、凭据管理、消息路由与边界条件。">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="第 3 章：消息通道与适配器协议">
+  <meta property="og:title" content="第 3 章：消息通道——适配器协议与统一信封">
   <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-03-channels/">
   <meta property="og:site_name" content="LianJiFu'blogs">
-  <meta property="og:description" content="模块 03 · 消息通道与适配器协议。15+ 消息通道 = 1 个统一适配器协议——通道不是 OpenClaw 的&quot;产品&quot;，而是它的&quot;输入端&quot;。Gateway 看不到 WhatsApp 和 Slack 的差异，只看到统一的 Envelope。本模块展开所有内置通道的协议、凭据管理、消息路由与边界条件。">
+  <meta property="og:description" content="模块 03 · 消息通道——适配器协议与统一信封。15+ 消息通道 = 1 个统一适配器协议——通道不是 OpenClaw 的&quot;产品&quot;，而是它的&quot;输入端&quot;。Gateway 看不到 WhatsApp 和 Slack 的差异，只看到统一的 Envelope。本模块展开所有内置通道的协议、凭据管理、消息路由与边界条件。">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
   <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="/css/2026.css?v=2">
   <link rel="stylesheet" href="/css/portal.css?v=11">
   <link rel="stylesheet" href="/css/article.css?v=7">
-  <link rel="stylesheet" href="/css/openclaw.css?v=7">
+  <link rel="stylesheet" href="/css/openclaw.css?v=9">
   <script src="/js/portal.js?v=7" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -148,7 +148,7 @@
     <header class="post-header">
       <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
       <span class="article-kicker">第 3 章：通道协议</span>
-      <h1 class="post-title" itemprop="name headline">消息通道与适配器协议</h1>
+      <h1 class="post-title" itemprop="name headline">消息通道——适配器协议与统一信封</h1>
       <div class="post-meta">
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
@@ -217,12 +217,55 @@
 
 
 
-  <h2 id="sec-1">3.1 一句话定位</h2>
+  <div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p>通道层是 OpenClaw 面对外部世界的那一层。它把 WhatsApp、Telegram、Slack 等 15+ 个平台的差异，<strong>全部翻译成同一种 Envelope</strong>，Gateway 内部因此不需要知道任何平台知识。</p>
+  <p>接一个新平台要写的东西是有限且固定的：实现 <strong>ChannelAdapter 接口</strong>、写一个 <code>normalize</code> 函数把平台事件映射成 Envelope、声明凭据引用、在配置里注册。其余全部复用。</p>
+  <p>这一章按「先看地图，再看协议，最后看出站与账号」推进：连接模式决定部署形态，生命周期七步是排查地图，Envelope 的字段就是 Gateway 能看到的全部信息。</p>
+</div>
 
-  <div>
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>15+ 个平台怎样被翻译成同一种 Envelope，接入新平台要写哪些代码</td></tr>
+    <tr><td>核心机制</td><td>ChannelAdapter 接口 + normalize 函数 + 统一 Envelope + Session Key 路由</td></tr>
+    <tr><td>关键数字</td><td>15+ 通道 · 5 种连接模式 · 7 步生命周期 · 1 套适配器接口</td></tr>
+    <tr><td>读完能做什么</td><td>判断某个平台该怎么接、适配器要写哪几个文件、线上「消息没进来」时该查哪一步</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 定位与原则</div>
+    <div>通道层做什么、不做什么，以及三条设计原则。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 通道地图</div>
+    <div>15+ 通道一览、5 种连接模式与整体结构位置。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 适配器协议</div>
+    <div>接口、七步生命周期、注册、字段映射与 Envelope 的形状。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · 出站与账号</div>
+    <div>出站信封、重连策略、通道支持矩阵与 DM 配对码。</div>
+  </div>
+  <div class="oc-card">
+    <div>收束 · 本章结论</div>
+    <div>可以带走的结论，以及下一章的接口。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">3.1 定位与原则</h2><div class="oc-part-lead"><strong>第一段 · 定位与原则</strong>通道层只做一件事：把外部世界翻译成统一信封。它不承载业务逻辑，也不决定 Agent 怎么想。</div><h3 id="sec-1.1">3.1.1 一句话定位</h3><div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">通道层 = 把外部世界翻译成统一信封</p>。每条消息进入 Gateway 之前都被归一化为 <code>{ from, channel, body, attachments, metadata }</code>——Gateway 不关心消息来自哪个平台。
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>通道层只做一件事：<strong>把外部世界翻译成统一信封</strong>。它不承载业务逻辑，也不决定 Agent 怎么想——它只保证无论消息来自 WhatsApp 还是 Slack，Gateway 看到的东西形状完全一样。</p>
 </div>
+
+
 
   <table>
 <thead>
@@ -248,7 +291,10 @@
 
 
 
-  <h2 id="sec-2">3.2 通道设计的三个原则</h2>
+  <h3 id="sec-1.2">3.1.2 通道设计的三个原则</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>通道层最容易出的问题是「每个平台各写各的」。三条原则把它压回一条路：<strong>统一信封、可插拔适配、凭据不落盘</strong>——守住这三条，加一个新平台就只是加一个适配器。</p>
+</div>
 
   <table>
 <thead>
@@ -266,7 +312,10 @@
 
 
 
-  <h2 id="sec-3">3.3 模块位置</h2>
+  <h3 id="sec-1.3">3.1.3 模块位置</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>读法三条：第一次读按 <strong>3.4 → 3.6 → 3.7</strong> 的顺序；<strong>要接入新平台</strong>直接看接口与字段映射；<strong>线上通道不稳</strong>看重连策略与配对码机制。</p>
+</div>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -282,13 +331,19 @@ flowchart LR
   style E fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
 </div><figcaption>图 3.1 · 模块 03 是接入层的具体实现——它定义消息怎么从外部世界进入 Gateway。</figcaption></figure>
 
-  <h2 id="sec-4">3.4 全部 15+ 通道一览</h2>
+  <h2 id="seg-2">3.2 通道地图</h2><div class="oc-part-lead"><strong>第二段 · 通道地图</strong>15+ 个通道、5 种连接模式，以及它们在整体结构里的位置。</div><h3 id="sec-2.1">3.2.1 全部 15+ 通道一览</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>15+ 个通道不是 15+ 套代码——它们共享同一个 ChannelAdapter 接口与同一套 Envelope。真正为每个平台写的，通常只有一个 <code>normalize</code> 函数和一份凭据配置。</p>
+</div>
 
 
 
 
 
-  <h2 id="sec-5">3.5 5 种连接模式</h2>
+  <h3 id="sec-2.2">3.2.2 5 种连接模式</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>连接模式不是实现细节，而是<strong>部署决策</strong>：Webhook 最省事但要求公网入口，Polling 最通用但延迟更高。选错模式，稳定性问题和部署复杂度都会跟着来。</p>
+</div>
 
   <p>每种连接模式对应一类外部平台的协议特性——选错模式，通道的延迟、稳定性、部署复杂度都会变。</p>
 
@@ -303,12 +358,12 @@ flowchart LR
 </tbody>
 </table>
 
-  <h3 id="sec-5.1">3.5.1 运维视角 · 怎么部署？</h3>
+  <h4 id="sec-2.2.1" data-toc-skip>运维视角 · 怎么部署？</h4>
   <p class="oc-lead">
     WebSocket / Native 通道只要 Gateway 能上网就行，无需公网入口。Webhook 通道需要把 <code>https://your-domain.com/{channel}/events</code> 暴露到公网——推荐用 Caddy + Let's Encrypt 自动签证书，或部署在 Cloudflare 后面。Long Polling 没有外部入口问题，适合内网部署。
   </p>
 
-  <h3 id="sec-5.2">3.5.2 网络视角 · 端口与连接数</h3>
+  <h4 id="sec-2.2.2" data-toc-skip>网络视角 · 端口与连接数</h4>
   <p class="oc-lead">
     WebSocket 类每个通道占 1 个出站连接；Webhook 类需要 1 个入站监听端口（默认 18789 的 sub-path，如 <code>/slack/events</code>）；Native 类通常使用系统级 API，不占网络端口。多个账号不会增加连接数，但会增加并发握手时的瞬时 CPU。
   </p>
@@ -317,7 +372,19 @@ flowchart LR
 
 
 
-  <h2 id="sec-6">3.6 通道全景</h2>
+  <h3 id="sec-2.3">3.2.3 通道全景</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">学习要点</p>
+<ul>
+  <li>路由层如何根据消息的多维属性决定目标 Agent 和会话？</li>
+  <li>Session Key 的格式设计原则是什么？它的四层作用分别是什么？</li>
+  <li>8 级路由匹配优先级是如何从精确匹配逐级降级到兜底的？</li>
+  <li>dmScope 如何影响多租户场景下的会话隔离？</li>
+</ul>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>一张图看清：平台事件如何进适配器、如何被归一化、如何变成 Envelope、又如何按 Session Key 路由到具体会话。图里最该记住的是 Gateway 那一格——<strong>它不含任何平台知识</strong>。</p>
+</div>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -329,19 +396,10 @@ flowchart LR
   style GW fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
 </div><figcaption>图 3.2 · 通道适配器统一抽象——无论平台，所有通道都实现同一个接口。</figcaption></figure>
 
-<h3 id="deep-24">3.6.1 路由层与 Session Key</h3>
-<div>
-<h3>本章要点</h3>
-<p class="oc-callout-lead">学习要点</p>
-<ul>
-  <li>路由层如何根据消息的多维属性决定目标 Agent 和会话？</li>
-  <li>Session Key 的格式设计原则是什么？它的四层作用分别是什么？</li>
-  <li>8 级路由匹配优先级是如何从精确匹配逐级降级到兜底的？</li>
-  <li>dmScope 如何影响多租户场景下的会话隔离？</li>
-</ul>
-</div>
+<h4 id="sec-2.3.1" data-toc-skip>路由层与 Session Key</h4>
+
 <hr>
-<h4 id="deep-01-routing-engine-1" data-toc-skip>路由层定位</h4>
+<h5 id="deep-01-routing-engine-1" data-toc-skip>路由层定位</h5>
 <p>路由层是 Gateway 的<strong>决策中枢</strong>，负责将消息路由到正确的会话和处理逻辑。所有入站消息都必须经过路由解析。</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -372,7 +430,7 @@ flowchart LR
     classDef engine fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef output fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 8.3 · 通道全景</figcaption></figure>
-<h4 id="sec-23-3-1" data-toc-skip>路由发生的时机</h4>
+<h5 id="sec-23-3-1" data-toc-skip>路由发生的时机</h5>
 <figure><div class="mermaid">
 sequenceDiagram
     participant CH as Channel
@@ -393,7 +451,7 @@ sequenceDiagram
     GW-&gt;&gt;AG: 转发给目标 Agent
 </div><figcaption>图 8.4 · 通道全景</figcaption></figure>
 <hr>
-<h4 id="deep-01-routing-engine-2" data-toc-skip>路由匹配优先级</h4>
+<h5 id="deep-01-routing-engine-2" data-toc-skip>路由匹配优先级</h5>
 <p>路由按<strong>最具体优先</strong>原则执行，从精确匹配逐级降级到兜底 Agent：</p>
 <figure><div class="mermaid">
 flowchart TB
@@ -427,7 +485,7 @@ flowchart TB
     classDef p7 fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef p8 fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 8.5 · 通道全景</figcaption></figure>
-<h4 id="sec-23-5-1" data-toc-skip>优先级详解</h4>
+<h5 id="sec-23-5-1" data-toc-skip>优先级详解</h5>
 <table>
   <thead>
     <tr><th>优先级</th><th>匹配条件</th><th>示例</th><th>说明</th></tr>
@@ -444,10 +502,10 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-routing-engine-3" data-toc-skip>Session Key 设计</h4>
+<h5 id="deep-01-routing-engine-3" data-toc-skip>Session Key 设计</h5>
 <p>Session Key 是路由的<strong>核心输出</strong>，唯一标识一个会话。其格式为：</p>
 <pre>agent:{agentId}:{channel}:{accountId}:{scope}:{peerId}</pre>
-<h4 id="sec-23-7-1" data-toc-skip>会话键类型</h4>
+<h5 id="sec-23-7-1" data-toc-skip>会话键类型</h5>
 <table>
   <thead>
     <tr><th>类型</th><th>格式</th><th>说明</th></tr>
@@ -465,7 +523,7 @@ flowchart TB
     <tr><td><strong>Node</strong></td><td><code>node-{id}</code></td><td>节点调用</td></tr>
   </tbody>
 </table>
-<h4 id="sec-23-8-1" data-toc-skip>Session Key 的四层作用</h4>
+<h5 id="sec-23-8-1" data-toc-skip>Session Key 的四层作用</h5>
 <figure><div class="mermaid">
 flowchart LR
     subgraph 会话键作用["Session Key 的四个作用"]
@@ -492,7 +550,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-routing-engine-4" data-toc-skip>dmScope 隔离策略</h4>
+<h5 id="deep-01-routing-engine-4" data-toc-skip>dmScope 隔离策略</h5>
 <p>dmScope 决定了<strong>哪些消息共享同一会话</strong>，是多租户安全的关键配置：</p>
 <table>
   <thead>
@@ -506,7 +564,7 @@ flowchart LR
   </tbody>
 </table>
 <blockquote><p><strong>安全警告</strong>：多用户 DM 场景下，必须启用 `per-channel-peer` 或更强隔离级别，否则用户 A 的私人信息可能泄露给用户 B。</p></blockquote>
-<h4 id="sec-23-10-1" data-toc-skip>Identity Links</h4>
+<h5 id="sec-23-10-1" data-toc-skip>Identity Links</h5>
 <p>如果同一人通过多个通道联系你，使用 `identityLinks` 合并会话：</p>
 <pre>{
   session: {
@@ -516,7 +574,7 @@ flowchart LR
   },
 }</pre>
 <hr>
-<h4 id="deep-01-routing-engine-5" data-toc-skip>路由决策维度详解</h4>
+<h5 id="deep-01-routing-engine-5" data-toc-skip>路由决策维度详解</h5>
 <table>
   <thead>
     <tr><th>维度</th><th>来源</th><th>作用</th><th>示例值</th></tr>
@@ -531,7 +589,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-routing-engine-6" data-toc-skip>关键源码文件</h4>
+<h5 id="deep-01-routing-engine-6" data-toc-skip>关键源码文件</h5>
 <table>
   <thead>
     <tr><th>文件</th><th>作用</th><th>核心函数</th></tr>
@@ -549,8 +607,8 @@ flowchart LR
 
 
 
-<h3 id="deep-25">3.6.2 会话生命周期与重置</h3>
-<div>
+<h4 id="sec-2.3.2" data-toc-skip>会话生命周期与重置</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -561,18 +619,18 @@ flowchart LR
 </ul>
 </div>
 <hr>
-<h4 id="deep-02-session-lifecycle-1" data-toc-skip>会话概述</h4>
+<h5 id="deep-02-session-lifecycle-1" data-toc-skip>会话概述</h5>
 <p>会话（Session）是 OpenClaw 跟踪每段对话历史的方式。每当你通过聊天软件和 AI 说话，这段对话就保存在一个会话里。</p>
-<h4 id="sec-23-15-1" data-toc-skip>生活类比</h4>
+<h5 id="sec-23-15-1" data-toc-skip>生活类比</h5>
 <pre>手机聊天 App 里的&quot;单个聊天窗口&quot;
          ↓
 你在 Telegram 给 AI 发消息    → 一个会话
 朋友通过同一个 Bot 发消息      → 另一个独立会话
 AI 记得同一会话里说过的话      → 不同会话之间互不干扰</pre>
-<h4 id="sec-23-16-1" data-toc-skip>保存位置</h4>
+<h5 id="sec-23-16-1" data-toc-skip>保存位置</h5>
 <pre>~/.openclaw/agents/&lt;agentId&gt;/sessions/</pre>
 <p>每个会话是一个 `.jsonl` 文件，记录所有对话轮次（用户消息 + AI 回复）。</p>
-<h4 id="sec-23-17-1" data-toc-skip>会话状态模型</h4>
+<h5 id="sec-23-17-1" data-toc-skip>会话状态模型</h5>
 <figure><div class="mermaid">
 flowchart TB
     subgraph 生命周期
@@ -594,7 +652,7 @@ flowchart TB
     classDef archive fill:#fce7f3,stroke:#ec4899,color:#9d174d
 </div><figcaption>图 8.7 · 通道全景</figcaption></figure>
 <hr>
-<h4 id="deep-02-session-lifecycle-2" data-toc-skip>存储结构</h4>
+<h5 id="deep-02-session-lifecycle-2" data-toc-skip>存储结构</h5>
 <table>
   <thead>
     <tr><th>文件</th><th>说明</th><th>可删除？</th></tr>
@@ -605,7 +663,7 @@ flowchart TB
     <tr><td><code>.../-topic-{topicId}.jsonl</code></td><td>Telegram 论坛主题隔离</td><td>丢失主题历史</td></tr>
   </tbody>
 </table>
-<h4 id="sec-23-19-1" data-toc-skip>会话元数据（sessions.json）</h4>
+<h5 id="sec-23-19-1" data-toc-skip>会话元数据（sessions.json）</h5>
 <pre>{
   &quot;agent:main:telegram:dm:123456&quot;: {
     sessionId: &quot;uuid-xxx&quot;,
@@ -620,10 +678,10 @@ flowchart TB
   },
 }</pre>
 <blockquote><p>删除 sessions.json 条目是安全的，因为 Gateway 会按需重建。但删除 `.jsonl` 文件会丢失对话历史。</p></blockquote>
-<h4 id="sec-23-20-1" data-toc-skip>网关是事实来源</h4>
+<h5 id="sec-23-20-1" data-toc-skip>网关是事实来源</h5>
 <p>所有会话状态由<strong>网关拥有</strong>。UI 客户端必须查询网关获取会话列表和 Token 计数，而不是读取本地文件。</p>
 <hr>
-<h4 id="deep-02-session-lifecycle-3" data-toc-skip>重置策略</h4>
+<h5 id="deep-02-session-lifecycle-3" data-toc-skip>重置策略</h5>
 <p>OpenClaw 提供 5 种会话重置机制，决定何时创建一个新的会话 ID：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -653,7 +711,7 @@ flowchart LR
     classDef override fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef manual fill:#fce7f3,stroke:#ec4899,color:#9d174d
 </div><figcaption>图 8.8 · 通道全景</figcaption></figure>
-<h4 id="sec-23-22-1" data-toc-skip>重置策略详解</h4>
+<h5 id="sec-23-22-1" data-toc-skip>重置策略详解</h5>
 <table>
   <thead>
     <tr><th>策略</th><th>触发条件</th><th>行为</th><th>默认值</th></tr>
@@ -667,7 +725,7 @@ flowchart LR
   </tbody>
 </table>
 <blockquote><p>当同时配置了每日和空闲重置时，<strong>先到期的那个</strong>强制创建新会话。</p></blockquote>
-<h4 id="sec-23-23-1" data-toc-skip>配置示例</h4>
+<h5 id="sec-23-23-1" data-toc-skip>配置示例</h5>
 <pre>{
   session: {
     dmScope: &quot;main&quot;,
@@ -693,9 +751,9 @@ flowchart LR
   },
 }</pre>
 <hr>
-<h4 id="deep-02-session-lifecycle-4" data-toc-skip>发送策略（Send Policy）</h4>
+<h5 id="deep-02-session-lifecycle-4" data-toc-skip>发送策略（Send Policy）</h5>
 <p>发送策略控制哪些消息可以投递到哪些通道。可以配置全局规则和会话级覆盖。</p>
-<h4 id="sec-23-25-1" data-toc-skip>全局规则</h4>
+<h5 id="sec-23-25-1" data-toc-skip>全局规则</h5>
 <pre>{
   session: {
     sendPolicy: {
@@ -709,11 +767,11 @@ flowchart LR
     },
   },
 }</pre>
-<h4 id="sec-23-26-1" data-toc-skip>会话内覆盖</h4>
+<h5 id="sec-23-26-1" data-toc-skip>会话内覆盖</h5>
 <pre>/send on        # 允许此会话投递
 /send off       # 拒绝此会话投递
 /send inherit   # 清除覆盖，使用全局规则</pre>
-<h4 id="sec-23-27-1" data-toc-skip>运行时处理流程</h4>
+<h5 id="sec-23-27-1" data-toc-skip>运行时处理流程</h5>
 <figure><div class="mermaid">
 flowchart LR
     MSG[消息]:::start
@@ -729,7 +787,7 @@ flowchart LR
     classDef allow fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 8.9 · 通道全景</figcaption></figure>
 <hr>
-<h4 id="deep-02-session-lifecycle-5" data-toc-skip>会话来源元数据（origin）</h4>
+<h5 id="deep-02-session-lifecycle-5" data-toc-skip>会话来源元数据（origin）</h5>
 <p>每个会话可以携带来源元数据，用于标识会话的发起上下文：</p>
 <table>
   <thead>
@@ -744,12 +802,12 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-02-session-lifecycle-6" data-toc-skip>会话诊断命令</h4>
-<h4 id="sec-23-30-1" data-toc-skip>CLI 诊断</h4>
+<h5 id="deep-02-session-lifecycle-6" data-toc-skip>会话诊断命令</h5>
+<h5 id="sec-23-30-1" data-toc-skip>CLI 诊断</h5>
 <pre>openclaw status              # 显示存储路径和最近会话
 openclaw sessions --json     # 转储每个会话条目
 openclaw sessions --active   # 仅活跃会话</pre>
-<h4 id="sec-23-31-1" data-toc-skip>会话内诊断</h4>
+<h5 id="sec-23-31-1" data-toc-skip>会话内诊断</h5>
 <table>
   <thead>
     <tr><th>命令</th><th>用途</th></tr>
@@ -772,8 +830,8 @@ openclaw sessions --active   # 仅活跃会话</pre>
 
 
 
-<h3 id="deep-26">3.6.3 会话工具与子智能体</h3>
-<div>
+<h4 id="sec-2.3.3" data-toc-skip>会话工具与子智能体</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -784,7 +842,7 @@ openclaw sessions --active   # 仅活跃会话</pre>
 </ul>
 </div>
 <hr>
-<h4 id="deep-03-session-tools-1" data-toc-skip>四个会话工具</h4>
+<h5 id="deep-03-session-tools-1" data-toc-skip>四个会话工具</h5>
 <p>OpenClaw 提供四个会话工具，让 Agent 可以自主管理会话和与其他 Agent 通信：</p>
 <table>
   <thead>
@@ -797,7 +855,7 @@ openclaw sessions --active   # 仅活跃会话</pre>
     <tr><td><strong><code>sessions_spawn</code></strong></td><td>在隔离会话中派生子智能体</td><td>并行任务、专业化分工</td></tr>
   </tbody>
 </table>
-<h4 id="sec-23-34-1" data-toc-skip>会话键模型</h4>
+<h5 id="sec-23-34-1" data-toc-skip>会话键模型</h5>
 <table>
   <thead>
     <tr><th>会话类型</th><th>Key 格式</th></tr>
@@ -812,7 +870,7 @@ openclaw sessions --active   # 仅活跃会话</pre>
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-session-tools-2" data-toc-skip>sessions_list——列出会话</h4>
+<h5 id="deep-03-session-tools-2" data-toc-skip>sessions_list——列出会话</h5>
 <p>列出所有会话，返回会话摘要数组：</p>
 <table>
   <thead>
@@ -832,7 +890,7 @@ thinkingLevel, verboseLevel, systemSent, abortedLastRun
 sendPolicy, lastChannel, lastTo, deliveryContext
 transcriptPath, messages?</pre>
 <hr>
-<h4 id="deep-03-session-tools-3" data-toc-skip>sessions_history——查看历史</h4>
+<h5 id="deep-03-session-tools-3" data-toc-skip>sessions_history——查看历史</h5>
 <table>
   <thead>
     <tr><th>参数</th><th>说明</th></tr>
@@ -844,7 +902,7 @@ transcriptPath, messages?</pre>
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-session-tools-4" data-toc-skip>sessions_send——跨会话通信</h4>
+<h5 id="deep-03-session-tools-4" data-toc-skip>sessions_send——跨会话通信</h5>
 <p>向另一个会话发送消息，支持同一 Agent 或跨 Agent：</p>
 <table>
   <thead>
@@ -856,7 +914,7 @@ transcriptPath, messages?</pre>
     <tr><td><code>timeoutSeconds</code></td><td>>0 等待完成；0=即发即忘</td></tr>
   </tbody>
 </table>
-<h4 id="sec-23-38-1" data-toc-skip>返回状态</h4>
+<h5 id="sec-23-38-1" data-toc-skip>返回状态</h5>
 <table>
   <thead>
     <tr><th>状态</th><th>说明</th></tr>
@@ -868,7 +926,7 @@ transcriptPath, messages?</pre>
     <tr><td><code>error</code></td><td>运行失败</td></tr>
   </tbody>
 </table>
-<h4 id="sec-23-39-1" data-toc-skip>通信流程（乒乓循环）</h4>
+<h5 id="sec-23-39-1" data-toc-skip>通信流程（乒乓循环）</h5>
 <figure><div class="mermaid">
 sequenceDiagram
     participant A as Agent A
@@ -897,9 +955,9 @@ sequenceDiagram
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-session-tools-5" data-toc-skip>sessions_spawn——子智能体</h4>
+<h5 id="deep-03-session-tools-5" data-toc-skip>sessions_spawn——子智能体</h5>
 <p>子智能体（Subagent）是 OpenClaw 的<strong>任务并行机制</strong>：在隔离会话中派生出执行特定任务的独立 Agent。</p>
-<h4 id="sec-23-41-1" data-toc-skip>参数</h4>
+<h5 id="sec-23-41-1" data-toc-skip>参数</h5>
 <table>
   <thead>
     <tr><th>参数</th><th>说明</th><th>默认值</th></tr>
@@ -913,7 +971,7 @@ sequenceDiagram
     <tr><td><code>cleanup</code></td><td>完成后处理方式</td><td><code>keep</code>（保留）</td></tr>
   </tbody>
 </table>
-<h4 id="sec-23-42-1" data-toc-skip>子智能体生命周期</h4>
+<h5 id="sec-23-42-1" data-toc-skip>子智能体生命周期</h5>
 <figure><div class="mermaid">
 flowchart TB
     subgraph 创建
@@ -938,7 +996,7 @@ flowchart TB
     classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef archive fill:#fce7f3,stroke:#ec4899,color:#9d174d
 </div><figcaption>图 8.11 · 通道全景</figcaption></figure>
-<h4 id="sec-23-43-1" data-toc-skip>行为规则</h4>
+<h5 id="sec-23-43-1" data-toc-skip>行为规则</h5>
 <table>
   <thead>
     <tr><th>规则</th><th>说明</th></tr>
@@ -953,7 +1011,7 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-session-tools-6" data-toc-skip>沙箱会话可见性</h4>
+<h5 id="deep-03-session-tools-6" data-toc-skip>沙箱会话可见性</h5>
 <p>沙箱化会话的工具可见范围可通过配置控制：</p>
 <pre>{
   agents: {
@@ -982,8 +1040,8 @@ flowchart TB
 
 
 
-<h3 id="deep-27">3.6.4 通道与节点架构</h3>
-<div>
+<h4 id="sec-2.3.4" data-toc-skip>通道与节点架构</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -994,7 +1052,7 @@ flowchart TB
 </ul>
 </div>
 <hr>
-<h4 id="deep-04-channels-nodes-1" data-toc-skip>通道架构</h4>
+<h5 id="deep-04-channels-nodes-1" data-toc-skip>通道架构</h5>
 <p>通道是消息的<strong>"入口"与"出口"</strong>，连接用户与 Gateway 的桥梁。</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1024,7 +1082,7 @@ flowchart LR
     classDef adapter fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef gw fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 8.12 · 通道全景</figcaption></figure>
-<h4 id="sec-24-3-1" data-toc-skip>通道适配器内部结构</h4>
+<h5 id="sec-24-3-1" data-toc-skip>通道适配器内部结构</h5>
 <figure><div class="mermaid">
 flowchart LR
     subgraph 通道适配器["Channel Adapter 内部"]
@@ -1056,7 +1114,7 @@ flowchart LR
     classDef acct fill:#fce7f3,stroke:#ec4899,color:#9d174d
     classDef route fill:#f1f5f9,stroke:#64748b,color:#1e293b
 </div><figcaption>图 8.13 · 通道全景</figcaption></figure>
-<h4 id="sec-24-4-1" data-toc-skip>通道消息流转</h4>
+<h5 id="sec-24-4-1" data-toc-skip>通道消息流转</h5>
 <figure><div class="mermaid">
 sequenceDiagram
     participant U as User
@@ -1084,7 +1142,7 @@ sequenceDiagram
     CA--&gt;&gt;U: [10] 发送给用户
 </div><figcaption>图 8.14 · 通道全景</figcaption></figure>
 <hr>
-<h4 id="deep-04-channels-nodes-2" data-toc-skip>通道类型</h4>
+<h5 id="deep-04-channels-nodes-2" data-toc-skip>通道类型</h5>
 <table>
   <thead>
     <tr><th>类型</th><th>通道</th><th>接入方式</th></tr>
@@ -1094,7 +1152,7 @@ sequenceDiagram
     <tr><td><strong>插件通道</strong></td><td>Matrix, Mattermost, Teams, LINE, Nostr, Twitch, Zalo, QQ, WeChat</td><td>通过插件能力扩展</td></tr>
   </tbody>
 </table>
-<h4 id="sec-24-6-1" data-toc-skip>核心概念</h4>
+<h5 id="sec-24-6-1" data-toc-skip>核心概念</h5>
 <table>
   <thead>
     <tr><th>概念</th><th>说明</th><th>作用</th></tr>
@@ -1106,7 +1164,7 @@ sequenceDiagram
   </tbody>
 </table>
 <blockquote><p><strong>账号是一级实体</strong>：同一 Channel 可运行多个 `accountId`，单个账号故障不影响其他账号。</p></blockquote>
-<h4 id="sec-24-7-1" data-toc-skip>配置参考</h4>
+<h5 id="sec-24-7-1" data-toc-skip>配置参考</h5>
 <p>详见 <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a> 中的通道管理配置：</p>
 <pre>{
   channels: {
@@ -1119,7 +1177,7 @@ sequenceDiagram
   },
 }</pre>
 <hr>
-<h4 id="deep-04-channels-nodes-3" data-toc-skip>节点系统</h4>
+<h5 id="deep-04-channels-nodes-3" data-toc-skip>节点系统</h5>
 <p>节点是连到 Gateway 的<strong>设备</strong>，不是另一个 Gateway。节点通过提供设备能力扩展 Gateway 的边界。</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1148,7 +1206,7 @@ flowchart LR
     classDef auth fill:#fce7f3,stroke:#ec4899,color:#9d174d
     classDef gw fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 8.15 · 通道全景</figcaption></figure>
-<h4 id="sec-24-9-1" data-toc-skip>节点类型与能力</h4>
+<h5 id="sec-24-9-1" data-toc-skip>节点类型与能力</h5>
 <table>
   <thead>
     <tr><th>节点类型</th><th>提供能力</th><th>典型场景</th></tr>
@@ -1160,7 +1218,7 @@ flowchart LR
     <tr><td><strong>Headless 节点</strong></td><td>远程命令执行、自动化宿主</td><td>CI/CD、远程服务器管理</td></tr>
   </tbody>
 </table>
-<h4 id="sec-24-10-1" data-toc-skip>连接流程</h4>
+<h5 id="sec-24-10-1" data-toc-skip>连接流程</h5>
 <pre>节点连接 → 声明 role: &quot;node&quot; → 上报 commands/caps
     → Gateway 配对批准 → 按权限调用能力</pre>
 <table>
@@ -1175,7 +1233,7 @@ flowchart LR
     <tr><td>⑤ 权限调用</td><td>按权限调用节点能力</td><td><code>authorizeGatewayMethod</code></td></tr>
   </tbody>
 </table>
-<h4 id="sec-24-11-1" data-toc-skip>核心概念</h4>
+<h5 id="sec-24-11-1" data-toc-skip>核心概念</h5>
 <table>
   <thead>
     <tr><th>概念</th><th>说明</th></tr>
@@ -1189,7 +1247,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-04-channels-nodes-4" data-toc-skip>通道 vs 节点</h4>
+<h5 id="deep-04-channels-nodes-4" data-toc-skip>通道 vs 节点</h5>
 <table>
   <thead>
     <tr><th>维度</th><th>通道（Channel）</th><th>节点（Node）</th></tr>
@@ -1209,7 +1267,10 @@ flowchart LR
 
 
 
-  <h2 id="sec-7">3.7 ChannelAdapter 接口</h2>
+  <h2 id="seg-3">3.3 适配器协议</h2><div class="oc-part-lead"><strong>第三段 · 适配器协议</strong>接一个新平台要写什么：接口、生命周期、注册、归一化，以及 Envelope 的完整形状。</div><h3 id="sec-3.1">3.3.1 ChannelAdapter 接口</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>接口小到能背下来，是因为它刻意不承担业务：收发、鉴权、投递状态三件事，剩下全部交给 Gateway。一个平台接不接得上，先看它能不能填满这几个方法。</p>
+</div>
 
   <p>所有通道必须实现这个接口（伪代码）：</p>
 
@@ -1244,7 +1305,10 @@ flowchart LR
 
 
 
-  <h2 id="sec-8">3.8 7 步生命周期</h2>
+  <h3 id="sec-3.2">3.3.2 7 步生命周期</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>生命周期是排查线上问题的地图：<strong>注册 → 初始化 → 连接 → 入站 → 归一化 → 路由 → 投递</strong>。任何「消息没进来」的问题，都能在这七步里定位到具体一步。</p>
+</div>
 
   <div>
     <div>1</div>
@@ -1327,9 +1391,13 @@ flowchart TB
 
 
 
-  <h2 id="sec-9">3.9 通道注册示例</h2>
+  <h3 id="sec-3.3">3.3.3 通道注册示例</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">关于 SecretRef</p>：注意 <code>"${TELEGRAM_BOT_TOKEN}"</code> 这种写法——它不会把 token 写到配置文件，而是引用环境变量。OpenClaw 启动时解析，token 始终只在内存中存在。
 
-  <pre><span>// openclaw.json5 — 声明三个通道</span>
+</div>
+
+<pre><span>// openclaw.json5 — 声明三个通道</span>
 {
   <span>channels</span>: {
     <span>whatsapp</span>: {
@@ -1368,18 +1436,18 @@ flowchart TB
 }
 </pre>
 
-  <div class="thinking-note">
-<h3>提示</h3>
-<p class="oc-callout-lead">关于 SecretRef</p>：注意 <code>"${TELEGRAM_BOT_TOKEN}"</code> 这种写法——它不会把 token 写到配置文件，而是引用环境变量。OpenClaw 启动时解析，token 始终只在内存中存在。
+
+
+
+
+  <h3 id="sec-3.4">3.3.4 字段映射 · 平台 → Envelope</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三个平台三种原始事件，归一化后形状一致——差异被挡在 <code>inbound.ts</code> 里。写适配器时先想清楚：<strong>平台独有的信息放进 metadata，而不是硬塞进正文</strong>。</p>
 </div>
-
-
-
-  <h2 id="sec-10">3.10 字段映射 · 平台 → Envelope</h2>
 
   <p>每个适配器的 <code>inbound.ts</code> 都有一个 <code>normalizeXxx()</code> 函数，把平台原始事件映射成 Envelope。下面三个视角展示三种典型映射。</p>
 
-  <h3 id="sec-10.1">3.10.1 WhatsApp · Baileys 事件视角</h3>
+  <h4 id="sec-3.4.1" data-toc-skip>WhatsApp · Baileys 事件视角</h4>
   <p class="oc-lead">
     Baileys 返回 <code>messages.upsert</code> 事件，内部 <code>messages[0].message</code> 是 <code>conversation</code> / <code>extendedTextMessage</code> / <code>imageMessage</code> 等多态结构——<code>normalize</code> 需要按类型分支处理。
   </p>
@@ -1396,7 +1464,7 @@ flowchart TB
 </tbody>
 </table>
 
-  <h3 id="sec-10.2">3.10.2 Slack · Webhook POST 视角</h3>
+  <h4 id="sec-3.4.2" data-toc-skip>Slack · Webhook POST 视角</h4>
   <p class="oc-lead">
     Slack Webhook 接受的是 <code>application/x-www-form-urlencoded</code> 的 <code>payload=</code> 字段（JSON 字符串），Gateway 解析后转 Envelope。 <code>&lt;@U123&gt;</code> 这种 mention 语法需要正则解析才能填 <code>mentions[]</code>。
   </p>
@@ -1412,7 +1480,7 @@ flowchart TB
 </tbody>
 </table>
 
-  <h3 id="sec-10.3">3.10.3 Telegram · grammY Update 视角</h3>
+  <h4 id="sec-3.4.3" data-toc-skip>Telegram · grammY Update 视角</h4>
   <p class="oc-lead">
     grammY 通过 Long Polling 拿到 <code>Update</code> 对象，包含 <code>message</code> / <code>edited_message</code> / <code>channel_post</code> 等多种来源。 <code>chat.type</code> 在 grammY 里是字符串 <code>'private'</code> / <code>'group'</code> / <code>'supergroup'</code> / <code>'channel'</code>——映射时归一化成 <code>'dm'</code> / <code>'group'</code> / <code>'channel'</code>。
   </p>
@@ -1432,7 +1500,10 @@ flowchart TB
 
 
 
-  <h2 id="sec-11">3.11 翻译过程图</h2>
+  <h3 id="sec-3.5">3.3.5 翻译过程图</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>图里最值得看的是 Gateway 那一格：<strong>Gateway 无平台知识</strong>。排查问题时记住这条——如果 Gateway 代码里出现了平台名，就说明适配器没守住边界。</p>
+</div>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -1472,11 +1543,15 @@ flowchart LR
 
 
 
-  <h2 id="sec-12">3.12 Envelope · 统一消息信封</h2>
+  <h3 id="sec-3.6">3.3.6 Envelope · 统一消息信封</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">设计哲学</p>：Envelope 是<strong>最小共同子集</strong>。不是所有字段都有值——WhatsApp 没有 <code>threadId</code>，Slack 有。Gateway 知道哪些字段是平台特有的，通过 <code>metadata.channel.*</code> 访问。
+
+</div>
 
   <p>Envelope 是所有消息的「信封」——它定义了 Gateway 能看到的全部信息：</p>
 
-  <pre><span>interface</span> <span>Envelope</span> {
+<pre><span>interface</span> <span>Envelope</span> {
   <span>// 唯一标识(UUID v4)</span>
   <span>id</span>: <span>string</span>;
 
@@ -1522,14 +1597,15 @@ flowchart LR
 }
 </pre>
 
-  <div class="thinking-note">
-<h3>提示</h3>
-<p class="oc-callout-lead">设计哲学</p>：Envelope 是<strong>最小共同子集</strong>。不是所有字段都有值——WhatsApp 没有 <code>threadId</code>，Slack 有。Gateway 知道哪些字段是平台特有的，通过 <code>metadata.channel.*</code> 访问。
+
+
+
+
+  <h3 id="sec-3.7">3.3.7 附件处理</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">大小限制</p>：默认附件上限 25 MB（v2026.9.2）。可通过 <code>channels.{name}.maxAttachmentSize</code> 调整，但要顾及 LLM 上下文窗口。
+
 </div>
-
-
-
-  <h2 id="sec-13">3.13 附件处理</h2>
 
   <p>不同平台的附件处理差异巨大：</p>
 
@@ -1546,7 +1622,7 @@ flowchart LR
 
   <p>附件统一为 <code>Attachment</code> 类型：</p>
 
-  <pre><span>interface</span> <span>Attachment</span> {
+<pre><span>interface</span> <span>Attachment</span> {
   <span>type</span>: <span>"image"</span> | <span>"video"</span> | <span>"audio"</span> | <span>"file"</span>;
   <span>mimeType</span>: <span>string</span>;
   <span>fileName</span>?: <span>string</span>;
@@ -1557,18 +1633,19 @@ flowchart LR
 }
 </pre>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">大小限制</p>：默认附件上限 25 MB（v2026.9.2）。可通过 <code>channels.{name}.maxAttachmentSize</code> 调整，但要顾及 LLM 上下文窗口。
+
+
+
+
+  <h2 id="seg-4">3.4 出站与账号</h2><div class="oc-part-lead"><strong>第四段 · 出站与账号</strong>消息怎么出去、断了怎么接回来、身份怎么管——通道层剩下的三块。</div><h3 id="sec-4.1">3.4.1 出站 · ReplyEnvelope + 流式卡片</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">降级策略</p>：如果 ReplyBlock 是平台不支持的类型，适配器自动降级为纯文本。例如 WhatsApp 不支持按钮 → 输出 <code>[按钮 1] [按钮 2] [按钮 3]</code> 文本列表。
+
 </div>
-
-
-
-  <h2 id="sec-14">3.14 出站 · ReplyEnvelope + 流式卡片</h2>
 
   <p>Gateway 返回的不是裸文本，而是 <code>ReplyEnvelope</code>:</p>
 
-  <pre><span>interface</span> <span>ReplyEnvelope</span> {
+<pre><span>interface</span> <span>ReplyEnvelope</span> {
   <span>target</span>: {
     <span>channel</span>: <span>string</span>;
     <span>account</span>: <span>string</span>;
@@ -1607,19 +1684,20 @@ flowchart LR
 </tbody>
 </table>
 
-  <div class="thinking-note">
-<h3>提示</h3>
-<p class="oc-callout-lead">降级策略</p>：如果 ReplyBlock 是平台不支持的类型，适配器自动降级为纯文本。例如 WhatsApp 不支持按钮 → 输出 <code>[按钮 1] [按钮 2] [按钮 3]</code> 文本列表。
-</div>
 
-  <h3 id="sec-14.1">3.14.1 流式输入指示 · 用户视觉反馈</h3>
+
+  <h4 id="sec-4.1.1" data-toc-skip>流式输入指示 · 用户视觉反馈</h4>
   <p class="oc-lead">
     LLM 在生成时，用户希望看到"对方正在输入"。OpenClaw 通过通道的 typing indicator 实现：Slack 发 <code>typing</code> event 每 3 秒重发、Telegram 调 <code>sendChatAction("typing")</code>、WhatsApp 设 <code>presence</code> 为 <code>composing</code>（部分版本支持）、Web UI 实时打字光标。Gateway 调用 <code>channel.sendTypingIndicator(replyEnvelope)</code>，适配器负责翻译。
   </p>
 
 
 
-  <h2 id="sec-15">3.15 重连策略与多账号</h2>
+  <h3 id="sec-4.2">3.4.2 重连策略与多账号</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">为什么加抖动</p>：避免多个客户端同时重连导致雪崩——抖动让重连时刻随机分布，服务端压力更平缓。
+
+</div>
 
   <p>网络是不稳定的。OpenClaw 的通道适配器使用<strong>指数退避 + 抖动</strong>(Exponential Backoff with Jitter):</p>
 
@@ -1633,14 +1711,11 @@ flowchart LR
     <li>连续失败 5 次：触发告警，进入 <code>Failed</code> 状态</li>
   </ul>
 
-  <div class="thinking-note">
-<h3>提示</h3>
-<p class="oc-callout-lead">为什么加抖动</p>：避免多个客户端同时重连导致雪崩——抖动让重连时刻随机分布，服务端压力更平缓。
-</div>
+
 
   <p>一个通道可以接多个账号——每个账号是独立的配置块：</p>
 
-  <pre>{
+<pre>{
   <span>channels</span>: {
     <span>telegram</span>: {
       <span>enabled</span>: <span>true</span>,
@@ -1654,14 +1729,19 @@ flowchart LR
 }
 </pre>
 
-  <h3 id="sec-15.1">3.15.1 隔离视角 · 一个 Gateway 怎么服务多身份？</h3>
+  <h4 id="sec-4.2.1" data-toc-skip>隔离视角 · 一个 Gateway 怎么服务多身份？</h4>
   <p class="oc-lead">
     每个账号绑定一个 workspace 目录，内部有独立的 <code>memory/</code>（长期记忆）、<code>tasks/</code>（任务状态）、<code>skills/</code>（个人技能库）。<code>work_bot</code> 看不到 <code>personal_bot</code> 的记忆与文件——即使两条会话同时活跃，LLM 上下文也不会交叉污染。
   </p>
 
 
 
-  <h2 id="sec-16">3.16 内置通道详情</h2>
+  <h3 id="sec-4.3">3.4.3 内置通道详情</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">关于稳定性标签</p>:<code>稳定</code> 表示 OpenClaw 持续测试，协议层无重大变更； <code>谨慎</code> 表示依赖第三方（非官方协议、平台 API 限制、操作系统绑定）。
+<p><strong>要点</strong></p>
+<p class="oc-callout-lead">重要提醒</p>：OpenClaw 是开源软件，但第三方平台（微信、WhatsApp）的协议限制无法绕过。任何闭源平台的接入都需要承担封号风险，务必使用<strong>非主账号</strong>测试。
+</div>
 
   <p>下表是全部 15+ 通道的支持矩阵——评估每个通道的接入难度。</p>
 
@@ -1687,14 +1767,11 @@ flowchart LR
 </tbody>
 </table>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">关于稳定性标签</p>:<code>稳定</code> 表示 OpenClaw 持续测试，协议层无重大变更； <code>谨慎</code> 表示依赖第三方（非官方协议、平台 API 限制、操作系统绑定）。
-</div>
+
 
     <div class="oc-card">
 <span class="oc-chip">MAINSTREAM · 非官方协议</span>
-    <h3 id="whatsapp">3.16.1 WhatsApp</h3>
+    <h4 id="sec-4.3.1" data-toc-skip>WhatsApp</h4>
     <div>
       <span>源码：<code>extensions/whatsapp/</code></span>
       <span>库：<a href="https://github.com/WhiskeySockets/Baileys" target="_blank">Baileys</a>（非官方）</span>
@@ -1723,7 +1800,7 @@ flowchart LR
 
     <div class="oc-card">
 <span class="oc-chip">MAINSTREAM · 官方 Bot API</span>
-    <h3 id="telegram">3.16.2 Telegram</h3>
+    <h4 id="sec-4.3.2" data-toc-skip>Telegram</h4>
     <div>
       <span>源码：<code>extensions/telegram/</code></span>
       <span>库：<a href="https://grammy.dev/" target="_blank">grammY</a></span>
@@ -1750,7 +1827,7 @@ flowchart LR
 
     <div class="oc-card">
 <span class="oc-chip">PROFESSIONAL · 官方 API</span>
-    <h3 id="slack">3.16.3 Slack</h3>
+    <h4 id="sec-4.3.3" data-toc-skip>Slack</h4>
     <div>
       <span>源码：<code>extensions/slack/</code></span>
       <span>协议：<a href="https://api.slack.com/events" target="_blank">Events API</a></span>
@@ -1778,7 +1855,7 @@ flowchart LR
 
     <div class="oc-card">
 <span class="oc-chip">NATIVE · macOS 专属</span>
-    <h3 id="imessage">3.16.4 iMessage</h3>
+    <h4 id="sec-4.3.4" data-toc-skip>iMessage</h4>
     <div>
       <span>源码：<code>extensions/imessage/</code></span>
       <span>接口：AppleScript + Chat.db 读取</span>
@@ -1807,7 +1884,7 @@ flowchart LR
 
     <div class="oc-card">
 <span class="oc-chip">BETA · 第三方桥接</span>
-    <h3 id="wechat">3.16.5 WeChat（微信）</h3>
+    <h4 id="sec-4.3.5" data-toc-skip>WeChat（微信）</h4>
     <div>
       <span>源码：<code>extensions/wechat-bridge/</code></span>
       <span>依赖：<a href="https://github.com/wechaty/wechaty" target="_blank">Wechaty</a> + Pad 协议</span>
@@ -1832,14 +1909,14 @@ flowchart LR
 </div>
 </div>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">重要提醒</p>：OpenClaw 是开源软件，但第三方平台（微信、WhatsApp）的协议限制无法绕过。任何闭源平台的接入都需要承担封号风险，务必使用<strong>非主账号</strong>测试。
+
+
+
+
+  <h3 id="sec-4.4">3.4.4 DM 配对码机制</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>配对码是通道层唯一的身份凭证：它把「谁能跟这个 Bot 说话」变成一次<strong>可撤销</strong>的授权。生产环境用 open 模式，等于把私聊变成公共入口。</p>
 </div>
-
-
-
-  <h2 id="sec-17">3.17 DM 配对码机制</h2>
 
   <p>很多通道默认 dmPolicy 是 <code>"open"</code> 或 <code>"pairing"</code>。OpenClaw 推荐生产环境使用 <strong>pairing</strong> 模式：</p>
 
@@ -1863,9 +1940,9 @@ sequenceDiagram
   Note over G,DB: 未配对用户的消息仅被记录,不执行任何工具调用
 </div><figcaption>图 3.5 · 配对流程——用户发送第一条消息 → Gateway 返回配对码 → 管理员在 Web UI 批准 → 解锁。</figcaption></figure>
 
-  <h3 id="pair-config">3.17.1 配对策略配置</h3>
+  <h4 id="sec-4.4.1" data-toc-skip>配对策略配置</h4>
 
-  <pre>{
+<pre>{
   <span>channels</span>: {
     <span>whatsapp</span>: {
       <span>accounts</span>: {
@@ -1885,11 +1962,11 @@ sequenceDiagram
 
 
 
-  <h2 id="sec-18">3.18 总结</h2>
+  <h2 id="seg-5">3.5 总结</h2><div class="oc-part-lead"><strong>收束 · 本章结论</strong>把通道层的判断收成几条结论，并交代下一章的接口。</div>
 
-  <h3 id="sec-18.1">3.18.1 一句话总结</h3>
+  <h3 id="sec-5.1">3.5.1 一句话总结</h3>
   <div class="thinking-note">
-<h3>要点</h3>
+<h3>思考笔记</h3>
 <p class="oc-callout-lead">15+ 通道不是"开箱即用全可用"——它们是分级菜单。</p>
     <br>
     生产环境从 Telegram / Slack / Discord 起步，谨慎处理 WhatsApp / iMessage / WeChat。
@@ -1899,21 +1976,27 @@ sequenceDiagram
     新通道遇到问题先看 <a href="https://docs.openclaw.ai/troubleshooting" target="_blank">troubleshooting 指南</a>。
 </div>
 
-  <h3 id="sec-18.2">3.18.2 相关阅读</h3>
+  <h3 id="sec-5.2">3.5.2 本章结论</h3><ol class="oc-points">
+  <li><strong>通道层的唯一职责是翻译。</strong>统一信封、可插拔适配、凭据不落盘——守住这三条，加平台就只是加一个适配器。</li>
+  <li><strong>15+ 个通道共享同一套接口。</strong>平台差异被挡在 <code>inbound.ts</code> 的 normalize 函数里，Gateway 始终无平台知识。</li>
+  <li><strong>连接模式是部署决策，不是实现细节。</strong>Webhook 最省事但要公网入口，Polling 最通用但延迟更高，选错模式稳定性跟着变。</li>
+  <li><strong>生命周期七步是排查地图。</strong>「消息没进来」永远能定位到注册、初始化、连接、入站这四步中的某一步。</li>
+  <li><strong>身份与权限落在通道层。</strong>DM 策略决定谁能跟这个 Bot 说话，生产环境不该用 open 模式。</li>
+</ol><h3 id="sec-5.3">3.5.3 下一章</h3><p>下一章 <strong>第 4 章 · 模型与运行时——Provider 与 Runtime 适配</strong>：消息进来之后，Gateway 怎么把一次委托交给模型——Provider、Model、Runtime、Harness 四层抽象，以及 30+ Provider 的接法。</p><h3 id="sec-5.4">3.5.4 相关阅读</h3>
   <ul>
-<li><a href="/2026/11/07/openclaw-02-architecture/#sec-8"><strong>02.4 · 信任边界 三级信任模型</strong></a> — Level 1 Gateway 内部组件 · Level 2 LLM 响应 · Level 3 外部输入——通道插件属于哪一级？</li>
-<li><a href="/2026/11/07/openclaw-05-sessions/"><strong>05.4 · 会话 DM 隔离</strong></a> — DM 配对码背后的会话隔离机制——workspace、memory、tool 权限如何被绑定到配对用户。</li>
-<li><a href="/2026/11/07/openclaw-06-tools-hooks/"><strong>06.2 · 钩子 钩子拦截机制</strong></a> — 消息入站后会经过 10+ 个钩子，理解 <code>before_tool_call</code> / <code>message_inbound</code> 等。</li>
-<li><a href="/2026/11/07/openclaw-07-end-to-end/"><strong>07.1 · 端到端 WhatsApp 完整旅程</strong></a> — 从用户发消息到 LLM 回复，中间经过的每一层：通道 → 会话 → 模型 → 工具 → 出站。</li>
+<li><a href="/2026/11/07/openclaw-02-architecture/#sec-4.1"><strong>02 · 核心架构 三级信任模型</strong></a> — Level 1 Gateway 内部组件 · Level 2 LLM 响应 · Level 3 外部输入——通道插件属于哪一级？</li>
+<li><a href="/2026/11/07/openclaw-05-sessions/"><strong>05 · 会话 DM 隔离</strong></a> — DM 配对码背后的会话隔离机制——workspace、memory、tool 权限如何被绑定到配对用户。</li>
+<li><a href="/2026/11/07/openclaw-06-tools-hooks/"><strong>06 · 工具 钩子拦截机制</strong></a> — 消息入站后会经过 10+ 个钩子，理解 <code>before_tool_call</code> / <code>message_inbound</code> 等。</li>
+<li><a href="/2026/11/07/openclaw-07-end-to-end/"><strong>07 · 端到端 WhatsApp 完整旅程</strong></a> — 从用户发消息到 LLM 回复，中间经过的每一层：通道 → 会话 → 模型 → 工具 → 出站。</li>
 </ul>
 
 
 
 
 
-</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">3.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">3.2 通道设计的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">3.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">3.4 全部 15+ 通道一览</a><a class="reading-toc-link level-2" href="#sec-5">3.5 5 种连接模式</a><a class="reading-toc-link level-3" href="#sec-5.1">3.5.1 运维视角 · 怎么部署？</a><a class="reading-toc-link level-3" href="#sec-5.2">3.5.2 网络视角 · 端口与连接数</a><a class="reading-toc-link level-2" href="#sec-6">3.6 通道全景</a><a class="reading-toc-link level-3" href="#deep-24">3.6.1 路由层与 Session Key</a><a class="reading-toc-link level-3" href="#deep-25">3.6.2 会话生命周期与重置</a><a class="reading-toc-link level-3" href="#deep-26">3.6.3 会话工具与子智能体</a><a class="reading-toc-link level-3" href="#deep-27">3.6.4 通道与节点架构</a><a class="reading-toc-link level-2" href="#sec-7">3.7 ChannelAdapter 接口</a><a class="reading-toc-link level-2" href="#sec-8">3.8 7 步生命周期</a><a class="reading-toc-link level-2" href="#sec-9">3.9 通道注册示例</a><a class="reading-toc-link level-2" href="#sec-10">3.10 字段映射 · 平台 → Envelope</a><a class="reading-toc-link level-3" href="#sec-10.1">3.10.1 WhatsApp · Baileys 事件视角</a><a class="reading-toc-link level-3" href="#sec-10.2">3.10.2 Slack · Webhook POST 视角</a><a class="reading-toc-link level-3" href="#sec-10.3">3.10.3 Telegram · grammY Update 视角</a><a class="reading-toc-link level-2" href="#sec-11">3.11 翻译过程图</a><a class="reading-toc-link level-2" href="#sec-12">3.12 Envelope · 统一消息信封</a><a class="reading-toc-link level-2" href="#sec-13">3.13 附件处理</a><a class="reading-toc-link level-2" href="#sec-14">3.14 出站 · ReplyEnvelope + 流式卡片</a><a class="reading-toc-link level-3" href="#sec-14.1">3.14.1 流式输入指示 · 用户视觉反馈</a><a class="reading-toc-link level-2" href="#sec-15">3.15 重连策略与多账号</a><a class="reading-toc-link level-3" href="#sec-15.1">3.15.1 隔离视角 · 一个 Gateway 怎么服务多身份？</a><a class="reading-toc-link level-2" href="#sec-16">3.16 内置通道详情</a><a class="reading-toc-link level-3" href="#whatsapp">3.16.1 WhatsApp</a><a class="reading-toc-link level-3" href="#telegram">3.16.2 Telegram</a><a class="reading-toc-link level-3" href="#slack">3.16.3 Slack</a><a class="reading-toc-link level-3" href="#imessage">3.16.4 iMessage</a><a class="reading-toc-link level-3" href="#wechat">3.16.5 WeChat（微信）</a><a class="reading-toc-link level-2" href="#sec-17">3.17 DM 配对码机制</a><a class="reading-toc-link level-3" href="#pair-config">3.17.1 配对策略配置</a><a class="reading-toc-link level-2" href="#sec-18">3.18 总结</a><a class="reading-toc-link level-3" href="#sec-18.1">3.18.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-18.2">3.18.2 相关阅读</a></nav></details></aside>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">3.1 定位与原则</a><a class="reading-toc-link level-3" href="#sec-1.1">3.1.1 一句话定位</a><a class="reading-toc-link level-3" href="#sec-1.2">3.1.2 通道设计的三个原则</a><a class="reading-toc-link level-3" href="#sec-1.3">3.1.3 模块位置</a><a class="reading-toc-link level-2" href="#seg-2">3.2 通道地图</a><a class="reading-toc-link level-3" href="#sec-2.1">3.2.1 全部 15+ 通道一览</a><a class="reading-toc-link level-3" href="#sec-2.2">3.2.2 5 种连接模式</a><a class="reading-toc-link level-3" href="#sec-2.3">3.2.3 通道全景</a><a class="reading-toc-link level-2" href="#seg-3">3.3 适配器协议</a><a class="reading-toc-link level-3" href="#sec-3.1">3.3.1 ChannelAdapter 接口</a><a class="reading-toc-link level-3" href="#sec-3.2">3.3.2 7 步生命周期</a><a class="reading-toc-link level-3" href="#sec-3.3">3.3.3 通道注册示例</a><a class="reading-toc-link level-3" href="#sec-3.4">3.3.4 字段映射 · 平台 → Envelope</a><a class="reading-toc-link level-3" href="#sec-3.5">3.3.5 翻译过程图</a><a class="reading-toc-link level-3" href="#sec-3.6">3.3.6 Envelope · 统一消息信封</a><a class="reading-toc-link level-3" href="#sec-3.7">3.3.7 附件处理</a><a class="reading-toc-link level-2" href="#seg-4">3.4 出站与账号</a><a class="reading-toc-link level-3" href="#sec-4.1">3.4.1 出站 · ReplyEnvelope + 流式卡片</a><a class="reading-toc-link level-3" href="#sec-4.2">3.4.2 重连策略与多账号</a><a class="reading-toc-link level-3" href="#sec-4.3">3.4.3 内置通道详情</a><a class="reading-toc-link level-3" href="#sec-4.4">3.4.4 DM 配对码机制</a><a class="reading-toc-link level-2" href="#seg-5">3.5 总结</a><a class="reading-toc-link level-3" href="#sec-5.1">3.5.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-5.2">3.5.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-5.3">3.5.3 下一章</a><a class="reading-toc-link level-3" href="#sec-5.4">3.5.4 相关阅读</a></nav></details></aside>
     </div>
-    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-02-architecture/"><small>← 上一篇</small><span>核心架构与三原则落地</span></a></div><div><a href="/2026/11/07/openclaw-04-models-runtimes/"><small>下一篇 →</small><span>LLM Provider 与 Runtime 适配</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-02-architecture/"><small>← 上一篇</small><span>核心架构——三原则如何落地</span></a></div><div><a href="/2026/11/07/openclaw-04-models-runtimes/"><small>下一篇 →</small><span>模型与运行时——Provider 与 Runtime 适配</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
   </article>
 </main>
 <footer class="portal-footer">

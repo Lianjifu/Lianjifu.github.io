@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
   <meta name="theme-color" content="#0f172a">
-  <title>第 1 章：OpenClaw 是什么 — 概览与心智模型 | OpenClaw 源码笔记</title>
-  <meta name="description" content="模块 01 · OpenClaw 是什么 — 概览与心智模型。OpenClaw 是一个跨平台、个人优先的 AI 助手框架——通过单一可信网关连接模型、工具、消息通道和伴生应用。本章不深入任何技术细节，只建立「OpenClaw 是什么 · 为什么存在 · 当前状态如何」的整体心智模型。">
+  <title>第 1 章：OpenClaw 是什么——概览与心智模型 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 01 · OpenClaw 是什么——概览与心智模型。OpenClaw 是一个跨平台、个人优先的 AI 助手框架——通过单一可信网关连接模型、工具、消息通道和伴生应用。本章不深入任何技术细节，只建立「OpenClaw 是什么 · 为什么存在 · 当前状态如何」的整体心智模型。">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="第 1 章：OpenClaw 是什么 — 概览与心智模型">
+  <meta property="og:title" content="第 1 章：OpenClaw 是什么——概览与心智模型">
   <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-01-overview/">
   <meta property="og:site_name" content="LianJiFu'blogs">
-  <meta property="og:description" content="模块 01 · OpenClaw 是什么 — 概览与心智模型。OpenClaw 是一个跨平台、个人优先的 AI 助手框架——通过单一可信网关连接模型、工具、消息通道和伴生应用。本章不深入任何技术细节，只建立「OpenClaw 是什么 · 为什么存在 · 当前状态如何」的整体心智模型。">
+  <meta property="og:description" content="模块 01 · OpenClaw 是什么——概览与心智模型。OpenClaw 是一个跨平台、个人优先的 AI 助手框架——通过单一可信网关连接模型、工具、消息通道和伴生应用。本章不深入任何技术细节，只建立「OpenClaw 是什么 · 为什么存在 · 当前状态如何」的整体心智模型。">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
   <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="/css/2026.css?v=2">
   <link rel="stylesheet" href="/css/portal.css?v=11">
   <link rel="stylesheet" href="/css/article.css?v=7">
-  <link rel="stylesheet" href="/css/openclaw.css?v=7">
+  <link rel="stylesheet" href="/css/openclaw.css?v=9">
   <script src="/js/portal.js?v=7" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -148,7 +148,7 @@
     <header class="post-header">
       <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
       <span class="article-kicker">第 1 章：入门导读</span>
-      <h1 class="post-title" itemprop="name headline">OpenClaw 是什么 — 概览与心智模型</h1>
+      <h1 class="post-title" itemprop="name headline">OpenClaw 是什么——概览与心智模型</h1>
       <div class="post-meta">
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
@@ -217,22 +217,59 @@
 
 
 
-  <h2 id="sec-1">1.1 一句话定位</h2>
+  <div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p>OpenClaw 不是一个又一个 AI 助手，而是<strong>长期运行在你机器上、掌控全部状态的控制面</strong>：一个 Gateway 进程（端口 18789）、一份记忆、一套策略，跨设备一致。</p>
+  <p>它靠三条原则立住：<strong>可信的网关</strong>（所有数据流过同一个控制面，信任边界因此只有一个）、<strong>不可信的执行</strong>（推理与工具跑在网关的隔离边界之外）、<strong>确定性的策略</strong>（策略集中在声明式配置里，不散落在各个执行上下文）。</p>
+  <p>这一章只做一件事：把定位、边界和形态说清楚，把三原则的来龙去脉讲透。往后九章分别拆通道、模型与会话、工具与钩子，最后用一条消息把整条链串起来。</p>
+</div>
 
-  <div>
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>OpenClaw 是什么、凭什么长期运行，以及它与云端助手、本地模型、IM Bot 的差别</td></tr>
+    <tr><td>核心机制</td><td>单一可信网关 + 三原则：可信的网关 · 不可信的执行 · 确定性的策略</td></tr>
+    <tr><td>关键数字</td><td>15+ 消息通道 · 30+ LLM Provider · 134+ 扩展包 · 40+ 内置技能 · 单 Gateway 进程 · 端口 18789</td></tr>
+    <tr><td>读完能做什么</td><td>判断一个需求该由 OpenClaw 承担还是交给云端助手，并读懂后面九章反复出现的术语</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 定位与边界</div>
+    <div>它是什么、凭什么成立、在技术栈里的位置。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 生态与形态</div>
+    <div>和谁竞争、长什么样、一次消息怎么走、它不是什么。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 原则、版本与部署</div>
+    <div>三原则怎么落到代码与配置，版本、性能与部署的现实约束。</div>
+  </div>
+  <div class="oc-card">
+    <div>收束 · 本章结论</div>
+    <div>可以带走的几条结论，以及下一章的接口。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">1.1 定位与边界</h2><div class="oc-part-lead"><strong>第一段 · 定位与边界</strong>先说清 OpenClaw 是什么、它凭什么成立，以及它在整条技术栈里的位置——后面九章都建立在这三条判断上。</div><h3 id="sec-1.1">1.1.1 一句话定位</h3><div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">OpenClaw 不是"又一个 AI 助手"，而是个人 AI 时代的「操作系统底座」— 一个长期运行在你机器上、掌控全部状态的控制面。</p>
     它独占「本地 × 个人」象限：云端助手（Claude.ai / ChatGPT）的数据归平台，本地模型（Ollama）只做推理、不接管通道与记忆，Slack + Bot 则是企业云端、记忆互不相通。OpenClaw 把<strong>对话、决策、执行、跨设备</strong>四件事收进同一个进程——一个 Gateway（端口 18789）、一份记忆、一套策略，跨设备一致。
-</div>
-
-  <div class="thinking-note">
+</div><div class="thinking-note">
 <h3>思考笔记</h3>
 <p>它的产品定位来自一句反问：<strong>如果 AI 助手的所有权不属于你，那它记住的每一件事都不算你的。</strong></p>
     <ul>
-      <li>三原则不是营销话术——它们是 <strong>技术约束</strong>，会直接出现在代码结构里（见 1.8 三原则详解）</li>
+      <li>三原则不是营销话术——它们是 <strong>技术约束</strong>，会直接出现在代码结构里（见 1.3.1 三原则详解）</li>
       <li>"单一可信网关"看起来反直觉（单点故障？）— 实际上它换来的是 <strong>简化到极致的信任模型</strong>，而不是性能瓶颈（异步 I/O + 队列 + 副本扩展）</li>
     </ul>
+
 </div>
+
+
+
+
 
   <table>
 <thead>
@@ -258,7 +295,10 @@
 
 
 
-  <h2 id="sec-2">1.2 概览的三个原则</h2>
+  <h3 id="sec-1.2">1.1.2 概览的三个原则</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三条原则不是并列的清单，而是一条依赖链：<strong>可信的网关</strong>提供唯一状态源，<strong>不可信的执行</strong>划出安全边界，<strong>确定性的策略</strong>把人的判断固定下来。读后面任何一章的架构图，都可以回到这三条对照。</p>
+</div>
 
   <table>
 <thead>
@@ -276,7 +316,10 @@
 
 
 
-  <h2 id="sec-3">1.3 模块位置</h2>
+  <h3 id="sec-1.3">1.1.3 模块位置</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一节是全系列的地图：01–06 讲系统由什么构成，07 把它串成一条消息链路，08–09 讲代价与失败，10 回到代码验证。不知道从哪读起，就按这个顺序。</p>
+</div>
 
   <figure><div class="mermaid">flowchart TD
   A["&lt;b&gt;01 概览&lt;/b&gt;&lt;br/&gt;心智模型与现状"] --&gt; B["&lt;b&gt;02 核心架构&lt;/b&gt;&lt;br/&gt;四层 · Gateway"]
@@ -303,7 +346,16 @@
 
 
 
-  <h2 id="sec-4">1.4 生态定位</h2>
+  <h2 id="seg-2">1.2 生态与形态</h2><div class="oc-part-lead"><strong>第二段 · 生态与形态</strong>把它放到生态里看：和谁竞争、长什么样、一次消息怎么走，以及它明确不是什么。</div><h3 id="sec-2.1">1.2.1 生态定位</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p><strong>"本地 × 个人"象限的本质</strong>——把控制权从平台交还给用户。</p>
+  <ul>
+    <li><strong>归一化</strong>：所有通道（Webhook / WebSocket / Polling）都被适配器翻译成同一种数据——<code>Envelope</code> 统一信封</li>
+    <li><strong>单点可信</strong>：Hub 是唯一可信方——API Key、OAuth Token、会话状态、策略规则全部内部化，外部只暴露 1 个 18789 端口</li>
+    <li><strong>无状态 Spoke</strong>：伴生节点不存数据，只是 UI 渲染层——挂掉就重连，数据零丢失</li>
+  </ul>
+
+</div>
 
   <blockquote>
     <p><strong>一句话定义</strong>：OpenClaw 是一个<strong>跨平台、个人优先</strong>的 AI 助手框架，通过单一可信网关连接模型、工具、消息通道和伴生应用。</p>
@@ -311,7 +363,7 @@
 
   <p>理解一个产品最快的方式是看它<strong>不做什么</strong>。OpenClaw 把自己定位为 <em>"Your assistant, on your devices, in your chats"</em>——它填补的是一个<strong>具体象限</strong>:"<em>个人使用 + 长期在线 + 本地优先 + 多通道连接</em>"。下面用两个维度（谁使用、跑在哪）把它放进生态地图：</p>
 
-  <h3 id="position-matrix">1.4.1 2×2 生态定位矩阵</h3>
+  <h4 id="sec-2.1.1" data-toc-skip>2×2 生态定位矩阵</h4>
   <p>横轴决定"谁使用"（个人 / 团队），纵轴决定"跑在哪"（本地 / 云）。这四个象限各有强势产品：</p>
   <table>
     <thead><tr><th>位置</th><th>个人 / Personal</th><th>团队 / Team</th></tr></thead>
@@ -330,7 +382,7 @@
   </table>
   <p class="oc-meta"><em>阅读方式</em>：OpenClaw 独占 <strong>本地 × 个人</strong> 象限——其他象限都有强势产品，这个象限几乎无人占位。</p>
 
-  <h3 id="position-arch">1.4.2 Hub-and-Spoke 架构</h3>
+  <h4 id="sec-2.1.2" data-toc-skip>Hub-and-Spoke 架构</h4>
   <p>架构图分三层：<strong>外部触点（消息通道 + 伴生节点）</strong> → <strong>单一 Gateway 控制面</strong> → <strong>本地优先存储</strong>。每个圆角矩形是一个进程，每条箭头是一次数据流。Gateway 是<strong>唯一可信方</strong>——外部不暴露任何内部状态，只通过反向连接（伴生节点）和受控协议（通道 Webhook）接入。</p>
   <figure><div class="mermaid">
 flowchart LR
@@ -350,18 +402,19 @@ flowchart LR
 </div><figcaption>图 1.1 · OpenClaw 的 Hub-and-Spoke 架构——1 个 Gateway 控制面 + 2 类外部触点（通道、伴生） + 1 个本地存储。3 类数据流：① 消息流（入站） ② 能力调用（双向） ③ 持久化（异步）。</figcaption></figure>
 
 
-<div class="thinking-note">
+
+
+
+  <h3 id="sec-2.2">1.2.2 关键数据全表</h3><div class="thinking-note">
 <h3>思考笔记</h3>
-<p><strong>"本地 × 个人"象限的本质</strong>——把控制权从平台交还给用户。</p>
+<p><strong>数字不会说谎</strong>——但要看数字背后的分布。</p>
   <ul>
-    <li><strong>归一化</strong>：所有通道（Webhook / WebSocket / Polling）都被适配器翻译成同一种数据——<code>Envelope</code> 统一信封</li>
-    <li><strong>单点可信</strong>：Hub 是唯一可信方——API Key、OAuth Token、会话状态、策略规则全部内部化，外部只暴露 1 个 18789 端口</li>
-    <li><strong>无状态 Spoke</strong>：伴生节点不存数据，只是 UI 渲染层——挂掉就重连，数据零丢失</li>
+    <li><strong>15+ 通道 ≠ 15 个核心</strong>：核心实现是 Webhook + WebSocket 两种，其他 13 个都是适配器——加新通道只需写一个适配器</li>
+    <li><strong>30+ LLM ≠ 30 个好用的</strong>：主力是 Anthropic / OpenAI，Ollama 本地化是亮点，其他属于"能跑"级别</li>
+    <li><strong>18789 端口</strong>是 loopback only，不公网监听——远程访问走伴生节点反向连接（零暴露）</li>
   </ul>
+
 </div>
-
-
-  <h2 id="sec-5">1.5 关键数据全表</h2>
 
   <p>OpenClaw 不是 PPT 项目——是一组<strong>可被验证的硬数字</strong>。这些数字直接决定了它的能力边界和适用场景。下面用 6 个核心数字 + 8 项关键事实回答"OpenClaw 现在到底做到了什么程度"。</p>
 
@@ -398,18 +451,19 @@ flowchart LR
   </table>
 
 
-<div class="thinking-note">
+
+
+
+  <h3 id="sec-2.3">1.2.3 多通道架构</h3><div class="thinking-note">
 <h3>思考笔记</h3>
-<p><strong>数字不会说谎</strong>——但要看数字背后的分布。</p>
+<p><strong>消息生命周期图是 OpenClaw 最重要的"全局地图"</strong>——之后每个模块都会回到这张图作锚点。</p>
   <ul>
-    <li><strong>15+ 通道 ≠ 15 个核心</strong>：核心实现是 Webhook + WebSocket 两种，其他 13 个都是适配器——加新通道只需写一个适配器</li>
-    <li><strong>30+ LLM ≠ 30 个好用的</strong>：主力是 Anthropic / OpenAI，Ollama 本地化是亮点，其他属于"能跑"级别</li>
-    <li><strong>18789 端口</strong>是 loopback only，不公网监听——远程访问走伴生节点反向连接（零暴露）</li>
+    <li><strong>SM （Session Manager） 是最忙的组件</strong>：查找会话、组装 Prompt、调 LLM、执行工具、持久化全过它</li>
+    <li><code>alt 工具调用</code> 是<strong>递归循环</strong>——工具结果回灌给 LLM，可能再次触发工具调用（直到没有更多工具或达到限制）</li>
+    <li><code>ST</code>（存储）在最后一步——持久化是<strong>副效应</strong>，不影响主路径的时延</li>
   </ul>
+
 </div>
-
-
-  <h2 id="sec-6">1.6 多通道架构</h2>
 
   <p>现代人的对话分散在 5-10 个 IM 应用中——微信、WhatsApp、邮件、Telegram、Discord... 但 AI 助手只能接其中一个，你被迫"绑定生态"。OpenClaw 的解法是<strong>通道适配器</strong>（Channel Adapter）：把不同平台的输入归一化为<strong>统一信封 Envelope</strong>。Gateway 不关心消息来自哪里，只看到「消息 + 发送者 + 会话」三要素——<strong>接入一个新通道只需写一个适配器，核心逻辑零侵入</strong>。</p>
 
@@ -418,7 +472,7 @@ flowchart LR
 
   <p class="oc-meta">完整 15+ 通道清单见 <a href="/2026/11/07/openclaw-03-channels/">模块 03 消息通道</a>。每条通道有：接入文档 + Webhook 协议 + 测试沙箱。</p>
 
-  <h3 id="channels-lifecycle">1.6.1 一条消息的完整生命周期</h3>
+  <h4 id="sec-2.3.1" data-toc-skip>一条消息的完整生命周期</h4>
   <figure><div class="mermaid">
 sequenceDiagram
   autonumber
@@ -447,18 +501,20 @@ sequenceDiagram
 </div><figcaption>图 1.2 · 一条消息从发送到回复——完整 7 步时序。</figcaption></figure>
 
 
-<div class="thinking-note">
+
+
+
+  <h3 id="sec-2.4">1.2.4 差异化对比</h3><div class="thinking-note">
 <h3>思考笔记</h3>
-<p><strong>消息生命周期图是 OpenClaw 最重要的"全局地图"</strong>——之后每个模块都会回到这张图作锚点。</p>
+<p>"不是什么"往往比"是什么"更能定义产品边界——因为差异化竞争永远在<strong>负面空间</strong>。</p>
   <ul>
-    <li><strong>SM （Session Manager） 是最忙的组件</strong>：查找会话、组装 Prompt、调 LLM、执行工具、持久化全过它</li>
-    <li><code>alt 工具调用</code> 是<strong>递归循环</strong>——工具结果回灌给 LLM，可能再次触发工具调用（直到没有更多工具或达到限制）</li>
-    <li><code>ST</code>（存储）在最后一步——持久化是<strong>副效应</strong>，不影响主路径的时延</li>
+    <li>OpenClaw 不做云端——因为云端 AI 助手已经 <strong>被大厂垄断</strong>（Anthropic、OpenAI、Google），后入局者没有赢面</li>
+    <li>OpenClaw 不做模型训练——因为 LLM 训练是 <strong>千亿美金级</strong>的资本游戏，开源社区无法竞争</li>
+    <li>OpenClaw 不做团队协作——因为 Slack / Teams / 飞书 <strong>已经形成网络效应</strong>，后入局者没有迁移动力</li>
   </ul>
+  <p>这三条"不做什么"是产品定位的关键——把战场从红海拉到蓝海。</p>
+
 </div>
-
-
-  <h2 id="sec-7">1.7 差异化对比</h2>
 
   <p>为什么 OpenClaw 在拥挤的 AI 助手市场还有立足之地？下面从 5 个<strong>用户最关心的维度</strong>做横向对比——这 5 个维度涵盖了"数据归属、覆盖范围、扩展能力、记忆延续、可控性"五个核心痛点。</p>
 
@@ -473,7 +529,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3 id="sec-7.1">1.7.1 它不是什么</h3>
+  <h4 id="sec-2.4.1" data-toc-skip>它不是什么</h4>
   <ul>
     <li><strong>不是云端 SaaS</strong>——OpenClaw 强调本地优先，数据归用户所有</li>
     <li><strong>不是模型提供商</strong>——OpenClaw 是协调层，自己不训练/部署 LLM</li>
@@ -482,38 +538,39 @@ sequenceDiagram
   </ul>
 
 
-<div class="thinking-note">
+
+
+
+  <h2 id="seg-3">1.3 原则、版本与部署</h2><div class="oc-part-lead"><strong>第三段 · 原则、版本与部署</strong>三条原则怎么落到代码与配置上，以及版本、性能、部署上的现实约束。</div><h3 id="sec-3.1">1.3.1 三原则详解</h3><div class="thinking-note">
 <h3>思考笔记</h3>
-<p>"不是什么"往往比"是什么"更能定义产品边界——因为差异化竞争永远在<strong>负面空间</strong>。</p>
+<p>三原则不是"理想"，是 <strong>"经过权衡后的最优"</strong>。每个原则都有代价，但 OpenClaw 选择"原则优先于性能"。</p>
   <ul>
-    <li>OpenClaw 不做云端——因为云端 AI 助手已经 <strong>被大厂垄断</strong>（Anthropic、OpenAI、Google），后入局者没有赢面</li>
-    <li>OpenClaw 不做模型训练——因为 LLM 训练是 <strong>千亿美金级</strong>的资本游戏，开源社区无法竞争</li>
-    <li>OpenClaw 不做团队协作——因为 Slack / Teams / 飞书 <strong>已经形成网络效应</strong>，后入局者没有迁移动力</li>
+    <li>把"信任"集中到 1 个进程看似反直觉——但换来的是 <strong>1 个攻击面而不是 N 个</strong></li>
+    <li>把"执行"放到沙箱看似延迟更高——但换来的是 <strong>"即使被攻破也不会失守"</strong>的承诺</li>
+    <li>把"策略"集中到配置文件看似不够灵活——但换来的是 <strong>"1 行配置 = 1 条策略"</strong>的审计能力</li>
   </ul>
-  <p>这三条"不做什么"是产品定位的关键——把战场从红海拉到蓝海。</p>
+  <p>用性能换安全，用灵活换可控——这是 OpenClaw 的核心价值主张。</p>
+
 </div>
-
-
-  <h2 id="sec-8">1.8 三原则详解</h2>
 
   <p>三原则不是营销话术——是<strong>经过实战权衡后选定的"约束条件"</strong>。任何一个看似"理所当然"的设计背后，都有无数被放弃的备选方案。本节用 3 段逐条拆解：每条原则"在解决什么问题"、"用何种方式解决"、"在代码哪个位置实现"。</p>
 
-  <h3 id="principles-1">1.8.1 原则一 · 可信的网关</h3>
+  <h4 id="sec-3.1.1" data-toc-skip>原则一 · 可信的网关</h4>
   <p><strong>核心</strong>：单进程长期运行，掌控所有密钥 · 会话 · 通道连接 · 策略执行。</p>
   <p><strong>为什么</strong>：把"信任边界"压缩到 1 个进程。所有需要保密的（API Key、OAuth Token、用户偏好、会话状态）都在 Gateway 内部，外部只暴露一个 18789 端口——即使被攻破，攻击者也只能从这一个入口进入。</p>
   <p><strong>代码位置</strong>:<code>apps/gateway/src/index.ts</code>（主入口） + <code>apps/gateway/src/gateway/</code>（子模块）。</p>
 
-  <h3 id="principles-2">1.8.2 原则二 · 不可信的执行</h3>
+  <h4 id="sec-3.1.2" data-toc-skip>原则二 · 不可信的执行</h4>
   <p><strong>核心</strong>：LLM 推理 · 工具执行 · 文件访问都运行在网关隔离之外。</p>
   <p><strong>为什么</strong>：LLM 提示词注入（prompt injection）和工具参数污染是<strong>已知攻击面</strong>。把"执行"放到隔离沙箱，即使被攻击，影响范围<strong>限定在沙箱内</strong>——不会波及其他会话或本地文件。</p>
   <p><strong>代码位置</strong>:<code>apps/gateway/src/tools/sandbox/</code>（4 种沙箱：none/process/container/vm）。</p>
 
-  <h3 id="principles-3">1.8.3 原则三 · 确定性的策略</h3>
+  <h4 id="sec-3.1.3" data-toc-skip>原则三 · 确定性的策略</h4>
   <p><strong>核心</strong>：策略以声明式配置管理，不分散在各个执行上下文里。</p>
   <p><strong>为什么</strong>：策略（谁能用什么工具、能否访问哪些路径、Token 限额）应该可审计、可回滚、可版本化——<strong>"1 行配置 = 1 条策略"</strong>的清晰性，胜过"代码里灵活散落"的便利。</p>
   <p><strong>代码位置</strong>:<code>openclaw.config.yaml</code> + <code>apps/gateway/src/config/</code>（加载/校验/热重载）。</p>
 
-  <h3 id="sec-8.4">1.8.4 三原则的相互制衡</h3>
+  <h4 id="sec-3.1.4" data-toc-skip>三原则的相互制衡</h4>
   <p>三原则不是孤立的——它们之间有张力，需要平衡。下面的表格展示了"每个原则最可能被攻击的弱点"以及"OpenClaw 的应对方案"：</p>
   <table>
     <thead><tr><th>原则</th><th>可能冲突</th><th>OpenClaw 的取舍</th></tr></thead>
@@ -524,7 +581,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3 id="sec-8.5">1.8.5 三原则失守的反面案例</h3>
+  <h4 id="sec-3.1.5" data-toc-skip>三原则失守的反面案例</h4>
   <ul>
     <li><strong>失守"可信网关"</strong>：把多个 Gateway 进程共享 Token 存储——一旦某个进程被攻击，Token 全军覆没</li>
     <li><strong>失守"不可信执行"</strong>：在 Gateway 进程内直接执行 shell 命令——提示词注入 = 服务器沦陷</li>
@@ -532,23 +589,23 @@ sequenceDiagram
   </ul>
 
 
-<div class="thinking-note">
+
+
+
+  <h3 id="sec-3.2">1.3.2 版本与选型</h3><div class="thinking-note">
 <h3>思考笔记</h3>
-<p>三原则不是"理想"，是 <strong>"经过权衡后的最优"</strong>。每个原则都有代价，但 OpenClaw 选择"原则优先于性能"。</p>
+<p>技术栈选择 <strong>不是"最酷"，是"最适合"</strong>。</p>
   <ul>
-    <li>把"信任"集中到 1 个进程看似反直觉——但换来的是 <strong>1 个攻击面而不是 N 个</strong></li>
-    <li>把"执行"放到沙箱看似延迟更高——但换来的是 <strong>"即使被攻破也不会失守"</strong>的承诺</li>
-    <li>把"策略"集中到配置文件看似不够灵活——但换来的是 <strong>"1 行配置 = 1 条策略"</strong>的审计能力</li>
+    <li>Node.js 20 而不是 Rust/Go——因为 OpenClaw 主要是 IO 密集型，Node 异步事件循环反而更合适</li>
+    <li>SQLite 而不是 PostgreSQL——因为本地优先，单机数据库足矣；SQLite 单文件备份/迁移/版本化最简单</li>
+    <li>Zod 而不是 io-ts 或 yup——因为 Zod 的 <code>z.infer&lt;T&gt;</code> 让 schema 和类型共享同一真相来源</li>
   </ul>
-  <p>用性能换安全，用灵活换可控——这是 OpenClaw 的核心价值主张。</p>
+
 </div>
-
-
-  <h2 id="sec-9">1.9 版本与选型</h2>
 
   <p>选型 = 决断。本节回答两个问题："现在跑的是哪个版本" + "为什么用这些技术"。技术栈不是越新越好——而是<strong>和"个人优先 + 长期在线 + 本地优先"的产品定位最匹配</strong>。</p>
 
-  <h3 id="sec-9.1">1.9.1 当前版本与发布时间</h3>
+  <h4 id="sec-3.2.1" data-toc-skip>当前版本与发布时间</h4>
   <table>
     <thead><tr><th>字段</th><th>值</th></tr></thead>
     <tbody>
@@ -560,7 +617,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3 id="sec-9.2">1.9.2 技术栈构成</h3>
+  <h4 id="sec-3.2.2" data-toc-skip>技术栈构成</h4>
   <table>
     <thead><tr><th>层</th><th>技术</th><th>作用</th></tr></thead>
     <tbody>
@@ -578,22 +635,24 @@ sequenceDiagram
   </table>
 
 
-<div class="thinking-note">
+
+
+
+  <h3 id="sec-3.3">1.3.3 性能与部署</h3><div class="thinking-note">
 <h3>思考笔记</h3>
-<p>技术栈选择 <strong>不是"最酷"，是"最适合"</strong>。</p>
+<p>性能基线 <strong>是承诺，不是天花板</strong>。</p>
   <ul>
-    <li>Node.js 20 而不是 Rust/Go——因为 OpenClaw 主要是 IO 密集型，Node 异步事件循环反而更合适</li>
-    <li>SQLite 而不是 PostgreSQL——因为本地优先，单机数据库足矣；SQLite 单文件备份/迁移/版本化最简单</li>
-    <li>Zod 而不是 io-ts 或 yup——因为 Zod 的 <code>z.infer&lt;T&gt;</code> 让 schema 和类型共享同一真相来源</li>
+    <li>TTFT P50 0.8s 在 Sonnet 4 上是 OpenAI/Anthropic 直连速度——OpenClaw Gateway 自身开销 <strong>小于 100ms</strong></li>
+    <li>1，200 msg/s 的吞吐量是 <strong>单进程</strong>实测——横向扩展 Gateway 副本可线性提升</li>
+    <li>内存占用 1.4GB @ 100 并发会话——平均 <strong>14MB / 会话</strong>，对现代机器是 <strong>无感开销</strong></li>
   </ul>
+  <p>已知限制（不直接支持 MCP / 语音 / 图像生成）是 <strong>有意为之</strong>——让社区通过扩展实现，而不是把它们硬塞进核心。</p>
+
 </div>
-
-
-  <h2 id="sec-10">1.10 性能与部署</h2>
 
   <p>性能基线<strong>是承诺，不是天花板</strong>。本节用 8 项实测指标 + 5 项系统要求 + 5 项兼容性约束，回答"OpenClaw 到底能跑多快、需要什么机器、跟上下游版本怎么对齐"。</p>
 
-  <h3 id="sec-10.1">1.10.1 性能基线（v2026.9.2 实测）</h3>
+  <h4 id="sec-3.3.1" data-toc-skip>性能基线（v2026.9.2 实测）</h4>
   <table>
     <thead><tr><th>指标</th><th>实测值</th><th>测试条件</th></tr></thead>
     <tbody>
@@ -608,7 +667,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3 id="sec-10.2">1.10.2 系统要求</h3>
+  <h4 id="sec-3.3.2" data-toc-skip>系统要求</h4>
   <table>
     <thead><tr><th>场景</th><th>最低</th><th>推荐</th></tr></thead>
     <tbody>
@@ -620,7 +679,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3 id="sec-10.3">1.10.3 兼容性矩阵 · 与上下游的版本契约</h3>
+  <h4 id="sec-3.3.3" data-toc-skip>兼容性矩阵 · 与上下游的版本契约</h4>
   <table>
     <thead><tr><th>依赖</th><th>最低版本</th><th>最高测试版本</th><th>备注</th></tr></thead>
     <tbody>
@@ -632,7 +691,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3 id="sec-10.4">1.10.4 已知限制 · 不支持什么</h3>
+  <h4 id="sec-3.3.4" data-toc-skip>已知限制 · 不支持什么</h4>
   <ul>
     <li><strong>不直接支持 MCP 协议</strong>——需通过 <code>extensions/mcp-bridge</code> 桥接（实验性）</li>
     <li><strong>不内置语音通道</strong>——Twilio / WebRTC 需第三方扩展</li>
@@ -641,23 +700,14 @@ sequenceDiagram
   </ul>
 
 
-<div class="thinking-note">
-<h3>思考笔记</h3>
-<p>性能基线 <strong>是承诺，不是天花板</strong>。</p>
-  <ul>
-    <li>TTFT P50 0.8s 在 Sonnet 4 上是 OpenAI/Anthropic 直连速度——OpenClaw Gateway 自身开销 <strong>小于 100ms</strong></li>
-    <li>1，200 msg/s 的吞吐量是 <strong>单进程</strong>实测——横向扩展 Gateway 副本可线性提升</li>
-    <li>内存占用 1.4GB @ 100 并发会话——平均 <strong>14MB / 会话</strong>，对现代机器是 <strong>无感开销</strong></li>
-  </ul>
-  <p>已知限制（不直接支持 MCP / 语音 / 图像生成）是 <strong>有意为之</strong>——让社区通过扩展实现，而不是把它们硬塞进核心。</p>
-</div>
 
 
-  <h2 id="sec-11">1.11 总结</h2>
 
-  <h3 id="sec-11.1">1.11.1 一句话总结</h3>
+  <h2 id="seg-4">1.4 总结</h2><div class="oc-part-lead"><strong>收束 · 本章结论</strong>把这一章的判断收成几条可以带走的结论，并交代下一章的接口。</div>
+
+  <h3 id="sec-4.1">1.4.1 一句话总结</h3>
   <div class="thinking-note">
-<h3>要点</h3>
+<h3>思考笔记</h3>
 <p class="oc-callout-lead">OpenClaw = 单一可信网关 + 15+ 通道适配 + 30+ LLM 抽象 + 134+ 扩展——个人 / 本地优先 / 长期在线的 AI 助手框架。</p>
     <br><br>
     <strong>三原则贯穿全文</strong>：可信的网关 · 不可信的执行 · 确定性的策略。任何架构决策都回到这里。
@@ -665,7 +715,13 @@ sequenceDiagram
     <strong>下一步</strong>:<a href="/2026/11/07/openclaw-02-architecture/">模块 02 核心架构</a> 会把"三原则"展开成"四层架构 + 7 大子模块"，从抽象原则走到具体代码。
 </div>
 
-  <h3 id="sec-11.2">1.11.2 相关阅读</h3>
+  <h3 id="sec-4.2">1.4.2 本章结论</h3><ol class="oc-points">
+  <li><strong>差异不在模型，在控制面。</strong>云端助手的数据归平台，本地模型只做推理；OpenClaw 把对话、决策、执行、跨设备收进同一个进程，状态由它自己掌握。</li>
+  <li><strong>三原则是技术约束，不是宣传语。</strong>它们直接决定代码怎么分层：gateway 掌控状态，tools/sandbox 隔离执行，config 集中策略——后面每一章都能对回这三条。</li>
+  <li><strong>单一网关不等于单点故障。</strong>它换来的是极简的信任模型，可用性由异步 I/O、队列和副本扩展承担。</li>
+  <li><strong>「它不是什么」比「它是什么」更省事。</strong>它不是云端助手、不是本地模型推理层、也不是企业 IM 里又一个孤立 Bot——边界清楚，才知道什么该交给它。</li>
+  <li><strong>规模已经到可以当底座用。</strong>15+ 通道、30+ Provider、134+ 扩展、40+ 技能，一个进程一个端口就能跑起来。</li>
+</ol><h3 id="sec-4.3">1.4.3 下一章</h3><p>下一章 <strong>第 2 章 · 核心架构——三原则如何落地</strong>：把这一章的三条原则展开成四层架构与 7 大 Gateway 子模块，从抽象判断走到具体代码位置。</p><h3 id="sec-4.4">1.4.4 相关阅读</h3>
   <ul>
 <li><a href="/2026/11/07/openclaw-02-architecture/"><strong>02 · 架构 核心架构</strong></a> — 三原则 + 四层架构 + 7 大子模块——本章抽象原则的具体实现位置。</li>
 <li><a href="/2026/11/07/openclaw-03-channels/"><strong>03 · 通道 消息通道</strong></a> — 15+ 通道统一接入——1.1 提到的所有通道都有完整协议 + Webhook 文档。</li>
@@ -676,9 +732,9 @@ sequenceDiagram
 
 
 
-</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">1.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">1.2 概览的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">1.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">1.4 生态定位</a><a class="reading-toc-link level-3" href="#position-matrix">1.4.1 2×2 生态定位矩阵</a><a class="reading-toc-link level-3" href="#position-arch">1.4.2 Hub-and-Spoke 架构</a><a class="reading-toc-link level-2" href="#sec-5">1.5 关键数据全表</a><a class="reading-toc-link level-2" href="#sec-6">1.6 多通道架构</a><a class="reading-toc-link level-3" href="#channels-lifecycle">1.6.1 一条消息的完整生命周期</a><a class="reading-toc-link level-2" href="#sec-7">1.7 差异化对比</a><a class="reading-toc-link level-3" href="#sec-7.1">1.7.1 它不是什么</a><a class="reading-toc-link level-2" href="#sec-8">1.8 三原则详解</a><a class="reading-toc-link level-3" href="#principles-1">1.8.1 原则一 · 可信的网关</a><a class="reading-toc-link level-3" href="#principles-2">1.8.2 原则二 · 不可信的执行</a><a class="reading-toc-link level-3" href="#principles-3">1.8.3 原则三 · 确定性的策略</a><a class="reading-toc-link level-3" href="#sec-8.4">1.8.4 三原则的相互制衡</a><a class="reading-toc-link level-3" href="#sec-8.5">1.8.5 三原则失守的反面案例</a><a class="reading-toc-link level-2" href="#sec-9">1.9 版本与选型</a><a class="reading-toc-link level-3" href="#sec-9.1">1.9.1 当前版本与发布时间</a><a class="reading-toc-link level-3" href="#sec-9.2">1.9.2 技术栈构成</a><a class="reading-toc-link level-2" href="#sec-10">1.10 性能与部署</a><a class="reading-toc-link level-3" href="#sec-10.1">1.10.1 性能基线（v2026.9.2 实测）</a><a class="reading-toc-link level-3" href="#sec-10.2">1.10.2 系统要求</a><a class="reading-toc-link level-3" href="#sec-10.3">1.10.3 兼容性矩阵 · 与上下游的版本契约</a><a class="reading-toc-link level-3" href="#sec-10.4">1.10.4 已知限制 · 不支持什么</a><a class="reading-toc-link level-2" href="#sec-11">1.11 总结</a><a class="reading-toc-link level-3" href="#sec-11.1">1.11.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-11.2">1.11.2 相关阅读</a></nav></details></aside>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">1.1 定位与边界</a><a class="reading-toc-link level-3" href="#sec-1.1">1.1.1 一句话定位</a><a class="reading-toc-link level-3" href="#sec-1.2">1.1.2 概览的三个原则</a><a class="reading-toc-link level-3" href="#sec-1.3">1.1.3 模块位置</a><a class="reading-toc-link level-2" href="#seg-2">1.2 生态与形态</a><a class="reading-toc-link level-3" href="#sec-2.1">1.2.1 生态定位</a><a class="reading-toc-link level-3" href="#sec-2.2">1.2.2 关键数据全表</a><a class="reading-toc-link level-3" href="#sec-2.3">1.2.3 多通道架构</a><a class="reading-toc-link level-3" href="#sec-2.4">1.2.4 差异化对比</a><a class="reading-toc-link level-2" href="#seg-3">1.3 原则、版本与部署</a><a class="reading-toc-link level-3" href="#sec-3.1">1.3.1 三原则详解</a><a class="reading-toc-link level-3" href="#sec-3.2">1.3.2 版本与选型</a><a class="reading-toc-link level-3" href="#sec-3.3">1.3.3 性能与部署</a><a class="reading-toc-link level-2" href="#seg-4">1.4 总结</a><a class="reading-toc-link level-3" href="#sec-4.1">1.4.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-4.2">1.4.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-4.3">1.4.3 下一章</a><a class="reading-toc-link level-3" href="#sec-4.4">1.4.4 相关阅读</a></nav></details></aside>
     </div>
-    <nav class="article-pager" aria-label="专题阅读导航"><div></div><div><a href="/2026/11/07/openclaw-02-architecture/"><small>下一篇 →</small><span>核心架构与三原则落地</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+    <nav class="article-pager" aria-label="专题阅读导航"><div></div><div><a href="/2026/11/07/openclaw-02-architecture/"><small>下一篇 →</small><span>核心架构——三原则如何落地</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
   </article>
 </main>
 <footer class="portal-footer">

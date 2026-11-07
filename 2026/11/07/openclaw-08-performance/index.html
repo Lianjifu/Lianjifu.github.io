@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
   <meta name="theme-color" content="#0f172a">
-  <title>第 8 章：性能基线与延迟分析 | OpenClaw 源码笔记</title>
-  <meta name="description" content="模块 08 · 性能基线与延迟分析。1，200 msg/s 与 0.8s TTFT——OpenClaw 的性能基线和瓶颈定位。把每条消息的耗时拆到毫秒级，识别&quot;必须优化&quot;vs&quot;可以接受&quot;。">
+  <title>第 8 章：性能与延迟——基线与耗时分布 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 08 · 性能与延迟——基线与耗时分布。1，200 msg/s 与 0.8s TTFT——OpenClaw 的性能基线和瓶颈定位。把每条消息的耗时拆到毫秒级，识别&quot;必须优化&quot;vs&quot;可以接受&quot;。">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="第 8 章：性能基线与延迟分析">
+  <meta property="og:title" content="第 8 章：性能与延迟——基线与耗时分布">
   <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-08-performance/">
   <meta property="og:site_name" content="LianJiFu'blogs">
-  <meta property="og:description" content="模块 08 · 性能基线与延迟分析。1，200 msg/s 与 0.8s TTFT——OpenClaw 的性能基线和瓶颈定位。把每条消息的耗时拆到毫秒级，识别&quot;必须优化&quot;vs&quot;可以接受&quot;。">
+  <meta property="og:description" content="模块 08 · 性能与延迟——基线与耗时分布。1，200 msg/s 与 0.8s TTFT——OpenClaw 的性能基线和瓶颈定位。把每条消息的耗时拆到毫秒级，识别&quot;必须优化&quot;vs&quot;可以接受&quot;。">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
   <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="/css/2026.css?v=2">
   <link rel="stylesheet" href="/css/portal.css?v=11">
   <link rel="stylesheet" href="/css/article.css?v=7">
-  <link rel="stylesheet" href="/css/openclaw.css?v=7">
+  <link rel="stylesheet" href="/css/openclaw.css?v=9">
   <script src="/js/portal.js?v=7" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -148,7 +148,7 @@
     <header class="post-header">
       <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
       <span class="article-kicker">第 8 章：性能分析</span>
-      <h1 class="post-title" itemprop="name headline">性能基线与延迟分析</h1>
+      <h1 class="post-title" itemprop="name headline">性能与延迟——基线与耗时分布</h1>
       <div class="post-meta">
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
@@ -217,12 +217,55 @@
 
 <!-- ============ 8.1 · 一句话定位 ============ -->
 
-  <h2 id="sec-1">8.1 一句话定位</h2>
+  <div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p>上一章的链路要装上刻度。这一章给的是<strong>可复现的耗时基线</strong>：9 个阶段各花多少、占比多少、尾部波动有多大。</p>
+  <p>结论很直接：<strong>LLM 推理占总耗时约四分之三</strong>，通道与路由是毫秒级。所以 80/20 成立——用 prompt caching、流式响应和合适的模型，就能把响应时间减半。</p>
+  <p>用的时候记住两点：基线来自一个具体场景，换场景要重算占比；验收看 P95 而不是平均值，因为尾部正是用户会投诉的部分。</p>
+</div>
 
-  <div>
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>一条消息的时间花在哪，以及先改哪里收益最大</td></tr>
+    <tr><td>核心机制</td><td>9 阶段耗时基线 + P50/P95/P99 波动 + 5 类优化与 P0/P1/P2 分档</td></tr>
+    <tr><td>关键数字</td><td>LLM 推理约占总耗时 75% · 3 种典型场景 · 5 大类优化</td></tr>
+    <tr><td>读完能做什么</td><td>判断自己的场景属于哪种、算出瓶颈占比，并排出一张按优先级排序的优化清单</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 定位与原则</div>
+    <div>性能优化的 80/20，以及这一章的基线来自哪个场景。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 耗时基线</div>
+    <div>9 阶段耗时、占比分析、时间线与波动性。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 场景与瓶颈</div>
+    <div>三种典型场景、TTFT 优化与一个真实案例。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · 优化路径</div>
+    <div>五类优化按收益排序，加上一张实操检查清单。</div>
+  </div>
+  <div class="oc-card">
+    <div>收束 · 本章结论</div>
+    <div>可以带走的结论，以及下一章的接口。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">8.1 定位与原则</h2><div class="oc-part-lead"><strong>第一段 · 定位与原则</strong>性能优化的 80/20：先量占比，再改大头——这一章给的是刻度，不是玄学。</div><h3 id="sec-1.1">8.1.1 一句话定位</h3><div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">性能优化的 80/20：大多数优化在 LLM 推理层——用 prompt caching、流式响应、合适的模型，把响应时间减半。</p>本模块用数据告诉你 9 阶段耗时分布、3 种典型场景对比、5 大类 10+ 个具体优化方法。
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>性能优化的 80/20：大多数收益在 LLM 推理层——用 prompt caching、流式响应、合适的模型，把响应时间减半。<strong>先看占比，再决定动哪里。</strong></p>
 </div>
+
+
 
   <table>
 <thead>
@@ -251,7 +294,10 @@
 
 <!-- ============ 8.2 · 三原则 ============ -->
 
-  <h2 id="sec-2">8.2 性能优化的三个原则</h2>
+  <h3 id="sec-1.2">8.1.2 性能优化的三个原则</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>性能优化最容易走偏的地方是「到处都优化一点」。三条原则把注意力收回来：<strong>先量占比、再改大头、最后用 P95 而不是平均值验收</strong>。</p>
+</div>
 
   <table>
 <thead>
@@ -270,7 +316,10 @@
 
 <!-- ============ 8.3 · 模块位置 ============ -->
 
-  <h2 id="sec-3">8.3 模块位置</h2>
+  <h3 id="sec-1.3">8.1.3 模块位置</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一章的基线来自<strong>典型场景</strong>（WhatsApp DM + 云端 Sonnet 4 + 1 次工具调用 + 200 token 回复）。换场景先重算占比，别直接套结论。</p>
+</div>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -289,7 +338,10 @@ flowchart LR
 
 <!-- ============ 8.4 · 9 阶段耗时分布 ============ -->
 
-  <h2 id="sec-4">8.4 9 阶段耗时分布</h2>
+  <h2 id="seg-2">8.2 耗时基线</h2><div class="oc-part-lead"><strong>第二段 · 耗时基线</strong>9 阶段各花多少、占比多少、以及为什么这些数字是 P50 而不是 P99。</div><h3 id="sec-2.1">8.2.1 9 阶段耗时分布</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>9 阶段的耗时分布是这一章的底图：LLM 推理占七成以上，通道与路由是毫秒级。<strong>所有优化优先级都是从这张图推出来的</strong>。</p>
+</div>
 
   <p>基于典型场景：WhatsApp DM + Sonnet 4 云端 + 1 工具调用 + 短回复（200 tokens）。</p>
 
@@ -308,7 +360,7 @@ flowchart LR
     </tbody>
   </table>
 
-  <h3 id="sec-4.1">8.4.1 视觉对比</h3>
+  <h4 id="sec-2.1.1" data-toc-skip>视觉对比</h4>
   <p>同样的数据，可视化后更直观：</p>
 
   <p class="oc-metric"><strong>1 通道接入</strong><span>50ms</span></p>
@@ -328,9 +380,13 @@ flowchart LR
 
 <!-- ============ 8.5 · 占比分析 ============ -->
 
-  <h2 id="sec-5">8.5 占比分析 + 用户感知</h2>
+  <h3 id="sec-2.2">8.2.2 占比分析 + 用户感知</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">80/20 法则</p>：模型推理占 75% 耗时——你应该用 prompt caching、更小模型、流式优化去压缩这一段，而不是花时间优化 50ms 的本地路由。
 
-  <h3 id="sec-5.1">8.5.1 占比分析</h3>
+</div>
+
+  <h4 id="sec-2.2.1" data-toc-skip>占比分析</h4>
 
   <figure><div class="mermaid">
 pie title 单次响应耗时占比(典型场景)
@@ -341,12 +397,9 @@ pie title 单次响应耗时占比(典型场景)
   "Gateway 本地处理" : 1
 </div><figcaption>图 8.2 · 典型场景耗时占比——LLM 推理占 75%，优化重点应该在这里。</figcaption></figure>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">80/20 法则</p>：模型推理占 75% 耗时——你应该用 prompt caching、更小模型、流式优化去压缩这一段，而不是花时间优化 50ms 的本地路由。
-</div>
 
-  <h3 id="sec-5.2">8.5.2 用户感知延迟</h3>
+
+  <h4 id="sec-2.2.2" data-toc-skip>用户感知延迟</h4>
   <p>从用户视角看，延迟分两类：</p>
 
   <table>
@@ -382,10 +435,14 @@ flowchart LR
 
 <!-- ============ 8.6 · 时间线视图 + 波动性 ============ -->
 
-  <h2 id="sec-6">8.6 时间线视图 + 波动性</h2>
+  <h3 id="sec-2.3">8.2.3 时间线视图 + 波动性</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">长尾延迟</p>：P99 可能是 P50 的 5-10 倍——配置超时时要考虑 P99，而不是 P50。
 
-  <h3 id="sec-6.1">8.6.1 时间线视图</h3>
-  <pre>[50ms][20ms][30ms][80ms] ← OpenClaw 本地处理 (~180ms)
+</div>
+
+  <h4 id="sec-2.3.1" data-toc-skip>时间线视图</h4>
+<pre>[50ms][20ms][30ms][80ms] ← OpenClaw 本地处理 (~180ms)
                           ┌─────────────────┐
                           │ 800-3000ms      │ ← 模型推理(主瓶颈)
                           │ + 200-1500ms    │ ← 工具调用(可循环)
@@ -395,7 +452,7 @@ flowchart LR
                                           [用户看到回复]
                                           [后台善后启动]</pre>
 
-  <h3 id="sec-6.2">8.6.2 波动性（P50/P95/P99）</h3>
+  <h4 id="sec-2.3.2" data-toc-skip>波动性（P50/P95/P99）</h4>
   <p>实际耗时会有显著波动——这些数字是 P50，不是 P99：</p>
 
   <table>
@@ -410,15 +467,16 @@ flowchart LR
     </tbody>
   </table>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">长尾延迟</p>：P99 可能是 P50 的 5-10 倍——配置超时时要考虑 P99，而不是 P50。
-</div>
+
 
 
 <!-- ============ 8.7 · 首 token 优化 ============ -->
 
-  <h2 id="sec-7">8.7 首 token 优化 （TTFT）</h2>
+  <h2 id="seg-3">8.3 场景与瓶颈</h2><div class="oc-part-lead"><strong>第三段 · 场景与瓶颈</strong>三种典型场景的差异、TTFT 为什么最影响体感，以及一次真实的优化案例。</div><h3 id="sec-3.1">8.3.1 首 token 优化 （TTFT）</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">心理学技巧</p>：用户对延迟的容忍度，与"是否有反馈"成正比——在 TTFT 前先发个"正在思考..."或"查日历中..."，用户感知延迟可降低 1s。
+
+</div>
 
   <p>"首 token 到达时间"（TTFT） 是最影响用户感知的指标——优化优先级最高：</p>
 
@@ -433,15 +491,15 @@ flowchart LR
     </tbody>
   </table>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">心理学技巧</p>：用户对延迟的容忍度，与"是否有反馈"成正比——在 TTFT 前先发个"正在思考..."或"查日历中..."，用户感知延迟可降低 1s。
-</div>
+
 
 
 <!-- ============ 8.8 · 3 种场景概览 ============ -->
 
-  <h2 id="sec-8">8.8 3 种典型场景</h2>
+  <h3 id="sec-3.2">8.3.2 3 种典型场景</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>同样的 OpenClaw，三种场景耗时差异巨大。先判断自己的场景属于哪种，优化方向就清楚了一半。</p>
+</div>
 
   <p>同样的 OpenClaw，3 种典型场景的耗时差异巨大——看你的场景属于哪种，优化方向就清楚了。</p>
 
@@ -458,10 +516,10 @@ flowchart LR
   style C fill:#fef3c7,stroke:#d97706,color:#1a1f2b
 </div><figcaption>图 8.4 · 3 种场景耗时递进——工具调用越多，延迟越长，优化策略也越不同。</figcaption></figure>
 
-  <h3 id="sec-8.1">8.8.1 场景 A · 纯文本对话</h3>
+  <h4 id="sec-3.2.1" data-toc-skip>场景 A · 纯文本对话</h4>
   <div class="oc-card">
 <span class="oc-chip">场景 A · 最常见</span>
-    <h3 id="sec-8.2">8.8.2 纯文本对话</h3>
+    <h4 id="sec-3.2.2" data-toc-skip>纯文本对话</h4>
     <p><strong>示例</strong>："你好"、"今天天气怎么样？"、"推荐一家餐厅"</p>
     <p><strong>特点</strong>：不调任何工具，LLM 直接回答。</p>
 
@@ -485,10 +543,10 @@ flowchart LR
     </ul>
 </div>
 
-  <h3 id="sec-8.3">8.8.3 场景 B · 单工具调用</h3>
+  <h4 id="sec-3.2.3" data-toc-skip>场景 B · 单工具调用</h4>
   <div class="oc-card">
 <span class="oc-chip">场景 B · 工具增强</span>
-    <h3 id="sec-8.4">8.8.4 单工具调用</h3>
+    <h4 id="sec-3.2.4" data-toc-skip>单工具调用</h4>
     <p><strong>示例</strong>："今天日程？"（调 calendar.list_events）、"GitHub Issue #123 详情"（调 github.get_issue）</p>
     <p><strong>特点</strong>：1 次 LLM 推理 + 1 次工具调用 + 1 次 LLM 总结。</p>
 
@@ -514,10 +572,10 @@ flowchart LR
     </ul>
 </div>
 
-  <h3 id="sec-8.5">8.8.5 场景 C · 多工具循环</h3>
+  <h4 id="sec-3.2.5" data-toc-skip>场景 C · 多工具循环</h4>
   <div class="oc-card">
 <span class="oc-chip">场景 C · 最复杂</span>
-    <h3 id="sec-8.6">8.8.6 多工具循环</h3>
+    <h4 id="sec-3.2.6" data-toc-skip>多工具循环</h4>
     <p><strong>示例</strong>："对比 GitHub Issue #123 和 #456 的代码修改"（多次 GitHub API）、"调研 X 公司"（web_search + web_fetch + 总结）</p>
     <p><strong>特点</strong>：3-10 次 LLM 推理 + 3-10 次工具调用。</p>
 
@@ -545,9 +603,13 @@ flowchart LR
 
 <!-- ============ 8.9 · 场景对比 + 案例研究 ============ -->
 
-  <h2 id="sec-9">8.9 场景对比 + 案例研究</h2>
+  <h3 id="sec-3.3">8.3.3 场景对比 + 案例研究</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p class="oc-callout-lead">优化优先级</p>：A 场景优化模型选择（省钱）；B 场景优化工具超时（稳）；C 场景优化并行（快）。
 
-  <h3 id="sec-9.1">8.9.1 场景对比</h3>
+</div>
+
+  <h4 id="sec-3.3.1" data-toc-skip>场景对比</h4>
   <table>
     <thead><tr><th>维度</th><th>A 纯文本</th><th>B 单工具</th><th>C 多工具循环</th></tr></thead>
     <tbody>
@@ -561,37 +623,37 @@ flowchart LR
     </tbody>
   </table>
 
-  <div class="thinking-note">
-<h3>要点</h3>
-<p class="oc-callout-lead">优化优先级</p>：A 场景优化模型选择（省钱）；B 场景优化工具超时（稳）；C 场景优化并行（快）。
-</div>
 
-  <h3 id="sec-9.2">8.9.2 案例研究</h3>
 
-  <h4 id="sec-11-3-1" data-toc-skip>案例 A：Slack 客服机器人</h4>
+  <h4 id="sec-3.3.2" data-toc-skip>案例研究</h4>
+
+  <h5 id="sec-11-3-1" data-toc-skip>案例 A：Slack 客服机器人</h5>
   <p><strong>场景</strong>：用户问产品问题，Bot 直接回答——0 工具调用。</p>
-  <pre><span># 优化前:全用 Sonnet,2.5s 响应,$0.005/query</span>
+<pre><span># 优化前:全用 Sonnet,2.5s 响应,$0.005/query</span>
 <span># 优化后:简单问题用 Haiku,复杂问题用 Sonnet</span>
 <span># 结果:1.2s 响应,$0.001/query(-80% 成本)</span></pre>
 
-  <h4 id="sec-11-4-1" data-toc-skip>案例 B：个人日历助手</h4>
+  <h5 id="sec-11-4-1" data-toc-skip>案例 B：个人日历助手</h5>
   <p><strong>场景</strong>："今天日程" → 调 calendar.list_events → 总结回复。</p>
-  <pre><span># 优化前:每次都查 API,6s 响应</span>
+<pre><span># 优化前:每次都查 API,6s 响应</span>
 <span># 优化后:60s 内相同查询缓存</span>
 <span># 结果:缓存命中 200ms,首次仍 6s</span></pre>
 
-  <h4 id="sec-11-5-1" data-toc-skip>案例 C：竞品调研 agent</h4>
+  <h5 id="sec-11-5-1" data-toc-skip>案例 C：竞品调研 agent</h5>
   <p><strong>场景</strong>："调研 X 公司" → 多轮 web_search + 总结。</p>
-  <pre><span># 优化前:串行 5 次 web_search,30s 响应</span>
+<pre><span># 优化前:串行 5 次 web_search,30s 响应</span>
 <span># 优化后:并行 web_fetch + 中间摘要</span>
 <span># 结果:8s 响应(-73%)</span></pre>
 
 
 <!-- ============ 8.10 · 优化全景 ============ -->
 
-  <h2 id="sec-10">8.10 优化全景 + 5 大类</h2>
+  <h2 id="seg-4">8.4 优化路径</h2><div class="oc-part-lead"><strong>第四段 · 优化路径</strong>五类优化按收益排序，加上一张能直接照着做的检查清单。</div><h3 id="sec-4.1">8.4.1 优化全景 + 5 大类</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>五类优化按收益排序：<strong>模型层与 Prompt 层最优先</strong>，流式层、并发层、架构层依次靠后。先做完前两类，通常已经能拿到大部分收益。</p>
+</div>
 
-  <h3 id="sec-10.1">8.10.1 优化全景</h3>
+  <h4 id="sec-4.1.1" data-toc-skip>优化全景</h4>
   <figure><div class="mermaid">
 flowchart LR
   L1["&lt;b&gt;影响 &lt;/b&gt;&lt;br/&gt;模型层"] --&gt; L2["&lt;b&gt;影响 &lt;/b&gt;&lt;br/&gt;Prompt 层"]
@@ -606,9 +668,9 @@ flowchart LR
   style L5 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
 </div><figcaption>图 8.5 · 优化优先级——模型层和 Prompt 层影响最大，从这里开始。</figcaption></figure>
 
-  <h3 id="sec-10.2">8.10.2 类别 1 · 模型层（最优先）</h3>
+  <h4 id="sec-4.1.2" data-toc-skip>类别 1 · 模型层（最优先）</h4>
   <div class="oc-sub"><span class="oc-chip">类别 1 · 模型层</span>
-    <h3 id="sec-10.3">8.10.3 模型层优化</h3>
+    <h4 id="sec-4.1.3" data-toc-skip>模型层优化</h4>
     <p>LLM 推理占总耗时 75%——模型层优化收益最大。</p>
     <ul>
       <li>
@@ -641,9 +703,9 @@ flowchart LR
       </li>
     </ul></div>
 
-  <h3 id="sec-10.4">8.10.4 类别 2 · Prompt 层（最优先）</h3>
+  <h4 id="sec-4.1.4" data-toc-skip>类别 2 · Prompt 层（最优先）</h4>
   <div class="oc-sub"><span class="oc-chip">类别 2 · Prompt 层</span>
-    <h3 id="sec-10.5">8.10.5 Prompt 层优化</h3>
+    <h4 id="sec-4.1.5" data-toc-skip>Prompt 层优化</h4>
     <p>把不变的部分缓存，减少每次传输的 token 数。</p>
     <ul>
       <li>
@@ -685,9 +747,9 @@ flowchart LR
       </li>
     </ul></div>
 
-  <h3 id="sec-10.6">8.10.6 类别 3 · 流式层</h3>
+  <h4 id="sec-4.1.6" data-toc-skip>类别 3 · 流式层</h4>
   <div class="oc-sub"><span class="oc-chip">类别 3 · 流式层</span>
-    <h3 id="sec-10.7">8.10.7 流式层优化</h3>
+    <h4 id="sec-4.1.7" data-toc-skip>流式层优化</h4>
     <p>用户感知延迟靠流式——TTFT 越短越好。</p>
     <ul>
       <li>
@@ -713,9 +775,9 @@ flowchart LR
       </li>
     </ul></div>
 
-  <h3 id="sec-10.8">8.10.8 类别 4 · 并发层</h3>
+  <h4 id="sec-4.1.8" data-toc-skip>类别 4 · 并发层</h4>
   <div class="oc-sub"><span class="oc-chip">类别 4 · 并发层</span>
-    <h3 id="sec-10.9">8.10.9 并发层优化</h3>
+    <h4 id="sec-4.1.9" data-toc-skip>并发层优化</h4>
     <p>工具调用累计耗时 = 67%——并行是关键。</p>
     <ul>
       <li>
@@ -748,9 +810,9 @@ flowchart LR
       </li>
     </ul></div>
 
-  <h3 id="sec-10.10">8.10.10 类别 5 · 架构层</h3>
+  <h4 id="sec-4.1.10" data-toc-skip>类别 5 · 架构层</h4>
   <div class="oc-sub"><span class="oc-chip">类别 5 · 架构层</span>
-    <h3 id="sec-10.11">8.10.11 架构层优化</h3>
+    <h4 id="sec-4.1.11" data-toc-skip>架构层优化</h4>
     <p>需要更多投入——但适合特定场景。</p>
     <ul>
       <li>
@@ -786,7 +848,10 @@ flowchart LR
 
 <!-- ============ 8.11 · 实操检查清单 ============ -->
 
-  <h2 id="sec-11">8.11 实操检查清单</h2>
+  <h3 id="sec-4.2">8.4.2 实操检查清单</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>清单的价值在于顺序：<strong>P0 立刻做</strong>（prompt caching + streaming + 超时），<strong>P1 本周做</strong>（模型分层 + 缓存 + 钩子），<strong>P2 需要时再做</strong>（本地模型 + Plan-Execute）。</p>
+</div>
 
   <p>按优先级应用这些优化：</p>
 
@@ -807,17 +872,23 @@ flowchart LR
 
 <!-- ============ 8.12 · 总结 + 相关阅读 ============ -->
 
-  <h2 id="sec-12">8.12 总结</h2>
+  <h2 id="seg-5">8.5 总结</h2><div class="oc-part-lead"><strong>收束 · 本章结论</strong>把性能判断收成几条结论，并交代下一章的接口。</div>
 
-  <h3 id="sec-12.1">8.12.1 一句话总结</h3>
+  <h3 id="sec-5.1">8.5.1 一句话总结</h3>
   <div class="thinking-note">
-<h3>要点</h3>
+<h3>思考笔记</h3>
 <p class="oc-callout-lead">优化优先级：P0 = prompt caching + streaming + 超时（立即做）。P1 = 模型分层 + 缓存 + 钩子（本周做）。P2 = 本地模型 + Plan-Execute（需要时做）。</p>
     <br><br>
     80% 的性能问题，通过 P0 + P1 就能解决。LLM 推理占 75% 耗时——优化资源应该全部投在这里。
 </div>
 
-  <h3 id="sec-12.2">8.12.2 相关阅读</h3>
+  <h3 id="sec-5.2">8.5.2 本章结论</h3><ol class="oc-points">
+  <li><strong>80/20 成立：</strong>LLM 推理占总耗时约四分之三，优化别从通道或路由下手。</li>
+  <li><strong>先量占比再动手。</strong>换场景、换模型、换回复长度，占比都会变——上一章的结论不能直接照搬。</li>
+  <li><strong>百分比之外还要看 P95/P99。</strong>平均值好看不代表尾部体验好，而尾部正是用户会投诉的部分。</li>
+  <li><strong>TTFT 是最影响体感的指标。</strong>流式输出把「一段空白等待」变成「边出字边等」，体感提升远大于同等时长的后台优化。</li>
+  <li><strong>优化按 P0/P1/P2 分档。</strong>先做完 P0 再谈后面的——多数团队缺的只是把前两档做完。</li>
+</ol><h3 id="sec-5.3">8.5.3 下一章</h3><p>下一章 <strong>第 9 章 · 错误与降级——失败分类与恢复策略</strong>：给这条链路加上失败视角——5 类错误、4 类恢复策略，以及在用户投诉之前就能发现问题的可观测性四件套。</p><h3 id="sec-5.4">8.5.4 相关阅读</h3>
   <ul>
 <li><a href="/2026/11/07/openclaw-07-end-to-end/"><strong>07 · 端到端 端到端流程</strong></a> — 9 阶段时序图——看到每个阶段的耗时和异步关系。</li>
 <li><a href="/2026/11/07/openclaw-04-models-runtimes/"><strong>04 · 模型 模型与运行时</strong></a> — 4 级模型选择 + Fallback + 5 种 Runtime——优化策略的模型层基础。</li>
@@ -828,9 +899,9 @@ flowchart LR
 
 
 
-</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">8.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">8.2 性能优化的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">8.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">8.4 9 阶段耗时分布</a><a class="reading-toc-link level-3" href="#sec-4.1">8.4.1 视觉对比</a><a class="reading-toc-link level-2" href="#sec-5">8.5 占比分析 + 用户感知</a><a class="reading-toc-link level-3" href="#sec-5.1">8.5.1 占比分析</a><a class="reading-toc-link level-3" href="#sec-5.2">8.5.2 用户感知延迟</a><a class="reading-toc-link level-2" href="#sec-6">8.6 时间线视图 + 波动性</a><a class="reading-toc-link level-3" href="#sec-6.1">8.6.1 时间线视图</a><a class="reading-toc-link level-3" href="#sec-6.2">8.6.2 波动性（P50/P95/P99）</a><a class="reading-toc-link level-2" href="#sec-7">8.7 首 token 优化 （TTFT）</a><a class="reading-toc-link level-2" href="#sec-8">8.8 3 种典型场景</a><a class="reading-toc-link level-3" href="#sec-8.1">8.8.1 场景 A · 纯文本对话</a><a class="reading-toc-link level-3" href="#sec-8.2">8.8.2 纯文本对话</a><a class="reading-toc-link level-3" href="#sec-8.3">8.8.3 场景 B · 单工具调用</a><a class="reading-toc-link level-3" href="#sec-8.4">8.8.4 单工具调用</a><a class="reading-toc-link level-3" href="#sec-8.5">8.8.5 场景 C · 多工具循环</a><a class="reading-toc-link level-3" href="#sec-8.6">8.8.6 多工具循环</a><a class="reading-toc-link level-2" href="#sec-9">8.9 场景对比 + 案例研究</a><a class="reading-toc-link level-3" href="#sec-9.1">8.9.1 场景对比</a><a class="reading-toc-link level-3" href="#sec-9.2">8.9.2 案例研究</a><a class="reading-toc-link level-2" href="#sec-10">8.10 优化全景 + 5 大类</a><a class="reading-toc-link level-3" href="#sec-10.1">8.10.1 优化全景</a><a class="reading-toc-link level-3" href="#sec-10.2">8.10.2 类别 1 · 模型层（最优先）</a><a class="reading-toc-link level-3" href="#sec-10.3">8.10.3 模型层优化</a><a class="reading-toc-link level-3" href="#sec-10.4">8.10.4 类别 2 · Prompt 层（最优先）</a><a class="reading-toc-link level-3" href="#sec-10.5">8.10.5 Prompt 层优化</a><a class="reading-toc-link level-3" href="#sec-10.6">8.10.6 类别 3 · 流式层</a><a class="reading-toc-link level-3" href="#sec-10.7">8.10.7 流式层优化</a><a class="reading-toc-link level-3" href="#sec-10.8">8.10.8 类别 4 · 并发层</a><a class="reading-toc-link level-3" href="#sec-10.9">8.10.9 并发层优化</a><a class="reading-toc-link level-3" href="#sec-10.10">8.10.10 类别 5 · 架构层</a><a class="reading-toc-link level-3" href="#sec-10.11">8.10.11 架构层优化</a><a class="reading-toc-link level-2" href="#sec-11">8.11 实操检查清单</a><a class="reading-toc-link level-2" href="#sec-12">8.12 总结</a><a class="reading-toc-link level-3" href="#sec-12.1">8.12.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-12.2">8.12.2 相关阅读</a></nav></details></aside>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">8.1 定位与原则</a><a class="reading-toc-link level-3" href="#sec-1.1">8.1.1 一句话定位</a><a class="reading-toc-link level-3" href="#sec-1.2">8.1.2 性能优化的三个原则</a><a class="reading-toc-link level-3" href="#sec-1.3">8.1.3 模块位置</a><a class="reading-toc-link level-2" href="#seg-2">8.2 耗时基线</a><a class="reading-toc-link level-3" href="#sec-2.1">8.2.1 9 阶段耗时分布</a><a class="reading-toc-link level-3" href="#sec-2.2">8.2.2 占比分析 + 用户感知</a><a class="reading-toc-link level-3" href="#sec-2.3">8.2.3 时间线视图 + 波动性</a><a class="reading-toc-link level-2" href="#seg-3">8.3 场景与瓶颈</a><a class="reading-toc-link level-3" href="#sec-3.1">8.3.1 首 token 优化 （TTFT）</a><a class="reading-toc-link level-3" href="#sec-3.2">8.3.2 3 种典型场景</a><a class="reading-toc-link level-3" href="#sec-3.3">8.3.3 场景对比 + 案例研究</a><a class="reading-toc-link level-2" href="#seg-4">8.4 优化路径</a><a class="reading-toc-link level-3" href="#sec-4.1">8.4.1 优化全景 + 5 大类</a><a class="reading-toc-link level-3" href="#sec-4.2">8.4.2 实操检查清单</a><a class="reading-toc-link level-2" href="#seg-5">8.5 总结</a><a class="reading-toc-link level-3" href="#sec-5.1">8.5.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-5.2">8.5.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-5.3">8.5.3 下一章</a><a class="reading-toc-link level-3" href="#sec-5.4">8.5.4 相关阅读</a></nav></details></aside>
     </div>
-    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-07-end-to-end/"><small>← 上一篇</small><span>端到端消息流程</span></a></div><div><a href="/2026/11/07/openclaw-09-error-handling/"><small>下一篇 →</small><span>错误处理与降级策略</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-07-end-to-end/"><small>← 上一篇</small><span>端到端流程——一条消息的完整旅程</span></a></div><div><a href="/2026/11/07/openclaw-09-error-handling/"><small>下一篇 →</small><span>错误与降级——失败分类与恢复策略</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
   </article>
 </main>
 <footer class="portal-footer">

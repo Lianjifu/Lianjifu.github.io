@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
   <meta name="theme-color" content="#0f172a">
-  <title>第 2 章：核心架构与三原则落地 | OpenClaw 源码笔记</title>
-  <meta name="description" content="模块 02 · 核心架构与三原则落地。OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型——三原则决定&quot;为什么这样设计&quot;，四层架构决定&quot;职责如何切分&quot;，Gateway 7 子模块决定&quot;代码放哪里&quot;，三级信任模型决定&quot;安全边界在哪&quot;。看完本模块，你能在脑中画出一张完整的运行时地图。">
+  <title>第 2 章：核心架构——三原则如何落地 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 02 · 核心架构——三原则如何落地。OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型——三原则决定&quot;为什么这样设计&quot;，四层架构决定&quot;职责如何切分&quot;，Gateway 7 子模块决定&quot;代码放哪里&quot;，三级信任模型决定&quot;安全边界在哪&quot;。看完本模块，你能在脑中画出一张完整的运行时地图。">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="第 2 章：核心架构与三原则落地">
+  <meta property="og:title" content="第 2 章：核心架构——三原则如何落地">
   <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-02-architecture/">
   <meta property="og:site_name" content="LianJiFu'blogs">
-  <meta property="og:description" content="模块 02 · 核心架构与三原则落地。OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型——三原则决定&quot;为什么这样设计&quot;，四层架构决定&quot;职责如何切分&quot;，Gateway 7 子模块决定&quot;代码放哪里&quot;，三级信任模型决定&quot;安全边界在哪&quot;。看完本模块，你能在脑中画出一张完整的运行时地图。">
+  <meta property="og:description" content="模块 02 · 核心架构——三原则如何落地。OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型——三原则决定&quot;为什么这样设计&quot;，四层架构决定&quot;职责如何切分&quot;，Gateway 7 子模块决定&quot;代码放哪里&quot;，三级信任模型决定&quot;安全边界在哪&quot;。看完本模块，你能在脑中画出一张完整的运行时地图。">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
   <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="/css/2026.css?v=2">
   <link rel="stylesheet" href="/css/portal.css?v=11">
   <link rel="stylesheet" href="/css/article.css?v=7">
-  <link rel="stylesheet" href="/css/openclaw.css?v=7">
+  <link rel="stylesheet" href="/css/openclaw.css?v=9">
   <script src="/js/portal.js?v=7" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -148,7 +148,7 @@
     <header class="post-header">
       <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
       <span class="article-kicker">第 2 章：架构原理</span>
-      <h1 class="post-title" itemprop="name headline">核心架构与三原则落地</h1>
+      <h1 class="post-title" itemprop="name headline">核心架构——三原则如何落地</h1>
       <div class="post-meta">
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
         <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
@@ -217,30 +217,75 @@
 
 
 
-  <h2 id="sec-1">2.1 一句话定位</h2>
+  <div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p>上一章给的是<strong>为什么</strong>——可信的网关、不可信的执行、确定性的策略。这一章给<strong>是什么</strong>：同样的三条原则，在代码里长成四层架构、7 个 Gateway 子模块和 3 级信任边界。</p>
+  <p>一条主线贯穿全章：<strong>三原则 → 四层 → 7 子模块 → 5 条接口契约 → 三级信任</strong>。每一层只与相邻层交互，层间接口稳定；任何一个模块都能在这条链上找到自己的位置。</p>
+  <p>读法上有三条路：第一次读按顺序走完；改代码直接进四层架构，对照 L1–L4 找你要动的那一层；排查线上问题直奔三级信任模型和威胁与防护。</p>
+</div>
+
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>三原则在代码里对应哪些层、哪些子模块、哪些契约，以及哪些信任边界</td></tr>
+    <tr><td>核心机制</td><td>三原则 → 四层（L1–L4） → Gateway 7 子模块 → 5 条接口契约 → 三级信任模型</td></tr>
+    <tr><td>关键数字</td><td>4 层架构 · 7 大 Gateway 子模块 · 5 条接口契约 · 3 级信任</td></tr>
+    <tr><td>读完能做什么</td><td>在源码里定位任意模块属于哪一层、走哪条契约、受哪一级信任约束</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 从原则到代码</div>
+    <div>这一章要解决什么、原则怎么映射到文件、该怎么读。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 四层与运行</div>
+    <div>L1–L4 的职责切分，以及一条消息在四层之间的流动。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 子模块与契约</div>
+    <div>Gateway 7 大子模块的分工，和模块之间唯一要对齐的 5 条契约。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · 信任与安全</div>
+    <div>三级信任边界怎么划，以及它挡住了哪些真实威胁。</div>
+  </div>
+  <div class="oc-card">
+    <div>收束 · 本章结论</div>
+    <div>可以带走的结论，以及下一章的接口。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">2.1 从原则到代码</h2><div class="oc-part-lead"><strong>第一段 · 从原则到代码</strong>把上一章的三条原则映射到具体代码位置：先说清这一章要解决什么，再给出读法与入口。</div><h3 id="sec-1.1">2.1.1 一句话定位</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型。</p>三原则决定"为什么这样设计"，四层架构决定"职责如何切分"，Gateway 7 子模块决定"代码放哪里"，三级信任模型决定"安全边界在哪"。
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>本节的"架构 = 三原则 + 四层 + Gateway + 信任"是 OpenClaw 的<strong>一张心智地图</strong>。后面所有章节都是这张地图的细化——不要迷失在细节里，随时回到这里对照。</p>
+
+</div>
 
   <p>从 2.1 的产品定位出发，这一节回答最直接的问题——<strong>架构是什么、用什么模式组合、为什么这样设计</strong>。如果只能读一节，看这里。</p>
 
-  <div>
-<h3>本章要点</h3>
-<p class="oc-callout-lead">OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型。</p>三原则决定"为什么这样设计"，四层架构决定"职责如何切分"，Gateway 7 子模块决定"代码放哪里"，三级信任模型决定"安全边界在哪"。
-</div>
 
 
-<div class="thinking-note">
+
+
+
+
+
+
+
+  <h3 id="sec-1.2">2.1.2 核心架构的三个原则</h3><div class="thinking-note">
 <h3>思考笔记</h3>
-<p>本节的"架构 = 三原则 + 四层 + Gateway + 信任"是 OpenClaw 的<strong>一张心智地图</strong>。后面所有章节都是这张地图的细化——不要迷失在细节里，随时回到这里对照。</p>
+<p>原则 → 代码的映射<strong>不是一一对应</strong>：原则一是"设计约束"，体现在 Gateway 整个进程，而非某个文件。看到多个文件共同服务同一条原则，这是健康的架构。</p>
+
 </div>
 
+  <p>第一段讲了"为什么"（三原则），第二段将讲"是什么"（四层架构）。这一节作为桥梁——<strong>把每条原则映射到具体代码位置</strong>，让抽象原则可见可寻。</p>
 
-
-
-
-  <h2 id="sec-2">2.2 核心架构的三个原则</h2>
-
-  <p>第 1 节讲了"为什么"（三原则），第 4 节将讲"是什么"（四层架构）。这一节作为桥梁——<strong>把每条原则映射到具体代码位置</strong>，让抽象原则可见可寻。</p>
-
-  <p>三原则（见 <a href="/2026/11/07/openclaw-01-overview/#sec-2">模块 01 2.4</a>）不是抽象口号——每条原则都对应到 <code>apps/gateway/src/</code> 的具体子模块。</p>
+  <p>三原则（见 <a href="/2026/11/07/openclaw-01-overview/#sec-1.2">模块 01 1.1.2 概览的三个原则</a>）不是抽象口号——每条原则都对应到 <code>apps/gateway/src/</code> 的具体子模块。</p>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -264,7 +309,7 @@ flowchart LR
   style C3 fill:#cffafe,stroke:#0891b2,color:#1a1f2b
 </div><figcaption>图 2.1 · 三原则 → 三个核心子模块——一一对应。</figcaption></figure>
 
-  <h3 id="sec-2.1">2.2.1 原则一 · 可信的网关 → <code>gateway/</code> 子模块</h3>
+  <h4 id="sec-1.2.1" data-toc-skip>原则一 · 可信的网关 → gateway/ 子模块</h4>
   <p><strong>核心</strong>：单进程长期运行，掌控所有密钥 · 会话 · 通道连接 · 策略执行。</p>
   <p><strong>代码位置</strong>:<code>apps/gateway/src/gateway/</code></p>
   <ul>
@@ -275,7 +320,7 @@ flowchart LR
     <li><code>schema-validator.ts</code>——JSON Schema 校验</li>
   </ul>
 
-  <h3 id="sec-2.2">2.2.2 原则二 · 不可信的执行 → <code>tools/sandbox/</code> 子模块</h3>
+  <h4 id="sec-1.2.2" data-toc-skip>原则二 · 不可信的执行 → tools/sandbox/ 子模块</h4>
   <p><strong>核心</strong>：LLM 推理 · 工具执行 · 文件访问都运行在网关隔离之外。</p>
   <p><strong>代码位置</strong>:<code>apps/gateway/src/tools/sandbox/</code></p>
   <table>
@@ -288,7 +333,7 @@ flowchart LR
     </tbody>
   </table>
 
-  <h3 id="sec-2.3">2.2.3 原则三 · 确定性的策略 → <code>config/</code> 子模块</h3>
+  <h4 id="sec-1.2.3" data-toc-skip>原则三 · 确定性的策略 → config/ 子模块</h4>
   <p><strong>核心</strong>：策略以声明式配置管理，不分散在各个执行上下文里。</p>
   <p><strong>代码位置</strong>:<code>apps/gateway/src/config/</code></p>
   <ul>
@@ -297,7 +342,7 @@ flowchart LR
     <li><code>watcher.ts</code>——文件变更监听 → <strong>热重载</strong>（无需重启）</li>
   </ul>
 
-  <h3 id="sec-2.4">2.2.4 三原则的相互约束</h3>
+  <h4 id="sec-1.2.4" data-toc-skip>三原则的相互约束</h4>
   <p>三原则不是孤立的——它们之间有张力，需要平衡：</p>
   <ul>
     <li><strong>可信网关 vs 不可信执行</strong>——Gateway 掌握所有密钥，但又不能信任 LLM 推理——通过"Gateway 签名 / 执行隔离"分离</li>
@@ -306,13 +351,15 @@ flowchart LR
   </ul>
 
 
-<div class="thinking-note">
+
+
+
+  <h3 id="sec-1.3">2.1.3 模块位置</h3><div class="thinking-note">
 <h3>思考笔记</h3>
-<p>原则 → 代码的映射<strong>不是一一对应</strong>：原则一是"设计约束"，体现在 Gateway 整个进程，而非某个文件。看到多个文件共同服务同一条原则，这是健康的架构。</p>
+<p><strong>怎么读这一页</strong>：如果你是<strong>第一次接触 OpenClaw</strong>，从 2.2 三原则开始；如果你是<strong>要改代码</strong>，
+    直接跳到 2.4 四层架构，对着 L1-L4 找你要动的那一层；如果你在<strong>排查线上问题</strong>，看 2.8 三级信任模型和 2.9 威胁与防护。</p>
+
 </div>
-
-
-  <h2 id="sec-3">2.3 模块位置</h2>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -330,17 +377,26 @@ flowchart LR
   style F fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
 </div><figcaption>图 2.1 · 模块 02 是整个站点的中枢——通道把消息送进来，模型/会话/工具/流程四模块都挂在它下面。</figcaption></figure>
 
-  <div class="thinking-note">
+
+
+
+
+
+
+  <h2 id="seg-2">2.2 四层与运行</h2><div class="oc-part-lead"><strong>第二段 · 四层与运行</strong>OpenClaw 的骨架：L1–L4 四层如何切分职责，一条消息又如何在这四层之间流动。</div><h3 id="sec-2.1">2.2.1 四层架构</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">学习要点</p>
+<ul>
+  <li>OpenClaw 的整体架构分几层？每层的核心组件和职责是什么？</li>
+  <li>智能体 5 层状态机如何驱动消息从入站到回复的完整转化？</li>
+  <li>Gateway 为什么是"控制平面"和"单一事实来源"？</li>
+  <li>新手最容易忽略哪三条规则？</li>
+</ul>
+</div><div class="thinking-note">
 <h3>思考笔记</h3>
-<p><strong>怎么读这一页</strong>：如果你是<strong>第一次接触 OpenClaw</strong>，从 2.2 三原则开始；如果你是<strong>要改代码</strong>，
-    直接跳到 2.4 四层架构，对着 L1-L4 找你要动的那一层；如果你在<strong>排查线上问题</strong>，看 2.8 三级信任模型和 2.9 威胁与防护。</p>
+<p>四层架构<strong>不是微服务</strong>——都在同一个 Gateway 进程内，层间是函数调用（不是网络请求）。这意味着延迟低、调试简单、但单点容量受限——横向扩展是必要的。</p>
+
 </div>
-
-
-
-
-
-  <h2 id="sec-4">2.4 四层架构</h2>
 
   <p>四层架构是 OpenClaw 的"骨架"——每层职责单一，层间接口清晰。本节用 L1-L4 标注层次，让你能<strong>在脑中画出完整的运行时结构</strong>。</p>
 
@@ -365,7 +421,7 @@ flowchart TB
   style L4 fill:#d1fae5,stroke:#059669,color:#1a1f2b
 </div><figcaption>图 2.2 · 四层架构全景——L1 接收消息，L2 编排 Agent，L3 推理 + 执行，L4 持久化。</figcaption></figure>
 
-  <h3 id="sec-4.1">2.4.1 L1 · 接入层 （Access Layer）</h3>
+  <h4 id="sec-2.1.1" data-toc-skip>L1 · 接入层 （Access Layer）</h4>
   <p><strong>职责</strong>：把外部消息平台的 webhook 归一化为内部 <code>Envelope</code>。</p>
   <p><strong>关键文件</strong>:</p>
   <ul>
@@ -376,7 +432,7 @@ flowchart TB
   </ul>
   <p><strong>接口契约</strong>: <code>Envelope = { id, channel, account, peer, content, timestamp, metadata? }</code></p>
 
-  <h3 id="sec-4.2">2.4.2 L2 · 编排层 （Orchestration Layer）</h3>
+  <h4 id="sec-2.1.2" data-toc-skip>L2 · 编排层 （Orchestration Layer）</h4>
   <p><strong>职责</strong>：Agent 循环 + Prompt 组装 + 会话管理。</p>
   <p><strong>关键文件</strong>:</p>
   <ul>
@@ -387,7 +443,7 @@ flowchart TB
   </ul>
   <p><strong>接口契约</strong>: <code>AgentInput = { sessionId, userMessage, attachments? }</code> → <code>AgentOutput = { text, toolCalls?, stopReason }</code></p>
 
-  <h3 id="sec-4.3">2.4.3 L3 · 推理层 （Inference Layer）</h3>
+  <h4 id="sec-2.1.3" data-toc-skip>L3 · 推理层 （Inference Layer）</h4>
   <p><strong>职责</strong>：调用 LLM + 执行工具（在沙箱中）。</p>
   <p><strong>关键文件</strong>:</p>
   <ul>
@@ -398,7 +454,7 @@ flowchart TB
   </ul>
   <p><strong>接口契约</strong>: <code>ToolCall = { id, name, arguments }</code> → <code>ToolResult = { success, output, error? }</code></p>
 
-  <h3 id="sec-4.4">2.4.4 L4 · 持久层 （Persistence Layer）</h3>
+  <h4 id="sec-2.1.4" data-toc-skip>L4 · 持久层 （Persistence Layer）</h4>
   <p><strong>职责</strong>：会话状态 + 长期记忆 + 配置存储。</p>
   <p><strong>关键文件</strong>:</p>
   <ul>
@@ -408,7 +464,7 @@ flowchart TB
   </ul>
   <p><strong>接口契约</strong>: <code>Session = { id, messages, metadata, lastActive }</code></p>
 
-  <h3 id="sec-4.5">2.4.5 为什么是 4 层而不是 3 层或 5 层？</h3>
+  <h4 id="sec-2.1.5" data-toc-skip>为什么是 4 层而不是 3 层或 5 层？</h4>
   <p>4 层是经验总结——经过 3 年迭代才稳定。</p>
   <ul>
     <li><strong>3 层不够</strong>：把 LLM 和工具合一层会让"沙箱边界"模糊</li>
@@ -417,31 +473,19 @@ flowchart TB
   </ul>
 
 
-<div class="thinking-note">
-<h3>思考笔记</h3>
-<p>四层架构<strong>不是微服务</strong>——都在同一个 Gateway 进程内，层间是函数调用（不是网络请求）。这意味着延迟低、调试简单、但单点容量受限——横向扩展是必要的。</p>
-</div>
 
-<h3 id="deep-11">2.4.6 分层架构全景</h3>
+
+<h4 id="sec-2.1.6" data-toc-skip>分层架构全景</h4>
 <p>从一句话定义开始，逐层展开 OpenClaw 的运行时骨架——从最外层用户交互，到 Gateway 控制平面，再到 AI Agent 执行引擎，最后到持久化层。看完这一节，你能<strong>在脑中画出完整的运行时架构图</strong>，并理解每层的边界和接口。</p>
-<div>
-<h3>本章要点</h3>
-<p class="oc-callout-lead">学习要点</p>
-<ul>
-  <li>OpenClaw 的整体架构分几层？每层的核心组件和职责是什么？</li>
-  <li>智能体 5 层状态机如何驱动消息从入站到回复的完整转化？</li>
-  <li>Gateway 为什么是"控制平面"和"单一事实来源"？</li>
-  <li>新手最容易忽略哪三条规则？</li>
-</ul>
-</div>
+
 <hr>
-<h4 id="deep-01-layered-architecture-1" data-toc-skip>一句话版</h4>
+<h5 id="deep-01-layered-architecture-1" data-toc-skip>一句话版</h5>
 <pre>OpenClaw = 一个自托管 Gateway 网关 + 一个 AI Agent + 很多通道、插件和节点</pre>
 <ul><li><strong>自托管</strong>：运行在自己的电脑或服务器上，配置、会话、记忆默认都在本机</li></ul>
 <ul><li><strong>核心设计问题</strong>：OpenClaw 的智能体为什么"能长期跑"，而不是只在 demo 里跑一次？</li></ul>
 <p>答案在于多层架构的<strong>韧性设计</strong>——会话持久化、队列并发控制、状态机容错、模型故障转移。每一层都有独立的容错和重试逻辑，单点故障不会导致整个 Agent 卡死。</p>
 <hr>
-<h4 id="deep-01-layered-architecture-2" data-toc-skip>整体分层架构</h4>
+<h5 id="deep-01-layered-architecture-2" data-toc-skip>整体分层架构</h5>
 <figure><div class="mermaid">
 flowchart TB
     CLI[CLI / Control UI&lt;br/&gt;用户交互]:::cli
@@ -473,7 +517,7 @@ flowchart TB
 
     linkStyle 5,6,7 stroke:#d1fae5,stroke-width:2px
 </div><figcaption>图 4.3 · 四层架构</figcaption></figure>
-<h4 id="sec-10-4-1" data-toc-skip>各层职责</h4>
+<h5 id="sec-10-4-1" data-toc-skip>各层职责</h5>
 <table>
   <thead>
     <tr><th>层级</th><th>核心组件</th><th>源码目录</th><th>职责</th></tr>
@@ -489,7 +533,7 @@ flowchart TB
 </table>
 <blockquote><p><strong>核心规则</strong>：所有会话状态由网关"主控"。UI 客户端必须查询网关获取会话列表和 Token 计数，不读本地文件。</p></blockquote>
 <hr>
-<h4 id="deep-01-layered-architecture-3" data-toc-skip>智能体 5 层状态机</h4>
+<h5 id="deep-01-layered-architecture-3" data-toc-skip>智能体 5 层状态机</h5>
 <p>真实链路不是一次 `model.generate（）`，而是<strong>多层状态机</strong>协同工作。这是 OpenClaw 能够"长期运行"的核心机制：</p>
 <figure><div class="mermaid">
 flowchart TD
@@ -544,7 +588,7 @@ flowchart TD
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-layered-architecture-4" data-toc-skip>消息完整旅程</h4>
+<h5 id="deep-01-layered-architecture-4" data-toc-skip>消息完整旅程</h5>
 <p>从用户发送消息到收到回复的<strong>完整跨层链路</strong>（含调用链源码路径）：</p>
 <figure><div class="mermaid">
 sequenceDiagram
@@ -584,7 +628,7 @@ sequenceDiagram
     <tr><td>[10]</td><td>User</td><td>—</td><td>收到回复</td></tr>
   </tbody>
 </table>
-<h4 id="sec-10-7-1" data-toc-skip>核心调用链（文本版）</h4>
+<h5 id="sec-10-7-1" data-toc-skip>核心调用链（文本版）</h5>
 <pre>src/entry.ts → src/runtime.ts → src/gateway/server.impl.ts
     → src/gateway/auth.ts → src/routing/resolve-route.ts
     → src/auto-reply/dispatch.ts → src/agents/embedded-agent-runner/run.ts
@@ -592,7 +636,7 @@ sequenceDiagram
     → src/agents/openclaw-tools.ts (多轮循环)
     → src/auto-reply/reply/ → src/channels/ → 用户</pre>
 <hr>
-<h4 id="deep-01-layered-architecture-5" data-toc-skip>完整架构全景图</h4>
+<h5 id="deep-01-layered-architecture-5" data-toc-skip>完整架构全景图</h5>
 <figure><div class="mermaid">
 flowchart LR
     subgraph CHANNELS["通道层"]
@@ -683,7 +727,7 @@ flowchart TB
     SIDECAR --&gt; GATEWAY
 </div><figcaption>图 4.7 · 四层架构——执行层的下游：模型、插件、存储与附属能力。</figcaption></figure>
 <hr>
-<h4 id="deep-01-layered-architecture-6" data-toc-skip>部署模式</h4>
+<h5 id="deep-01-layered-architecture-6" data-toc-skip>部署模式</h5>
 <table>
   <thead>
     <tr><th>模式</th><th>说明</th><th>适用场景</th><th>安全等级</th></tr>
@@ -696,7 +740,7 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-layered-architecture-7" data-toc-skip>自检清单</h4>
+<h5 id="deep-01-layered-architecture-7" data-toc-skip>自检清单</h5>
 <table>
   <thead>
     <tr><th>检查项</th><th>说明</th><th>预期答案</th></tr>
@@ -710,7 +754,7 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-layered-architecture-8" data-toc-skip>新手 3 条规则</h4>
+<h5 id="deep-01-layered-architecture-8" data-toc-skip>新手 3 条规则</h5>
 <table>
   <thead>
     <tr><th>#</th><th>规则</th><th>说明</th></tr>
@@ -727,9 +771,9 @@ flowchart TB
 
 
 
-<h3 id="deep-12">2.4.7 核心概念模型</h3>
+<h4 id="sec-2.1.7" data-toc-skip>核心概念模型</h4>
 <p>分层架构回答"代码怎么组织"，概念模型回答"运行时有哪些对象"。OpenClaw 有 <strong>6 个核心实体</strong>（Agent、Session、Channel、Tool、Memory、Config），它们的协作关系决定了消息如何被处理。理解这 6 个实体，就掌握了阅读源码的"词汇表"。</p>
-<div>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -738,7 +782,7 @@ flowchart TB
 </ul>
 </div>
 <hr>
-<h4 id="deep-02-core-concepts-1" data-toc-skip>六大核心实体</h4>
+<h5 id="deep-02-core-concepts-1" data-toc-skip>六大核心实体</h5>
 <p>OpenClaw 的架构由<strong>六大核心实体</strong>构成，它们分层协作完成从消息接收到底层模型调用的完整链路：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -782,27 +826,27 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-02-core-concepts-2" data-toc-skip>核心概念速览</h4>
-<h4 id="sec-10-15-1" data-toc-skip>Agent Loop（智能体循环）</h4>
+<h5 id="deep-02-core-concepts-2" data-toc-skip>核心概念速览</h5>
+<h5 id="sec-10-15-1" data-toc-skip>Agent Loop（智能体循环）</h5>
 <blockquote><p>将一条消息转化为操作和最终回复的完整路径。不是一次 `model.generate（）`，而是多层状态机协同。</p></blockquote>
 <blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">03 · Agent Loop 工作流</a></p></blockquote>
-<h4 id="sec-10-16-1" data-toc-skip>Agent Runtime（运行时）</h4>
+<h5 id="sec-10-16-1" data-toc-skip>Agent Runtime（运行时）</h5>
 <blockquote><p>定义 Agent 的"工作方式"：`pi`（默认，完整循环）、`codex`（代码执行）、`claude-cli`（CLI 任务）、`acp`（外部 Agent）。</p></blockquote>
 <blockquote><p>新手先用默认 `pi`，确认 Provider 稳定后再研究其他。</p></blockquote>
-<h4 id="sec-10-17-1" data-toc-skip>Agent Workspace（工作区）</h4>
+<h5 id="sec-10-17-1" data-toc-skip>Agent Workspace（工作区）</h5>
 <blockquote><p>Agent 的工作目录，包含 AGENTS.md（工作手册）和 SOUL.md（人格说明）。</p></blockquote>
 <blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-05-workspace-config-1">09 · 工作区配置</a></p></blockquote>
-<h4 id="sec-10-18-1" data-toc-skip>队列模式</h4>
+<h5 id="sec-10-18-1" data-toc-skip>队列模式</h5>
 <blockquote><p>当新消息在 Agent 执行中到达时，决定处理方式：`collect`（合并）、`steer`（导向）、`followup`（排队）、`interrupt`（中断）。</p></blockquote>
 <blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-02-concurrency-control-1">03 · 队列与并发控制</a></p></blockquote>
-<h4 id="sec-10-19-1" data-toc-skip>Session Key（会话键）</h4>
+<h5 id="sec-10-19-1" data-toc-skip>Session Key（会话键）</h5>
 <blockquote><p>路由的核心标识，格式 `agent：{agentId}：{channel}：{scope}：{peerId}`，决定消息属于哪个会话。</p></blockquote>
 <blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-03-channels/#deep-01-routing-engine-1">04 · 路由层与 Session Key</a></p></blockquote>
-<h4 id="sec-10-20-1" data-toc-skip>dmScope（会话隔离）</h4>
+<h5 id="sec-10-20-1" data-toc-skip>dmScope（会话隔离）</h5>
 <blockquote><p>控制 DM 会话的隔离粒度：`main`（单用户）、`per-peer`（按用户跨通道）、`per-channel-peer`（推荐多用户）。</p></blockquote>
 <blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-03-channels/#deep-01-routing-engine-1">04 · 路由层与 Session Key</a></p></blockquote>
 <hr>
-<h4 id="deep-02-core-concepts-3" data-toc-skip>完整协作关系</h4>
+<h5 id="deep-02-core-concepts-3" data-toc-skip>完整协作关系</h5>
 <figure><div class="mermaid">
 sequenceDiagram
     participant CH as Channel
@@ -826,8 +870,8 @@ sequenceDiagram
 
 
 
-<h3 id="deep-22">2.4.8 工具系统架构</h3>
-<div>
+<h4 id="sec-2.1.8" data-toc-skip>工具系统架构</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -838,9 +882,9 @@ sequenceDiagram
 </ul>
 </div>
 <hr>
-<h4 id="deep-01-tool-system-1" data-toc-skip>工具系统概述</h4>
+<h5 id="deep-01-tool-system-1" data-toc-skip>工具系统概述</h5>
 <p>模型负责"想"，工具负责"做"。如果没有工具，AI 只能在聊天框里回答；有了工具，它就可以查网页、读写文件、运行命令、生成图片。</p>
-<h4 id="sec-13-3-1" data-toc-skip>工具系统架构</h4>
+<h5 id="sec-13-3-1" data-toc-skip>工具系统架构</h5>
 <figure><div class="mermaid">
 flowchart LR
     subgraph 工具层["工具层（Tools）"]
@@ -875,7 +919,7 @@ flowchart LR
     classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 4.11 · 四层架构</figcaption></figure>
 <hr>
-<h4 id="deep-01-tool-system-2" data-toc-skip>内置工具一览</h4>
+<h5 id="deep-01-tool-system-2" data-toc-skip>内置工具一览</h5>
 <table>
   <thead>
     <tr><th>工具</th><th>功能</th><th>适合场景</th></tr>
@@ -896,7 +940,7 @@ flowchart LR
     <tr><td><strong>Goal</strong></td><td>固定当前会话目标</td><td>长任务、PR 收尾</td></tr>
   </tbody>
 </table>
-<h4 id="sec-13-5-1" data-toc-skip>工具按来源分类</h4>
+<h5 id="sec-13-5-1" data-toc-skip>工具按来源分类</h5>
 <table>
   <thead>
     <tr><th>来源</th><th>说明</th><th>示例</th></tr>
@@ -908,7 +952,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-tool-system-3" data-toc-skip>工具 vs 插件</h4>
+<h5 id="deep-01-tool-system-3" data-toc-skip>工具 vs 插件</h5>
 <table>
   <thead>
     <tr><th>维度</th><th>工具（Tool）</th><th>插件（Plugin）</th></tr>
@@ -921,14 +965,14 @@ flowchart LR
   </tbody>
 </table>
 <blockquote><p>一个插件可以提供：新频道、新工具、新命令、新的配置页面或元数据。工具是插件的"功能单元"。</p></blockquote>
-<h4 id="sec-13-7-1" data-toc-skip>技能加载顺序</h4>
+<h5 id="sec-13-7-1" data-toc-skip>技能加载顺序</h5>
 <p>当一个工具被调用时，OpenClaw 按以下优先级查找：</p>
 <pre>1. 捆绑的（随安装包附带的系统工具）
 2. 托管/本地：~/.openclaw/skills
 3. 工作区：workspace/skills（名称冲突时优先）</pre>
 <hr>
-<h4 id="deep-01-tool-system-4" data-toc-skip>工具策略配置</h4>
-<h4 id="sec-13-9-1" data-toc-skip>工具 allow/deny 列表</h4>
+<h5 id="deep-01-tool-system-4" data-toc-skip>工具策略配置</h5>
+<h5 id="sec-13-9-1" data-toc-skip>工具 allow/deny 列表</h5>
 <pre>{
   agents: {
     defaults: {
@@ -939,7 +983,7 @@ flowchart LR
     },
   },
 }</pre>
-<h4 id="sec-13-10-1" data-toc-skip>匹配规则</h4>
+<h5 id="sec-13-10-1" data-toc-skip>匹配规则</h5>
 <table>
   <thead>
     <tr><th>规则</th><th>说明</th></tr>
@@ -952,7 +996,7 @@ flowchart LR
     <tr><td><strong>空 deny</strong></td><td>无拒绝项 = 仅 allow 列表中的可用</td></tr>
   </tbody>
 </table>
-<h4 id="sec-13-11-1" data-toc-skip>每 Agent 工具配置</h4>
+<h5 id="sec-13-11-1" data-toc-skip>每 Agent 工具配置</h5>
 <p>可以为不同 Agent 设置独立的工具策略：</p>
 <pre>{
   agents: {
@@ -974,7 +1018,7 @@ flowchart LR
   },
 }</pre>
 <hr>
-<h4 id="deep-01-tool-system-5" data-toc-skip>扩展能力</h4>
+<h5 id="deep-01-tool-system-5" data-toc-skip>扩展能力</h5>
 <p>除内置工具外，OpenClaw 还提供以下 Agent 扩展方式：</p>
 <table>
   <thead>
@@ -991,7 +1035,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-tool-system-6" data-toc-skip>架构总览</h4>
+<h5 id="deep-01-tool-system-6" data-toc-skip>架构总览</h5>
 <pre>┌─────────────────────────────────────────────────────────────────────────┐
 │                          工具系统架构                                    │
 │                                                                         │
@@ -1028,7 +1072,21 @@ flowchart LR
 
 
 
-  <h2 id="sec-5">2.5 消息生命周期</h2>
+  <h3 id="sec-2.2">2.2.2 消息生命周期</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">学习要点</p>
+<ul>
+  <li>Agent Loop 从用户消息到最终回复经历了哪些阶段？</li>
+  <li>调度层、执行层、事件层各负责什么？5 层状态机如何协作？</li>
+  <li>runEmbeddedPiAgent 的内部流程是怎样的？</li>
+  <li>Auto-Reply 的决策流程如何决定消息是丢弃、重置还是执行？</li>
+  <li>流式输出如何通过事件分离（lifecycle/assistant/tool）工作？</li>
+</ul>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>注意 <strong>ST（存储） 是在最后一步</strong>——持久化是<strong>副效应</strong>，不影响主路径的时延。如果存储慢了，用户消息不受影响（只是历史记录可能延迟）。</p>
+
+</div>
 
   <p>有了骨架还需要看"血液"如何流动——这一节追踪一条消息从发送到回复的<strong>7 步完整旅程</strong>。这个时序图是 OpenClaw 最重要的"全局地图"。</p>
 
@@ -1061,7 +1119,7 @@ sequenceDiagram
   L2-&gt;&gt;L4: 持久化 Session 更新
 </div><figcaption>图 2.3 · 一条消息在 4 层间的完整流转——11 步时序。</figcaption></figure>
 
-  <h3 id="sec-5.1">2.5.1 每层的职责总结</h3>
+  <h4 id="sec-2.2.1" data-toc-skip>每层的职责总结</h4>
   <table>
     <thead><tr><th>层</th><th>输入</th><th>输出</th><th>状态</th></tr></thead>
     <tbody>
@@ -1073,29 +1131,16 @@ sequenceDiagram
   </table>
 
 
-<div class="thinking-note">
-<h3>思考笔记</h3>
-<p>注意 <strong>ST（存储） 是在最后一步</strong>——持久化是<strong>副效应</strong>，不影响主路径的时延。如果存储慢了，用户消息不受影响（只是历史记录可能延迟）。</p>
-</div>
 
-<h3 id="deep-18">2.5.2 Agent Loop 完整工作流</h3>
-<div>
-<h3>本章要点</h3>
-<p class="oc-callout-lead">学习要点</p>
-<ul>
-  <li>Agent Loop 从用户消息到最终回复经历了哪些阶段？</li>
-  <li>调度层、执行层、事件层各负责什么？5 层状态机如何协作？</li>
-  <li>runEmbeddedPiAgent 的内部流程是怎样的？</li>
-  <li>Auto-Reply 的决策流程如何决定消息是丢弃、重置还是执行？</li>
-  <li>流式输出如何通过事件分离（lifecycle/assistant/tool）工作？</li>
-</ul>
-</div>
+
+<h4 id="sec-2.2.2" data-toc-skip>Agent Loop 完整工作流</h4>
+
 <hr>
-<h4 id="deep-01-agent-loop-workflow-1" data-toc-skip>Agent Loop 概述</h4>
+<h5 id="deep-01-agent-loop-workflow-1" data-toc-skip>Agent Loop 概述</h5>
 <p>智能体循环（Agent Loop）是将一条消息转化为操作和最终回复的<strong>权威路径</strong>。一次循环是每个会话的<strong>单次串行运行</strong>。</p>
 <blockquote><p>Agent Loop 的核心思想：不是一次 `model.generate（）` 就结束，而是<strong>多层状态机</strong>协同工作——队列控制（session lane → global lane）→ 执行（attempt）→ 事件稳定化（subscribe）→ 压缩等待（wait compaction）→ 收尾（finalize）→ 出错时自动恢复（profile 轮换 → compact → fallback）。</p></blockquote>
 <hr>
-<h4 id="deep-01-agent-loop-workflow-2" data-toc-skip>入口点</h4>
+<h5 id="deep-01-agent-loop-workflow-2" data-toc-skip>入口点</h5>
 <p>Agent Loop 可以通过以下两种方式触发：</p>
 <table>
   <thead>
@@ -1107,7 +1152,7 @@ sequenceDiagram
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-agent-loop-workflow-3" data-toc-skip>完整调用流程</h4>
+<h5 id="deep-01-agent-loop-workflow-3" data-toc-skip>完整调用流程</h5>
 <p>一次完整的 Agent 调用从客户端发起请求到收到最终回复：</p>
 <figure><div class="mermaid">
 sequenceDiagram
@@ -1143,7 +1188,7 @@ sequenceDiagram
     C-&gt;&gt;GW: agent.wait(runId)
     GW--&gt;&gt;C: { status, startedAt, endedAt }
 </div><figcaption>图 5.3 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-5-1" data-toc-skip>各阶段说明</h4>
+<h5 id="sec-12-5-1" data-toc-skip>各阶段说明</h5>
 <table>
   <thead>
     <tr><th>阶段</th><th>步骤</th><th>核心组件</th><th>关键操作</th></tr>
@@ -1159,7 +1204,7 @@ sequenceDiagram
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-agent-loop-workflow-4" data-toc-skip>runEmbeddedPiAgent 内部流程</h4>
+<h5 id="deep-01-agent-loop-workflow-4" data-toc-skip>runEmbeddedPiAgent 内部流程</h5>
 <p>`runEmbeddedPiAgent（...）` 是 Agent Loop 的<strong>核心调度函数</strong>，内部依次经历以下阶段：</p>
 <figure><div class="mermaid">flowchart TD
     subgraph 队列控制
@@ -1194,7 +1239,7 @@ sequenceDiagram
     classDef build fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef ret fill:#fce7f3,stroke:#ec4899,color:#9d174d</div><figcaption>图 5.4 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-7-1" data-toc-skip>各步骤详解</h4>
+<h5 id="sec-12-7-1" data-toc-skip>各步骤详解</h5>
 <table>
   <thead>
     <tr><th>步骤</th><th>说明</th><th>关键参数</th></tr>
@@ -1213,7 +1258,7 @@ sequenceDiagram
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-agent-loop-workflow-5" data-toc-skip>事件桥接（Event Bridge）</h4>
+<h5 id="deep-01-agent-loop-workflow-5" data-toc-skip>事件桥接（Event Bridge）</h5>
 <p>Pi 事件通过桥接机制映射为 OpenClaw 的三类流式事件：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1255,7 +1300,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-agent-loop-workflow-6" data-toc-skip>Auto-Reply 决策流程</h4>
+<h5 id="deep-01-agent-loop-workflow-6" data-toc-skip>Auto-Reply 决策流程</h5>
 <p>Auto-Reply 是消息到达 Agent Runner 之前的<strong>第一道决策闸门</strong>，决定消息是丢弃、重置还是继续执行：</p>
 <figure><div class="mermaid">
 flowchart TB
@@ -1295,8 +1340,8 @@ flowchart TB
 
 
 
-<h3 id="deep-19">2.5.3 队列与并发控制</h3>
-<div>
+<h4 id="sec-2.2.3" data-toc-skip>队列与并发控制</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1307,7 +1352,7 @@ flowchart TB
 </ul>
 </div>
 <hr>
-<h4 id="deep-02-concurrency-control-1" data-toc-skip>Lane 并发模型</h4>
+<h5 id="deep-02-concurrency-control-1" data-toc-skip>Lane 并发模型</h5>
 <p>当多个入站消息几乎同时到达时，Lane 模型确保会话安全、资源可控：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1329,7 +1374,7 @@ flowchart LR
     classDef global fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 5.7 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-12-1" data-toc-skip>为什么需要 Lane？</h4>
+<h5 id="sec-12-12-1" data-toc-skip>为什么需要 Lane？</h5>
 <table>
   <thead>
     <tr><th>问题</th><th>解决方案</th></tr>
@@ -1340,7 +1385,7 @@ flowchart LR
     <tr><td><strong>会话间干扰</strong>：Alice 的慢查询拖慢 Bob 的快速回复</td><td>Lane 间独立排队，互不阻塞</td></tr>
   </tbody>
 </table>
-<h4 id="sec-12-13-1" data-toc-skip>Lane 参数</h4>
+<h5 id="sec-12-13-1" data-toc-skip>Lane 参数</h5>
 <table>
   <thead>
     <tr><th>组件</th><th>约束</th><th>说明</th></tr>
@@ -1352,7 +1397,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-02-concurrency-control-2" data-toc-skip>队列模式</h4>
+<h5 id="deep-02-concurrency-control-2" data-toc-skip>队列模式</h5>
 <p>当用户在当前 Agent 运行过程中发送新消息时，队列模式决定如何处理：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1375,7 +1420,7 @@ flowchart LR
     classDef interrupt fill:#fee2e2,stroke:#ef4444,color:#991b1b
     classDef queue fill:#f1f5f9,stroke:#64748b,color:#1e293b
 </div><figcaption>图 5.8 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-15-1" data-toc-skip>模式选择指南</h4>
+<h5 id="sec-12-15-1" data-toc-skip>模式选择指南</h5>
 <table>
   <thead>
     <tr><th>模式</th><th>行为</th><th>适用场景</th><th>示例</th></tr>
@@ -1390,7 +1435,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-02-concurrency-control-3" data-toc-skip>队列配置</h4>
+<h5 id="deep-02-concurrency-control-3" data-toc-skip>队列配置</h5>
 <pre>{
   messages: {
     queue: {
@@ -1404,7 +1449,7 @@ flowchart LR
     },
   },
 }</pre>
-<h4 id="sec-12-17-1" data-toc-skip>参数说明</h4>
+<h5 id="sec-12-17-1" data-toc-skip>参数说明</h5>
 <table>
   <thead>
     <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
@@ -1415,7 +1460,7 @@ flowchart LR
     <tr><td><code>drop</code></td><td><code>summarize</code></td><td>溢出策略，可选 <code>old</code>（丢弃最早）/ <code>new</code>（丢弃最新）/ <code>summarize</code></td></tr>
   </tbody>
 </table>
-<h4 id="sec-12-18-1" data-toc-skip>溢出策略（drop）</h4>
+<h5 id="sec-12-18-1" data-toc-skip>溢出策略（drop）</h5>
 <table>
   <thead>
     <tr><th>策略</th><th>行为</th><th>推荐场景</th></tr>
@@ -1426,12 +1471,12 @@ flowchart LR
     <tr><td><strong>summarize</strong> </td><td>丢弃消息但保留要点列表，注入为合成后续提示</td><td>兼顾信息量和新鲜度</td></tr>
   </tbody>
 </table>
-<h4 id="sec-12-19-1" data-toc-skip>每会话覆盖</h4>
+<h5 id="sec-12-19-1" data-toc-skip>每会话覆盖</h5>
 <pre>/queue collect debounce:2s cap:25 drop:summarize   # 临时切换模式
 /queue default                                      # 清除会话级覆盖
 /queue reset                                        # 重置为全局默认</pre>
 <hr>
-<h4 id="deep-02-concurrency-control-4" data-toc-skip>队列引导（Queue Steering）</h4>
+<h5 id="deep-02-concurrency-control-4" data-toc-skip>队列引导（Queue Steering）</h5>
 <p>当 Agent 正在执行工具调用时，OpenClaw 在<strong>运行时边界</strong>处理新消息：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1456,7 +1501,7 @@ flowchart LR
     classDef check fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 5.9 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-21-1" data-toc-skip>安全边界说明</h4>
+<h5 id="sec-12-21-1" data-toc-skip>安全边界说明</h5>
 <blockquote><p>如果 Agent 正在执行工具调用，OpenClaw <strong>不会在最危险的中间点硬切</strong>。每次工具调用完成后，在进入下一轮之前检查队列：</p></blockquote>
 <pre>当前工具调用完成
     ↓
@@ -1465,7 +1510,7 @@ flowchart LR
 决定引导（steer）、排队（followup）或中断（interrupt）
     ↓
 继续下一步</pre>
-<h4 id="sec-12-22-1" data-toc-skip>场景判断</h4>
+<h5 id="sec-12-22-1" data-toc-skip>场景判断</h5>
 <table>
   <thead>
     <tr><th>消息类型</th><th>推荐队列模式</th><th>说明</th></tr>
@@ -1479,12 +1524,12 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-02-concurrency-control-5" data-toc-skip>重试策略</h4>
-<h4 id="sec-12-24-1" data-toc-skip>设计原则</h4>
+<h5 id="deep-02-concurrency-control-5" data-toc-skip>重试策略</h5>
+<h5 id="sec-12-24-1" data-toc-skip>设计原则</h5>
 <ul><li><strong>按 HTTP 请求重试</strong>，而非按多步流程重试</li></ul>
 <ul><li><strong>仅重试当前步骤</strong>以保持顺序，避免重复非幂等操作</li></ul>
 <ul><li>Markdown 解析错误<strong>不重试</strong>，回退到纯文本</li></ul>
-<h4 id="sec-12-25-1" data-toc-skip>默认值</h4>
+<h5 id="sec-12-25-1" data-toc-skip>默认值</h5>
 <table>
   <thead>
     <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
@@ -1497,7 +1542,7 @@ flowchart LR
     <tr><td>Discord minDelay</td><td>500ms</td><td>Discord 最小重试间隔</td></tr>
   </tbody>
 </table>
-<h4 id="sec-12-26-1" data-toc-skip>通道行为差异</h4>
+<h5 id="sec-12-26-1" data-toc-skip>通道行为差异</h5>
 <table>
   <thead>
     <tr><th>通道</th><th>触发条件</th><th>不重试场景</th></tr>
@@ -1507,7 +1552,7 @@ flowchart LR
     <tr><td><strong>Telegram</strong></td><td>429、超时、连接重置/关闭、临时不可用</td><td>语法错误、权限错误</td></tr>
   </tbody>
 </table>
-<h4 id="sec-12-27-1" data-toc-skip>配置示例</h4>
+<h5 id="sec-12-27-1" data-toc-skip>配置示例</h5>
 <pre>{
   channels: {
     telegram: {
@@ -1528,7 +1573,7 @@ flowchart LR
     },
   },
 }</pre>
-<h4 id="sec-12-28-1" data-toc-skip>队列保证</h4>
+<h5 id="sec-12-28-1" data-toc-skip>队列保证</h5>
 <table>
   <thead>
     <tr><th>保证</th><th>说明</th></tr>
@@ -1545,8 +1590,8 @@ flowchart LR
 
 
 
-<h3 id="deep-20">2.5.4 流式输出与事件机制</h3>
-<div>
+<h4 id="sec-2.2.4" data-toc-skip>流式输出与事件机制</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1557,7 +1602,7 @@ flowchart LR
 </ul>
 </div>
 <hr>
-<h4 id="deep-03-streaming-events-1" data-toc-skip>事件类型（3 类）</h4>
+<h5 id="deep-03-streaming-events-1" data-toc-skip>事件类型（3 类）</h5>
 <p>OpenClaw 将 Agent 执行过程中的所有输出抽象为<strong>三类事件流</strong>：</p>
 <table>
   <thead>
@@ -1599,7 +1644,7 @@ flowchart LR
     classDef sub fill:#f1f5f9,stroke:#64748b,color:#1e293b
 </div><figcaption>图 5.10 · 消息生命周期</figcaption></figure>
 <hr>
-<h4 id="deep-03-streaming-events-2" data-toc-skip>流式输出机制</h4>
+<h5 id="deep-03-streaming-events-2" data-toc-skip>流式输出机制</h5>
 <p>从 LLM 流式 Token 到客户端实时渲染的完整链路：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1633,7 +1678,7 @@ flowchart LR
     classDef bridge fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef client fill:#dbeafe,stroke:#3b82f6,color:#1e40af
 </div><figcaption>图 5.11 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-32-1" data-toc-skip>输出类型详解</h4>
+<h5 id="sec-12-32-1" data-toc-skip>输出类型详解</h5>
 <table>
   <thead>
     <tr><th>输出类型</th><th>触发时机</th><th>事件格式</th><th>客户端行为</th></tr>
@@ -1646,7 +1691,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-streaming-events-3" data-toc-skip>事件桥接（Event Bridge）</h4>
+<h5 id="deep-03-streaming-events-3" data-toc-skip>事件桥接（Event Bridge）</h5>
 <p>Pi Agent Core 产生的事件通过 `subscribeEmbeddedPiSession` 桥接到 OpenClaw 的事件系统：</p>
 <figure><div class="mermaid">
 sequenceDiagram
@@ -1677,7 +1722,7 @@ sequenceDiagram
     Note over C,M: 第 4 步：客户端接收
     GW--&gt;&gt;C: 流式推送
 </div><figcaption>图 5.12 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-34-1" data-toc-skip>映射关系</h4>
+<h5 id="sec-12-34-1" data-toc-skip>映射关系</h5>
 <table>
   <thead>
     <tr><th>Pi 事件</th><th>OpenClaw 流</th><th>桥接行为</th></tr>
@@ -1689,7 +1734,7 @@ sequenceDiagram
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-streaming-events-4" data-toc-skip>回复整形规则</h4>
+<h5 id="deep-03-streaming-events-4" data-toc-skip>回复整形规则</h5>
 <p>在最终回复发出之前，OpenClaw 应用以下整形规则：</p>
 <figure><div class="mermaid">
 flowchart TB
@@ -1721,7 +1766,7 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-streaming-events-5" data-toc-skip>聊天通道处理</h4>
+<h5 id="deep-03-streaming-events-5" data-toc-skip>聊天通道处理</h5>
 <table>
   <thead>
     <tr><th>阶段</th><th>说明</th></tr>
@@ -1731,7 +1776,7 @@ flowchart TB
     <tr><td><strong>Final 发出</strong></td><td>在 <code>lifecycle end/error</code> 时发出完整的聊天 final</td></tr>
   </tbody>
 </table>
-<h4 id="sec-12-37-1" data-toc-skip>压缩（Compaction）事件流</h4>
+<h5 id="sec-12-37-1" data-toc-skip>压缩（Compaction）事件流</h5>
 <p>压缩过程中的事件处理：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1749,7 +1794,7 @@ flowchart LR
     classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 5.14 · 消息生命周期</figcaption></figure>
 <hr>
-<h4 id="deep-03-streaming-events-6" data-toc-skip>工具执行事件</h4>
+<h5 id="deep-03-streaming-events-6" data-toc-skip>工具执行事件</h5>
 <p>工具事件流包含三个阶段：</p>
 <table>
   <thead>
@@ -1761,7 +1806,7 @@ flowchart LR
     <tr><td><strong>③ end</strong></td><td><code>tool: end</code></td><td>执行完成，携带结果</td><td><code>file.txt</code> 内容返回</td></tr>
   </tbody>
 </table>
-<h4 id="sec-12-39-1" data-toc-skip>工具结果清理</h4>
+<h5 id="sec-12-39-1" data-toc-skip>工具结果清理</h5>
 <table>
   <thead>
     <tr><th>清理项</th><th>说明</th></tr>
@@ -1778,8 +1823,8 @@ flowchart LR
 
 
 
-<h3 id="deep-21">2.5.5 超时与生命周期</h3>
-<div>
+<h4 id="sec-2.2.5" data-toc-skip>超时与生命周期</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1790,7 +1835,7 @@ flowchart LR
 </ul>
 </div>
 <hr>
-<h4 id="deep-04-timeout-lifecycle-1" data-toc-skip>超时模型</h4>
+<h5 id="deep-04-timeout-lifecycle-1" data-toc-skip>超时模型</h5>
 <p>OpenClaw 在<strong>两个层级</strong>设置超时：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -1811,7 +1856,7 @@ flowchart LR
     classDef warn fill:#fce7f3,stroke:#ec4899,color:#9d174d
     classDef abort fill:#fee2e2,stroke:#ef4444,color:#991b1b
 </div><figcaption>图 5.15 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-42-1" data-toc-skip>超时配置</h4>
+<h5 id="sec-12-42-1" data-toc-skip>超时配置</h5>
 <table>
   <thead>
     <tr><th>层级</th><th>默认值</th><th>配置路径</th><th>超时后果</th></tr>
@@ -1831,7 +1876,7 @@ flowchart LR
 }</pre>
 <blockquote><p><strong>核心区别</strong>：`agent.wait` 超时<strong>不停止智能体</strong>，只是客户端不再等待；智能体超时<strong>强制中止整个 Agent 运行</strong>。</p></blockquote>
 <hr>
-<h4 id="deep-04-timeout-lifecycle-2" data-toc-skip>提前结束场景</h4>
+<h5 id="deep-04-timeout-lifecycle-2" data-toc-skip>提前结束场景</h5>
 <p>智能体可能在以下四种场景提前结束：</p>
 <figure><div class="mermaid">
 flowchart TB
@@ -1857,7 +1902,7 @@ flowchart TB
     classDef warn fill:#fce7f3,stroke:#ec4899,color:#9d174d
     classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
 </div><figcaption>图 5.16 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-44-1" data-toc-skip>四种场景对比</h4>
+<h5 id="sec-12-44-1" data-toc-skip>四种场景对比</h5>
 <table>
   <thead>
     <tr><th>场景</th><th>触发条件</th><th>智能体状态</th><th>客户端反应</th><th>配置</th></tr>
@@ -1870,7 +1915,7 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-04-timeout-lifecycle-3" data-toc-skip>Agent 三种执行模式</h4>
+<h5 id="deep-04-timeout-lifecycle-3" data-toc-skip>Agent 三种执行模式</h5>
 <table>
   <thead>
     <tr><th>模式</th><th>说明</th><th>返回方式</th><th>适用场景</th></tr>
@@ -1881,7 +1926,7 @@ flowchart TB
     <tr><td><strong>后台模式</strong></td><td>立即返回 runId，不等待</td><td>仅 runId</td><td>耗时任务、无需即时响应</td></tr>
   </tbody>
 </table>
-<h4 id="sec-12-46-1" data-toc-skip>模式选择对比</h4>
+<h5 id="sec-12-46-1" data-toc-skip>模式选择对比</h5>
 <figure><div class="mermaid">
 flowchart LR
     REQ[Agent 请求]:::start
@@ -1908,7 +1953,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-04-timeout-lifecycle-4" data-toc-skip>超时后的状态机处理</h4>
+<h5 id="deep-04-timeout-lifecycle-4" data-toc-skip>超时后的状态机处理</h5>
 <p>当超时发生时，OpenClaw 的内部状态机执行以下收尾流程：</p>
 <figure><div class="mermaid">
 flowchart TB
@@ -1925,7 +1970,7 @@ flowchart TB
     classDef clean fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef notify fill:#dbeafe,stroke:#3b82f6,color:#1e40af
 </div><figcaption>图 5.18 · 消息生命周期</figcaption></figure>
-<h4 id="sec-12-48-1" data-toc-skip>清理操作</h4>
+<h5 id="sec-12-48-1" data-toc-skip>清理操作</h5>
 <table>
   <thead>
     <tr><th>步骤</th><th>操作</th><th>说明</th></tr>
@@ -1938,7 +1983,7 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-04-timeout-lifecycle-5" data-toc-skip>超时配置最佳实践</h4>
+<h5 id="deep-04-timeout-lifecycle-5" data-toc-skip>超时配置最佳实践</h5>
 <pre>{
   agents: {
     defaults: {
@@ -1957,7 +2002,7 @@ flowchart TB
     ],
   },
 }</pre>
-<h4 id="sec-12-50-1" data-toc-skip>推荐配置</h4>
+<h5 id="sec-12-50-1" data-toc-skip>推荐配置</h5>
 <table>
   <thead>
     <tr><th>场景</th><th>推荐 timeout</th><th>理由</th></tr>
@@ -1980,7 +2025,27 @@ flowchart TB
 
 
 
-  <h2 id="sec-6">2.6 Gateway 子模块</h2>
+  <h2 id="seg-3">2.3 子模块与契约</h2><div class="oc-part-lead"><strong>第三段 · 子模块与契约</strong>落到代码：Gateway 内部 7 大子模块各管什么，模块之间靠哪 5 条接口契约对齐。</div><h3 id="sec-3.1">2.3.1 Gateway 子模块</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">学习要点</p>
+<ul>
+  <li>OpenClaw 各模块的源码结构是怎样的？关键入口文件在哪里？</li>
+  <li>从用户消息到 AI 回复，完整的代码调用链路是什么？</li>
+  <li>如何根据功能需求快速定位到对应的源码文件？</li>
+</ul>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>Gateway 7 子模块的<strong>调用频度差异极大</strong>——Channel Adapter 几乎每条消息都调用，而 session manager 只在创建/恢复时调用。理解频度有助于做性能优化。</p>
+<p><strong>思考笔记</strong></p>
+<p><strong>本 wrapper 关键收获</strong>:</p>
+<ul>
+  <li><strong>OpenClaw = 1 个 Gateway + 1 个 AI Agent + 多个通道/插件</strong>。所有复杂逻辑都集中在 Gateway 进程，易于理解、调试、部署。</li>
+  <li><strong>5 层智能体状态机</strong>把"消息 → 回复"拆解为 5 个稳定阶段，每个阶段都有明确状态和可重入性保证——这是 OpenClaw 长期运行不卡死的核心。</li>
+  <li><strong>6 个核心实体</strong>（Agent/Session/Channel/Tool/Memory/Config）是阅读源码的"词汇表"——任何复杂流程都能用这 6 个对象解释。</li>
+  <li><strong>新手 3 条规则</strong>：① 一切以 Gateway 为中心；② 状态变化走事件总线，不要直接改内存；③ 持久化是副作用，不阻塞主路径。</li>
+</ul>
+<p>读完 2.10，你应该能：在 IDE 中打开 <code>gateway/index.ts</code> 和 <code>agent/loop.ts</code>，对照本节分层图定位任意一行代码的作用。</p>
+</div>
 
   <p>Gateway 是所有数据流的中心——这一节展开它的 7 大子模块，每个模块的<strong>职责、关键 API、内部数据结构</strong>。看完这一节，你能在 IDE 里直接定位代码。</p>
 
@@ -2007,49 +2072,49 @@ flowchart LR
   style H fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
 </div><figcaption>图 2.4 · Gateway 7 大子目录——7 色 7 模块。</figcaption></figure>
 
-  <h3 id="sec-6.1">2.6.1 7 大子模块详解</h3>
+  <h4 id="sec-3.1.1" data-toc-skip>7 大子模块详解</h4>
 
-  <h4 id="sec-6-2-1" data-toc-skip>1. <code>gateway/</code>——WebSocket 服务器</h4>
-  <p><strong>对应文档</strong>：本模块 2.2 原则一</p>
+  <h5 id="sec-6-2-1" data-toc-skip>1. <code>gateway/</code>——WebSocket 服务器</h5>
+  <p><strong>对应文档</strong>：本模块 2.1.2 原则一</p>
   <p><strong>职责</strong>：HTTP/WS 服务器、JSON-RPC 路由、命令队列、Schema 校验。</p>
   <p><strong>关键文件</strong>:<code>server.ts</code> · <code>router.ts</code> · <code>queue.ts</code> · <code>envelope.ts</code> · <code>schema-validator.ts</code></p>
 
-  <h4 id="sec-6-3-1" data-toc-skip>2. <code>agents/</code>——Agent 循环</h4>
-  <p><strong>对应文档</strong>：本模块 2.4 L2 编排层 + <a href="/2026/11/07/openclaw-04-models-runtimes/">模块 04 模型</a></p>
+  <h5 id="sec-6-3-1" data-toc-skip>2. <code>agents/</code>——Agent 循环</h5>
+  <p><strong>对应文档</strong>：本模块 2.2.1 L2 编排层 + <a href="/2026/11/07/openclaw-04-models-runtimes/">模块 04 模型</a></p>
   <p><strong>职责</strong>：Agent.run（） 主循环、Prompt 组装、LLM 调用、循环控制。</p>
   <p><strong>关键文件</strong>:<code>runner.ts</code> · <code>prompt-builder.ts</code> · <code>provider.ts</code> · <code>loop-controller.ts</code></p>
   <p><strong>阅读顺序</strong>:<code>runner.ts → prompt-builder.ts → provider.ts → loop-controller.ts</code></p>
 
-  <h4 id="sec-6-4-1" data-toc-skip>3. <code>tools/</code>——工具 + 沙箱</h4>
-  <p><strong>对应文档</strong>：本模块 2.2 原则二 + <a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具</a></p>
+  <h5 id="sec-6-4-1" data-toc-skip>3. <code>tools/</code>——工具 + 沙箱</h5>
+  <p><strong>对应文档</strong>：本模块 2.1.2 原则二 + <a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具</a></p>
   <p><strong>职责</strong>：工具执行、沙箱隔离、超时、并发、结果截断。</p>
   <p><strong>关键文件</strong>:<code>executor.ts</code> · <code>registry.ts</code> · <code>sandbox/{none,process,container,vm}.ts</code> · <code>truncate.ts</code></p>
 
-  <h4 id="sec-6-5-1" data-toc-skip>4. <code>channels/</code>——通道适配器</h4>
+  <h5 id="sec-6-5-1" data-toc-skip>4. <code>channels/</code>——通道适配器</h5>
   <p><strong>对应文档</strong>:<a href="/2026/11/07/openclaw-03-channels/">模块 03 通道</a></p>
   <p><strong>职责</strong>：通道插件注册、Envelope 规范化、出站消息格式化。</p>
   <p><strong>关键文件</strong>:<code>registry.ts</code> · <code>normalizer.ts</code></p>
   <p><strong>注意</strong>：实际通道实现在 <code>extensions/whatsapp/</code> 等，这里是注册表。</p>
 
-  <h4 id="sec-6-6-1" data-toc-skip>5. <code>session/</code>——会话管理</h4>
+  <h5 id="sec-6-6-1" data-toc-skip>5. <code>session/</code>——会话管理</h5>
   <p><strong>对应文档</strong>:<a href="/2026/11/07/openclaw-05-sessions/">模块 05 会话</a></p>
   <p><strong>职责</strong>：SessionManager、SQLite 存储、压缩、Markdown 记忆。</p>
   <p><strong>关键文件</strong>:<code>manager.ts</code> · <code>storage.ts</code> · <code>compaction.ts</code> · <code>memory.ts</code></p>
 
-  <h4 id="sec-6-7-1" data-toc-skip>6. <code>config/</code>——配置加载</h4>
-  <p><strong>对应文档</strong>：本模块 2.2 原则三</p>
+  <h5 id="sec-6-7-1" data-toc-skip>6. <code>config/</code>——配置加载</h5>
+  <p><strong>对应文档</strong>：本模块 2.1.2 原则三</p>
   <p><strong>职责</strong>：YAML 加载、JSON Schema 校验、热重载。</p>
   <p><strong>关键文件</strong>:<code>loader.ts</code> · <code>schema.ts</code> · <code>watcher.ts</code></p>
 
-  <h4 id="sec-6-8-1" data-toc-skip>7. <code>hooks/</code>——钩子系统</h4>
+  <h5 id="sec-6-8-1" data-toc-skip>7. <code>hooks/</code>——钩子系统</h5>
   <p><strong>对应文档</strong>:<a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具</a></p>
   <p><strong>职责</strong>：钩子注册、钩子链、事件触发。</p>
   <p><strong>关键文件</strong>:<code>registry.ts</code> · <code>chain.ts</code> · <code>types.ts</code></p>
 
-  <h3 id="sec-6.2">2.6.2 入口文件 <code>index.ts</code></h3>
+  <h4 id="sec-3.1.2" data-toc-skip>入口文件 index.ts</h4>
   <p>Gateway 进程入口——4 行启动代码：</p>
 
-  <pre><span>// apps/gateway/src/index.ts(简化版)</span>
+<pre><span>// apps/gateway/src/index.ts(简化版)</span>
 <span>import</span> { loadConfig } <span>from</span> <span>'./config/loader.js'</span>;
 <span>import</span> { startServer } <span>from</span> <span>'./gateway/server.js'</span>;
 <span>import</span> { loadExtensions } <span>from</span> <span>'./channels/registry.js'</span>;
@@ -2068,24 +2133,13 @@ flowchart LR
 });</pre>
 
 
-<div class="thinking-note">
-<h3>思考笔记</h3>
-<p>Gateway 7 子模块的<strong>调用频度差异极大</strong>——Channel Adapter 几乎每条消息都调用，而 session manager 只在创建/恢复时调用。理解频度有助于做性能优化。</p>
-</div>
 
-<h3 id="deep-13">2.6.3 核心源码索引</h3>
+
+<h4 id="sec-3.1.3" data-toc-skip>核心源码索引</h4>
 <p>概念和架构最终都要落到代码上。这一类给出 <strong>核心源码的目录索引和分层映射</strong>，让你能在 IDE 里直接 <code>Ctrl+P</code> 跳转到关键文件。配合 2.5 消息生命周期，能精准定位"某一步发生在哪个文件的哪个函数"。</p>
-<div>
-<h3>本章要点</h3>
-<p class="oc-callout-lead">学习要点</p>
-<ul>
-  <li>OpenClaw 各模块的源码结构是怎样的？关键入口文件在哪里？</li>
-  <li>从用户消息到 AI 回复，完整的代码调用链路是什么？</li>
-  <li>如何根据功能需求快速定位到对应的源码文件？</li>
-</ul>
-</div>
+
 <hr>
-<h4 id="deep-03-core-source-index-1" data-toc-skip>模块索引</h4>
+<h5 id="deep-03-core-source-index-1" data-toc-skip>模块索引</h5>
 <p>下表按调用顺序列出 OpenClaw 的核心模块及其源码入口：</p>
 <table>
   <thead>
@@ -2114,7 +2168,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-core-source-index-2" data-toc-skip>消息完整旅程</h4>
+<h5 id="deep-03-core-source-index-2" data-toc-skip>消息完整旅程</h5>
 <p>从用户发送消息到收到回复的<strong>完整调用链</strong>（含源码路径）：</p>
 <figure><div class="mermaid">flowchart TD
     CH[Channel&lt;br/&gt;Telegram / Discord / Slack&lt;br/&gt;src/channels/]:::chan
@@ -2134,7 +2188,7 @@ flowchart LR
     classDef rout fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d</div><figcaption>图 6.3 · Gateway 子模块</figcaption></figure>
-<h4 id="sec-10-25-1" data-toc-skip>各阶段详述</h4>
+<h5 id="sec-10-25-1" data-toc-skip>各阶段详述</h5>
 <table>
   <thead>
     <tr><th>步骤</th><th>组件</th><th>关键文件</th><th>核心行为</th><th>返回/事件</th></tr>
@@ -2151,7 +2205,7 @@ flowchart LR
     <tr><td>⑨</td><td><strong>Reply</strong></td><td><code>src/auto-reply/reply/</code></td><td>回复整形 → NO_REPLY 过滤 → routeReply → Channel 输出</td><td>→ 用户消息</td></tr>
   </tbody>
 </table>
-<h4 id="sec-10-26-1" data-toc-skip>完整调用链</h4>
+<h5 id="sec-10-26-1" data-toc-skip>完整调用链</h5>
 <pre>src/entry.ts → src/runtime.ts → src/gateway/server.impl.ts
     → src/gateway/auth.ts → src/routing/resolve-route.ts
     → src/auto-reply/dispatch.ts → src/agents/embedded-agent-runner/run.ts
@@ -2159,7 +2213,7 @@ flowchart LR
     → src/agents/openclaw-tools.ts (多轮)
     → src/auto-reply/reply/ → src/channels/ → 用户</pre>
 <hr>
-<h4 id="deep-03-core-source-index-3" data-toc-skip>源码分层架构</h4>
+<h5 id="deep-03-core-source-index-3" data-toc-skip>源码分层架构</h5>
 <p>OpenClaw 的源码按功能划分为以下层次：</p>
 <figure><div class="mermaid">
 flowchart TB
@@ -2218,7 +2272,7 @@ flowchart TB
     L4 --&gt; L7
 </div><figcaption>图 6.4 · Gateway 子模块</figcaption></figure>
 <hr>
-<h4 id="deep-03-core-source-index-4" data-toc-skip>核心数据流</h4>
+<h5 id="deep-03-core-source-index-4" data-toc-skip>核心数据流</h5>
 <p>以下数据在模块间流转：</p>
 <table>
   <thead>
@@ -2234,7 +2288,7 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-core-source-index-5" data-toc-skip>快速定位指南</h4>
+<h5 id="deep-03-core-source-index-5" data-toc-skip>快速定位指南</h5>
 <p>当需要修改或理解特定功能时，按以下规则定位源码：</p>
 <table>
   <thead>
@@ -2256,24 +2310,14 @@ flowchart TB
 <hr>
 <p><strong>相关模块</strong>:<a href="#deep-11">01 · 分层架构全景</a> · <a href="#deep-12">02 · 核心概念模型</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-dive-02-deep-12">03 · 执行引擎</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-dive-02-deep-11">02 · 网关控制</a></p>
 
-<div class="thinking-note">
-<h3>思考笔记</h3>
-<p><strong>本 wrapper 关键收获</strong>:</p>
-<ul>
-  <li><strong>OpenClaw = 1 个 Gateway + 1 个 AI Agent + 多个通道/插件</strong>。所有复杂逻辑都集中在 Gateway 进程，易于理解、调试、部署。</li>
-  <li><strong>5 层智能体状态机</strong>把"消息 → 回复"拆解为 5 个稳定阶段，每个阶段都有明确状态和可重入性保证——这是 OpenClaw 长期运行不卡死的核心。</li>
-  <li><strong>6 个核心实体</strong>（Agent/Session/Channel/Tool/Memory/Config）是阅读源码的"词汇表"——任何复杂流程都能用这 6 个对象解释。</li>
-  <li><strong>新手 3 条规则</strong>：① 一切以 Gateway 为中心；② 状态变化走事件总线，不要直接改内存；③ 持久化是副作用，不阻塞主路径。</li>
-</ul>
-<p>读完 2.10，你应该能：在 IDE 中打开 <code>gateway/index.ts</code> 和 <code>agent/loop.ts</code>，对照本节分层图定位任意一行代码的作用。</p>
-</div>
 
 
 
 
 
-<h3 id="deep-14">2.6.4 Gateway 定位与职责</h3>
-<div>
+
+<h4 id="sec-3.1.4" data-toc-skip>Gateway 定位与职责</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -2284,9 +2328,9 @@ flowchart TB
 </ul>
 </div>
 <hr>
-<h4 id="deep-01-gateway-positioning-1" data-toc-skip>网关定位</h4>
+<h5 id="deep-01-gateway-positioning-1" data-toc-skip>网关定位</h5>
 <p>Gateway（网关）是 OpenClaw 的<strong>总服务台</strong>，负责调度整个系统。所有连接——无论是聊天通道、设备节点、浏览器控制面板——都首先到达 Gateway。</p>
-<h4 id="sec-11-3-1" data-toc-skip>Gateway 在架构中的位置</h4>
+<h5 id="sec-11-3-1" data-toc-skip>Gateway 在架构中的位置</h5>
 <figure><div class="mermaid">
 flowchart LR
     CH[Channel&lt;br/&gt;Telegram / WhatsApp / Discord]:::chan --&gt; GW[Gateway&lt;br/&gt;控制平面]:::gw
@@ -2302,7 +2346,7 @@ flowchart LR
     classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
 </div><figcaption>图 6.5 · Gateway 子模块</figcaption></figure>
-<h4 id="sec-11-4-1" data-toc-skip>组件职责对比</h4>
+<h5 id="sec-11-4-1" data-toc-skip>组件职责对比</h5>
 <table>
   <thead>
     <tr><th>组件</th><th>职责</th><th>Gateway 的关系</th></tr>
@@ -2316,9 +2360,9 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-gateway-positioning-2" data-toc-skip>Gateway 核心职责</h4>
+<h5 id="deep-01-gateway-positioning-2" data-toc-skip>Gateway 核心职责</h5>
 <p>Gateway 是<strong>控制平面</strong> + <strong>单一事实来源</strong>。所有会话状态、连接状态、配置版本都由 Gateway 统一管理。</p>
-<h4 id="sec-11-6-1" data-toc-skip>七大职责</h4>
+<h5 id="sec-11-6-1" data-toc-skip>七大职责</h5>
 <table>
   <thead>
     <tr><th>职责</th><th>说明</th><th>机制</th></tr>
@@ -2333,9 +2377,9 @@ flowchart LR
     <tr><td><strong>配置管理</strong></td><td>热重载与版本管理</td><td>hybrid/hot/restart/off 四种热重载模式</td></tr>
   </tbody>
 </table>
-<h4 id="sec-11-7-1" data-toc-skip>核心规则</h4>
+<h5 id="sec-11-7-1" data-toc-skip>核心规则</h5>
 <blockquote><p><strong>所有会话状态由网关"主控"</strong>。UI 客户端（macOS 应用、WebChat 等）必须查询网关获取会话列表和 Token 计数，不读本地文件。</p></blockquote>
-<h4 id="sec-11-8-1" data-toc-skip>为什么是"单一事实来源"？</h4>
+<h5 id="sec-11-8-1" data-toc-skip>为什么是"单一事实来源"？</h5>
 <pre>                    ┌─────────────────┐
                     │   Control UI    │ ← 通过 API 查询状态
                     └────────┬────────┘
@@ -2350,7 +2394,7 @@ flowchart LR
                     └─────────────────┘</pre>
 <p>所有客户端<strong>不直接读取本地文件</strong>，而是通过 Gateway API 获取会话信息。这避免了多个客户端同时读写导致的竞态条件和状态不一致。</p>
 <hr>
-<h4 id="deep-01-gateway-positioning-3" data-toc-skip>执行协调——5 层状态机</h4>
+<h5 id="deep-01-gateway-positioning-3" data-toc-skip>执行协调——5 层状态机</h5>
 <p>Gateway 通过协调多层状态机来驱动 Agent 执行。详见 <a href="/2026/11/07/openclaw-02-architecture/#deep-01-layered-architecture-1">01 - 分层架构全景</a> 第 2 节的完整展开。简言之：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -2365,7 +2409,7 @@ flowchart LR
 </div><figcaption>图 6.6 · Gateway 子模块</figcaption></figure>
 <blockquote><p>每一层都有独立的容错和重试逻辑，确保单点故障不会导致整个 Agent 卡死。</p></blockquote>
 <hr>
-<h4 id="deep-01-gateway-positioning-4" data-toc-skip>事件广播系统</h4>
+<h5 id="deep-01-gateway-positioning-4" data-toc-skip>事件广播系统</h5>
 <p>Gateway 广播六类系统事件，各订阅者按需监听：</p>
 <table>
   <thead>
@@ -2380,7 +2424,7 @@ flowchart LR
     <tr><td><strong>cron</strong></td><td>定时任务触发</td><td>Cron 调度器</td></tr>
   </tbody>
 </table>
-<h4 id="sec-11-11-1" data-toc-skip>事件处理机制</h4>
+<h5 id="sec-11-11-1" data-toc-skip>事件处理机制</h5>
 <table>
   <thead>
     <tr><th>机制</th><th>说明</th></tr>
@@ -2392,7 +2436,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-01-gateway-positioning-5" data-toc-skip>网关端口与默认配置</h4>
+<h5 id="deep-01-gateway-positioning-5" data-toc-skip>网关端口与默认配置</h5>
 <table>
   <thead>
     <tr><th>端口</th><th>用途</th></tr>
@@ -2402,11 +2446,11 @@ flowchart LR
     <tr><td><strong>18780</strong></td><td>WebSocket 端口，长连接通信</td></tr>
   </tbody>
 </table>
-<h4 id="sec-11-13-1" data-toc-skip>默认地址</h4>
+<h5 id="sec-11-13-1" data-toc-skip>默认地址</h5>
 <pre>127.0.0.1:18789  （本机地址，外部默认不可访问）</pre>
 <blockquote><p><strong>安全警告</strong>：远程部署时，不要直接暴露 18789 端口到公网。使用反向代理（Nginx/Caddy）配合 TLS + Token 认证。</p></blockquote>
 <hr>
-<h4 id="deep-01-gateway-positioning-6" data-toc-skip>Gateway 生命周期</h4>
+<h5 id="deep-01-gateway-positioning-6" data-toc-skip>Gateway 生命周期</h5>
 <figure><div class="mermaid">
 flowchart LR
     START[启动]:::cli --&gt; CFG[加载配置&lt;br/&gt;openclaw.json]:::gw
@@ -2424,7 +2468,7 @@ flowchart LR
     classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
 </div><figcaption>图 6.7 · Gateway 子模块</figcaption></figure>
 <hr>
-<h4 id="deep-01-gateway-positioning-7" data-toc-skip>Gateway 源码入口</h4>
+<h5 id="deep-01-gateway-positioning-7" data-toc-skip>Gateway 源码入口</h5>
 <table>
   <thead>
     <tr><th>文件</th><th>作用</th></tr>
@@ -2445,8 +2489,8 @@ flowchart LR
 
 
 
-<h3 id="deep-15">2.6.5 配置系统与热重载</h3>
-<div>
+<h4 id="sec-3.1.5" data-toc-skip>配置系统与热重载</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -2457,9 +2501,9 @@ flowchart LR
 </ul>
 </div>
 <hr>
-<h4 id="deep-02-config-system-1" data-toc-skip>配置文件</h4>
+<h5 id="deep-02-config-system-1" data-toc-skip>配置文件</h5>
 <p>OpenClaw 使用 `~/.openclaw/openclaw.json` 作为主配置文件，采用 <strong>JSON5</strong> 格式。</p>
-<h4 id="sec-11-18-1" data-toc-skip>JSON5 格式优势</h4>
+<h5 id="sec-11-18-1" data-toc-skip>JSON5 格式优势</h5>
 <p>JSON5 是 JSON 的超集，相比标准 JSON 多了以下便利：</p>
 <table>
   <thead>
@@ -2473,7 +2517,7 @@ flowchart LR
     <tr><td><strong>多行字符串</strong></td><td>支持反斜杠换行</td><td>长配置值可换行书写</td></tr>
   </tbody>
 </table>
-<h4 id="sec-11-19-1" data-toc-skip>最小配置示例</h4>
+<h5 id="sec-11-19-1" data-toc-skip>最小配置示例</h5>
 <pre>// ~/.openclaw/openclaw.json — OpenClaw 配置文件
 {
   agents: {
@@ -2491,10 +2535,10 @@ flowchart LR
     },
   },
 }</pre>
-<h4 id="sec-11-20-1" data-toc-skip>配置文件的严格验证</h4>
+<h5 id="sec-11-20-1" data-toc-skip>配置文件的严格验证</h5>
 <blockquote><p>OpenClaw <strong>仅接受完全匹配 schema 的配置</strong>。未知键、格式错误的类型或无效值会导致网关拒绝启动。这确保了配置的确定性和可预测性。</p></blockquote>
 <hr>
-<h4 id="deep-02-config-system-2" data-toc-skip>配置编辑方式</h4>
+<h5 id="deep-02-config-system-2" data-toc-skip>配置编辑方式</h5>
 <p>OpenClaw 提供 5 种配置编辑方式：</p>
 <table>
   <thead>
@@ -2508,7 +2552,7 @@ flowchart LR
     <tr><td><strong>直接编辑</strong></td><td><code>~/.openclaw/openclaw.json</code></td><td>批量修改、高级配置（Gateway 自动热应用）</td></tr>
   </tbody>
 </table>
-<h4 id="sec-11-22-1" data-toc-skip>常用 CLI 命令</h4>
+<h5 id="sec-11-22-1" data-toc-skip>常用 CLI 命令</h5>
 <pre># 设置 exec 权限模式
 openclaw config set tools.exec.mode auto
 
@@ -2518,7 +2562,7 @@ openclaw config get agents.defaults.model
 # 重启 Gateway（热重载无法生效时）
 openclaw gateway restart</pre>
 <hr>
-<h4 id="deep-02-config-system-3" data-toc-skip>配置拆分（$include）</h4>
+<h5 id="deep-02-config-system-3" data-toc-skip>配置拆分（$include）</h5>
 <p>当配置变得复杂时，可以使用 `$include` 指令将配置拆分为多个文件：</p>
 <pre>{
   gateway: { port: 18789 },
@@ -2529,7 +2573,7 @@ openclaw gateway restart</pre>
   // 数组合并多个文件（后者优先）
   broadcast: { $include: [&quot;./clients/a.json5&quot;, &quot;./clients/b.json5&quot;] },
 }</pre>
-<h4 id="sec-11-24-1" data-toc-skip>$include 规则</h4>
+<h5 id="sec-11-24-1" data-toc-skip>$include 规则</h5>
 <table>
   <thead>
     <tr><th>规则</th><th>说明</th></tr>
@@ -2544,9 +2588,9 @@ openclaw gateway restart</pre>
   </tbody>
 </table>
 <hr>
-<h4 id="deep-02-config-system-4" data-toc-skip>配置热重载</h4>
+<h5 id="deep-02-config-system-4" data-toc-skip>配置热重载</h5>
 <p>OpenClaw 的文件监视器（file watcher）持续监控配置文件及其 `$include` 引用文件的变更。检测到变更后，根据热重载模式执行不同行为。</p>
-<h4 id="sec-11-26-1" data-toc-skip>四种重载模式</h4>
+<h5 id="sec-11-26-1" data-toc-skip>四种重载模式</h5>
 <table>
   <thead>
     <tr><th>模式</th><th>行为</th><th>适用场景</th></tr>
@@ -2566,7 +2610,7 @@ openclaw gateway restart</pre>
     },
   },
 }</pre>
-<h4 id="sec-11-27-1" data-toc-skip>安全更改 vs 关键更改</h4>
+<h5 id="sec-11-27-1" data-toc-skip>安全更改 vs 关键更改</h5>
 <table>
   <thead>
     <tr><th>类别</th><th>示例</th><th>需要重启？</th></tr>
@@ -2582,7 +2626,7 @@ openclaw gateway restart</pre>
     <tr><td><strong>基础设施</strong></td><td>discovery、canvasHost、plugins 目录</td><td>是</td></tr>
   </tbody>
 </table>
-<h4 id="sec-11-28-1" data-toc-skip>热应用的工作原理（Atomic Swap）</h4>
+<h5 id="sec-11-28-1" data-toc-skip>热应用的工作原理（Atomic Swap）</h5>
 <p>当检测到安全更改时，OpenClaw 通过<strong>原子式切换</strong>实现零停机热加载：</p>
 <figure><div class="mermaid">
 sequenceDiagram
@@ -2605,39 +2649,39 @@ sequenceDiagram
         C--&gt;&gt;W: 记录错误，保持旧配置运行
     end
 </div><figcaption>图 6.8 · Gateway 子模块</figcaption></figure>
-<h4 id="sec-11-29-1" data-toc-skip>自动重启通知</h4>
+<h5 id="sec-11-29-1" data-toc-skip>自动重启通知</h5>
 <p>当配置变更需要重启时，日志输出：</p>
 <pre>[INFO] Configuration change detected: gateway.port changed from 18789 to 19000
 [INFO] This change requires a restart to take effect.
 [INFO] Run &#x27;openclaw gateway restart&#x27; to apply.</pre>
 <hr>
-<h4 id="deep-02-config-system-5" data-toc-skip>程序化配置更新</h4>
+<h5 id="deep-02-config-system-5" data-toc-skip>程序化配置更新</h5>
 <p>OpenClaw 提供 RPC 接口进行程序化配置更新：</p>
-<h4 id="sec-11-31-1" data-toc-skip>config.apply（完整替换）</h4>
+<h5 id="sec-11-31-1" data-toc-skip>config.apply（完整替换）</h5>
 <pre>openclaw gateway call config.apply --params &#x27;{
   &quot;raw&quot;: &quot;{ agents: { defaults: { model: { primary: \&quot;anthropic/claude-opus-4-6\&quot; } } } }&quot;,
   &quot;baseHash&quot;: &quot;&lt;current-hash&gt;&quot;,
   &quot;sessionKey&quot;: &quot;agent:main:whatsapp:dm:+15555550123&quot;
 }&#x27;</pre>
-<h4 id="sec-11-32-1" data-toc-skip>config.patch（部分更新）</h4>
+<h5 id="sec-11-32-1" data-toc-skip>config.patch（部分更新）</h5>
 <pre>openclaw gateway call config.patch --params &#x27;{
   &quot;raw&quot;: &quot;{ channels: { telegram: { groups: { \&quot;*\&quot;: { requireMention: false } } } } }&quot;,
   &quot;baseHash&quot;: &quot;&lt;current-hash&gt;&quot;
 }&#x27;</pre>
 <hr>
-<h4 id="deep-02-config-system-6" data-toc-skip>环境变量配置</h4>
+<h5 id="deep-02-config-system-6" data-toc-skip>环境变量配置</h5>
 <p>适用于容器化部署和 CI/CD 场景。</p>
-<h4 id="sec-11-34-1" data-toc-skip>.env 文件加载顺序</h4>
+<h5 id="sec-11-34-1" data-toc-skip>.env 文件加载顺序</h5>
 <pre>当前工作目录/.env                 ← 优先加载
 ~/.openclaw/.env                 ← 全局回退</pre>
-<h4 id="sec-11-35-1" data-toc-skip>配置中引用</h4>
+<h5 id="sec-11-35-1" data-toc-skip>配置中引用</h5>
 <pre>{
   env: {
     OPENROUTER_API_KEY: &quot;sk-or-...&quot;,
     vars: { GROQ_API_KEY: &quot;gsk-...&quot; },
   },
 }</pre>
-<h4 id="sec-11-36-1" data-toc-skip>字符串替换</h4>
+<h5 id="sec-11-36-1" data-toc-skip>字符串替换</h5>
 <pre>{
   gateway: { auth: { token: &quot;${OPENCLAW_GATEWAY_TOKEN}&quot; } },
   models: {
@@ -2646,7 +2690,7 @@ sequenceDiagram
     },
   },
 }</pre>
-<h4 id="sec-11-37-1" data-toc-skip>替换规则</h4>
+<h5 id="sec-11-37-1" data-toc-skip>替换规则</h5>
 <table>
   <thead>
     <tr><th>语法</th><th>行为</th></tr>
@@ -2660,13 +2704,13 @@ sequenceDiagram
   </tbody>
 </table>
 <blockquote><p>仅匹配大写名称：`[A-Z_][A-Z0-9_]*`</p></blockquote>
-<h4 id="sec-11-38-1" data-toc-skip>优先级（从高到低）</h4>
+<h5 id="sec-11-38-1" data-toc-skip>优先级（从高到低）</h5>
 <pre>1. 环境变量                        ← 最高优先级
 2. local-override.json ($include)  ← 环境特定覆盖
 3. openclaw.json                   ← 主配置
 4. 代码内置默认值                  ← 最低优先级</pre>
 <hr>
-<h4 id="deep-02-config-system-7" data-toc-skip>通道管理配置</h4>
+<h5 id="deep-02-config-system-7" data-toc-skip>通道管理配置</h5>
 <pre>{
   channels: {
     telegram: {
@@ -2677,7 +2721,7 @@ sequenceDiagram
     },
   },
 }</pre>
-<h4 id="sec-11-40-1" data-toc-skip>DM 策略</h4>
+<h5 id="sec-11-40-1" data-toc-skip>DM 策略</h5>
 <table>
   <thead>
     <tr><th>策略</th><th>说明</th></tr>
@@ -2689,7 +2733,7 @@ sequenceDiagram
     <tr><td><code>disabled</code></td><td>忽略所有 DM</td></tr>
   </tbody>
 </table>
-<h4 id="sec-11-41-1" data-toc-skip>群组策略</h4>
+<h5 id="sec-11-41-1" data-toc-skip>群组策略</h5>
 <pre>{
   agents: {
     list: [{
@@ -2704,7 +2748,7 @@ sequenceDiagram
   },
 }</pre>
 <hr>
-<h4 id="deep-02-config-system-8" data-toc-skip>模型配置</h4>
+<h5 id="deep-02-config-system-8" data-toc-skip>模型配置</h5>
 <pre>{
   agents: {
     defaults: {
@@ -2719,7 +2763,7 @@ sequenceDiagram
     },
   },
 }</pre>
-<h4 id="sec-11-43-1" data-toc-skip>心跳配置</h4>
+<h5 id="sec-11-43-1" data-toc-skip>心跳配置</h5>
 <pre>{
   agents: {
     defaults: {
@@ -2731,7 +2775,7 @@ sequenceDiagram
   },
 }</pre>
 <hr>
-<h4 id="deep-02-config-system-9" data-toc-skip>沙箱配置</h4>
+<h5 id="deep-02-config-system-9" data-toc-skip>沙箱配置</h5>
 <pre>{
   agents: {
     defaults: {
@@ -2758,8 +2802,8 @@ sequenceDiagram
 
 
 
-<h3 id="deep-17">2.6.6 CLI 层与命令系统</h3>
-<div>
+<h4 id="sec-3.1.6" data-toc-skip>CLI 层与命令系统</h4>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -2770,7 +2814,7 @@ sequenceDiagram
 </ul>
 </div>
 <hr>
-<div>
+<div class="oc-keypoint">
 <h3>本章要点</h3>
 <p class="oc-callout-lead">本 wrapper 包含 4 个源文件合集（共 31 个子节）：</p>
 <ul>
@@ -2782,7 +2826,7 @@ sequenceDiagram
 <small class="oc-meta">提示：本 wrapper 内容很长，建议用 <code>Ctrl+F</code> 搜索定位。</small>
 </div>
 
-<h4 id="deep-04-cli-command-system-1" data-toc-skip>CLI 入口流程</h4>
+<h5 id="deep-04-cli-command-system-1" data-toc-skip>CLI 入口流程</h5>
 <p>OpenClaw 的 CLI 从 `src/entry.ts` 启动，经过一系列初始化后到达命令执行阶段：</p>
 <figure><div class="mermaid">flowchart TD
     subgraph entry.ts["① 进程初始化 entry.ts"]
@@ -2813,7 +2857,7 @@ sequenceDiagram
     classDef init fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef route fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef done fill:#d1fae5,stroke:#10b981,color:#065f46</div><figcaption>图 6.9 · Gateway 子模块</figcaption></figure>
-<h4 id="sec-11-55-1" data-toc-skip>entry.ts 各步骤说明</h4>
+<h5 id="sec-11-55-1" data-toc-skip>entry.ts 各步骤说明</h5>
 <table>
   <thead>
     <tr><th>步骤</th><th>说明</th><th>源码位置</th></tr>
@@ -2827,7 +2871,7 @@ sequenceDiagram
     <tr><td><strong>调用主入口</strong></td><td>将控制权交给 <code>run-main.ts</code></td><td><code>src/cli/run-main.ts</code></td></tr>
   </tbody>
 </table>
-<h4 id="sec-11-56-1" data-toc-skip>run-main.ts 命令路由</h4>
+<h5 id="sec-11-56-1" data-toc-skip>run-main.ts 命令路由</h5>
 <figure><div class="mermaid">
 flowchart TB
     subgraph 命令路由
@@ -2845,12 +2889,12 @@ flowchart TB
     classDef full fill:#fef3c7,stroke:#f59e0b,color:#92400e
 </div><figcaption>图 6.10 · Gateway 子模块</figcaption></figure>
 <hr>
-<h4 id="deep-04-cli-command-system-2" data-toc-skip>快路径命令</h4>
+<h5 id="deep-04-cli-command-system-2" data-toc-skip>快路径命令</h5>
 <p>"快路径命令"是不需要加载完整命令树的常用命令，可以绕过 `buildProgram（）`，直接执行逻辑。</p>
-<h4 id="sec-11-58-1" data-toc-skip>优势</h4>
+<h5 id="sec-11-58-1" data-toc-skip>优势</h5>
 <ul><li><strong>显著缩短冷启动时间</strong>：省去了命令树的构建和注册过程</li></ul>
 <ul><li><strong>适用于高频命令</strong>：`status`、`health` 等常用命令总是走快路径</li></ul>
-<h4 id="sec-11-59-1" data-toc-skip>快路径命令一览</h4>
+<h5 id="sec-11-59-1" data-toc-skip>快路径命令一览</h5>
 <table>
   <thead>
     <tr><th>命令</th><th>用途</th><th>示例</th></tr>
@@ -2864,9 +2908,9 @@ flowchart TB
   </tbody>
 </table>
 <hr>
-<h4 id="deep-04-cli-command-system-3" data-toc-skip>会话诊断命令</h4>
+<h5 id="deep-04-cli-command-system-3" data-toc-skip>会话诊断命令</h5>
 <p>除了快路径命令外，OpenClaw 还提供一套会话诊断命令，用于调试和运维排查：</p>
-<h4 id="sec-11-61-1" data-toc-skip>CLI 诊断命令</h4>
+<h5 id="sec-11-61-1" data-toc-skip>CLI 诊断命令</h5>
 <pre># 显示存储路径和最近会话
 openclaw status
 
@@ -2878,7 +2922,7 @@ openclaw sessions --active
 
 # 读取配置项
 openclaw config get agents.defaults.model</pre>
-<h4 id="sec-11-62-1" data-toc-skip>会话内诊断命令</h4>
+<h5 id="sec-11-62-1" data-toc-skip>会话内诊断命令</h5>
 <table>
   <thead>
     <tr><th>命令</th><th>用途</th></tr>
@@ -2896,7 +2940,7 @@ openclaw config get agents.defaults.model</pre>
   </tbody>
 </table>
 <hr>
-<h4 id="deep-04-cli-command-system-4" data-toc-skip>命令注册机制</h4>
+<h5 id="deep-04-cli-command-system-4" data-toc-skip>命令注册机制</h5>
 <p>OpenClaw 的命令系统采用<strong>懒加载</strong>模式，只有在命令实际需要时才加载对应的子命令模块：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -2922,7 +2966,7 @@ flowchart LR
     classDef reg fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef exec fill:#fef3c7,stroke:#f59e0b,color:#92400e
 </div><figcaption>图 6.11 · Gateway 子模块</figcaption></figure>
-<h4 id="sec-11-64-1" data-toc-skip>关键设计原则</h4>
+<h5 id="sec-11-64-1" data-toc-skip>关键设计原则</h5>
 <table>
   <thead>
     <tr><th>设计</th><th>说明</th></tr>
@@ -2935,7 +2979,7 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-04-cli-command-system-5" data-toc-skip>CLI ↔ Gateway 通信</h4>
+<h5 id="deep-04-cli-command-system-5" data-toc-skip>CLI ↔ Gateway 通信</h5>
 <p>CLI 通过以下方式与运行中的 Gateway 通信：</p>
 <figure><div class="mermaid">
 flowchart TB
@@ -2952,13 +2996,13 @@ flowchart TB
     classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef done fill:#f1f5f9,stroke:#64748b,color:#1e293b
 </div><figcaption>图 6.12 · Gateway 子模块</figcaption></figure>
-<h4 id="sec-11-66-1" data-toc-skip>常用 Gateway RPC 调用</h4>
+<h5 id="sec-11-66-1" data-toc-skip>常用 Gateway RPC 调用</h5>
 <pre># 调用 Gateway 方法
 openclaw gateway call sessions.list
 openclaw gateway call config.apply --params &#x27;{...}&#x27;
 openclaw gateway call config.patch --params &#x27;{...}&#x27;</pre>
 <hr>
-<h4 id="deep-04-cli-command-system-6" data-toc-skip>关键源码文件</h4>
+<h5 id="deep-04-cli-command-system-6" data-toc-skip>关键源码文件</h5>
 <table>
   <thead>
     <tr><th>文件</th><th>作用</th><th>执行时机</th></tr>
@@ -2982,14 +3026,27 @@ openclaw gateway call config.patch --params &#x27;{...}&#x27;</pre>
 
 
 
-  <h2 id="sec-7">2.7 5 条接口契约</h2>
+  <h3 id="sec-3.2">2.3.2 5 条接口契约</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">学习要点</p>
+<ul>
+  <li>WebSocket 协议层的 4 层结构如何划分？每层的源码文件在哪里？</li>
+  <li>"三层总闸"分别是什么？如何层层递进保障系统安全？</li>
+  <li>一次完整的协议校验流程是怎样的？</li>
+  <li>六类广播事件分别由谁触发、谁消费？</li>
+</ul>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>5 条接口契约<strong>不是凭空设计</strong>——它们是"如果改动这条契约，会破坏多少下游"的边界。Envelop 是最稳定的，Tool Result 是最容易演化的。</p>
+
+</div>
 
   <p>层与层之间用什么"说话"？这一节给出 OpenClaw 中 <strong>5 条关键接口契约</strong> 的完整数据结构——知道它们，就能精确预测消息流向。</p>
 
   <p>5 条核心数据结构定义了整个 OpenClaw 的"语言"——任何扩展都要遵守这些契约。</p>
 
-  <h3 id="sec-7.1">2.7.1 <code>Envelope</code>——标准化消息</h3>
-  <pre><span>// packages/protocol/src/envelope.ts</span>
+  <h4 id="sec-3.2.1" data-toc-skip>Envelope——标准化消息</h4>
+<pre><span>// packages/protocol/src/envelope.ts</span>
 <span>export interface</span> <span class="oc-path">Envelope</span> {
   <span>id</span>: string;                       <span>// UUID</span>
   <span>channel</span>: string;                 <span>// "whatsapp" | "telegram" | "slack" | "web"</span>
@@ -3000,16 +3057,16 @@ openclaw gateway call config.patch --params &#x27;{...}&#x27;</pre>
   <span>metadata</span>?: Record&lt;string, unknown&gt;;
 }</pre>
 
-  <h3 id="sec-7.2">2.7.2 <code>ToolCall</code>——工具调用</h3>
-  <pre><span>// packages/protocol/src/tool-call.ts</span>
+  <h4 id="sec-3.2.2" data-toc-skip>ToolCall——工具调用</h4>
+<pre><span>// packages/protocol/src/tool-call.ts</span>
 <span>export interface</span> <span class="oc-path">ToolCall</span> {
   <span>id</span>: string;
   <span>name</span>: string;                     <span>// "web_search" | "calendar" | ...</span>
   <span>arguments</span>: Record&lt;string, unknown&gt;;
 }</pre>
 
-  <h3 id="sec-7.3">2.7.3 <code>RpcRequest</code>——JSON-RPC 请求</h3>
-  <pre><span>// packages/protocol/src/json-rpc.ts</span>
+  <h4 id="sec-3.2.3" data-toc-skip>RpcRequest——JSON-RPC 请求</h4>
+<pre><span>// packages/protocol/src/json-rpc.ts</span>
 <span>export interface</span> <span class="oc-path">RpcRequest</span> {
   <span>jsonrpc</span>: <span>"2.0"</span>;
   <span>id</span>: string | number;
@@ -3017,23 +3074,23 @@ openclaw gateway call config.patch --params &#x27;{...}&#x27;</pre>
   <span>params</span>?: unknown;
 }</pre>
 
-  <h3 id="sec-7.4">2.7.4 <code>Outbound</code>——出站消息</h3>
-  <pre><span>export interface</span> <span class="oc-path">Outbound</span> {
+  <h4 id="sec-3.2.4" data-toc-skip>Outbound——出站消息</h4>
+<pre><span>export interface</span> <span class="oc-path">Outbound</span> {
   <span>peer</span>: { <span>id</span>: string; <span>name</span>?: string };
   <span>text</span>: string;
   <span>attachments</span>?: Attachment[];
   <span>replyTo</span>?: string;                 <span>// 引用的 Envelope.id</span>
 }</pre>
 
-  <h3 id="sec-7.5">2.7.5 <code>Provider</code>——LLM Provider 接口</h3>
-  <pre><span>// packages/agent-core/src/Provider.ts</span>
+  <h4 id="sec-3.2.5" data-toc-skip>Provider——LLM Provider 接口</h4>
+<pre><span>// packages/agent-core/src/Provider.ts</span>
 <span>export interface</span> <span class="oc-path">Provider</span> {
   <span>readonly</span> name: string;
   <span class="oc-path">chat</span>(req: ChatRequest): Promise&lt;ChatResponse&gt;;
   <span class="oc-path">stream</span>(req: ChatRequest): AsyncIterable&lt;ChatChunk&gt;;
 }</pre>
 
-  <h3 id="sec-7.6">2.7.6 子模块之间怎么通信？</h3>
+  <h4 id="sec-3.2.6" data-toc-skip>子模块之间怎么通信？</h4>
   <p>子模块之间通过<strong>函数调用</strong>（同步） + <strong>事件总线</strong>（异步） 两种方式通信：</p>
   <ul>
     <li><strong>函数调用</strong>——L2 调用 L3 的 <code>agent.run(input)</code>，L3 调用 L2 的 <code>session.append(event)</code></li>
@@ -3042,24 +3099,12 @@ openclaw gateway call config.patch --params &#x27;{...}&#x27;</pre>
   <p><strong>不推荐</strong>：直接 import 另一个子模块的内部函数——通过它们暴露的接口。</p>
 
 
-<div class="thinking-note">
-<h3>思考笔记</h3>
-<p>5 条接口契约<strong>不是凭空设计</strong>——它们是"如果改动这条契约，会破坏多少下游"的边界。Envelop 是最稳定的，Tool Result 是最容易演化的。</p>
-</div>
 
-<h3 id="deep-16">2.7.7 WebSocket 协议层</h3>
-<div>
-<h3>本章要点</h3>
-<p class="oc-callout-lead">学习要点</p>
-<ul>
-  <li>WebSocket 协议层的 4 层结构如何划分？每层的源码文件在哪里？</li>
-  <li>"三层总闸"分别是什么？如何层层递进保障系统安全？</li>
-  <li>一次完整的协议校验流程是怎样的？</li>
-  <li>六类广播事件分别由谁触发、谁消费？</li>
-</ul>
-</div>
+
+<h4 id="sec-3.2.7" data-toc-skip>WebSocket 协议层</h4>
+
 <hr>
-<h4 id="deep-03-websocket-protocol-1" data-toc-skip>四层结构</h4>
+<h5 id="deep-03-websocket-protocol-1" data-toc-skip>四层结构</h5>
 <p>WebSocket 协议层是 Gateway 的<strong>连接中枢</strong>，所有与客户端的长连接通信都经过这四层处理：</p>
 <figure><div class="mermaid">flowchart TD
     subgraph L1["① 连接层 — Connection Layer"]
@@ -3090,7 +3135,7 @@ openclaw gateway call config.patch --params &#x27;{...}&#x27;</pre>
     L1 --&gt;|"握手成功"| L2
     L2 --&gt;|"帧校验通过"| L3
     L3 --&gt;|"方法分发"| L4</div><figcaption>图 7.2 · 5 条接口契约</figcaption></figure>
-<h4 id="sec-11-47-1" data-toc-skip>各层职责</h4>
+<h5 id="sec-11-47-1" data-toc-skip>各层职责</h5>
 <table>
   <thead>
     <tr><th>层级</th><th>源码文件</th><th>核心职责</th><th>关键机制</th></tr>
@@ -3103,7 +3148,7 @@ openclaw gateway call config.patch --params &#x27;{...}&#x27;</pre>
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-websocket-protocol-2" data-toc-skip>三层总闸</h4>
+<h5 id="deep-03-websocket-protocol-2" data-toc-skip>三层总闸</h5>
 <p>在请求进入四层处理之前，OpenClaw 设置了<strong>三道总闸</strong>进行安全过滤：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -3142,7 +3187,7 @@ flowchart LR
 </table>
 <blockquote><p>三道闸门层层递进、互不绕过，任何一道未通过则请求直接被拒绝。</p></blockquote>
 <hr>
-<h4 id="deep-03-websocket-protocol-3" data-toc-skip>协议校验流程</h4>
+<h5 id="deep-03-websocket-protocol-3" data-toc-skip>协议校验流程</h5>
 <p>一次完整的 WebSocket 通信从建立连接到方法调用，经历以下校验流程：</p>
 <figure><div class="mermaid">
 sequenceDiagram
@@ -3186,7 +3231,7 @@ sequenceDiagram
         GW--&gt;&gt;WS: 格式错误码
     end
 </div><figcaption>图 7.4 · 5 条接口契约</figcaption></figure>
-<h4 id="sec-11-50-1" data-toc-skip>校验流程要点</h4>
+<h5 id="sec-11-50-1" data-toc-skip>校验流程要点</h5>
 <table>
   <thead>
     <tr><th>阶段</th><th>检查点</th><th>通过条件</th><th>失败处理</th></tr>
@@ -3199,7 +3244,7 @@ sequenceDiagram
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-websocket-protocol-4" data-toc-skip>帧协议格式</h4>
+<h5 id="deep-03-websocket-protocol-4" data-toc-skip>帧协议格式</h5>
 <p>OpenClaw WebSocket 帧使用 JSON 格式，基本结构如下：</p>
 <pre>{
   &quot;type&quot;: &quot;method_call&quot; | &quot;method_response&quot; | &quot;event&quot; | &quot;error&quot;,
@@ -3219,7 +3264,7 @@ sequenceDiagram
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-websocket-protocol-5" data-toc-skip>关键源码文件</h4>
+<h5 id="deep-03-websocket-protocol-5" data-toc-skip>关键源码文件</h5>
 <table>
   <thead>
     <tr><th>文件</th><th>作用</th></tr>
@@ -3243,7 +3288,12 @@ sequenceDiagram
 
 
 
-  <h2 id="sec-8">2.8 三级信任模型</h2>
+  <h2 id="seg-4">2.4 信任与安全</h2><div class="oc-part-lead"><strong>第四段 · 信任与安全</strong>把「可信 / 不可信 / 隔离」从原则展开成三级可识别的边界，再对照真实威胁场景。</div><h3 id="sec-4.1">2.4.1 三级信任模型</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三级信任模型的<strong>关键不是"信任"本身，而是"边界"</strong>——你在哪条边界上，决定你能调什么 API、读什么数据。开发者最常犯的错是"忘记自己处于哪条边界"。</p>
+<p><strong>思考笔记</strong></p>
+<p>三级信任模型的<strong>关键不是"信任"本身，而是"边界"</strong>——你在哪条边界上，决定你能调什么 API、读什么数据。开发者最常犯的错是"忘记自己处于哪条边界"。</p>
+</div>
 
   <p>三原则是"为什么这样设计"，三级信任是"具体落地为安全边界"。这一节把"可信 / 不可信 / 隔离"原则展开为 <strong>3 层可识别的边界</strong>。</p>
 
@@ -3264,7 +3314,7 @@ flowchart LR
   style T3 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
 </div><figcaption>图 2.5 · 三级信任——越靠外越不可信。</figcaption></figure>
 
-  <h3 id="sec-8.1">2.8.1 Level 1 · 可信 （TRUSTED）</h3>
+  <h4 id="sec-4.1.1" data-toc-skip>Level 1 · 可信 （TRUSTED）</h4>
   <p><strong>谁</strong>：Gateway 自身的代码 + 配置 + 密钥存储。</p>
   <p><strong>特征</strong>:</p>
   <ul>
@@ -3274,7 +3324,7 @@ flowchart LR
   </ul>
   <p><strong>代码位置</strong>:<code>apps/gateway/src/</code> 全部子目录。</p>
 
-  <h3 id="sec-8.2">2.8.2 Level 2 · 半可信 （SEMI-TRUSTED）</h3>
+  <h4 id="sec-4.1.2" data-toc-skip>Level 2 · 半可信 （SEMI-TRUSTED）</h4>
   <p><strong>谁</strong>:<code>extensions/</code> 下的所有插件（通道、模型、工具）。</p>
   <p><strong>特征</strong>:</p>
   <ul>
@@ -3284,7 +3334,7 @@ flowchart LR
   </ul>
   <p><strong>代码位置</strong>:<code>extensions/&lt;name&gt;/</code> 下的所有 <code>.ts</code> 文件。</p>
 
-  <h3 id="sec-8.3">2.8.3 Level 3 · 不可信 （UNTRUSTED）</h3>
+  <h4 id="sec-4.1.3" data-toc-skip>Level 3 · 不可信 （UNTRUSTED）</h4>
   <p><strong>谁</strong>:</p>
   <ul>
     <li><strong>外部消息</strong>——WhatsApp / Telegram / Slack 发来的所有内容</li>
@@ -3299,24 +3349,31 @@ flowchart LR
   </ul>
 
 
-<div class="thinking-note">
+
+
+
+
+
+
+
+  <h3 id="sec-4.2">2.4.2 威胁与防护</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">学习要点</p>
+<ul>
+  <li>OpenClaw 的 4 层鉴权架构分别检查什么？三层总闸和四层鉴权如何协同？</li>
+  <li>ACPX Harness 的权限模式有哪些？非交互式场景下如何处理权限弹窗？</li>
+  <li>核心安全原则有哪些？危险命令如何配置？</li>
+  <li>如何排查工具执行权限问题？</li>
+</ul>
+</div><div class="thinking-note">
 <h3>思考笔记</h3>
-<p>三级信任模型的<strong>关键不是"信任"本身，而是"边界"</strong>——你在哪条边界上，决定你能调什么 API、读什么数据。开发者最常犯的错是"忘记自己处于哪条边界"。</p>
+<p>威胁场景按"攻击面"分类——通道 / 工具 / 配置 / 凭据。OpenClaw 已经在<strong>架构层</strong>做了防护（沙箱、scope、Zod 校验），但应用层需要自己做（比如限流、审计日志）。</p>
+
 </div>
-
-
-<div class="thinking-note">
-<h3>思考笔记</h3>
-<p>三级信任模型的<strong>关键不是"信任"本身，而是"边界"</strong>——你在哪条边界上，决定你能调什么 API、读什么数据。开发者最常犯的错是"忘记自己处于哪条边界"。</p>
-</div>
-
-
-
-  <h2 id="sec-9">2.9 威胁与防护</h2>
 
   <p>原则不会自动产生安全——这一节列出 <strong>11 个具体威胁场景</strong> 和 5 项<strong>必做的安全检查</strong>。上线前过一遍，避免 80% 的常见漏洞。</p>
 
-  <h3 id="sec-9.1">2.9.1 主要威胁场景 + OpenClaw 应对</h3>
+  <h4 id="sec-4.2.1" data-toc-skip>主要威胁场景 + OpenClaw 应对</h4>
   <table>
     <thead><tr><th>威胁</th><th>攻击向量</th><th>OpenClaw 应对</th></tr></thead>
     <tbody>
@@ -3330,7 +3387,7 @@ flowchart LR
     </tbody>
   </table>
 
-  <h3 id="sec-9.2">2.9.2 安全配置检查清单</h3>
+  <h4 id="sec-4.2.2" data-toc-skip>安全配置检查清单</h4>
   <ul>
     <li><code>openclaw.config.yaml</code> 在 600 权限（<code>chmod 600</code>)</li>
     <li>所有 API Key 用 <code>${env:XXX}</code> 引用，不硬编码</li>
@@ -3345,24 +3402,12 @@ flowchart LR
   </ul>
 
 
-<div class="thinking-note">
-<h3>思考笔记</h3>
-<p>威胁场景按"攻击面"分类——通道 / 工具 / 配置 / 凭据。OpenClaw 已经在<strong>架构层</strong>做了防护（沙箱、scope、Zod 校验），但应用层需要自己做（比如限流、审计日志）。</p>
-</div>
 
-<h3 id="deep-23">2.9.3 安全策略配置</h3>
-<div>
-<h3>本章要点</h3>
-<p class="oc-callout-lead">学习要点</p>
-<ul>
-  <li>OpenClaw 的 4 层鉴权架构分别检查什么？三层总闸和四层鉴权如何协同？</li>
-  <li>ACPX Harness 的权限模式有哪些？非交互式场景下如何处理权限弹窗？</li>
-  <li>核心安全原则有哪些？危险命令如何配置？</li>
-  <li>如何排查工具执行权限问题？</li>
-</ul>
-</div>
+
+<h4 id="sec-4.2.3" data-toc-skip>安全策略配置</h4>
+
 <hr>
-<h4 id="deep-03-safety-strategy-1" data-toc-skip>安全架构总览</h4>
+<h5 id="deep-03-safety-strategy-1" data-toc-skip>安全架构总览</h5>
 <p>OpenClaw 的安全体系由<strong>三层总闸</strong>（请求入口）和<strong>四层鉴权</strong>（请求处理）构成：</p>
 <figure><div class="mermaid">
 flowchart LR
@@ -3387,7 +3432,7 @@ flowchart LR
     classDef gate fill:#fee2e2,stroke:#ef4444,color:#991b1b
     classDef layer fill:#fef3c7,stroke:#f59e0b,color:#92400e
 </div><figcaption>图 9.2 · 威胁与防护</figcaption></figure>
-<h4 id="sec-13-16-1" data-toc-skip>4 层鉴权</h4>
+<h5 id="sec-13-16-1" data-toc-skip>4 层鉴权</h5>
 <table>
   <thead>
     <tr><th>层级</th><th>检查内容</th><th>通过条件</th><th>失败后果</th></tr>
@@ -3400,9 +3445,9 @@ flowchart LR
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-safety-strategy-2" data-toc-skip>ACPX Harness 权限</h4>
+<h5 id="deep-03-safety-strategy-2" data-toc-skip>ACPX Harness 权限</h5>
 <p>ACPX 会话通常是非交互式的（如 CI/CD 环境），不能点 TTY 权限弹窗，因此需要预先配置处理策略。</p>
-<h4 id="sec-13-18-1" data-toc-skip>权限模式</h4>
+<h5 id="sec-13-18-1" data-toc-skip>权限模式</h5>
 <table>
   <thead>
     <tr><th>参数</th><th>值</th><th>含义</th><th>适用场景</th></tr>
@@ -3415,13 +3460,13 @@ flowchart LR
     <tr><td><code>nonInteractivePermissions</code></td><td><code>deny</code></td><td>拒绝提示并尽量继续执行</td><td>容忍部分失败</td></tr>
   </tbody>
 </table>
-<h4 id="sec-13-19-1" data-toc-skip>配置示例</h4>
+<h5 id="sec-13-19-1" data-toc-skip>配置示例</h5>
 <pre>openclaw config set plugins.entries.acpx.config.permissionMode approve-reads
 openclaw config set plugins.entries.acpx.config.nonInteractivePermissions fail
 openclaw gateway restart</pre>
 <blockquote><p><strong>重要</strong>：ACPX 权限不会放宽 host exec 审批；host exec 审批也不会放宽 ACPX Harness 提示。两者独立检查。</p></blockquote>
 <hr>
-<h4 id="deep-03-safety-strategy-3" data-toc-skip>核心安全原则</h4>
+<h5 id="deep-03-safety-strategy-3" data-toc-skip>核心安全原则</h5>
 <table>
   <thead>
     <tr><th>原则</th><th>说明</th><th>建议</th></tr>
@@ -3434,7 +3479,7 @@ openclaw gateway restart</pre>
     <tr><td><strong>审计追踪</strong></td><td>团队环境要记录谁触发了什么工具</td><td>启用详细日志</td></tr>
   </tbody>
 </table>
-<h4 id="sec-13-21-1" data-toc-skip>危险命令配置</h4>
+<h5 id="sec-13-21-1" data-toc-skip>危险命令配置</h5>
 <pre>{
   rules: [
     { pattern: &quot;sudo *&quot;, policy: &quot;deny&quot; },          // 禁止提权
@@ -3444,7 +3489,7 @@ openclaw gateway restart</pre>
     { pattern: &quot;dd if=/dev/zero of=/dev/sda&quot;, policy: &quot;deny&quot; }, // 禁止磁盘覆写
   ],
 }</pre>
-<h4 id="sec-13-22-1" data-toc-skip>审批的安全影响</h4>
+<h5 id="sec-13-22-1" data-toc-skip>审批的安全影响</h5>
 <table>
   <thead>
     <tr><th>操作</th><th>影响</th><th>建议</th></tr>
@@ -3456,7 +3501,7 @@ openclaw gateway restart</pre>
   </tbody>
 </table>
 <hr>
-<h4 id="deep-03-safety-strategy-4" data-toc-skip>排查工具问题</h4>
+<h5 id="deep-03-safety-strategy-4" data-toc-skip>排查工具问题</h5>
 <p>检查两层审批：</p>
 <pre># 查看审批规则
 openclaw approvals get
@@ -3466,7 +3511,7 @@ openclaw exec-policy show
 
 # 查看当前权限模式
 openclaw config get tools.exec.mode</pre>
-<h4 id="sec-13-24-1" data-toc-skip>排查流程</h4>
+<h5 id="sec-13-24-1" data-toc-skip>排查流程</h5>
 <figure><div class="mermaid">
 flowchart TB
     PROB["工具执行被拒绝"]:::start
@@ -3486,19 +3531,25 @@ flowchart TB
 
 
 
-  <h2 id="sec-10">2.10 总结</h2>
+  <h2 id="seg-5">2.5 总结</h2><div class="oc-part-lead"><strong>收束 · 本章结论</strong>把三层结构收成几句可以带走的结论，并交代下一章的接口。</div>
 
-  <h3 id="sec-10.1">2.10.1 一句话总结</h3>
+  <h3 id="sec-5.1">2.5.1 一句话总结</h3>
   <div class="thinking-note">
-<h3>要点</h3>
+<h3>思考笔记</h3>
 <p class="oc-callout-lead">三原则（可信网关 · 不可信执行 · 确定性策略） → 四层（L1-L4） → Gateway 7 子模块 → 三级信任（TRUSTED / SEMI-TRUSTED / UNTRUSTED）。</p>
     <br><br>
     <strong>看完本模块，你能把任意 OpenClaw 行为定位到具体的子目录 + 具体的接口契约。</strong>
 </div>
 
-  <h3 id="sec-10.2">2.10.2 相关阅读</h3>
+  <h3 id="sec-5.2">2.5.2 本章结论</h3><ol class="oc-points">
+  <li><strong>三原则是「为什么」，四层是「是什么」，子模块与契约是「在哪里」。</strong>三层缺一不可：只讲原则无法验证，只讲分层不知道边界在哪。</li>
+  <li><strong>每层只与相邻层交互。</strong>层间接口稳定，意味着可以在任意一层上做替换或扩展，而不必推倒重来。</li>
+  <li><strong>Gateway 是唯一可信方。</strong>通道、模型、会话、工具、策略都从它进，也从它出——信任边界因此只有一个，不需要信任模型矩阵。</li>
+  <li><strong>模块之间只需要对齐 5 条契约。</strong>Envelope、ToolCall、RpcRequest、Outbound、Provider：接一个新模块，先看它落在哪条契约上。</li>
+  <li><strong>三级信任把原则落成可识别的边界。</strong>越往里权限越大，越往外越不可信；排查越权问题先定级别，再看这条数据流经过了哪几级。</li>
+</ol><h3 id="sec-5.3">2.5.3 下一章</h3><p>下一章 <strong>第 3 章 · 消息通道——适配器协议与统一信封</strong>：把四层架构的 L1 接入层单独拆开，看 15+ 个外部平台怎样被翻译成同一种 Envelope。</p><h3 id="sec-5.4">2.5.4 相关阅读</h3>
   <ul>
-<li><a href="/2026/11/07/openclaw-01-overview/#sec-2"><strong>01 · 概览 三原则速览</strong></a> — </li>
+<li><a href="/2026/11/07/openclaw-01-overview/#sec-1.2"><strong>01 · 概览 三原则速览</strong></a> — 三原则的原始表述——本章四层架构与三级信任的由来。</li>
 <li><a href="/2026/11/07/openclaw-03-channels/"><strong>03 · 通道 消息通道</strong></a> — L1 接入层的具体实现——15+ 通道适配器 + 协议帧。</li>
 <li><a href="/2026/11/07/openclaw-06-tools-hooks/"><strong>06 · 工具 工具与钩子</strong></a> — L3 推理层 + 4 档沙箱——"不可信执行"原则的实现细节。</li>
 <li><a href="/2026/11/07/openclaw-09-error-handling/"><strong>09 · 异常 错误处理与降级</strong></a> — 架构级降级——熔断器、fallback chain、优雅降级。</li>
@@ -3506,16 +3557,10 @@ flowchart TB
 </ul>
 
 
-<div class="thinking-note">
-<h3>思考笔记</h3>
-<p>看完模块 02，你应该能回答：<strong>"一条消息如何在 OpenClaw 中被处理"</strong>。如果还答不上来，回到 2.5 消息生命周期重新看。</p>
-</div>
 
-
-
-</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">2.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">2.2 核心架构的三个原则</a><a class="reading-toc-link level-3" href="#sec-2.1">2.2.1 原则一 · 可信的网关 → gateway/ 子模块</a><a class="reading-toc-link level-3" href="#sec-2.2">2.2.2 原则二 · 不可信的执行 → tools/sandbox/ 子模块</a><a class="reading-toc-link level-3" href="#sec-2.3">2.2.3 原则三 · 确定性的策略 → config/ 子模块</a><a class="reading-toc-link level-3" href="#sec-2.4">2.2.4 三原则的相互约束</a><a class="reading-toc-link level-2" href="#sec-3">2.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">2.4 四层架构</a><a class="reading-toc-link level-3" href="#sec-4.1">2.4.1 L1 · 接入层 （Access Layer）</a><a class="reading-toc-link level-3" href="#sec-4.2">2.4.2 L2 · 编排层 （Orchestration Layer）</a><a class="reading-toc-link level-3" href="#sec-4.3">2.4.3 L3 · 推理层 （Inference Layer）</a><a class="reading-toc-link level-3" href="#sec-4.4">2.4.4 L4 · 持久层 （Persistence Layer）</a><a class="reading-toc-link level-3" href="#sec-4.5">2.4.5 为什么是 4 层而不是 3 层或 5 层？</a><a class="reading-toc-link level-3" href="#deep-11">2.4.6 分层架构全景</a><a class="reading-toc-link level-3" href="#deep-12">2.4.7 核心概念模型</a><a class="reading-toc-link level-3" href="#deep-22">2.4.8 工具系统架构</a><a class="reading-toc-link level-2" href="#sec-5">2.5 消息生命周期</a><a class="reading-toc-link level-3" href="#sec-5.1">2.5.1 每层的职责总结</a><a class="reading-toc-link level-3" href="#deep-18">2.5.2 Agent Loop 完整工作流</a><a class="reading-toc-link level-3" href="#deep-19">2.5.3 队列与并发控制</a><a class="reading-toc-link level-3" href="#deep-20">2.5.4 流式输出与事件机制</a><a class="reading-toc-link level-3" href="#deep-21">2.5.5 超时与生命周期</a><a class="reading-toc-link level-2" href="#sec-6">2.6 Gateway 子模块</a><a class="reading-toc-link level-3" href="#sec-6.1">2.6.1 7 大子模块详解</a><a class="reading-toc-link level-3" href="#sec-6.2">2.6.2 入口文件 index.ts</a><a class="reading-toc-link level-3" href="#deep-13">2.6.3 核心源码索引</a><a class="reading-toc-link level-3" href="#deep-14">2.6.4 Gateway 定位与职责</a><a class="reading-toc-link level-3" href="#deep-15">2.6.5 配置系统与热重载</a><a class="reading-toc-link level-3" href="#deep-17">2.6.6 CLI 层与命令系统</a><a class="reading-toc-link level-2" href="#sec-7">2.7 5 条接口契约</a><a class="reading-toc-link level-3" href="#sec-7.1">2.7.1 Envelope——标准化消息</a><a class="reading-toc-link level-3" href="#sec-7.2">2.7.2 ToolCall——工具调用</a><a class="reading-toc-link level-3" href="#sec-7.3">2.7.3 RpcRequest——JSON-RPC 请求</a><a class="reading-toc-link level-3" href="#sec-7.4">2.7.4 Outbound——出站消息</a><a class="reading-toc-link level-3" href="#sec-7.5">2.7.5 Provider——LLM Provider 接口</a><a class="reading-toc-link level-3" href="#sec-7.6">2.7.6 子模块之间怎么通信？</a><a class="reading-toc-link level-3" href="#deep-16">2.7.7 WebSocket 协议层</a><a class="reading-toc-link level-2" href="#sec-8">2.8 三级信任模型</a><a class="reading-toc-link level-3" href="#sec-8.1">2.8.1 Level 1 · 可信 （TRUSTED）</a><a class="reading-toc-link level-3" href="#sec-8.2">2.8.2 Level 2 · 半可信 （SEMI-TRUSTED）</a><a class="reading-toc-link level-3" href="#sec-8.3">2.8.3 Level 3 · 不可信 （UNTRUSTED）</a><a class="reading-toc-link level-2" href="#sec-9">2.9 威胁与防护</a><a class="reading-toc-link level-3" href="#sec-9.1">2.9.1 主要威胁场景 + OpenClaw 应对</a><a class="reading-toc-link level-3" href="#sec-9.2">2.9.2 安全配置检查清单</a><a class="reading-toc-link level-3" href="#deep-23">2.9.3 安全策略配置</a><a class="reading-toc-link level-2" href="#sec-10">2.10 总结</a><a class="reading-toc-link level-3" href="#sec-10.1">2.10.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-10.2">2.10.2 相关阅读</a></nav></details></aside>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">2.1 从原则到代码</a><a class="reading-toc-link level-3" href="#sec-1.1">2.1.1 一句话定位</a><a class="reading-toc-link level-3" href="#sec-1.2">2.1.2 核心架构的三个原则</a><a class="reading-toc-link level-3" href="#sec-1.3">2.1.3 模块位置</a><a class="reading-toc-link level-2" href="#seg-2">2.2 四层与运行</a><a class="reading-toc-link level-3" href="#sec-2.1">2.2.1 四层架构</a><a class="reading-toc-link level-3" href="#sec-2.2">2.2.2 消息生命周期</a><a class="reading-toc-link level-2" href="#seg-3">2.3 子模块与契约</a><a class="reading-toc-link level-3" href="#sec-3.1">2.3.1 Gateway 子模块</a><a class="reading-toc-link level-3" href="#sec-3.2">2.3.2 5 条接口契约</a><a class="reading-toc-link level-2" href="#seg-4">2.4 信任与安全</a><a class="reading-toc-link level-3" href="#sec-4.1">2.4.1 三级信任模型</a><a class="reading-toc-link level-3" href="#sec-4.2">2.4.2 威胁与防护</a><a class="reading-toc-link level-2" href="#seg-5">2.5 总结</a><a class="reading-toc-link level-3" href="#sec-5.1">2.5.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-5.2">2.5.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-5.3">2.5.3 下一章</a><a class="reading-toc-link level-3" href="#sec-5.4">2.5.4 相关阅读</a></nav></details></aside>
     </div>
-    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-01-overview/"><small>← 上一篇</small><span>OpenClaw 是什么 — 概览与心智模型</span></a></div><div><a href="/2026/11/07/openclaw-03-channels/"><small>下一篇 →</small><span>消息通道与适配器协议</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-01-overview/"><small>← 上一篇</small><span>OpenClaw 是什么——概览与心智模型</span></a></div><div><a href="/2026/11/07/openclaw-03-channels/"><small>下一篇 →</small><span>消息通道——适配器协议与统一信封</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
   </article>
 </main>
 <footer class="portal-footer">
