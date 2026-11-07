@@ -21,9 +21,10 @@
   <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
   <link rel="canonical" href="http://lianjifu.cn/2026/11/07/openclaw-08-performance/">
   <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/2026.css">
   <link rel="stylesheet" href="/css/portal.css?v=2">
   <link rel="stylesheet" href="/css/article.css?v=6">
-  <link rel="stylesheet" href="/css/openclaw.css?v=3">
+  <link rel="stylesheet" href="/css/openclaw.css?v=5">
   <script src="/js/portal.js?v=6" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -146,60 +147,120 @@
     <div class="article-reading-layout">
       <div class="post-body openclaw-body" itemprop="articleBody">
 
-<p class="post-lede">
+<p class="oc-lead">
   <strong>1，200 msg/s 与 0.8s TTFT</strong>——OpenClaw 的性能基线和瓶颈定位。把每条消息的耗时拆到毫秒级，识别"必须优化"vs"可以接受"。
 </p>
+<table class="guide-card collapsed">
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr class="guide-card-header">
+      <td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>知道快慢，才知道该优化什么——否则很容易把时间花在只占 2% 的本地路由上</li>
+          <li>OpenClaw 的性能基线此前没有公开的、可复核的测量</li>
+          <li>延迟的数字必须对应真实用户能感知的那一段</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>把每条消息的耗时拆到毫秒级，区分「必须优化」与「可以接受」</li>
+          <li>说明模型推理占掉约四分之三耗时，优化重点应该落在这一段</li>
+          <li>给出长尾延迟的量级，提醒配置超时要看 P99 而不是 P50</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>给模块 07 的九个阶段加上耗时维度</li>
+          <li>覆盖从通道接入到通道回复的完整链路</li>
+          <li>性能问题往往横跨多个模块，这一章提供横向视角</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>典型场景基准：WhatsApp 私聊加一次工具调用，模型推理约两秒是主瓶颈</li>
+          <li>三种场景对比与波动性分析：P50、P95、P99 的差距可达五到十倍</li>
+          <li>五大类十多项优化方法：提示词缓存、流式响应、模型选择、并行与超时</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
 
-<!-- ============ § 1 · 一句话定位 ============ -->
-<section class="doc-section">
-  <h2 id="sec-1"><span class="sec-num">§ 1</span>一句话定位</h2>
 
-  <div class="intro-callout">
-    <strong>性能优化的 80/20：大多数优化在 LLM 推理层——用 prompt caching、流式响应、合适的模型，把响应时间减半。</strong>本模块用数据告诉你 9 阶段耗时分布、3 种典型场景对比、5 大类 10+ 个具体优化方法。
-  </div>
+<!-- ============ 8.1 · 一句话定位 ============ -->
 
-  <div class="fact-grid">
-    <div class="fact"><div class="fact-num">75%</div><div class="fact-label">LLM 推理占比<br>主要瓶颈</div></div>
-    <div class="fact"><div class="fact-num">3</div><div class="fact-label">种典型场景<br>纯文本·单工具·多循环</div></div>
-    <div class="fact"><div class="fact-num">5</div><div class="fact-label">大类优化<br>模型·Prompt·流式·并发·架构</div></div>
-    <div class="fact"><div class="fact-num">10+</div><div class="fact-label">个具体方法<br>每个带配置示例</div></div>
-    <div class="fact"><div class="fact-num">50%</div><div class="fact-label">P0 优化可省<br>成本与延迟</div></div>
-    <div class="fact"><div class="fact-num">1-3s</div><div class="fact-label">TTFT 范围<br>云端 LLM</div></div>
-  </div>
-</section>
+  <h2 id="sec-1">8.1 一句话定位</h2>
 
-<!-- ============ § 2 · 回答/不回答 ============ -->
+  <div class="oc-keypoint">
+<h3>本章要点</h3>
+<p class="oc-callout-lead">性能优化的 80/20：大多数优化在 LLM 推理层——用 prompt caching、流式响应、合适的模型，把响应时间减半。</p>本模块用数据告诉你 9 阶段耗时分布、3 种典型场景对比、5 大类 10+ 个具体优化方法。
+</div>
+
+  <table>
+<thead>
+<tr>
+<th>指标</th>
+<th>规模</th>
+<th>代表</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>LLM 推理占比</td><td><strong>75%</strong></td><td>主要瓶颈</td></tr>
+<tr><td>种典型场景</td><td><strong>3</strong></td><td>纯文本·单工具·多循环</td></tr>
+<tr><td>大类优化</td><td><strong>5</strong></td><td>模型·Prompt·流式·并发·架构</td></tr>
+<tr><td>个具体方法</td><td><strong>10+</strong></td><td>每个带配置示例</td></tr>
+<tr><td>P0 优化可省</td><td><strong>50%</strong></td><td>成本与延迟</td></tr>
+<tr><td>TTFT 范围</td><td><strong>1-3s</strong></td><td>云端 LLM</td></tr>
+</tbody>
+</table>
 
 
-<!-- ============ § 3 · 关键事实 ============ -->
+<!-- ============ 8.2 · 回答/不回答 ============ -->
 
 
-<!-- ============ § 2 · 三原则 ============ -->
-<section class="doc-section">
-  <h2 id="sec-2"><span class="sec-num">§ 2</span>性能优化的三个原则</h2>
+<!-- ============ 8.3 · 关键事实 ============ -->
 
-  <div class="principles-preview">
-    <div class="pp-card pp-gateway">
- 
-      <div class="pp-name">80/20 法则</div>
-      <div class="pp-desc">LLM 推理占 75% 耗时——把优化资源投在 P0（模型选择 + Prompt Caching + 流式），其他阶段边际效益递减。</div>
-    </div>
-    <div class="pp-card pp-exec">
- 
-      <div class="pp-name">流式优先</div>
-      <div class="pp-desc">TTFT（首 token 时间）比总延迟更重要——用户看到第一个字符就认为"在响应"。流式 + 提前"思考中"消息可降低感知延迟 1s+。</div>
-    </div>
-    <div class="pp-card pp-policy">
- 
-      <div class="pp-name">配置 > 代码</div>
-      <div class="pp-desc">所有优化都通过 <code>openclaw.json5</code> 配置——不改核心代码就能提效 50%。改配置 vs 改代码：总是先试配置。</div>
-    </div>
-  </div>
-</section>
 
-<!-- ============ § 3 · 模块位置 ============ -->
-<section class="doc-section">
-  <h2 id="sec-3"><span class="sec-num">§ 3</span>模块位置</h2>
+<!-- ============ 8.2 · 三原则 ============ -->
+
+  <h2 id="sec-2">8.2 性能优化的三个原则</h2>
+
+  <table>
+<thead>
+<tr>
+<th>原则</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><strong>80/20 法则</strong></td><td>LLM 推理占 75% 耗时——把优化资源投在 P0（模型选择 + Prompt Caching + 流式），其他阶段边际效益递减。</td></tr>
+<tr><td><strong>流式优先</strong></td><td>TTFT（首 token 时间）比总延迟更重要——用户看到第一个字符就认为"在响应"。流式 + 提前"思考中"消息可降低感知延迟 1s+。</td></tr>
+<tr><td><strong>配置 > 代码</strong></td><td>所有优化都通过 <code>openclaw.json5</code> 配置——不改核心代码就能提效 50%。改配置 vs 改代码：总是先试配置。</td></tr>
+</tbody>
+</table>
+
+
+<!-- ============ 8.3 · 模块位置 ============ -->
+
+  <h2 id="sec-3">8.3 模块位置</h2>
 
   <figure><div class="mermaid">
 flowchart LR
@@ -214,15 +275,15 @@ flowchart LR
   style D fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style E fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
 </div><figcaption>图 8.1 · 模块 08 是"性能视角"——把模块 07 的 9 阶段加上耗时维度，并提出优化策略。</figcaption></figure>
-</section>
 
-<!-- ============ § 4 · 9 阶段耗时分布 ============ -->
-<section class="doc-section">
-  <h2 id="sec-4"><span class="sec-num">§ 4</span>9 阶段耗时分布</h2>
+
+<!-- ============ 8.4 · 9 阶段耗时分布 ============ -->
+
+  <h2 id="sec-4">8.4 9 阶段耗时分布</h2>
 
   <p>基于典型场景：WhatsApp DM + Sonnet 4 云端 + 1 工具调用 + 短回复（200 tokens）。</p>
 
-  <table class="info-table">
+  <table>
     <thead><tr><th>阶段</th><th>名称</th><th>典型耗时</th><th>备注</th></tr></thead>
     <tbody>
       <tr><td>1</td><td>通道接入</td><td><code>~50ms</code></td><td>WhatsApp 投递 + 规范化</td></tr>
@@ -237,57 +298,29 @@ flowchart LR
     </tbody>
   </table>
 
-  <h3 class="view-h3" id="sec-4.1"><span class="sec-num">§ 4.1</span>视觉对比<span class="vh-tag">visual</span></h3>
+  <h3 id="sec-4.1">8.4.1 视觉对比</h3>
   <p>同样的数据，可视化后更直观：</p>
 
-  <div class="latency-bar">
-    <div class="lb-label">1 通道接入</div>
-    <div class="lb-track"><div class="lb-fill" style="width:2%;background:#2563eb;"><span>50ms</span></div></div>
-    <div class="lb-time">50ms</div>
-  </div>
+  <p class="oc-metric"><strong>1 通道接入</strong><span>50ms</span></p>
 
-  <div class="latency-bar">
-    <div class="lb-label">2 网关路由</div>
-    <div class="lb-track"><div class="lb-fill" style="width:0.8%;background:#7c3aed;"><span>20ms</span></div></div>
-    <div class="lb-time">20ms</div>
-  </div>
+  <p class="oc-metric"><strong>2 网关路由</strong><span>20ms</span></p>
 
-  <div class="latency-bar">
-    <div class="lb-label">3 Agent 启动</div>
-    <div class="lb-track"><div class="lb-fill" style="width:1.2%;background:#c026d3;"><span>30ms</span></div></div>
-    <div class="lb-time">30ms</div>
-  </div>
+  <p class="oc-metric"><strong>3 Agent 启动</strong><span>30ms</span></p>
 
-  <div class="latency-bar">
-    <div class="lb-label">4 Prompt 组装</div>
-    <div class="lb-track"><div class="lb-fill" style="width:3.2%;background:#d97706;"><span>80ms</span></div></div>
-    <div class="lb-time">80ms</div>
-  </div>
+  <p class="oc-metric"><strong>4 Prompt 组装</strong><span>80ms</span></p>
 
-  <div class="latency-bar">
-    <div class="lb-label"><strong>5 模型推理（主瓶颈）</strong></div>
-    <div class="lb-track"><div class="lb-fill" style="width:80%;background:#dc2626;"><span>800-3000ms</span></div></div>
-    <div class="lb-time">~2000ms</div>
-  </div>
+  <p class="oc-metric"><strong>5 模型推理（主瓶颈）</strong><span>~2000ms</span></p>
 
-  <div class="latency-bar">
-    <div class="lb-label">6 工具执行</div>
-    <div class="lb-track"><div class="lb-fill" style="width:30%;background:#059669;"><span>500ms</span></div></div>
-    <div class="lb-time">~500ms</div>
-  </div>
+  <p class="oc-metric"><strong>6 工具执行</strong><span>~500ms</span></p>
 
-  <div class="latency-bar">
-    <div class="lb-label">8 通道回复</div>
-    <div class="lb-track"><div class="lb-fill" style="width:4%;background:#6b7280;"><span>100ms</span></div></div>
-    <div class="lb-time">100ms</div>
-  </div>
-</section>
+  <p class="oc-metric"><strong>8 通道回复</strong><span>100ms</span></p>
 
-<!-- ============ § 5 · 占比分析 ============ -->
-<section class="doc-section">
-  <h2 id="sec-5"><span class="sec-num">§ 5</span>占比分析 + 用户感知</h2>
 
-  <h3 class="view-h3" id="sec-5.1"><span class="sec-num">§ 5.1</span>占比分析<span class="vh-tag">percentage</span></h3>
+<!-- ============ 8.5 · 占比分析 ============ -->
+
+  <h2 id="sec-5">8.5 占比分析 + 用户感知</h2>
+
+  <h3 id="sec-5.1">8.5.1 占比分析</h3>
 
   <figure><div class="mermaid">
 pie title 单次响应耗时占比(典型场景)
@@ -298,14 +331,15 @@ pie title 单次响应耗时占比(典型场景)
   "Gateway 本地处理" : 1
 </div><figcaption>图 8.2 · 典型场景耗时占比——LLM 推理占 75%，优化重点应该在这里。</figcaption></figure>
 
-  <div class="callout">
-    <strong>80/20 法则</strong>：模型推理占 75% 耗时——你应该用 prompt caching、更小模型、流式优化去压缩这一段，而不是花时间优化 50ms 的本地路由。
-  </div>
+  <div class="thinking-note">
+<h3>要点</h3>
+<p class="oc-callout-lead">80/20 法则</p>：模型推理占 75% 耗时——你应该用 prompt caching、更小模型、流式优化去压缩这一段，而不是花时间优化 50ms 的本地路由。
+</div>
 
-  <h3 class="view-h3" id="sec-5.2"><span class="sec-num">§ 5.2</span>用户感知延迟<span class="vh-tag">perception</span></h3>
+  <h3 id="sec-5.2">8.5.2 用户感知延迟</h3>
   <p>从用户视角看，延迟分两类：</p>
 
-  <table class="info-table">
+  <table>
     <thead><tr><th>指标</th><th>典型值</th><th>用户感受</th></tr></thead>
     <tbody>
       <tr><td><strong>首 token 延迟 （TTFT）</strong></td><td><code>1-3s</code></td><td>"Bot 是不是收到了？"</td></tr>
@@ -334,14 +368,14 @@ flowchart LR
   style T5 fill:#f3f4f6,stroke:#6b7280,color:#1a1f2b
   style BG fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
 </div><figcaption>图 8.3 · 用户感知时间线——用户看到完整回复后，系统仍在后台处理。</figcaption></figure>
-</section>
 
-<!-- ============ § 6 · 时间线视图 + 波动性 ============ -->
-<section class="doc-section">
-  <h2 id="sec-6"><span class="sec-num">§ 6</span>时间线视图 + 波动性</h2>
 
-  <h3 class="view-h3" id="sec-6.1"><span class="sec-num">§ 6.1</span>时间线视图<span class="vh-tag">timeline</span></h3>
-  <pre class="code-block">[50ms][20ms][30ms][80ms] ← OpenClaw 本地处理 (~180ms)
+<!-- ============ 8.6 · 时间线视图 + 波动性 ============ -->
+
+  <h2 id="sec-6">8.6 时间线视图 + 波动性</h2>
+
+  <h3 id="sec-6.1">8.6.1 时间线视图</h3>
+  <pre>[50ms][20ms][30ms][80ms] ← OpenClaw 本地处理 (~180ms)
                           ┌─────────────────┐
                           │ 800-3000ms      │ ← 模型推理(主瓶颈)
                           │ + 200-1500ms    │ ← 工具调用(可循环)
@@ -351,10 +385,10 @@ flowchart LR
                                           [用户看到回复]
                                           [后台善后启动]</pre>
 
-  <h3 class="view-h3" id="sec-6.2"><span class="sec-num">§ 6.2</span>波动性（P50/P95/P99）<span class="vh-tag" id="variability">variability</span></h3>
+  <h3 id="sec-6.2">8.6.2 波动性（P50/P95/P99）</h3>
   <p>实际耗时会有显著波动——这些数字是 P50，不是 P99：</p>
 
-  <table class="info-table">
+  <table>
     <thead><tr><th>阶段</th><th>P50</th><th>P95</th><th>P99</th></tr></thead>
     <tbody>
       <tr><td>5 模型推理（云端）</td><td>1500ms</td><td>3500ms</td><td>8000ms</td></tr>
@@ -366,18 +400,19 @@ flowchart LR
     </tbody>
   </table>
 
-  <div class="callout">
-    <strong>长尾延迟</strong>：P99 可能是 P50 的 5-10 倍——配置超时时要考虑 P99，而不是 P50。
-  </div>
-</section>
+  <div class="thinking-note">
+<h3>要点</h3>
+<p class="oc-callout-lead">长尾延迟</p>：P99 可能是 P50 的 5-10 倍——配置超时时要考虑 P99，而不是 P50。
+</div>
 
-<!-- ============ § 7 · 首 token 优化 ============ -->
-<section class="doc-section">
-  <h2 id="sec-7"><span class="sec-num">§ 7</span>首 token 优化 （TTFT）</h2>
+
+<!-- ============ 8.7 · 首 token 优化 ============ -->
+
+  <h2 id="sec-7">8.7 首 token 优化 （TTFT）</h2>
 
   <p>"首 token 到达时间"（TTFT） 是最影响用户感知的指标——优化优先级最高：</p>
 
-  <table class="info-table">
+  <table>
     <thead><tr><th>方法</th><th>节省</th><th>代价</th></tr></thead>
     <tbody>
       <tr><td>更小模型（Haiku vs Sonnet）</td><td>40-60%</td><td>质量下降</td></tr>
@@ -388,14 +423,15 @@ flowchart LR
     </tbody>
   </table>
 
-  <div class="callout">
-    <strong>心理学技巧</strong>：用户对延迟的容忍度，与"是否有反馈"成正比——在 TTFT 前先发个"正在思考..."或"查日历中..."，用户感知延迟可降低 1s。
-  </div>
-</section>
+  <div class="thinking-note">
+<h3>要点</h3>
+<p class="oc-callout-lead">心理学技巧</p>：用户对延迟的容忍度，与"是否有反馈"成正比——在 TTFT 前先发个"正在思考..."或"查日历中..."，用户感知延迟可降低 1s。
+</div>
 
-<!-- ============ § 8 · 3 种场景概览 ============ -->
-<section class="doc-section">
-  <h2 id="sec-8"><span class="sec-num">§ 8</span>3 种典型场景</h2>
+
+<!-- ============ 8.8 · 3 种场景概览 ============ -->
+
+  <h2 id="sec-8">8.8 3 种典型场景</h2>
 
   <p>同样的 OpenClaw，3 种典型场景的耗时差异巨大——看你的场景属于哪种，优化方向就清楚了。</p>
 
@@ -412,14 +448,14 @@ flowchart LR
   style C fill:#fef3c7,stroke:#d97706,color:#1a1f2b
 </div><figcaption>图 8.4 · 3 种场景耗时递进——工具调用越多，延迟越长，优化策略也越不同。</figcaption></figure>
 
-  <h3 class="view-h3" id="sec-8.1"><span class="sec-num">§ 8.1</span>场景 A · 纯文本对话<span class="vh-tag">scenario-a</span></h3>
-  <div class="scenario-card s1">
-    <span class="sc-tag">场景 A · 最常见</span>
-    <h3 id="sec-8.2"><span class="sec-num">§ 8.2</span> 纯文本对话</h3>
+  <h3 id="sec-8.1">8.8.1 场景 A · 纯文本对话</h3>
+  <div class="oc-card">
+<span class="oc-chip">场景 A · 最常见</span>
+    <h3 id="sec-8.2">8.8.2 纯文本对话</h3>
     <p><strong>示例</strong>："你好"、"今天天气怎么样？"、"推荐一家餐厅"</p>
     <p><strong>特点</strong>：不调任何工具，LLM 直接回答。</p>
 
-    <table class="info-table">
+    <table>
       <thead><tr><th>阶段</th><th>耗时</th><th>占比</th></tr></thead>
       <tbody>
         <tr><td>1-4 Gateway + 组装</td><td>180ms</td><td>9%</td></tr>
@@ -437,16 +473,16 @@ flowchart LR
       <li><strong>Prompt caching</strong>：System + memory 经常不变，缓存可省 30-50%</li>
       <li><strong>流式响应</strong>：用户 TTFT 后立即看到文字</li>
     </ul>
-  </div>
+</div>
 
-  <h3 class="view-h3" id="sec-8.3"><span class="sec-num">§ 8.3</span>场景 B · 单工具调用<span class="vh-tag">scenario-b</span></h3>
-  <div class="scenario-card s2">
-    <span class="sc-tag">场景 B · 工具增强</span>
-    <h3 id="sec-8.4"><span class="sec-num">§ 8.4</span> 单工具调用</h3>
+  <h3 id="sec-8.3">8.8.3 场景 B · 单工具调用</h3>
+  <div class="oc-card">
+<span class="oc-chip">场景 B · 工具增强</span>
+    <h3 id="sec-8.4">8.8.4 单工具调用</h3>
     <p><strong>示例</strong>："今天日程？"（调 calendar.list_events）、"GitHub Issue #123 详情"（调 github.get_issue）</p>
     <p><strong>特点</strong>：1 次 LLM 推理 + 1 次工具调用 + 1 次 LLM 总结。</p>
 
-    <table class="info-table">
+    <table>
       <thead><tr><th>阶段</th><th>耗时</th><th>占比</th></tr></thead>
       <tbody>
         <tr><td>1-4 Gateway + 组装</td><td>180ms</td><td>3%</td></tr>
@@ -466,16 +502,16 @@ flowchart LR
       <li><strong>工具超时</strong>：把外部 API 超时设短，失败快速 fallback</li>
       <li><strong>截断工具结果</strong>：大响应截断，避免上下文爆炸</li>
     </ul>
-  </div>
+</div>
 
-  <h3 class="view-h3" id="sec-8.5"><span class="sec-num">§ 8.5</span>场景 C · 多工具循环<span class="vh-tag">scenario-c</span></h3>
-  <div class="scenario-card s3">
-    <span class="sc-tag">场景 C · 最复杂</span>
-    <h3 id="sec-8.6"><span class="sec-num">§ 8.6</span> 多工具循环</h3>
+  <h3 id="sec-8.5">8.8.5 场景 C · 多工具循环</h3>
+  <div class="oc-card">
+<span class="oc-chip">场景 C · 最复杂</span>
+    <h3 id="sec-8.6">8.8.6 多工具循环</h3>
     <p><strong>示例</strong>："对比 GitHub Issue #123 和 #456 的代码修改"（多次 GitHub API）、"调研 X 公司"（web_search + web_fetch + 总结）</p>
     <p><strong>特点</strong>：3-10 次 LLM 推理 + 3-10 次工具调用。</p>
 
-    <table class="info-table">
+    <table>
       <thead><tr><th>阶段</th><th>耗时</th><th>占比</th></tr></thead>
       <tbody>
         <tr><td>1-4 Gateway + 组装</td><td>180ms</td><td>0.6%</td></tr>
@@ -494,15 +530,15 @@ flowchart LR
       <li><strong>提前结束</strong>：中间结果足够时提前结束循环</li>
       <li><strong>Plan-Execute</strong>：用 Parallel Runtime（详见 <a href="/2026/11/07/openclaw-04-models-runtimes/">模块 04 模型</a>)</li>
     </ul>
-  </div>
-</section>
+</div>
 
-<!-- ============ § 9 · 场景对比 + 案例研究 ============ -->
-<section class="doc-section">
-  <h2 id="sec-9"><span class="sec-num">§ 9</span>场景对比 + 案例研究</h2>
 
-  <h3 class="view-h3" id="sec-9.1"><span class="sec-num">§ 9.1</span>场景对比<span class="vh-tag">comparison</span></h3>
-  <table class="info-table">
+<!-- ============ 8.9 · 场景对比 + 案例研究 ============ -->
+
+  <h2 id="sec-9">8.9 场景对比 + 案例研究</h2>
+
+  <h3 id="sec-9.1">8.9.1 场景对比</h3>
+  <table>
     <thead><tr><th>维度</th><th>A 纯文本</th><th>B 单工具</th><th>C 多工具循环</th></tr></thead>
     <tbody>
       <tr><td>典型耗时</td><td>2-5s</td><td>5-15s</td><td>15-60s</td></tr>
@@ -515,36 +551,37 @@ flowchart LR
     </tbody>
   </table>
 
-  <div class="callout">
-    <strong>优化优先级</strong>：A 场景优化模型选择（省钱）；B 场景优化工具超时（稳）；C 场景优化并行（快）。
-  </div>
+  <div class="thinking-note">
+<h3>要点</h3>
+<p class="oc-callout-lead">优化优先级</p>：A 场景优化模型选择（省钱）；B 场景优化工具超时（稳）；C 场景优化并行（快）。
+</div>
 
-  <h3 class="view-h3" id="sec-9.2"><span class="sec-num">§ 9.2</span>案例研究<span class="vh-tag">case-study</span></h3>
+  <h3 id="sec-9.2">8.9.2 案例研究</h3>
 
-  <h4 id="sec-11-3-1" data-toc-skip><span class="sec-num">§ 9.2.1</span> 案例 A：Slack 客服机器人</h4>
+  <h4 id="sec-11-3-1" data-toc-skip>案例 A：Slack 客服机器人</h4>
   <p><strong>场景</strong>：用户问产品问题，Bot 直接回答——0 工具调用。</p>
-  <pre class="code-block"><span class="comment"># 优化前:全用 Sonnet,2.5s 响应,$0.005/query</span>
-<span class="comment"># 优化后:简单问题用 Haiku,复杂问题用 Sonnet</span>
-<span class="comment"># 结果:1.2s 响应,$0.001/query(-80% 成本)</span></pre>
+  <pre><span># 优化前:全用 Sonnet,2.5s 响应,$0.005/query</span>
+<span># 优化后:简单问题用 Haiku,复杂问题用 Sonnet</span>
+<span># 结果:1.2s 响应,$0.001/query(-80% 成本)</span></pre>
 
-  <h4 id="sec-11-4-1" data-toc-skip><span class="sec-num">§ 9.2.2</span> 案例 B：个人日历助手</h4>
+  <h4 id="sec-11-4-1" data-toc-skip>案例 B：个人日历助手</h4>
   <p><strong>场景</strong>："今天日程" → 调 calendar.list_events → 总结回复。</p>
-  <pre class="code-block"><span class="comment"># 优化前:每次都查 API,6s 响应</span>
-<span class="comment"># 优化后:60s 内相同查询缓存</span>
-<span class="comment"># 结果:缓存命中 200ms,首次仍 6s</span></pre>
+  <pre><span># 优化前:每次都查 API,6s 响应</span>
+<span># 优化后:60s 内相同查询缓存</span>
+<span># 结果:缓存命中 200ms,首次仍 6s</span></pre>
 
-  <h4 id="sec-11-5-1" data-toc-skip><span class="sec-num">§ 9.2.3</span> 案例 C：竞品调研 agent</h4>
+  <h4 id="sec-11-5-1" data-toc-skip>案例 C：竞品调研 agent</h4>
   <p><strong>场景</strong>："调研 X 公司" → 多轮 web_search + 总结。</p>
-  <pre class="code-block"><span class="comment"># 优化前:串行 5 次 web_search,30s 响应</span>
-<span class="comment"># 优化后:并行 web_fetch + 中间摘要</span>
-<span class="comment"># 结果:8s 响应(-73%)</span></pre>
-</section>
+  <pre><span># 优化前:串行 5 次 web_search,30s 响应</span>
+<span># 优化后:并行 web_fetch + 中间摘要</span>
+<span># 结果:8s 响应(-73%)</span></pre>
 
-<!-- ============ § 10 · 优化全景 ============ -->
-<section class="doc-section">
-  <h2 id="sec-10"><span class="sec-num">§ 10</span>优化全景 + 5 大类</h2>
 
-  <h3 class="view-h3" id="sec-10.1"><span class="sec-num">§ 10.1</span>优化全景<span class="vh-tag">overview</span></h3>
+<!-- ============ 8.10 · 优化全景 ============ -->
+
+  <h2 id="sec-10">8.10 优化全景 + 5 大类</h2>
+
+  <h3 id="sec-10.1">8.10.1 优化全景</h3>
   <figure><div class="mermaid">
 flowchart LR
   L1["<b>影响 </b><br/>模型层"] --> L2["<b>影响 </b><br/>Prompt 层"]
@@ -559,201 +596,191 @@ flowchart LR
   style L5 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
 </div><figcaption>图 8.5 · 优化优先级——模型层和 Prompt 层影响最大，从这里开始。</figcaption></figure>
 
-  <h3 class="view-h3" id="sec-10.2"><span class="sec-num">§ 10.2</span>类别 1 · 模型层（最优先）<span class="vh-tag">layer-1</span></h3>
-  <div class="opt-section c1">
-    <span class="os-tag">类别 1 · 模型层</span>
-    <h3 id="sec-10.3"><span class="sec-num">§ 10.3</span> 模型层优化</h3>
+  <h3 id="sec-10.2">8.10.2 类别 1 · 模型层（最优先）</h3>
+  <div class="oc-sub"><span class="oc-chip">类别 1 · 模型层</span>
+    <h3 id="sec-10.3">8.10.3 模型层优化</h3>
     <p>LLM 推理占总耗时 75%——模型层优化收益最大。</p>
-    <ul class="opt-list">
+    <ul>
       <li>
-        <span class="ol-impact impact-hi">~50%</span>
+        <span class="oc-impact">~50%</span>
         <div>
-          <div class="ol-title">1.1 · 模型分层（Sonnet vs Haiku）</div>
-          <div class="ol-desc">简单任务用 Haiku（40-60% 便宜、5 倍快），复杂任务才用 Sonnet。<code>agents.defaults.model: claude-haiku-4-5</code>。详见 <a href="/2026/11/07/openclaw-04-models-runtimes/">模块 04 模型</a>。</div>
+          <div>1.1 · 模型分层（Sonnet vs Haiku）</div>
+          <div>简单任务用 Haiku（40-60% 便宜、5 倍快），复杂任务才用 Sonnet。<code>agents.defaults.model: claude-haiku-4-5</code>。详见 <a href="/2026/11/07/openclaw-04-models-runtimes/">模块 04 模型</a>。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-hi">~70%</span>
+        <span class="oc-impact">~70%</span>
         <div>
-          <div class="ol-title">1.2 · 本地模型（Ollama）</div>
-          <div class="ol-desc">硬件允许时（> 16GB VRAM），Ollama 跑开源模型（llama-3.3-70b、qwen-2.5-72b），延迟 100-300ms，零成本，隐私安全。</div>
+          <div>1.2 · 本地模型（Ollama）</div>
+          <div>硬件允许时（> 16GB VRAM），Ollama 跑开源模型（llama-3.3-70b、qwen-2.5-72b），延迟 100-300ms，零成本，隐私安全。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-mid">~25%</span>
+        <span class="oc-impact">~25%</span>
         <div>
-          <div class="ol-title">1.3 · Batch 处理</div>
-          <div class="ol-desc">非交互式任务（总结、分类），用 Batch API（<code>anthropic.messages.batches.create</code>），5 分钟内返回，价格 -50%。</div>
+          <div>1.3 · Batch 处理</div>
+          <div>非交互式任务（总结、分类），用 Batch API（<code>anthropic.messages.batches.create</code>），5 分钟内返回，价格 -50%。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-mid">~10%</span>
+        <span class="oc-impact">~10%</span>
         <div>
-          <div class="ol-title">1.4 · Fallback 链</div>
-          <div class="ol-desc">首选 Sonnet，失败自动降级 Haiku。<code>providers: [{ name: sonnet, primary: true }, { name: haiku, fallback: true }]</code>。</div>
+          <div>1.4 · Fallback 链</div>
+          <div>首选 Sonnet，失败自动降级 Haiku。<code>providers: [{ name: sonnet, primary: true }, { name: haiku, fallback: true }]</code>。</div>
         </div>
       </li>
-    </ul>
-  </div>
+    </ul></div>
 
-  <h3 class="view-h3" id="sec-10.4"><span class="sec-num">§ 10.4</span>类别 2 · Prompt 层（最优先）<span class="vh-tag">layer-2</span></h3>
-  <div class="opt-section c2">
-    <span class="os-tag">类别 2 · Prompt 层</span>
-    <h3 id="sec-10.5"><span class="sec-num">§ 10.5</span> Prompt 层优化</h3>
+  <h3 id="sec-10.4">8.10.4 类别 2 · Prompt 层（最优先）</h3>
+  <div class="oc-sub"><span class="oc-chip">类别 2 · Prompt 层</span>
+    <h3 id="sec-10.5">8.10.5 Prompt 层优化</h3>
     <p>把不变的部分缓存，减少每次传输的 token 数。</p>
-    <ul class="opt-list">
+    <ul>
       <li>
-        <span class="ol-impact impact-hi">~50%</span>
+        <span class="oc-impact">~50%</span>
         <div>
-          <div class="ol-title">2.1 · Prompt Caching（最关键）</div>
-          <div class="ol-desc">Anthropic 原生支持。<code>cache_control: { type: ephemeral }</code> 标记静态部分（System + Tools + Memory）。缓存命中时成本 -90%，延迟 -70%。</div>
-<pre class="code-block"><span class="comment">// config/agents.yaml</span>
-<span class="key">agents</span>:
-  <span class="key">defaults</span>:
-    <span class="key">promptCaching</span>:
-      <span class="key">enabled</span>: <span class="str">true</span>
-      <span class="key">breakpoints</span>:
-        - <span class="str">tools</span>      <span class="comment"># 工具列表缓存</span>
-        - <span class="str">system</span>     <span class="comment"># system prompt 缓存</span>
-        - <span class="str">memory</span>     <span class="comment"># memory 文件缓存</span></pre>
+          <div>2.1 · Prompt Caching（最关键）</div>
+          <div>Anthropic 原生支持。<code>cache_control: { type: ephemeral }</code> 标记静态部分（System + Tools + Memory）。缓存命中时成本 -90%，延迟 -70%。</div>
+<pre><span>// config/agents.yaml</span>
+<span>agents</span>:
+  <span>defaults</span>:
+    <span>promptCaching</span>:
+      <span>enabled</span>: <span>true</span>
+      <span>breakpoints</span>:
+        - <span>tools</span>      <span># 工具列表缓存</span>
+        - <span>system</span>     <span># system prompt 缓存</span>
+        - <span>memory</span>     <span># memory 文件缓存</span></pre>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-mid">~30%</span>
+        <span class="oc-impact">~30%</span>
         <div>
-          <div class="ol-title">2.2 · Memory 摘要</div>
-          <div class="ol-desc">超 50 轮历史压缩为 <code>memory.md</code> 摘要（决策 5）。每次推理只传摘要，token 数从 50k 降到 2k。详见 <a href="/2026/11/07/openclaw-05-sessions/">模块 05 会话</a>。</div>
+          <div>2.2 · Memory 摘要</div>
+          <div>超 50 轮历史压缩为 <code>memory.md</code> 摘要（决策 5）。每次推理只传摘要，token 数从 50k 降到 2k。详见 <a href="/2026/11/07/openclaw-05-sessions/">模块 05 会话</a>。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-mid">~15%</span>
+        <span class="oc-impact">~15%</span>
         <div>
-          <div class="ol-title">2.3 · 动态 Prompt 截断</div>
-          <div class="ol-desc"><code>prompt.truncate.attachment: 5KB</code>——大附件只传前 5KB，降低 input token。</div>
+          <div>2.3 · 动态 Prompt 截断</div>
+          <div><code>prompt.truncate.attachment: 5KB</code>——大附件只传前 5KB，降低 input token。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-lo">~10%</span>
+        <span class="oc-impact">~10%</span>
         <div>
-          <div class="ol-title">2.4 · 共享 System Prompt</div>
-          <div class="ol-desc">多 Agent 共享同一个 base system prompt，避免每个 Agent 重复注入。<code>agents.shared.basePrompt: prompts/base.md</code>。</div>
+          <div>2.4 · 共享 System Prompt</div>
+          <div>多 Agent 共享同一个 base system prompt，避免每个 Agent 重复注入。<code>agents.shared.basePrompt: prompts/base.md</code>。</div>
         </div>
       </li>
-    </ul>
-  </div>
+    </ul></div>
 
-  <h3 class="view-h3" id="sec-10.6"><span class="sec-num">§ 10.6</span>类别 3 · 流式层<span class="vh-tag">layer-3</span></h3>
-  <div class="opt-section c3">
-    <span class="os-tag">类别 3 · 流式层</span>
-    <h3 id="sec-10.7"><span class="sec-num">§ 10.7</span> 流式层优化</h3>
+  <h3 id="sec-10.6">8.10.6 类别 3 · 流式层</h3>
+  <div class="oc-sub"><span class="oc-chip">类别 3 · 流式层</span>
+    <h3 id="sec-10.7">8.10.7 流式层优化</h3>
     <p>用户感知延迟靠流式——TTFT 越短越好。</p>
-    <ul class="opt-list">
+    <ul>
       <li>
-        <span class="ol-impact impact-mid">~30%</span>
+        <span class="oc-impact">~30%</span>
         <div>
-          <div class="ol-title">3.1 · Streaming 必开</div>
-          <div class="ol-desc"><code>streaming.enabled: true</code>（默认）。用户看到首个 token 后即认为 Bot 在响应——1-3s TTFT 即可。</div>
+          <div>3.1 · Streaming 必开</div>
+          <div><code>streaming.enabled: true</code>（默认）。用户看到首个 token 后即认为 Bot 在响应——1-3s TTFT 即可。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-mid">~20%</span>
+        <span class="oc-impact">~20%</span>
         <div>
-          <div class="ol-title">3.2 · 提前"思考中"消息</div>
-          <div class="ol-desc">通过钩子在 LLM 推理前推送 <code>正在思考...</code> 状态消息，用户感知延迟可降低 1s。详见 <a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具钩子</a>。</div>
+          <div>3.2 · 提前"思考中"消息</div>
+          <div>通过钩子在 LLM 推理前推送 <code>正在思考...</code> 状态消息，用户感知延迟可降低 1s。详见 <a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具钩子</a>。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-lo">~5%</span>
+        <span class="oc-impact">~5%</span>
         <div>
-          <div class="ol-title">3.3 · 连接预热</div>
-          <div class="ol-desc"><code>providers[].keepAlive: true</code>——保持 HTTP/2 长连接，省 TCP/TLS 握手 100-300ms。</div>
+          <div>3.3 · 连接预热</div>
+          <div><code>providers[].keepAlive: true</code>——保持 HTTP/2 长连接，省 TCP/TLS 握手 100-300ms。</div>
         </div>
       </li>
-    </ul>
-  </div>
+    </ul></div>
 
-  <h3 class="view-h3" id="sec-10.8"><span class="sec-num">§ 10.8</span>类别 4 · 并发层<span class="vh-tag">layer-4</span></h3>
-  <div class="opt-section c4">
-    <span class="os-tag">类别 4 · 并发层</span>
-    <h3 id="sec-10.9"><span class="sec-num">§ 10.9</span> 并发层优化</h3>
+  <h3 id="sec-10.8">8.10.8 类别 4 · 并发层</h3>
+  <div class="oc-sub"><span class="oc-chip">类别 4 · 并发层</span>
+    <h3 id="sec-10.9">8.10.9 并发层优化</h3>
     <p>工具调用累计耗时 = 67%——并行是关键。</p>
-    <ul class="opt-list">
+    <ul>
       <li>
-        <span class="ol-impact impact-hi">~70%</span>
+        <span class="oc-impact">~70%</span>
         <div>
-          <div class="ol-title">4.1 · 工具并行调用</div>
-          <div class="ol-desc">模型一次返回多个 tool_use 时，Gateway 默认并行执行。<code>agents.defaults.parallelToolCalls: true</code>,<code>maxConcurrency: 5</code>。5 个独立 API 调用从 15s 降到 3s。</div>
+          <div>4.1 · 工具并行调用</div>
+          <div>模型一次返回多个 tool_use 时，Gateway 默认并行执行。<code>agents.defaults.parallelToolCalls: true</code>,<code>maxConcurrency: 5</code>。5 个独立 API 调用从 15s 降到 3s。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-mid">~50%</span>
+        <span class="oc-impact">~50%</span>
         <div>
-          <div class="ol-title">4.2 · 工具结果缓存</div>
-          <div class="ol-desc">不变的工具结果（读日历、查天气）缓存 60s。<code>tools.cache.ttl: 60</code>。重复查询从 3s 降到 200ms。</div>
+          <div>4.2 · 工具结果缓存</div>
+          <div>不变的工具结果（读日历、查天气）缓存 60s。<code>tools.cache.ttl: 60</code>。重复查询从 3s 降到 200ms。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-mid">~30%</span>
+        <span class="oc-impact">~30%</span>
         <div>
-          <div class="ol-title">4.3 · 工具超时设置</div>
-          <div class="ol-desc"><code>tools.timeout: 30000</code>（默认 5 分钟太长）。外部 API 30s 未响应立即失败，LLM 换工具。</div>
+          <div>4.3 · 工具超时设置</div>
+          <div><code>tools.timeout: 30000</code>（默认 5 分钟太长）。外部 API 30s 未响应立即失败，LLM 换工具。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-lo">~15%</span>
+        <span class="oc-impact">~15%</span>
         <div>
-          <div class="ol-title">4.4 · 结果截断</div>
-          <div class="ol-desc"><code>tools.truncate.response: 20KB</code>——工具响应过大时截断，避免上下文爆炸。详见 <a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具钩子</a>。</div>
+          <div>4.4 · 结果截断</div>
+          <div><code>tools.truncate.response: 20KB</code>——工具响应过大时截断，避免上下文爆炸。详见 <a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具钩子</a>。</div>
         </div>
       </li>
-    </ul>
-  </div>
+    </ul></div>
 
-  <h3 class="view-h3" id="sec-10.10"><span class="sec-num">§ 10.10</span>类别 5 · 架构层<span class="vh-tag">layer-5</span></h3>
-  <div class="opt-section c5">
-    <span class="os-tag">类别 5 · 架构层</span>
-    <h3 id="sec-10.11"><span class="sec-num">§ 10.11</span> 架构层优化</h3>
+  <h3 id="sec-10.10">8.10.10 类别 5 · 架构层</h3>
+  <div class="oc-sub"><span class="oc-chip">类别 5 · 架构层</span>
+    <h3 id="sec-10.11">8.10.11 架构层优化</h3>
     <p>需要更多投入——但适合特定场景。</p>
-    <ul class="opt-list">
+    <ul>
       <li>
-        <span class="ol-impact impact-hi">~80%</span>
+        <span class="oc-impact">~80%</span>
         <div>
-          <div class="ol-title">5.1 · 边缘部署</div>
-          <div class="ol-desc">Gateway 部署到用户就近节点（Cloudflare、Vercel Edge），海外用户通道延迟从 500ms 降到 50ms。</div>
+          <div>5.1 · 边缘部署</div>
+          <div>Gateway 部署到用户就近节点（Cloudflare、Vercel Edge），海外用户通道延迟从 500ms 降到 50ms。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-mid">~60%</span>
+        <span class="oc-impact">~60%</span>
         <div>
-          <div class="ol-title">5.2 · Plan-Execute 模式</div>
-          <div class="ol-desc">用 Parallel Runtime（详见 <a href="/2026/11/07/openclaw-04-models-runtimes/">模块 04 模型</a>），先做计划、再并行执行——复杂调研类任务从 30s 降到 8s。</div>
+          <div>5.2 · Plan-Execute 模式</div>
+          <div>用 Parallel Runtime（详见 <a href="/2026/11/07/openclaw-04-models-runtimes/">模块 04 模型</a>），先做计划、再并行执行——复杂调研类任务从 30s 降到 8s。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-mid">~40%</span>
+        <span class="oc-impact">~40%</span>
         <div>
-          <div class="ol-title">5.3 · Speculative Decoding</div>
-          <div class="ol-desc">本地小模型先草拟 token，云端大模型批量确认——2-3 倍速度提升，适合代码补全等场景。</div>
+          <div>5.3 · Speculative Decoding</div>
+          <div>本地小模型先草拟 token，云端大模型批量确认——2-3 倍速度提升，适合代码补全等场景。</div>
         </div>
       </li>
       <li>
-        <span class="ol-impact impact-lo">~10%</span>
+        <span class="oc-impact">~10%</span>
         <div>
-          <div class="ol-title">5.4 · WebSocket 复用</div>
-          <div class="ol-desc">不要每次新建 HTTP 连接——长连接 + keep-alive，降网络延迟 50-100ms。</div>
+          <div>5.4 · WebSocket 复用</div>
+          <div>不要每次新建 HTTP 连接——长连接 + keep-alive，降网络延迟 50-100ms。</div>
         </div>
       </li>
-    </ul>
-  </div>
-</section>
+    </ul></div>
 
-<!-- ============ § 11 · 实操检查清单 ============ -->
-<section class="doc-section">
-  <h2 id="sec-11"><span class="sec-num">§ 11</span>实操检查清单</h2>
+
+<!-- ============ 8.11 · 实操检查清单 ============ -->
+
+  <h2 id="sec-11">8.11 实操检查清单</h2>
 
   <p>按优先级应用这些优化：</p>
 
-  <table class="info-table">
+  <table>
     <thead><tr><th>优先级</th><th>操作</th><th>预期效果</th><th>实施成本</th></tr></thead>
     <tbody>
       <tr><td>P0</td><td>开启 prompt caching</td><td>成本 -50%，延迟 -30%</td><td>1 小时（改 config）</td></tr>
@@ -766,142 +793,101 @@ flowchart LR
       <tr><td>P2</td><td>Plan-Execute Runtime</td><td>多工具循环 -50%</td><td>1 天（代码）</td></tr>
     </tbody>
   </table>
-</section>
 
-<!-- ============ § 12 · 阅读路径 + FAQ + 总结 + 相关阅读 ============ -->
-<section class="doc-section">
-  <h2 id="sec-12"><span class="sec-num">§ 12</span>阅读路径 + FAQ + 总结</h2>
 
-  <h3 class="view-h3" id="sec-12.1"><span class="sec-num">§ 12.1</span>阅读路径<span class="vh-tag">paths</span></h3>
+<!-- ============ 8.12 · 阅读路径 + FAQ + 总结 + 相关阅读 ============ -->
+
+  <h2 id="sec-12">8.12 阅读路径 + FAQ + 总结</h2>
+
+  <h3 id="sec-12.1">8.12.1 阅读路径</h3>
   <p>本页约 16 分钟读完。建议顺序：耗时分布 → 3 场景 → 优化方法。</p>
 
-  <div class="path-grid">
-    <div class="path-card pc-curious">
-      <span class="pc-tag">应用开发者</span>
-      <div class="pc-title">开发者</div>
-      <div class="pc-time"> 16 分钟 · 全章</div>
-      <div class="pc-steps">
-        <ol>
-          <li>§ 4-5 9 阶段耗时 + 占比</li>
-          <li>§ 8 3 种场景对比</li>
-          <li>§ 10 5 大类优化</li>
-          <li>§ 11 实操清单</li>
-        </ol>
-      </div>
-    </div>
+  <h4 data-toc-skip>应用开发者 · 开发者</h4>
+<p class="oc-meta">16 分钟 · 全章</p>
 
-    <div class="path-card pc-quick">
-      <span class="pc-tag">运维 / SRE</span>
-      <div class="pc-title">SRE</div>
-      <div class="pc-time"> 8 分钟 · 选段</div>
-      <div class="pc-steps">
         <ol>
-          <li>§ 4 耗时基线</li>
-          <li>§ 6 波动性（P50/P95/P99）</li>
-          <li>§ 7 TTFT 优化</li>
-          <li>§ 11 实操清单</li>
-        </ol>
-      </div>
-    </div>
+          <li>8.4-5 9 阶段耗时 + 占比</li>
+          <li>8.8 3 种场景对比</li>
+          <li>8.10 5 大类优化</li>
+          <li>8.11 实操清单</li>
 
-    <div class="path-card pc-deep">
-      <span class="pc-tag">深度优化</span>
-      <div class="pc-title">调优派</div>
-      <div class="pc-time"> 12 分钟</div>
-      <div class="pc-steps">
+<h4 data-toc-skip>运维 / SRE · SRE</h4>
+<p class="oc-meta">8 分钟 · 选段</p>
+
         <ol>
-          <li>§ 9 场景对比 + 案例</li>
-          <li>§ 10 5 大类优化（每个具体方法）</li>
+          <li>8.4 耗时基线</li>
+          <li>8.6 波动性（P50/P95/P99）</li>
+          <li>8.7 TTFT 优化</li>
+          <li>8.11 实操清单</li>
+
+<h4 data-toc-skip>深度优化 · 调优派</h4>
+<p class="oc-meta">12 分钟</p>
+
+        <ol>
+          <li>8.9 场景对比 + 案例</li>
+          <li>8.10 5 大类优化（每个具体方法）</li>
           <li>结合 <a href="/2026/11/07/openclaw-04-models-runtimes/">模块 04</a> + <a href="/2026/11/07/openclaw-05-sessions/">05</a> 实施</li>
-        </ol>
-      </div>
-    </div>
-  </div>
 
-  <h3 class="view-h3" id="sec-12.2"><span class="sec-num">§ 12.2</span>常见问题<span class="vh-tag">faq</span></h3>
 
-  <ul class="faq-list">
-    <li class="faq-item">
-      <div class="faq-q"> 首 token 延迟通常多少？</div>
-      <div class="faq-a">云端 Sonnet 4 约 800ms-2s，本地 Ollama 约 100-500ms（模型大小而定）。</div>
+  <h3 id="sec-12.2">8.12.2 常见问题</h3>
+
+  <ul>
+    <li>
+      <div> 首 token 延迟通常多少？</div>
+      <div>云端 Sonnet 4 约 800ms-2s，本地 Ollama 约 100-500ms（模型大小而定）。</div>
     </li>
 
-    <li class="faq-item">
-      <div class="faq-q"> prompt caching 能省多少？</div>
-      <div class="faq-a">典型场景 50-80% 成本下降，延迟减少 30-50%。详见 <a href="#sec-10.4">§ 10 类别 2 Prompt Caching</a>。</div>
+    <li>
+      <div> prompt caching 能省多少？</div>
+      <div>典型场景 50-80% 成本下降，延迟减少 30-50%。详见 <a href="#sec-10.4">8.10 类别 2 Prompt Caching</a>。</div>
     </li>
 
-    <li class="faq-item">
-      <div class="faq-q"> 什么时候用本地模型？</div>
-      <div class="faq-a">隐私敏感、低延迟要求、成本敏感、批量任务。质量敏感仍用云端。</div>
+    <li>
+      <div> 什么时候用本地模型？</div>
+      <div>隐私敏感、低延迟要求、成本敏感、批量任务。质量敏感仍用云端。</div>
     </li>
 
-    <li class="faq-item">
-      <div class="faq-q"> 流式对长回复有帮助吗？</div>
-      <div class="faq-a">有。流式让用户在 1-3s 就看到首个 token，后面持续"打字中"——用户感知延迟大幅降低，即使总耗时相同。</div>
+    <li>
+      <div> 流式对长回复有帮助吗？</div>
+      <div>有。流式让用户在 1-3s 就看到首个 token，后面持续"打字中"——用户感知延迟大幅降低，即使总耗时相同。</div>
     </li>
 
-    <li class="faq-item">
-      <div class="faq-q"> 工具调用慢能怎么救？</div>
-      <div class="faq-a">3 招：① 工具结果缓存（60s 内不重调）② 工具超时设短（30s 默认 5min）③ 多个独立工具并行（parallel： true）。</div>
+    <li>
+      <div> 工具调用慢能怎么救？</div>
+      <div>3 招：① 工具结果缓存（60s 内不重调）② 工具超时设短（30s 默认 5min）③ 多个独立工具并行（parallel： true）。</div>
     </li>
 
-    <li class="faq-item">
-      <div class="faq-q"> 优化优先级如何选？</div>
-      <div class="faq-a">P0 立即做（1 小时内）：prompt caching、streaming、超时；P1 本周做（2 小时内）：模型分层、缓存、钩子；P2 必要时做（1-2 天）：本地模型、Plan-Execute。详见 § 11 清单。</div>
+    <li>
+      <div> 优化优先级如何选？</div>
+      <div>P0 立即做（1 小时内）：prompt caching、streaming、超时；P1 本周做（2 小时内）：模型分层、缓存、钩子；P2 必要时做（1-2 天）：本地模型、Plan-Execute。详见 8.11 清单。</div>
     </li>
 
-    <li class="faq-item">
-      <div class="faq-q"> 性能优化的 80/20 法则？</div>
-      <div class="faq-a">80% 的延迟来自 LLM 推理层——把优化时间投在这里（模型选择 + Prompt Caching + 流式）收益最大；本地 50ms 的路由优化收益几乎为零。</div>
+    <li>
+      <div> 性能优化的 80/20 法则？</div>
+      <div>80% 的延迟来自 LLM 推理层——把优化时间投在这里（模型选择 + Prompt Caching + 流式）收益最大；本地 50ms 的路由优化收益几乎为零。</div>
     </li>
   </ul>
 
-  <h3 class="view-h3" id="sec-12.3"><span class="sec-num">§ 12.3</span>一句话总结<span class="vh-tag">summary</span></h3>
-  <div class="callout">
-    <strong>优化优先级：P0 = prompt caching + streaming + 超时（立即做）。P1 = 模型分层 + 缓存 + 钩子（本周做）。P2 = 本地模型 + Plan-Execute（需要时做）。</strong>
+  <h3 id="sec-12.3">8.12.3 一句话总结</h3>
+  <div class="thinking-note">
+<h3>要点</h3>
+<p class="oc-callout-lead">优化优先级：P0 = prompt caching + streaming + 超时（立即做）。P1 = 模型分层 + 缓存 + 钩子（本周做）。P2 = 本地模型 + Plan-Execute（需要时做）。</p>
     <br><br>
     80% 的性能问题，通过 P0 + P1 就能解决。LLM 推理占 75% 耗时——优化资源应该全部投在这里。
-  </div>
-
-  <h3 class="view-h3" id="sec-12.4"><span class="sec-num">§ 12.4</span>相关阅读<span class="vh-tag">related</span></h3>
-  <div class="related-grid">
-    <a class="related-card" href="/2026/11/07/openclaw-07-end-to-end/">
-      <span class="rc-eyebrow">07 · 端到端</span>
-      <span class="rc-title">端到端流程</span>
-      <span class="rc-desc">9 阶段时序图——看到每个阶段的耗时和异步关系。</span>
-    </a>
-    <a class="related-card" href="/2026/11/07/openclaw-04-models-runtimes/">
-      <span class="rc-eyebrow">04 · 模型</span>
-      <span class="rc-title">模型与运行时</span>
-      <span class="rc-desc">4 级模型选择 + Fallback + 5 种 Runtime——优化策略的模型层基础。</span>
-    </a>
-    <a class="related-card" href="/2026/11/07/openclaw-05-sessions/">
-      <span class="rc-eyebrow">05 · 会话</span>
-      <span class="rc-title">会话与状态</span>
-      <span class="rc-desc">Memory 摘要 + 历史压缩——Prompt 优化的基础机制。</span>
-    </a>
-    <a class="related-card" href="/2026/11/07/openclaw-06-tools-hooks/">
-      <span class="rc-eyebrow">06 · 工具</span>
-      <span class="rc-title">工具与钩子</span>
-      <span class="rc-desc">工具超时、结果截断、并行配置——并发层优化的钩子实现。</span>
-    </a>
-    <a class="related-card" href="/2026/11/07/openclaw-09-error-handling/">
-      <span class="rc-eyebrow">09 · 错误</span>
-      <span class="rc-title">异常与降级</span>
-      <span class="rc-desc">Fallback 链 + 降级策略——性能优化的"安全网"。</span>
-    </a>
-    <a class="related-card" href="https://docs.openclaw.ai/performance" target="_blank" rel="noopener">
-      <span class="rc-eyebrow">官方文档</span>
-      <span class="rc-title">Performance Guide</span>
-      <span class="rc-desc">性能优化完整指南——benchmark 数据、生产案例、监控集成。</span>
-    </a>
-  </div>
-</section>
-
-
 </div>
-      <aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">性能优化的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">模块位置</a><a class="reading-toc-link level-2" href="#sec-4">9 阶段耗时分布</a><a class="reading-toc-link level-3" href="#sec-4.1">视觉对比 visual</a><a class="reading-toc-link level-2" href="#sec-5">占比分析 + 用户感知</a><a class="reading-toc-link level-3" href="#sec-5.1">占比分析 percentage</a><a class="reading-toc-link level-3" href="#sec-5.2">用户感知延迟 perception</a><a class="reading-toc-link level-2" href="#sec-6">时间线视图 + 波动性</a><a class="reading-toc-link level-3" href="#sec-6.1">时间线视图 timeline</a><a class="reading-toc-link level-3" href="#sec-6.2">波动性(P50/P95/P99) variability</a><a class="reading-toc-link level-2" href="#sec-7">首 token 优化 (TTFT)</a><a class="reading-toc-link level-2" href="#sec-8">3 种典型场景</a><a class="reading-toc-link level-3" href="#sec-8.1">场景 A · 纯文本对话 scenario-a</a><a class="reading-toc-link level-3" href="#sec-8.2">纯文本对话</a><a class="reading-toc-link level-3" href="#sec-8.3">场景 B · 单工具调用 scenario-b</a><a class="reading-toc-link level-3" href="#sec-8.4">单工具调用</a><a class="reading-toc-link level-3" href="#sec-8.5">场景 C · 多工具循环 scenario-c</a><a class="reading-toc-link level-3" href="#sec-8.6">多工具循环</a><a class="reading-toc-link level-2" href="#sec-9">场景对比 + 案例研究</a><a class="reading-toc-link level-3" href="#sec-9.1">场景对比 comparison</a><a class="reading-toc-link level-3" href="#sec-9.2">案例研究 case-study</a><a class="reading-toc-link level-2" href="#sec-10">优化全景 + 5 大类</a><a class="reading-toc-link level-3" href="#sec-10.1">优化全景 overview</a><a class="reading-toc-link level-3" href="#sec-10.2">类别 1 · 模型层(最优先) layer-1</a><a class="reading-toc-link level-3" href="#sec-10.3">模型层优化</a><a class="reading-toc-link level-3" href="#sec-10.4">类别 2 · Prompt 层(最优先) layer-2</a><a class="reading-toc-link level-3" href="#sec-10.5">Prompt 层优化</a><a class="reading-toc-link level-3" href="#sec-10.6">类别 3 · 流式层 layer-3</a><a class="reading-toc-link level-3" href="#sec-10.7">流式层优化</a><a class="reading-toc-link level-3" href="#sec-10.8">类别 4 · 并发层 layer-4</a><a class="reading-toc-link level-3" href="#sec-10.9">并发层优化</a><a class="reading-toc-link level-3" href="#sec-10.10">类别 5 · 架构层 layer-5</a><a class="reading-toc-link level-3" href="#sec-10.11">架构层优化</a><a class="reading-toc-link level-2" href="#sec-11">实操检查清单</a><a class="reading-toc-link level-2" href="#sec-12">阅读路径 + FAQ + 总结</a><a class="reading-toc-link level-3" href="#sec-12.1">阅读路径 paths</a><a class="reading-toc-link level-3" href="#sec-12.2">常见问题 faq</a><a class="reading-toc-link level-3" href="#sec-12.3">一句话总结 summary</a><a class="reading-toc-link level-3" href="#sec-12.4">相关阅读 related</a></nav></details></aside>
+
+  <h3 id="sec-12.4">8.12.4 相关阅读</h3>
+  <ul>
+<li><a href="/2026/11/07/openclaw-07-end-to-end/"><strong>07 · 端到端 端到端流程</strong></a> — 9 阶段时序图——看到每个阶段的耗时和异步关系。</li>
+<li><a href="/2026/11/07/openclaw-04-models-runtimes/"><strong>04 · 模型 模型与运行时</strong></a> — 4 级模型选择 + Fallback + 5 种 Runtime——优化策略的模型层基础。</li>
+<li><a href="/2026/11/07/openclaw-05-sessions/"><strong>05 · 会话 会话与状态</strong></a> — Memory 摘要 + 历史压缩——Prompt 优化的基础机制。</li>
+<li><a href="/2026/11/07/openclaw-06-tools-hooks/"><strong>06 · 工具 工具与钩子</strong></a> — 工具超时、结果截断、并行配置——并发层优化的钩子实现。</li>
+<li><a href="/2026/11/07/openclaw-09-error-handling/"><strong>09 · 错误 异常与降级</strong></a> — Fallback 链 + 降级策略——性能优化的"安全网"。</li>
+</ul>
+
+
+
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">8.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">8.2 性能优化的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">8.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">8.4 9 阶段耗时分布</a><a class="reading-toc-link level-3" href="#sec-4.1">8.4.1 视觉对比</a><a class="reading-toc-link level-2" href="#sec-5">8.5 占比分析 + 用户感知</a><a class="reading-toc-link level-3" href="#sec-5.1">8.5.1 占比分析</a><a class="reading-toc-link level-3" href="#sec-5.2">8.5.2 用户感知延迟</a><a class="reading-toc-link level-2" href="#sec-6">8.6 时间线视图 + 波动性</a><a class="reading-toc-link level-3" href="#sec-6.1">8.6.1 时间线视图</a><a class="reading-toc-link level-3" href="#sec-6.2">8.6.2 波动性（P50/P95/P99）</a><a class="reading-toc-link level-2" href="#sec-7">8.7 首 token 优化 （TTFT）</a><a class="reading-toc-link level-2" href="#sec-8">8.8 3 种典型场景</a><a class="reading-toc-link level-3" href="#sec-8.1">8.8.1 场景 A · 纯文本对话</a><a class="reading-toc-link level-3" href="#sec-8.2">8.8.2 纯文本对话</a><a class="reading-toc-link level-3" href="#sec-8.3">8.8.3 场景 B · 单工具调用</a><a class="reading-toc-link level-3" href="#sec-8.4">8.8.4 单工具调用</a><a class="reading-toc-link level-3" href="#sec-8.5">8.8.5 场景 C · 多工具循环</a><a class="reading-toc-link level-3" href="#sec-8.6">8.8.6 多工具循环</a><a class="reading-toc-link level-2" href="#sec-9">8.9 场景对比 + 案例研究</a><a class="reading-toc-link level-3" href="#sec-9.1">8.9.1 场景对比</a><a class="reading-toc-link level-3" href="#sec-9.2">8.9.2 案例研究</a><a class="reading-toc-link level-2" href="#sec-10">8.10 优化全景 + 5 大类</a><a class="reading-toc-link level-3" href="#sec-10.1">8.10.1 优化全景</a><a class="reading-toc-link level-3" href="#sec-10.2">8.10.2 类别 1 · 模型层（最优先）</a><a class="reading-toc-link level-3" href="#sec-10.3">8.10.3 模型层优化</a><a class="reading-toc-link level-3" href="#sec-10.4">8.10.4 类别 2 · Prompt 层（最优先）</a><a class="reading-toc-link level-3" href="#sec-10.5">8.10.5 Prompt 层优化</a><a class="reading-toc-link level-3" href="#sec-10.6">8.10.6 类别 3 · 流式层</a><a class="reading-toc-link level-3" href="#sec-10.7">8.10.7 流式层优化</a><a class="reading-toc-link level-3" href="#sec-10.8">8.10.8 类别 4 · 并发层</a><a class="reading-toc-link level-3" href="#sec-10.9">8.10.9 并发层优化</a><a class="reading-toc-link level-3" href="#sec-10.10">8.10.10 类别 5 · 架构层</a><a class="reading-toc-link level-3" href="#sec-10.11">8.10.11 架构层优化</a><a class="reading-toc-link level-2" href="#sec-11">8.11 实操检查清单</a><a class="reading-toc-link level-2" href="#sec-12">8.12 阅读路径 + FAQ + 总结</a><a class="reading-toc-link level-3" href="#sec-12.1">8.12.1 阅读路径</a><a class="reading-toc-link level-3" href="#sec-12.2">8.12.2 常见问题</a><a class="reading-toc-link level-3" href="#sec-12.3">8.12.3 一句话总结</a><a class="reading-toc-link level-3" href="#sec-12.4">8.12.4 相关阅读</a></nav></details></aside>
     </div>
     <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-07-end-to-end/"><small>← 上一篇</small><span>端到端消息流程</span></a></div><div><a href="/2026/11/07/openclaw-09-error-handling/"><small>下一篇 →</small><span>错误处理与降级策略</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
   </article>

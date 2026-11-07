@@ -39,6 +39,43 @@
 
 正文页 `<h1 class="post-title">` 用不带编号前缀的正式名，编号只出现在 `<title>`、面包屑分类与「第 N 章 · 〔标签〕」的 kicker 中。
 
+## 章节骨架
+
+每篇按 Claude Code 系列的章节形状组织，读者进入正文前先拿到框架：
+
+```
+导语段（.oc-lead）
+引导思考表（table.guide-card.collapsed，四行：它为什么存在 / 它解决什么问题 /
+          它在系统中的位置 / 它如何工作）
+h2 编号小节
+  本章要点（.oc-keypoint）
+  思考笔记（.thinking-note）
+  图示（figure + mermaid + figcaption）
+  数据表、代码块、列表
+```
+
+- 标题编号：h2 写 `章.节`（如 `2.4`），h3 写 `章.节.条`（如 `2.4.1`），与 Claude Code 的 `1.1` 同一套口径；正文里的交叉引用同步写成新编号。
+- h4 层级太深，不带编号；指向 h4 的引用连编号一起去掉，只留标题。
+- 「引导思考」表逐篇手写，内容必须来自该章正文，不得跨章搬用。
+
+## 正文词汇
+
+正文只用博客自己的词汇，不带源站的设计系统：
+
+| 用途 | 写法 |
+| --- | --- |
+| 导语 | `<p class="oc-lead">` |
+| 本章要点 | `<div class="oc-keypoint">` + `<h3>` |
+| 思考笔记 | `<div class="thinking-note">` + `<h3>`（样式来自 `css/2026.css`） |
+| 引导思考表 | `<table class="guide-card collapsed">`（样式来自 `css/2026.css`） |
+| 卡片组 | `<div class="oc-cards">` + `<div class="oc-card">` |
+| 步骤 | `<div class="oc-step">` + `<p class="oc-step-num">` |
+| 带标题小节 | `<div class="oc-sub">` + `<p class="oc-sub-title">` |
+| 指标行 | `<p class="oc-metric">` |
+| 标签 | `<span class="oc-chip">` |
+| 数据表 | 普通 `<table>`，不加私有类 |
+| 代码块 | 普通 `<pre>`，源码内的高亮用 `.key` / `.str` / `.comment` 等内联类 |
+
 ## 图示规则
 
 本系列共有 155 张 Mermaid 图示，全部带题注（`图 X.Y · 说明`），题注随正文一并维护。
@@ -50,11 +87,12 @@
 
 ## 页面样式
 
-- 专用样式：`css/openclaw.css`，正文容器类名 `.openclaw-body`，全部规则以 `body.personal-article .openclaw-body` 为前缀，避免与 `css/article.css` 的 `body.personal-article .post-body` 规则冲突。
-- 加载顺序：`portal.css` → `article.css` → `openclaw.css`，专题样式必须最后加载。
+- 页面加载 `css/2026.css`（引导思考表、思考笔记、Mermaid 层）、`css/portal.css`、`css/article.css`、`css/openclaw.css`，顺序与其它文章页一致。
+- 专用样式：`css/openclaw.css` 只承载本系列特有的部分（导语、卡片、步骤、指标行、代码高亮），正文排版交给 `css/article.css`。
+- 正文容器类名 `.openclaw-body`，规则以 `body.personal-article .openclaw-body` 为前缀，避免与 `body.personal-article .post-body` 的规则冲突。
 - 页面壳与 Claude Code 系列一致：`post-body` / `article-toc-aside` / `reading-toc` / `article-pager` / `article-series-return`。
 
 ## 目录与正文基准
 
-- 每篇的目录是人工精选的，链接数量必须与 `docs/article-manifest.json` 中该篇的 `headings` 计数一致；未被目录收录的 h3/h4 标 `data-toc-skip`。
+- 目录收录全部 h2 与 h3，链接数量必须与 `docs/article-manifest.json` 中该篇的 `headings` 计数一致；h4 与其它未收录的标题标 `data-toc-skip`。
 - 改完正文后运行 `node scripts/update-manifest.cjs --write` 更新基准，再跑 `node scripts/verify-articles.cjs`。
