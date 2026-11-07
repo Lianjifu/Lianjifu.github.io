@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="/css/2026.css">
   <link rel="stylesheet" href="/css/portal.css?v=2">
   <link rel="stylesheet" href="/css/article.css?v=6">
-  <link rel="stylesheet" href="/css/openclaw.css?v=5">
+  <link rel="stylesheet" href="/css/openclaw.css?v=7">
   <script src="/js/portal.js?v=6" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -204,12 +204,66 @@
     </tbody>
   </table>
 
+<table>
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td colspan="2"><span></span>引导思考 <span>展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>30+ 提供商、5 种 Runtime、几十个模型 ID，每家的协议和故障行为都不一样</li>
+          <li>把「模型训练」留给 OpenAI 与 Anthropic，OpenClaw 只做协调层</li>
+          <li>不把两件事拆开，配置就会变成一堆互相牵连的开关</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>Provider 与 Model 是身份，Runtime 与 Harness 是执行方式——两者独立配置、自由组合</li>
+          <li>同一个模型可以换不同 Runtime，同一个 Runtime 也可以换不同模型</li>
+          <li>所有组合都能在 openclaw.json5 里声明，不必改代码</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>L3 推理层的具体实现——定义模型如何被调用</li>
+          <li>上游接适配器与路由层，下游接执行层与工具沙箱</li>
+          <li>与模块 03 一起构成消息进入模型之前的最后一段</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>四层抽象栈：Provider → Model → Runtime → Harness，每层都是独立可配置项</li>
+          <li>Provider 负责协议与鉴权，Model 负责上下文与能力，Runtime 负责调度，Harness 负责装配</li>
+          <li>故障转移在 Provider 层实现：配额、限流、区域不可用各有回退路径</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
 
 
 
   <h2 id="sec-1">4.1 一句话定位</h2>
 
-  <div class="oc-keypoint">
+  <div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">Provider/Model 是身份，Runtime/Harness 是执行方式。</p>OpenClaw 让你把这两件事<strong>独立配置、组合使用</strong>——同一模型可换不同 Runtime，同一 Runtime 可换不同模型，所有组合都能在 <code>openclaw.json5</code> 里声明。
 </div>
@@ -260,10 +314,10 @@
 
   <figure><div class="mermaid">
 flowchart LR
-  A["<b>02 架构</b><br>三层四层原则"] --> B["<b>04 模型与运行时</b><br>L3 推理层细节"]
-  B --> C["<b>05 会话</b><br>如何被路由"]
-  B --> D["<b>06 工具</b><br>工具如何注入 Runtime"]
-  B --> E["<b>08 性能</b><br>Runtime 性能对比"]
+  A["&lt;b&gt;02 架构&lt;/b&gt;&lt;br&gt;三层四层原则"] --&gt; B["&lt;b&gt;04 模型与运行时&lt;/b&gt;&lt;br&gt;L3 推理层细节"]
+  B --&gt; C["&lt;b&gt;05 会话&lt;/b&gt;&lt;br&gt;如何被路由"]
+  B --&gt; D["&lt;b&gt;06 工具&lt;/b&gt;&lt;br&gt;工具如何注入 Runtime"]
+  B --&gt; E["&lt;b&gt;08 性能&lt;/b&gt;&lt;br&gt;Runtime 性能对比"]
 
   style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style B fill:#c026d3,stroke:#7c3aed,color:#fff,stroke-width:2px
@@ -276,17 +330,17 @@ flowchart LR
 
   <figure><div class="mermaid">
 flowchart LR
-  H["<b> Harness</b><br/>执行 Runtime 的后端进程<br/>openclaw · codex · copilot · claude-cli · acp"]
+  H["&lt;b&gt; Harness&lt;/b&gt;&lt;br/&gt;执行 Runtime 的后端进程&lt;br/&gt;openclaw · codex · copilot · claude-cli · acp"]
 
-  R["<b>Runtime</b><br/>如何调度 LLM 调用循环<br/>Single-shot · Loop · Streaming · Parallel · Hybrid"]
+  R["&lt;b&gt;Runtime&lt;/b&gt;&lt;br/&gt;如何调度 LLM 调用循环&lt;br/&gt;Single-shot · Loop · Streaming · Parallel · Hybrid"]
 
-  M["<b> Model</b><br/>具体模型 ID<br/>claude-sonnet-4 · gpt-4o · qwen2.5-72b"]
+  M["&lt;b&gt; Model&lt;/b&gt;&lt;br/&gt;具体模型 ID&lt;br/&gt;claude-sonnet-4 · gpt-4o · qwen2.5-72b"]
 
-  P["<b> Provider</b><br/>提供 API 的厂商<br/>Anthropic · OpenAI · Ollama · Bedrock · DeepSeek"]
+  P["&lt;b&gt; Provider&lt;/b&gt;&lt;br/&gt;提供 API 的厂商&lt;br/&gt;Anthropic · OpenAI · Ollama · Bedrock · DeepSeek"]
 
-  P --> M
-  M --> R
-  R --> H
+  P --&gt; M
+  M --&gt; R
+  R --&gt; H
 
   style P fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
   style M fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
@@ -367,7 +421,7 @@ flowchart LR
 </div>
 
 <h3 id="deep-24">4.5.5 Provider 适配层</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -383,24 +437,24 @@ flowchart LR
 <figure><div class="mermaid">
 flowchart LR
     subgraph 执行层["Agent 执行层"]
-        AR["Agent Runner<br/>runEmbeddedPiAgent"]:::agent
+        AR["Agent Runner&lt;br/&gt;runEmbeddedPiAgent"]:::agent
     end
 
-    subgraph 适配层["Provider 适配层<br/>— 统一接口"]
-        AD["Provider Adapter<br/>模型路由 + 认证管理<br/>+ 统一响应格式"]:::adapter
+    subgraph 适配层["Provider 适配层&lt;br/&gt;— 统一接口"]
+        AD["Provider Adapter&lt;br/&gt;模型路由 + 认证管理&lt;br/&gt;+ 统一响应格式"]:::adapter
     end
 
     subgraph 提供商["具体 Provider 实现"]
-        AN["Anthropic<br/>Claude 系列"]:::prov
-        OA["OpenAI<br/>GPT 系列"]:::prov
-        OL["Ollama<br/>本地模型"]:::prov
-        GG["Google<br/>Gemini"]:::prov
-        AW["AWS<br/>Bedrock"]:::prov
-        QW["Qwen<br/>通义千问"]:::prov
+        AN["Anthropic&lt;br/&gt;Claude 系列"]:::prov
+        OA["OpenAI&lt;br/&gt;GPT 系列"]:::prov
+        OL["Ollama&lt;br/&gt;本地模型"]:::prov
+        GG["Google&lt;br/&gt;Gemini"]:::prov
+        AW["AWS&lt;br/&gt;Bedrock"]:::prov
+        QW["Qwen&lt;br/&gt;通义千问"]:::prov
     end
 
-    AR --> AD
-    AD --> AN & OA & OL & GG & AW & QW
+    AR --&gt; AD
+    AD --&gt; AN &amp; OA &amp; OL &amp; GG &amp; AW &amp; QW
 
     classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef adapter fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -431,27 +485,27 @@ flowchart LR
 flowchart LR
     subgraph 调用层["调用层 — Agent 视角"]
         direction TB
-        C1["Agent Call<br/>model.generate(params)<br/>不知道底层是哪个 Provider"]:::callout
+        C1["Agent Call&lt;br/&gt;model.generate(params)&lt;br/&gt;不知道底层是哪个 Provider"]:::callout
     end
 
     subgraph 适配层["适配层 — 路由与适配"]
         direction TB
-        A1["Provider Adapter<br/>统一调用接口"]:::adapter
-        A2["Model Config<br/>模型路由表<br/>provider/model 映射"]:::adapter
-        A3["Auth Manager<br/>认证信息管理<br/>API Key / OAuth 轮换"]:::adapter
+        A1["Provider Adapter&lt;br/&gt;统一调用接口"]:::adapter
+        A2["Model Config&lt;br/&gt;模型路由表&lt;br/&gt;provider/model 映射"]:::adapter
+        A3["Auth Manager&lt;br/&gt;认证信息管理&lt;br/&gt;API Key / OAuth 轮换"]:::adapter
     end
 
     subgraph 实现层["实现层 — 具体 Provider"]
         direction TB
-        I1["Anthropic Adapter<br/>src/providers/anthropic.ts"]:::impl
-        I2["OpenAI Adapter<br/>src/providers/openai.ts"]:::impl
-        I3["Ollama Adapter<br/>src/providers/ollama.ts"]:::impl
-        I4["Others<br/>Gemini / Bedrock / ..."]:::impl
+        I1["Anthropic Adapter&lt;br/&gt;src/providers/anthropic.ts"]:::impl
+        I2["OpenAI Adapter&lt;br/&gt;src/providers/openai.ts"]:::impl
+        I3["Ollama Adapter&lt;br/&gt;src/providers/ollama.ts"]:::impl
+        I4["Others&lt;br/&gt;Gemini / Bedrock / ..."]:::impl
     end
 
-    C1 --> A1
-    A1 --> A2 --> A3
-    A2 --> I1 & I2 & I3 & I4
+    C1 --&gt; A1
+    A1 --&gt; A2 --&gt; A3
+    A2 --&gt; I1 &amp; I2 &amp; I3 &amp; I4
 
     classDef callout fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef adapter fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -486,14 +540,14 @@ flowchart LR
 <figure><div class="mermaid">
 flowchart TB
     REQ["Agent 请求"]:::start
-    --> FACTORS{"选择因素"}:::factors
-    FACTORS --> F1["模型能力<br/>工具调用 / 视觉 / 语音"]:::factor
-    FACTORS --> F2["上下文窗口<br/>Token 上限"]:::factor
-    FACTORS --> F3["成本考虑<br/>API 费用 / 预算"]:::factor
-    FACTORS --> F4["可用性<br/>服务状态"]:::factor
+    --&gt; FACTORS{"选择因素"}:::factors
+    FACTORS --&gt; F1["模型能力&lt;br/&gt;工具调用 / 视觉 / 语音"]:::factor
+    FACTORS --&gt; F2["上下文窗口&lt;br/&gt;Token 上限"]:::factor
+    FACTORS --&gt; F3["成本考虑&lt;br/&gt;API 费用 / 预算"]:::factor
+    FACTORS --&gt; F4["可用性&lt;br/&gt;服务状态"]:::factor
 
-    F1 & F2 & F3 & F4 --> PRIMARY["选择主模型<br/>primary"]:::result
-    PRIMARY --> FB["配置回退列表<br/>fallbacks"]:::result
+    F1 &amp; F2 &amp; F3 &amp; F4 --&gt; PRIMARY["选择主模型&lt;br/&gt;primary"]:::result
+    PRIMARY --&gt; FB["配置回退列表&lt;br/&gt;fallbacks"]:::result
 
     classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
     classDef factors fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -733,10 +787,10 @@ Hybrid<small>并行 + 流式</small>
 
     <figure><div class="mermaid">
 flowchart LR
-  L["LLM<br/>推理"] -->|tool_call| T["Tool Runner<br/>执行工具"]
-  T -->|tool_result| L
-  L -->|达到 max 步数| DONE["结束 + 返回"]
-  L -->|任务完成| DONE
+  L["LLM&lt;br/&gt;推理"] --&gt;|tool_call| T["Tool Runner&lt;br/&gt;执行工具"]
+  T --&gt;|tool_result| L
+  L --&gt;|达到 max 步数| DONE["结束 + 返回"]
+  L --&gt;|任务完成| DONE
 
   style L fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
   style T fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
@@ -822,16 +876,16 @@ flowchart LR
 
     <figure><div class="mermaid">
 flowchart LR
-  IN["输入"] --> F["Fan-out<br/>分发"]
-  F --> P1["任务 1"]
-  F --> P2["任务 2"]
-  F --> P3["任务 3"]
-  F --> P4["任务 4"]
-  P1 --> AGG["聚合器"]
-  P2 --> AGG
-  P3 --> AGG
-  P4 --> AGG
-  AGG --> OUT["最终结果"]
+  IN["输入"] --&gt; F["Fan-out&lt;br/&gt;分发"]
+  F --&gt; P1["任务 1"]
+  F --&gt; P2["任务 2"]
+  F --&gt; P3["任务 3"]
+  F --&gt; P4["任务 4"]
+  P1 --&gt; AGG["聚合器"]
+  P2 --&gt; AGG
+  P3 --&gt; AGG
+  P4 --&gt; AGG
+  AGG --&gt; OUT["最终结果"]
 
   style F fill:#fef3c7,stroke:#d97706,color:#1a1f2b
   style AGG fill:#d1fae5,stroke:#059669,color:#1a1f2b
@@ -879,13 +933,13 @@ flowchart LR
 
     <figure><div class="mermaid">
 flowchart LR
-  MAIN["主 Agent<br/>Loop"] -->|派发| S1["子任务 A<br/>streaming"]
-  MAIN -->|派发| S2["子任务 B<br/>streaming"]
-  MAIN -->|派发| S3["子任务 C<br/>streaming"]
-  S1 -->|stream| MAIN
-  S2 -->|stream| MAIN
-  S3 -->|stream| MAIN
-  MAIN -->|继续推理| MAIN
+  MAIN["主 Agent&lt;br/&gt;Loop"] --&gt;|派发| S1["子任务 A&lt;br/&gt;streaming"]
+  MAIN --&gt;|派发| S2["子任务 B&lt;br/&gt;streaming"]
+  MAIN --&gt;|派发| S3["子任务 C&lt;br/&gt;streaming"]
+  S1 --&gt;|stream| MAIN
+  S2 --&gt;|stream| MAIN
+  S3 --&gt;|stream| MAIN
+  MAIN --&gt;|继续推理| MAIN
 
   style MAIN fill:#7c3aed,stroke:#5b21b6,color:#fff
   style S1 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
@@ -925,14 +979,14 @@ flowchart LR
   <figure><div class="mermaid">
 flowchart LR
   Q{"需要工具调用?"}
-  Q -->|否| Q2{"需要长文本<br/>实时反馈?"}
-  Q2 -->|是| SS["Streaming"]
-  Q2 -->|否| Q3{"多个独立任务?"}
-  Q3 -->|是| P["Parallel"]
-  Q3 -->|否| SS2["Single-shot"]
-  Q -->|是| Q4{"复杂多步<br/>+ 并行子任务?"}
-  Q4 -->|是| H["Hybrid"]
-  Q4 -->|否| L["Loop"]
+  Q --&gt;|否| Q2{"需要长文本&lt;br/&gt;实时反馈?"}
+  Q2 --&gt;|是| SS["Streaming"]
+  Q2 --&gt;|否| Q3{"多个独立任务?"}
+  Q3 --&gt;|是| P["Parallel"]
+  Q3 --&gt;|否| SS2["Single-shot"]
+  Q --&gt;|是| Q4{"复杂多步&lt;br/&gt;+ 并行子任务?"}
+  Q4 --&gt;|是| H["Hybrid"]
+  Q4 --&gt;|否| L["Loop"]
 
   style SS fill:#d97706,stroke:#92400e,color:#fff
   style SS2 fill:#2563eb,stroke:#1e3a8a,color:#fff
@@ -949,19 +1003,19 @@ flowchart LR
 
   <figure><div class="mermaid">
 flowchart TB
-  L1["<b>Level 1 · Agent 级</b><br/>agents.[name].model<br/>(最精确)"]
-  L2["<b>Level 2 · Channel 级</b><br/>channels.[name].accounts.[acc].model"]
-  L3["<b>Level 3 · Workspace 级</b><br/>workspace.model"]
-  L4["<b>Level 4 · 全局默认</b><br/>defaults.model"]
+  L1["&lt;b&gt;Level 1 · Agent 级&lt;/b&gt;&lt;br/&gt;agents.[name].model&lt;br/&gt;(最精确)"]
+  L2["&lt;b&gt;Level 2 · Channel 级&lt;/b&gt;&lt;br/&gt;channels.[name].accounts.[acc].model"]
+  L3["&lt;b&gt;Level 3 · Workspace 级&lt;/b&gt;&lt;br/&gt;workspace.model"]
+  L4["&lt;b&gt;Level 4 · 全局默认&lt;/b&gt;&lt;br/&gt;defaults.model"]
 
-  L1 -->|未配置| L2
-  L2 -->|未配置| L3
-  L3 -->|未配置| L4
+  L1 --&gt;|未配置| L2
+  L2 --&gt;|未配置| L3
+  L3 --&gt;|未配置| L4
 
-  L1 -->|最终模型| OUT["调用 LLM"]
-  L2 -->|最终模型| OUT
-  L3 -->|最终模型| OUT
-  L4 -->|最终模型| OUT
+  L1 --&gt;|最终模型| OUT["调用 LLM"]
+  L2 --&gt;|最终模型| OUT
+  L3 --&gt;|最终模型| OUT
+  L4 --&gt;|最终模型| OUT
 
   style L1 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style L2 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
@@ -1102,12 +1156,12 @@ flowchart TB
 
   <figure><div class="mermaid">
 flowchart TB
-  T["任务"] --> M1["M1<br/>claude-sonnet-4"]
-  M1 -->|失败| M2["M2<br/>gpt-4o"]
-  M2 -->|失败| M3["M3<br/>qwen2.5-72b<br/>(本地)"]
-  M3 -->|成功| OK["返回结果"]
-  M1 -->|成功| OK
-  M2 -->|成功| OK
+  T["任务"] --&gt; M1["M1&lt;br/&gt;claude-sonnet-4"]
+  M1 --&gt;|失败| M2["M2&lt;br/&gt;gpt-4o"]
+  M2 --&gt;|失败| M3["M3&lt;br/&gt;qwen2.5-72b&lt;br/&gt;(本地)"]
+  M3 --&gt;|成功| OK["返回结果"]
+  M1 --&gt;|成功| OK
+  M2 --&gt;|成功| OK
 
   style M1 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style M2 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
@@ -1141,7 +1195,7 @@ flowchart TB
 </div>
 
 <h3 id="deep-25">4.15.1 模型故障转移</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1159,24 +1213,24 @@ flowchart LR
     subgraph 阶段一["阶段一：主模型 Profile 轮换"]
         direction LR
         REQ["Agent 请求"]:::start
-        P1["Profile 1<br/>anthropic:default"]:::profile
-        P1A["Profile 2<br/>anthropic:backup"]:::profile
-        P1B["Profile 3<br/>anthropic:secondary"]:::profile
+        P1["Profile 1&lt;br/&gt;anthropic:default"]:::profile
+        P1A["Profile 2&lt;br/&gt;anthropic:backup"]:::profile
+        P1B["Profile 3&lt;br/&gt;anthropic:secondary"]:::profile
     end
 
     subgraph 阶段二["阶段二：Fallback 模型切换"]
         direction LR
-        FB1["Fallback 1<br/>openai/gpt-5.2"]:::fallback
-        FB2["Fallback 2<br/>gemini/gemini-2.0"]:::fallback
-        FAIL["All failed<br/>返回错误"]:::fail
+        FB1["Fallback 1&lt;br/&gt;openai/gpt-5.2"]:::fallback
+        FB2["Fallback 2&lt;br/&gt;gemini/gemini-2.0"]:::fallback
+        FAIL["All failed&lt;br/&gt;返回错误"]:::fail
     end
 
-    REQ --> P1
-    P1 -->|"认证/限流失败"| P1A
-    P1A -->|"认证/限流失败"| P1B
-    P1B -->|"全部 Profile 失败"| FB1
-    FB1 -->|"失败"| FB2
-    FB2 -->|"失败"| FAIL
+    REQ --&gt; P1
+    P1 --&gt;|"认证/限流失败"| P1A
+    P1A --&gt;|"认证/限流失败"| P1B
+    P1B --&gt;|"全部 Profile 失败"| FB1
+    FB1 --&gt;|"失败"| FB2
+    FB2 --&gt;|"失败"| FAIL
 
     classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
     classDef profile fill:#dbeafe,stroke:#3b82f6,color:#1e40af
@@ -1197,11 +1251,11 @@ flowchart LR
 <p>当主模型配置了多个认证 Profile 时，按以下优先级轮换：</p>
 <figure><div class="mermaid">
 flowchart LR
-    O1["① 显式配置<br/>auth.order[provider]<br/>最高优先级"]:::order
-    O2["② 已配置 profiles<br/>按提供商过滤"]:::order
-    O3["③ 已存储 profiles<br/>auth-profiles.json"]:::order
+    O1["① 显式配置&lt;br/&gt;auth.order[provider]&lt;br/&gt;最高优先级"]:::order
+    O2["② 已配置 profiles&lt;br/&gt;按提供商过滤"]:::order
+    O3["③ 已存储 profiles&lt;br/&gt;auth-profiles.json"]:::order
 
-    O1 -->|"优先"| O2 -->|"其次"| O3
+    O1 --&gt;|"优先"| O2 --&gt;|"其次"| O3
 
     classDef order fill:#fef3c7,stroke:#f59e0b,color:#92400e
 </div><figcaption>图 16.4 · Fallback · 模型故障切换</figcaption></figure>
@@ -1227,9 +1281,9 @@ flowchart LR
 <figure><div class="mermaid">
 flowchart LR
     C1["1 分钟"]:::cool
-    --> C2["5 分钟"]:::cool
-    --> C3["25 分钟"]:::cool
-    --> C4["1 小时（上限）"]:::cool_max
+    --&gt; C2["5 分钟"]:::cool
+    --&gt; C3["25 分钟"]:::cool
+    --&gt; C4["1 小时（上限）"]:::cool_max
 
     classDef cool fill:#fce7f3,stroke:#ec4899,color:#9d174d
     classDef cool_max fill:#fee2e2,stroke:#ef4444,color:#991b1b
@@ -1250,9 +1304,9 @@ flowchart LR
 <figure><div class="mermaid">
 flowchart LR
     B1["起点：5 小时"]:::bill
-    --> B2["每次失败翻倍<br/>10h → 20h"]:::bill
-    --> B3["上限：24 小时"]:::bill_max
-    --> B4["24 小时未失败<br/>计数器重置"]:::bill_reset
+    --&gt; B2["每次失败翻倍&lt;br/&gt;10h → 20h"]:::bill
+    --&gt; B3["上限：24 小时"]:::bill_max
+    --&gt; B4["24 小时未失败&lt;br/&gt;计数器重置"]:::bill_reset
 
     classDef bill fill:#fce7f3,stroke:#ec4899,color:#9d174d
     classDef bill_max fill:#fee2e2,stroke:#ef4444,color:#991b1b
@@ -1321,7 +1375,7 @@ flowchart LR
 
 
 <h3 id="deep-26">4.15.2 认证管理</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1337,9 +1391,9 @@ flowchart LR
 flowchart LR
     subgraph 配置来源["认证信息来源"]
         direction TB
-        S1["openclaw.json<br/>auth.profiles 配置"]:::cfg
-        S2["环境变量<br/>${API_KEY} 替换"]:::env
-        S3["auth-profiles.json<br/>运行时状态存储"]:::file
+        S1["openclaw.json&lt;br/&gt;auth.profiles 配置"]:::cfg
+        S2["环境变量&lt;br/&gt;${API_KEY} 替换"]:::env
+        S3["auth-profiles.json&lt;br/&gt;运行时状态存储"]:::file
     end
 
     subgraph 认证管理["Auth Manager"]
@@ -1354,10 +1408,10 @@ flowchart LR
         P2["OAuth Token 刷新"]:::prov
     end
 
-    S1 & S2 --> M1
-    S3 --> M1
-    M1 --> M2 --> M3
-    M3 --> P1 & P2
+    S1 &amp; S2 --&gt; M1
+    S3 --&gt; M1
+    M1 --&gt; M2 --&gt; M3
+    M3 --&gt; P1 &amp; P2
 
     classDef cfg fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef env fill:#dbeafe,stroke:#3b82f6,color:#1e40af
@@ -1409,11 +1463,11 @@ flowchart LR
 <p>当 Provider 配置了多个认证 Profile 时，按以下优先级依次尝试：</p>
 <figure><div class="mermaid">
 flowchart LR
-    O1["① auth.order[provider]<br/>显式指定轮换顺序<br/>最高优先级"]:::pri
-    O2["② 已配置 profiles<br/>按提供商过滤"]:::mid
-    O3["③ 已存储 profiles<br/>auth-profiles.json 文件"]:::low
+    O1["① auth.order[provider]&lt;br/&gt;显式指定轮换顺序&lt;br/&gt;最高优先级"]:::pri
+    O2["② 已配置 profiles&lt;br/&gt;按提供商过滤"]:::mid
+    O3["③ 已存储 profiles&lt;br/&gt;auth-profiles.json 文件"]:::low
 
-    O1 --> O2 --> O3
+    O1 --&gt; O2 --&gt; O3
 
     classDef pri fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef mid fill:#dbeafe,stroke:#3b82f6,color:#1e40af
@@ -1736,12 +1790,12 @@ Agent: research
   <figure><div class="mermaid">
 flowchart LR
   Q{"主要顾虑?"}
-  Q -->|质量第一| A["Anthropic<br/>claude-sonnet-4"]
-  Q -->|成本第一| B["DeepSeek<br/>deepseek-chat"]
-  Q -->|中文| C["阿里通义<br/>qwen-max"]
-  Q -->|隐私 / 离线| D["Ollama<br/>qwen2.5-72b"]
-  Q -->|企业合规| E["AWS Bedrock"]
-  Q -->|多模型聚合| F["OpenRouter"]
+  Q --&gt;|质量第一| A["Anthropic&lt;br/&gt;claude-sonnet-4"]
+  Q --&gt;|成本第一| B["DeepSeek&lt;br/&gt;deepseek-chat"]
+  Q --&gt;|中文| C["阿里通义&lt;br/&gt;qwen-max"]
+  Q --&gt;|隐私 / 离线| D["Ollama&lt;br/&gt;qwen2.5-72b"]
+  Q --&gt;|企业合规| E["AWS Bedrock"]
+  Q --&gt;|多模型聚合| F["OpenRouter"]
 
   style A fill:#c026d3,stroke:#7c3aed,color:#fff
   style B fill:#2563eb,stroke:#1e3a8a,color:#fff
@@ -1822,7 +1876,10 @@ flowchart LR
 
     <li>
       <div> OpenClaw 支持私有 LLM 部署吗？</div>
-      <div>支持。任何 OpenAI 兼容 API 都能用 <code>custom</code> Provider 接入——包括 vLLM、Ollama、TGI、私有部署的模型。</div>
+      <div class="thinking-note">
+<h3>思考笔记</h3>
+支持。任何 OpenAI 兼容 API 都能用 <code>custom</code> Provider 接入——包括 vLLM、Ollama、TGI、私有部署的模型。
+</div>
     </li>
   </ul>
 
@@ -1879,5 +1936,5 @@ flowchart LR
           </div>
         </div>
       </div>
-    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body>
+    </footer><script src="/js/article-diagrams.js?v=9" defer></script></body>
 </html>

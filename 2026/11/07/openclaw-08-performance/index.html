@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="/css/2026.css">
   <link rel="stylesheet" href="/css/portal.css?v=2">
   <link rel="stylesheet" href="/css/article.css?v=6">
-  <link rel="stylesheet" href="/css/openclaw.css?v=5">
+  <link rel="stylesheet" href="/css/openclaw.css?v=7">
   <script src="/js/portal.js?v=6" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -204,12 +204,66 @@
     </tbody>
   </table>
 
+<table>
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td colspan="2"><span></span>引导思考 <span>展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>知道快慢，才知道该优化什么——否则很容易把时间花在只占 2% 的本地路由上</li>
+          <li>OpenClaw 的性能基线此前没有公开的、可复核的测量</li>
+          <li>延迟的数字必须对应真实用户能感知的那一段</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>把每条消息的耗时拆到毫秒级，区分「必须优化」与「可以接受」</li>
+          <li>说明模型推理占掉约四分之三耗时，优化重点应该落在这一段</li>
+          <li>给出长尾延迟的量级，提醒配置超时要看 P99 而不是 P50</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>给模块 07 的九个阶段加上耗时维度</li>
+          <li>覆盖从通道接入到通道回复的完整链路</li>
+          <li>性能问题往往横跨多个模块，这一章提供横向视角</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>典型场景基准：WhatsApp 私聊加一次工具调用，模型推理约两秒是主瓶颈</li>
+          <li>三种场景对比与波动性分析：P50、P95、P99 的差距可达五到十倍</li>
+          <li>五大类十多项优化方法：提示词缓存、流式响应、模型选择、并行与超时</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
 
 <!-- ============ 8.1 · 一句话定位 ============ -->
 
   <h2 id="sec-1">8.1 一句话定位</h2>
 
-  <div class="oc-keypoint">
+  <div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">性能优化的 80/20：大多数优化在 LLM 推理层——用 prompt caching、流式响应、合适的模型，把响应时间减半。</p>本模块用数据告诉你 9 阶段耗时分布、3 种典型场景对比、5 大类 10+ 个具体优化方法。
 </div>
@@ -264,10 +318,10 @@
 
   <figure><div class="mermaid">
 flowchart LR
-  A["<b>07 端到端</b><br/>完整链路"] --> B["<b>08 性能</b><br/>耗时分布 + 优化"]
-  B --> C["<b>04 模型</b><br/>模型选型权衡"]
-  B --> D["<b>05 会话</b><br/>压缩减少上下文"]
-  B --> E["<b>09 错误处理</b><br/>降级策略"]
+  A["&lt;b&gt;07 端到端&lt;/b&gt;&lt;br/&gt;完整链路"] --&gt; B["&lt;b&gt;08 性能&lt;/b&gt;&lt;br/&gt;耗时分布 + 优化"]
+  B --&gt; C["&lt;b&gt;04 模型&lt;/b&gt;&lt;br/&gt;模型选型权衡"]
+  B --&gt; D["&lt;b&gt;05 会话&lt;/b&gt;&lt;br/&gt;压缩减少上下文"]
+  B --&gt; E["&lt;b&gt;09 错误处理&lt;/b&gt;&lt;br/&gt;降级策略"]
 
   style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style B fill:#f59e0b,stroke:#d97706,color:#fff,stroke-width:2px
@@ -350,15 +404,15 @@ pie title 单次响应耗时占比(典型场景)
 
   <figure><div class="mermaid">
 flowchart LR
-  T0["T=0s<br/>发送消息"]
-  T1["T=0.1s<br/>Gateway 收到"]
-  T2["T=1-3s<br/>看到首个 token"]
-  T3["T=2-6s<br/>看到工具调用"]
-  T4["T=3-8s<br/>完整回复"]
-  T5["T=8s+<br/>后台善后"]
-  BG[" 后台<br/>压缩·状态更新"]
-  T0 --> T1 --> T2 --> T3 --> T4 --> T5
-  T4 -.异步.-> BG
+  T0["T=0s&lt;br/&gt;发送消息"]
+  T1["T=0.1s&lt;br/&gt;Gateway 收到"]
+  T2["T=1-3s&lt;br/&gt;看到首个 token"]
+  T3["T=2-6s&lt;br/&gt;看到工具调用"]
+  T4["T=3-8s&lt;br/&gt;完整回复"]
+  T5["T=8s+&lt;br/&gt;后台善后"]
+  BG[" 后台&lt;br/&gt;压缩·状态更新"]
+  T0 --&gt; T1 --&gt; T2 --&gt; T3 --&gt; T4 --&gt; T5
+  T4 -.异步.-&gt; BG
 
   style T0 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style T1 fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
@@ -437,11 +491,11 @@ flowchart LR
 
   <figure><div class="mermaid">
 flowchart LR
-  A["<b>场景 A</b><br/>纯文本对话<br/>2-5s"]
-  B["<b>场景 B</b><br/>单工具调用<br/>5-15s"]
-  C["<b>场景 C</b><br/>多工具循环<br/>15-60s"]
+  A["&lt;b&gt;场景 A&lt;/b&gt;&lt;br/&gt;纯文本对话&lt;br/&gt;2-5s"]
+  B["&lt;b&gt;场景 B&lt;/b&gt;&lt;br/&gt;单工具调用&lt;br/&gt;5-15s"]
+  C["&lt;b&gt;场景 C&lt;/b&gt;&lt;br/&gt;多工具循环&lt;br/&gt;15-60s"]
 
-  A --> B --> C
+  A --&gt; B --&gt; C
 
   style A fill:#d1fae5,stroke:#059669,color:#1a1f2b
   style B fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
@@ -584,10 +638,10 @@ flowchart LR
   <h3 id="sec-10.1">8.10.1 优化全景</h3>
   <figure><div class="mermaid">
 flowchart LR
-  L1["<b>影响 </b><br/>模型层"] --> L2["<b>影响 </b><br/>Prompt 层"]
-  L2 --> L3["<b>影响 </b><br/>流式层"]
-  L3 --> L4["<b>影响 </b><br/>并发层"]
-  L4 --> L5["<b>影响 </b><br/>架构层"]
+  L1["&lt;b&gt;影响 &lt;/b&gt;&lt;br/&gt;模型层"] --&gt; L2["&lt;b&gt;影响 &lt;/b&gt;&lt;br/&gt;Prompt 层"]
+  L2 --&gt; L3["&lt;b&gt;影响 &lt;/b&gt;&lt;br/&gt;流式层"]
+  L3 --&gt; L4["&lt;b&gt;影响 &lt;/b&gt;&lt;br/&gt;并发层"]
+  L4 --&gt; L5["&lt;b&gt;影响 &lt;/b&gt;&lt;br/&gt;架构层"]
 
   style L1 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
   style L2 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
@@ -864,7 +918,10 @@ flowchart LR
 
     <li>
       <div> 性能优化的 80/20 法则？</div>
-      <div>80% 的延迟来自 LLM 推理层——把优化时间投在这里（模型选择 + Prompt Caching + 流式）收益最大；本地 50ms 的路由优化收益几乎为零。</div>
+      <div class="thinking-note">
+<h3>思考笔记</h3>
+80% 的延迟来自 LLM 推理层——把优化时间投在这里（模型选择 + Prompt Caching + 流式）收益最大；本地 50ms 的路由优化收益几乎为零。
+</div>
     </li>
   </ul>
 
@@ -922,5 +979,5 @@ flowchart LR
           </div>
         </div>
       </div>
-    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body>
+    </footer><script src="/js/article-diagrams.js?v=9" defer></script></body>
 </html>

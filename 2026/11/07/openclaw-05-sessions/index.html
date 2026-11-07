@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="/css/2026.css">
   <link rel="stylesheet" href="/css/portal.css?v=2">
   <link rel="stylesheet" href="/css/article.css?v=6">
-  <link rel="stylesheet" href="/css/openclaw.css?v=5">
+  <link rel="stylesheet" href="/css/openclaw.css?v=7">
   <script src="/js/portal.js?v=6" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -204,12 +204,66 @@
     </tbody>
   </table>
 
+<table>
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td colspan="2"><span></span>引导思考 <span>展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>会话是 AI 助手的短期记忆——没有会话边界，模型就只是一次性应答机</li>
+          <li>用户发消息到收到回复，中间要串联路由、组装、推理、持久化、压缩多个环节</li>
+          <li>DM 隔离、上下文工程、压缩策略都落在这条链上</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>把零散消息组织成有结构、有记忆、有边界、有权限的 LLM 调用单元</li>
+          <li>说清会话怎么活、状态怎么存、Prompt 怎么装、DM 怎么管</li>
+          <li>多用户场景下保证 A 的私人信息不会落到 B 的会话里</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>消息路由与状态管理的核心——把消息组织成有结构的会话单元</li>
+          <li>介于接入层与推理层之间：上游接路由结果，下游接 Prompt 构建</li>
+          <li>存储分三层落在本地：SQLite 管状态、Markdown 管记忆、Git 管审计</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>四种会话类型：Main 主会话、Branch 分支、Sandbox 沙盒、Isolated 孤立</li>
+          <li>六个生命周期状态与三层存储：SQLite 查询、Markdown 人类可读、Git 可选审计</li>
+          <li>八层 Prompt 栈从 System 到 User 组装，四级 DM 策略决定哪些消息共享会话</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
 
 
 
   <h2 id="sec-1">5.1 一句话定位</h2>
 
-  <div class="oc-keypoint">
+  <div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">会话 = 一次完整的对话上下文</p>——它把零散消息组织成有结构、有记忆、有边界、有权限的 LLM 调用单元。本模块拆解：会话怎么活、状态怎么存、Prompt 怎么装、DM 怎么管。
 </div>
@@ -260,10 +314,10 @@
 
   <figure><div class="mermaid">
 flowchart LR
-  A["<b>03 通道</b><br/>15+ 消息平台"] --> B["<b>05 会话与状态</b><br/>消息如何路由/存储"]
-  B --> C["<b>04 模型</b><br/>最终送到哪个 LLM"]
-  B --> D["<b>06 工具</b><br/>消息如何触发工具"]
-  B --> E["<b>09 错误处理</b><br/>会话失败如何恢复"]
+  A["&lt;b&gt;03 通道&lt;/b&gt;&lt;br/&gt;15+ 消息平台"] --&gt; B["&lt;b&gt;05 会话与状态&lt;/b&gt;&lt;br/&gt;消息如何路由/存储"]
+  B --&gt; C["&lt;b&gt;04 模型&lt;/b&gt;&lt;br/&gt;最终送到哪个 LLM"]
+  B --&gt; D["&lt;b&gt;06 工具&lt;/b&gt;&lt;br/&gt;消息如何触发工具"]
+  B --&gt; E["&lt;b&gt;09 错误处理&lt;/b&gt;&lt;br/&gt;会话失败如何恢复"]
 
   style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style B fill:#c026d3,stroke:#7c3aed,color:#fff,stroke-width:2px
@@ -278,10 +332,10 @@ flowchart LR
 
   <figure><div class="mermaid">
 flowchart LR
-  M["<b>Main(主会话)</b><br/>持续 · 共享记忆 · 默认"]
-  B["<b> Branch(分支)</b><br/>从主分支 fork · 完成后合并"]
-  S["<b>Sandbox(沙盒)</b><br/>一次性 · 不持久化 · 实验"]
-  I["<b>Isolated(孤立)</b><br/>无上下文 · 每次独立"]
+  M["&lt;b&gt;Main(主会话)&lt;/b&gt;&lt;br/&gt;持续 · 共享记忆 · 默认"]
+  B["&lt;b&gt; Branch(分支)&lt;/b&gt;&lt;br/&gt;从主分支 fork · 完成后合并"]
+  S["&lt;b&gt;Sandbox(沙盒)&lt;/b&gt;&lt;br/&gt;一次性 · 不持久化 · 实验"]
+  I["&lt;b&gt;Isolated(孤立)&lt;/b&gt;&lt;br/&gt;无上下文 · 每次独立"]
 
   style M fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
   style B fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
@@ -389,15 +443,15 @@ flowchart LR
   <figure><div class="mermaid">
 stateDiagram-v2
   direction LR
-  [*] --> Created: 收到首条消息
-  Created --> Active: 激活(进入 LLM 循环)
-  Active --> Idle: 无活动超过 idleTimeout
-  Idle --> Active: 新消息
-  Idle --> Archived: 闲置超过 archiveAfter
-  Active --> Closed: 用户主动 /close
-  Closed --> Archived: 归档(默认 7 天后)
-  Archived --> [*]: 删除
-  Closed --> Active: 重新激活
+  [*] --&gt; Created: 收到首条消息
+  Created --&gt; Active: 激活(进入 LLM 循环)
+  Active --&gt; Idle: 无活动超过 idleTimeout
+  Idle --&gt; Active: 新消息
+  Idle --&gt; Archived: 闲置超过 archiveAfter
+  Active --&gt; Closed: 用户主动 /close
+  Closed --&gt; Archived: 归档(默认 7 天后)
+  Archived --&gt; [*]: 删除
+  Closed --&gt; Active: 重新激活
 </div><figcaption>图 5.3 · 6 个状态——Created / Active / Idle / Closed / Archived / （deleted）。</figcaption></figure>
 
   <table>
@@ -470,7 +524,7 @@ stateDiagram-v2
 </div>
 
 <h3 id="deep-26">5.7.1 记忆存储层</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -488,28 +542,28 @@ stateDiagram-v2
 flowchart TB
     subgraph Layer1["① 记忆存储层 — 文件系统与索引"]
         direction LR
-        L1_MD["MEMORY.md<br/>长期记忆"]:::file
-        L1_DAY["memory/YYYY-MM-DD.md<br/>每日日志"]:::file
-        L1_IDX["SQLite 索引<br/>FTS5 + 向量 + 缓存"]:::file
-        L1_TOOL["记忆工具接口<br/>memory_search / memory_get"]:::file
+        L1_MD["MEMORY.md&lt;br/&gt;长期记忆"]:::file
+        L1_DAY["memory/YYYY-MM-DD.md&lt;br/&gt;每日日志"]:::file
+        L1_IDX["SQLite 索引&lt;br/&gt;FTS5 + 向量 + 缓存"]:::file
+        L1_TOOL["记忆工具接口&lt;br/&gt;memory_search / memory_get"]:::file
     end
 
     subgraph Layer2["② 主动检索层 — 查询注入"]
         direction LR
-        L2_AM["Active Memory<br/>回复前自动检索"]:::active
-        L2_HY["混合搜索<br/>BM25 + 向量融合"]:::active
+        L2_AM["Active Memory&lt;br/&gt;回复前自动检索"]:::active
+        L2_HY["混合搜索&lt;br/&gt;BM25 + 向量融合"]:::active
     end
 
     subgraph Layer3["③ 后台整理层 — 整理提升"]
         direction LR
-        L3_FLUSH["Auto Memory Flush<br/>压缩前存储提醒"]:::consolidate
-        L3_DREAM["Dreaming<br/>三阶段后台整理"]:::consolidate
-        L3_BACK["后端引擎分流<br/>SQLite / QMD / Honcho"]:::consolidate
+        L3_FLUSH["Auto Memory Flush&lt;br/&gt;压缩前存储提醒"]:::consolidate
+        L3_DREAM["Dreaming&lt;br/&gt;三阶段后台整理"]:::consolidate
+        L3_BACK["后端引擎分流&lt;br/&gt;SQLite / QMD / Honcho"]:::consolidate
     end
 
-    Layer1 -->|"提供索引数据"| Layer2
-    Layer2 -->|"反馈查询模式"| Layer3
-    Layer3 -->|"写入提升记忆"| Layer1
+    Layer1 --&gt;|"提供索引数据"| Layer2
+    Layer2 --&gt;|"反馈查询模式"| Layer3
+    Layer3 --&gt;|"写入提升记忆"| Layer1
 
     classDef file fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef active fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -533,9 +587,9 @@ flowchart TB
 flowchart LR
     subgraph 工作区["~/.openclaw/workspace/"]
         direction TB
-        F1["MEMORY.md<br/>精选的长期记忆<br/>决策 · 偏好 · 事实"]:::long
-        F2["memory/<br/>   ├── 2026-06-01.md<br/>   ├── 2026-06-02.md<br/>   ├── ...<br/>   └── 2026-06-15.md"]:::daily
-        F3[".dreams/<br/>Dreaming 状态<br/>(仅开启时存在)"]:::dream
+        F1["MEMORY.md&lt;br/&gt;精选的长期记忆&lt;br/&gt;决策 · 偏好 · 事实"]:::long
+        F2["memory/&lt;br/&gt;   ├── 2026-06-01.md&lt;br/&gt;   ├── 2026-06-02.md&lt;br/&gt;   ├── ...&lt;br/&gt;   └── 2026-06-15.md"]:::daily
+        F3[".dreams/&lt;br/&gt;Dreaming 状态&lt;br/&gt;(仅开启时存在)"]:::dream
     end
 
     classDef long fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -698,23 +752,23 @@ flowchart LR
 <figure><div class="mermaid">
 flowchart TB
     subgraph 适合["适合写入"]
-        L1["长期偏好<br/>回答先给结论再展开"]
-        L2["项目规则<br/>main 分支不能直接推送"]
-        L3["重要事实<br/>团队使用 Asia/Shanghai 时区"]
-        L4["决策记录<br/>选择 TypeScript 而非 Python"]
+        L1["长期偏好&lt;br/&gt;回答先给结论再展开"]
+        L2["项目规则&lt;br/&gt;main 分支不能直接推送"]
+        L3["重要事实&lt;br/&gt;团队使用 Asia/Shanghai 时区"]
+        L4["决策记录&lt;br/&gt;选择 TypeScript 而非 Python"]
     end
 
     subgraph 边界["谨慎写入"]
-        G1["半结构化链接<br/>接口文档地址"]
-        G2["临时计划<br/>本周开发目标是..."]
-        G3["个人备注<br/>Alice 喜欢简洁回复"]
+        G1["半结构化链接&lt;br/&gt;接口文档地址"]
+        G2["临时计划&lt;br/&gt;本周开发目标是..."]
+        G3["个人备注&lt;br/&gt;Alice 喜欢简洁回复"]
     end
 
     subgraph 禁止["绝对不写"]
         B1["密码 / API Key / Token"]
         B2["一次性验证码"]
         B3["临时的过期链接"]
-        B4["个人隐私<br/>身份证 / 地址"]
+        B4["个人隐私&lt;br/&gt;身份证 / 地址"]
     end
 
     style 适合 fill:#d1fae5,stroke:#10b981,color:#065f46
@@ -831,7 +885,7 @@ tags: ["preferences", "work"]
 </div>
 
 <h3 id="deep-27">5.9.2 主动检索层</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -847,25 +901,25 @@ tags: ["preferences", "work"]
 <figure><div class="mermaid">
 flowchart LR
     subgraph 存储层["① 存储层 （下方）"]
-S["MEMORY.md + 每日日志<br/>SQLite 索引（FTS5 + 向量）"]:::store
+S["MEMORY.md + 每日日志&lt;br/&gt;SQLite 索引（FTS5 + 向量）"]:::store
     end
 
     subgraph 检索层["② 检索层 （当前）— 查询与注入"]
 direction TB
-        R1["被动调用<br/>memory_search / memory_get<br/>Agent 或用户显式请求"]:::passive
-        R2["主动预检索<br/>Active Memory<br/>回复前自动派发子任务"]:::active
-        R3["搜索算法<br/>向量余弦相似度 + BM25 FTS5<br/>→ 混合加权"]:::algo
+        R1["被动调用&lt;br/&gt;memory_search / memory_get&lt;br/&gt;Agent 或用户显式请求"]:::passive
+        R2["主动预检索&lt;br/&gt;Active Memory&lt;br/&gt;回复前自动派发子任务"]:::active
+        R3["搜索算法&lt;br/&gt;向量余弦相似度 + BM25 FTS5&lt;br/&gt;→ 混合加权"]:::algo
     end
 
     subgraph 整理层["③ 整理层 （上方）"]
-C["Auto Flush / Dreaming<br/>三阶段提升 + 后端引擎"]:::consolidate
+C["Auto Flush / Dreaming&lt;br/&gt;三阶段提升 + 后端引擎"]:::consolidate
     end
 
-    S -->|"读取索引"| R1
-    S -->|"读取索引"| R2
-    R1 -->|"结果"| R3
-    R2 -->|"结果"| R3
-    R3 -->|"相关记忆"| C
+    S --&gt;|"读取索引"| R1
+    S --&gt;|"读取索引"| R2
+    R1 --&gt;|"结果"| R3
+    R2 --&gt;|"结果"| R3
+    R3 --&gt;|"相关记忆"| C
 
     classDef store fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef passive fill:#d1fae5,stroke:#10b981,color:#065f46
@@ -910,14 +964,14 @@ sequenceDiagram
     participant AG as Agent
 
     Note over U,AG: 回复前阶段
-    U->>AM: 消息到达
-    AM->>AM: ① 构建记忆查询 queryMode + promptStyle
-    AM->>MEM: ② memory_search（timeoutMs=15s）
-    MEM-->>AM: ③ 返回相关记忆片段
+    U-&gt;&gt;AM: 消息到达
+    AM-&gt;&gt;AM: ① 构建记忆查询 queryMode + promptStyle
+    AM-&gt;&gt;MEM: ② memory_search（timeoutMs=15s）
+    MEM--&gt;&gt;AM: ③ 返回相关记忆片段
 
     Note over U,AG: 回复阶段
-    AM->>AG: ④ 记忆注入上下文
-    AG->>AG: ⑤ 开始回复（已携带记忆线索）
+    AM-&gt;&gt;AG: ④ 记忆注入上下文
+    AG-&gt;&gt;AG: ⑤ 开始回复（已携带记忆线索）
 </div><figcaption>图 11.3 · Markdown · 长期记忆</figcaption></figure>
 <h4 id="sec-23-23-1" data-toc-skip>适合场景</h4>
 <table>
@@ -997,15 +1051,15 @@ sequenceDiagram
 <h4 id="sec-23-29-1" data-toc-skip>合并算法</h4>
 <figure><div class="mermaid">
 flowchart LR
-    S1["① 向量搜索<br/>取 top-N × candidateMultiplier<br/>按余弦相似度降序"]:::vec
-    S2["② BM25 搜索<br/>取 top-N × candidateMultiplier<br/>按 FTS5 排名"]:::bm
-    S3["③ BM25 rank → score<br/>textScore = 1 / (1 + max(0, rank))"]:::calc
-    S4["④ 加权合并<br/>finalScore = vectorWeight × vectorScore<br/>+ textWeight × textScore"]:::calc
-    S5["⑤ 按 finalScore 降序<br/>取 top-N 返回"]:::result
+    S1["① 向量搜索&lt;br/&gt;取 top-N × candidateMultiplier&lt;br/&gt;按余弦相似度降序"]:::vec
+    S2["② BM25 搜索&lt;br/&gt;取 top-N × candidateMultiplier&lt;br/&gt;按 FTS5 排名"]:::bm
+    S3["③ BM25 rank → score&lt;br/&gt;textScore = 1 / (1 + max(0, rank))"]:::calc
+    S4["④ 加权合并&lt;br/&gt;finalScore = vectorWeight × vectorScore&lt;br/&gt;+ textWeight × textScore"]:::calc
+    S5["⑤ 按 finalScore 降序&lt;br/&gt;取 top-N 返回"]:::result
 
-    S1 --> S3 --> S4
-    S2 --> S3
-    S4 --> S5
+    S1 --&gt; S3 --&gt; S4
+    S2 --&gt; S3
+    S4 --&gt; S5
 
     classDef vec fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef bm fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -1044,15 +1098,15 @@ flowchart LR
 <figure><div class="mermaid">
 flowchart TB
     START["memorySearch 启用"]:::start
-    --> C1{"local.modelPath 存在?"}:::check
-    C1 -->|是| LOCAL["local<br/>GGUF 本地模型<br/>隐私优先"]:::ok
-    C1 -->|否| C2{"OpenAI Key<br/>可解析?"}:::check
-    C2 -->|是| OAI["openai<br/>text-embedding-3-small<br/>默认远程"]:::ok
-    C2 -->|否| C3{"Gemini Key<br/>可解析?"}:::check
-    C3 -->|是| GEM["gemini<br/>gemini-embedding-001<br/>原生支持"]:::ok
-    C3 -->|否| C4{"Voyage Key<br/>可解析?"}:::check
-    C4 -->|是| VOY["voyage<br/>voyage-2"]:::ok
-    C4 -->|否| DISABLE["禁用 memory search<br/>无可用 Provider"]:::no
+    --&gt; C1{"local.modelPath 存在?"}:::check
+    C1 --&gt;|是| LOCAL["local&lt;br/&gt;GGUF 本地模型&lt;br/&gt;隐私优先"]:::ok
+    C1 --&gt;|否| C2{"OpenAI Key&lt;br/&gt;可解析?"}:::check
+    C2 --&gt;|是| OAI["openai&lt;br/&gt;text-embedding-3-small&lt;br/&gt;默认远程"]:::ok
+    C2 --&gt;|否| C3{"Gemini Key&lt;br/&gt;可解析?"}:::check
+    C3 --&gt;|是| GEM["gemini&lt;br/&gt;gemini-embedding-001&lt;br/&gt;原生支持"]:::ok
+    C3 --&gt;|否| C4{"Voyage Key&lt;br/&gt;可解析?"}:::check
+    C4 --&gt;|是| VOY["voyage&lt;br/&gt;voyage-2"]:::ok
+    C4 --&gt;|否| DISABLE["禁用 memory search&lt;br/&gt;无可用 Provider"]:::no
 
     classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
     classDef check fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -1106,10 +1160,10 @@ sequenceDiagram
     participant MEM as 记忆文件
 
     Note over CE,MEM: 上下文窗口接近上限
-    CE->>AG: 触发静默刷新
-    AG->>MEM: 写入 memory/YYYY-MM-DD.md
-    MEM-->>AG: 写入完成
-    AG-->>CE: NO_REPLY（对用户透明）
+    CE-&gt;&gt;AG: 触发静默刷新
+    AG-&gt;&gt;MEM: 写入 memory/YYYY-MM-DD.md
+    MEM--&gt;&gt;AG: 写入完成
+    AG--&gt;&gt;CE: NO_REPLY（对用户透明）
     Note over CE,MEM: 继续压缩 → 进入整理层
 </div><figcaption>图 11.6 · Markdown · 长期记忆</figcaption></figure>
 <pre>{
@@ -1156,7 +1210,7 @@ sequenceDiagram
 
 
 <h3 id="deep-28">5.9.3 后台整理层</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1172,26 +1226,26 @@ sequenceDiagram
 <figure><div class="mermaid">
 flowchart LR
     subgraph 检索层["② 检索层 （下方）"]
-R["memory_search / Active Memory<br/>混合搜索 → 返回结果"]:::retrieval
+R["memory_search / Active Memory&lt;br/&gt;混合搜索 → 返回结果"]:::retrieval
     end
 
     subgraph 整理层["③ 整理层 （当前）— 整理与提升"]
 direction TB
-        E1["Auto Memory Flush<br/>压缩前触发<br/>写入 memory/YYYY-MM-DD.md"]:::flush
-        E2["Dreaming<br/>空闲时运行<br/>Light → REM → Deep"]:::dream
+        E1["Auto Memory Flush&lt;br/&gt;压缩前触发&lt;br/&gt;写入 memory/YYYY-MM-DD.md"]:::flush
+        E2["Dreaming&lt;br/&gt;空闲时运行&lt;br/&gt;Light → REM → Deep"]:::dream
     end
 
     subgraph 后端["后端引擎 — 存储底座"]
 direction TB
-        B1["内置 SQLite<br/>默认零配置"]:::sqlite
-        B2["QMD <br/>本地搜索增强"]:::qmd
-        B3["Honcho <br/>外部服务管理"]:::honcho
+        B1["内置 SQLite&lt;br/&gt;默认零配置"]:::sqlite
+        B2["QMD &lt;br/&gt;本地搜索增强"]:::qmd
+        B3["Honcho &lt;br/&gt;外部服务管理"]:::honcho
     end
 
-    R -->|"写入提示"| E1
-    R -->|"查询模式反馈"| E2
-    E1 -->|"持久化"| B1 & B2 & B3
-    E2 -->|"提升到长期"| B1 & B2 & B3
+    R --&gt;|"写入提示"| E1
+    R --&gt;|"查询模式反馈"| E2
+    E1 --&gt;|"持久化"| B1 &amp; B2 &amp; B3
+    E2 --&gt;|"提升到长期"| B1 &amp; B2 &amp; B3
 
     classDef retrieval fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef flush fill:#dbeafe,stroke:#3b82f6,color:#1e40af
@@ -1223,10 +1277,10 @@ sequenceDiagram
     participant MEM as memory/YYYY-MM-DD.md
 
     Note over CE,MEM: 距离上限不足 reserveTokensFloor + softThresholdTokens
-    CE->>AG: 触发静默记忆刷新
-    AG->>MEM: 写入持久笔记
-    MEM-->>AG: 写入完成
-    AG-->>CE: NO_REPLY（对用户透明）
+    CE-&gt;&gt;AG: 触发静默记忆刷新
+    AG-&gt;&gt;MEM: 写入持久笔记
+    MEM--&gt;&gt;AG: 写入完成
+    AG--&gt;&gt;CE: NO_REPLY（对用户透明）
     Note over CE,MEM: 继续执行压缩
 </div><figcaption>图 11.8 · Markdown · 长期记忆</figcaption></figure>
 <h4 id="sec-23-40-1" data-toc-skip>触发条件</h4>
@@ -1288,8 +1342,8 @@ direction LR
         D4["写入 MEMORY.md"]:::deep
     end
 
-    Light -->|"基础整理完成"| REM -->|"主题抽取完成"| Deep
-    Deep -->|"空闲后<br/>再次循环"| Light
+    Light --&gt;|"基础整理完成"| REM --&gt;|"主题抽取完成"| Deep
+    Deep --&gt;|"空闲后&lt;br/&gt;再次循环"| Light
 
     classDef light fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef rem fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -1352,10 +1406,10 @@ direction LR
 flowchart LR
     subgraph 技术栈["SQLite 记忆引擎"]
 direction LR
-        T1["SQLite<br/>本地数据库"]:::tech
-        T2["FTS5<br/>全文搜索"]:::tech
-        T3["sqlite-vec<br/>向量搜索（可选）"]:::tech
-        T4["嵌入缓存<br/>避免重复 API"]:::tech
+        T1["SQLite&lt;br/&gt;本地数据库"]:::tech
+        T2["FTS5&lt;br/&gt;全文搜索"]:::tech
+        T3["sqlite-vec&lt;br/&gt;向量搜索（可选）"]:::tech
+        T4["嵌入缓存&lt;br/&gt;避免重复 API"]:::tech
     end
 
     classDef tech fill:#d1fae5,stroke:#10b981,color:#065f46
@@ -1423,13 +1477,13 @@ direction LR
 flowchart LR
     Q["你的场景是？"]:::start
 
-    Q --> S1["个人 / 单机 / 小团队"]:::opt
-    Q --> S2["本地资料多<br/>需要搜索增强"]:::opt
-    Q --> S3["多环境共享<br/>已有外部服务"]:::opt
+    Q --&gt; S1["个人 / 单机 / 小团队"]:::opt
+    Q --&gt; S2["本地资料多&lt;br/&gt;需要搜索增强"]:::opt
+    Q --&gt; S3["多环境共享&lt;br/&gt;已有外部服务"]:::opt
 
-    S1 --> R1["内置 SQLite<br/>• 零配置开箱即用<br/>• BM25 + 向量<br/>• 新手推荐"]:::result
-    S2 --> R2["QMD<br/>• BM25 + 向量 + rerank<br/>• 多路径索引<br/>• 查询自动扩展"]:::result
-    S3 --> R3["Honcho<br/>• 独立部署服务<br/>• 多环境共享<br/>• 复杂权限支持"]:::result
+    S1 --&gt; R1["内置 SQLite&lt;br/&gt;• 零配置开箱即用&lt;br/&gt;• BM25 + 向量&lt;br/&gt;• 新手推荐"]:::result
+    S2 --&gt; R2["QMD&lt;br/&gt;• BM25 + 向量 + rerank&lt;br/&gt;• 多路径索引&lt;br/&gt;• 查询自动扩展"]:::result
+    S3 --&gt; R3["Honcho&lt;br/&gt;• 独立部署服务&lt;br/&gt;• 多环境共享&lt;br/&gt;• 复杂权限支持"]:::result
 
     classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
     classDef opt fill:#dbeafe,stroke:#3b82f6,color:#1e40af
@@ -1501,10 +1555,10 @@ flowchart LR
 
   <figure><div class="mermaid">
 flowchart LR
-  A["活跃会话<br/>完整消息"] -->|idleTimeout| B["Idle"]
-  B -->|archiveAfter| C["归档<br/>摘要压缩"]
-  C -->|retentionPeriod| D["清理<br/>(可选)"]
-  D -->|永久删除| E["[*]"]
+  A["活跃会话&lt;br/&gt;完整消息"] --&gt;|idleTimeout| B["Idle"]
+  B --&gt;|archiveAfter| C["归档&lt;br/&gt;摘要压缩"]
+  C --&gt;|retentionPeriod| D["清理&lt;br/&gt;(可选)"]
+  D --&gt;|永久删除| E["[*]"]
 
   style A fill:#c026d3,stroke:#7c3aed,color:#fff
   style B fill:#d97706,stroke:#92400e,color:#fff
@@ -1579,16 +1633,16 @@ openclaw start</pre>
 
   <figure><div class="mermaid">
 flowchart LR
-  L1["<b>Layer 1</b><br/>System Prompt<br/>角色 · 行为准则"]
-  L2["<b>Layer 2</b><br/>Tools Schema<br/>可用工具描述"]
-  L3["<b>Layer 3</b><br/>Memory<br/>长期记忆(摘要)"]
-  L4["<b>Layer 4</b><br/>History<br/>会话历史"]
-  L5["<b>Layer 5</b><br/>Skill Context<br/>已激活 Skill 的额外指令"]
-  L6["<b>Layer 6</b><br/>User Input<br/>用户当前消息"]
-  L7["<b>Layer 7</b><br/>Attachments<br/>附件描述"]
-  L8["<b>Layer 8</b><br/>Meta<br/>运行时元数据(token 计数等)"]
+  L1["&lt;b&gt;Layer 1&lt;/b&gt;&lt;br/&gt;System Prompt&lt;br/&gt;角色 · 行为准则"]
+  L2["&lt;b&gt;Layer 2&lt;/b&gt;&lt;br/&gt;Tools Schema&lt;br/&gt;可用工具描述"]
+  L3["&lt;b&gt;Layer 3&lt;/b&gt;&lt;br/&gt;Memory&lt;br/&gt;长期记忆(摘要)"]
+  L4["&lt;b&gt;Layer 4&lt;/b&gt;&lt;br/&gt;History&lt;br/&gt;会话历史"]
+  L5["&lt;b&gt;Layer 5&lt;/b&gt;&lt;br/&gt;Skill Context&lt;br/&gt;已激活 Skill 的额外指令"]
+  L6["&lt;b&gt;Layer 6&lt;/b&gt;&lt;br/&gt;User Input&lt;br/&gt;用户当前消息"]
+  L7["&lt;b&gt;Layer 7&lt;/b&gt;&lt;br/&gt;Attachments&lt;br/&gt;附件描述"]
+  L8["&lt;b&gt;Layer 8&lt;/b&gt;&lt;br/&gt;Meta&lt;br/&gt;运行时元数据(token 计数等)"]
 
-  L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7 --> L8
+  L1 --&gt; L2 --&gt; L3 --&gt; L4 --&gt; L5 --&gt; L6 --&gt; L7 --&gt; L8
 
   style L1 fill:#7c3aed,stroke:#5b21b6,color:#fff
   style L2 fill:#2563eb,stroke:#1e3a8a,color:#fff
@@ -1626,7 +1680,7 @@ flowchart LR
 </div>
 
 <h3 id="deep-23">5.13.2 上下文窗口管理</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1702,12 +1756,12 @@ flowchart LR
 <p>OpenClaw 每次运行时重新构建系统提示词，包括：</p>
 <figure><div class="mermaid">
 flowchart LR
-    P1["OpenClaw<br/>基础提示词<br/>规则 + 工具列表"]:::part
-    P2["技能提示词<br/>技能名称 + 描述<br/>(指令按需加载)"]:::part
-    P3["引导上下文<br/>工作区文件注入<br/>AGENTS.md / SOUL.md"]:::part
-    P4["运行覆盖项<br/>模型/时间/运行时<br/>元数据"]:::part
+    P1["OpenClaw&lt;br/&gt;基础提示词&lt;br/&gt;规则 + 工具列表"]:::part
+    P2["技能提示词&lt;br/&gt;技能名称 + 描述&lt;br/&gt;(指令按需加载)"]:::part
+    P3["引导上下文&lt;br/&gt;工作区文件注入&lt;br/&gt;AGENTS.md / SOUL.md"]:::part
+    P4["运行覆盖项&lt;br/&gt;模型/时间/运行时&lt;br/&gt;元数据"]:::part
 
-    P1 & P2 & P3 & P4 --> FINAL["最终系统提示词"]:::final
+    P1 &amp; P2 &amp; P3 &amp; P4 --&gt; FINAL["最终系统提示词"]:::final
 
     classDef part fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef final fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -1786,7 +1840,7 @@ Session tokens (cached): 14,250 total / ctx=32,000</pre>
 
 
 <h3 id="deep-24">5.13.3 上下文引擎</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1803,22 +1857,22 @@ Session tokens (cached): 14,250 total / ctx=32,000</pre>
 flowchart LR
     subgraph 输入源["材料来源"]
         direction LR
-        H["聊天历史<br/>.jsonl"]:::src
-        S["系统提示词<br/>运行时构建"]:::src
-        M["记忆<br/>MEMORY.md"]:::src
-        T["工具说明<br/>schema"]:::src
-        C["压缩摘要<br/>旧对话"]:::src
+        H["聊天历史&lt;br/&gt;.jsonl"]:::src
+        S["系统提示词&lt;br/&gt;运行时构建"]:::src
+        M["记忆&lt;br/&gt;MEMORY.md"]:::src
+        T["工具说明&lt;br/&gt;schema"]:::src
+        C["压缩摘要&lt;br/&gt;旧对话"]:::src
     end
 
     subgraph 引擎["上下文引擎"]
-        EN["context-engine<br/>(legacy / 插件)"]:::engine
+        EN["context-engine&lt;br/&gt;(legacy / 插件)"]:::engine
     end
 
     subgraph 输出["最终上下文"]
-        CTX["模型输入包<br/>组装完毕的上下文"]:::output
+        CTX["模型输入包&lt;br/&gt;组装完毕的上下文"]:::output
     end
 
-    H & S & M & T & C --> EN --> CTX
+    H &amp; S &amp; M &amp; T &amp; C --&gt; EN --&gt; CTX
 
     classDef src fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef engine fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -1837,22 +1891,22 @@ sequenceDiagram
     participant ST as 存储
 
     Note over MSG,ST: 阶段 ①：Ingest
-    MSG->>CE: 新消息
-    CE->>ST: 记录到 .jsonl
+    MSG-&gt;&gt;CE: 新消息
+    CE-&gt;&gt;ST: 记录到 .jsonl
 
     Note over MSG,ST: 阶段 ②：Assemble
-    M->>CE: 模型请求上下文
-    CE->>CE: 收集历史 + 系统提示 + 记忆 + 工具
-    CE-->>M: 组装好的上下文包
+    M-&gt;&gt;CE: 模型请求上下文
+    CE-&gt;&gt;CE: 收集历史 + 系统提示 + 记忆 + 工具
+    CE--&gt;&gt;M: 组装好的上下文包
 
     Note over MSG,ST: 阶段 ③：Compact（按需）
-    M->>CE: 上下文窗口接近上限
-    CE->>CE: 压缩旧对话为摘要
-    CE-->>M: 带摘要的新上下文
+    M-&gt;&gt;CE: 上下文窗口接近上限
+    CE-&gt;&gt;CE: 压缩旧对话为摘要
+    CE--&gt;&gt;M: 带摘要的新上下文
 
     Note over MSG,ST: 阶段 ④：After Turn
-    M->>CE: 回复完成
-    CE->>ST: 保存状态 / 更新索引
+    M-&gt;&gt;CE: 回复完成
+    CE-&gt;&gt;ST: 保存状态 / 更新索引
 </div><figcaption>图 15.5 · 8 层 Prompt 栈</figcaption></figure>
 <h4 id="sec-22-17-1" data-toc-skip>各阶段详解</h4>
 <table>
@@ -1924,7 +1978,7 @@ Compactions: 3
 
 
 <h3 id="deep-25">5.13.4 压缩与修剪</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -1945,20 +1999,20 @@ flowchart LR
 
     subgraph 解决方案["两种机制"]
         direction TB
-        COMP["压缩 Compaction<br/>摘要化旧对话"]:::comp
-        PRUN["修剪 Pruning<br/>删除旧工具结果"]:::prun
+        COMP["压缩 Compaction&lt;br/&gt;摘要化旧对话"]:::comp
+        PRUN["修剪 Pruning&lt;br/&gt;删除旧工具结果"]:::prun
     end
 
     subgraph 效果
         direction TB
-        E1["保留语义信息<br/>持久化到 JSONL"]:::effect
-        E2["减少 Token 占用<br/>仅内存中生效"]:::effect
+        E1["保留语义信息&lt;br/&gt;持久化到 JSONL"]:::effect
+        E2["减少 Token 占用&lt;br/&gt;仅内存中生效"]:::effect
     end
 
-    ISSUE --> COMP
-    ISSUE --> PRUN
-    COMP --> E1
-    PRUN --> E2
+    ISSUE --&gt; COMP
+    ISSUE --&gt; PRUN
+    COMP --&gt; E1
+    PRUN --&gt; E2
 
     classDef issue fill:#fee2e2,stroke:#ef4444,color:#991b1b
     classDef comp fill:#dbeafe,stroke:#3b82f6,color:#1e40af
@@ -1994,12 +2048,12 @@ sequenceDiagram
     participant J as JSONL
 
     Note over M,J: 上下文窗口接近上限
-    M->>CE: Token 接近上限信号
-    CE->>MEM: ① 静默记忆刷新（可选）
-    MEM-->>CE: 记忆写入完成
-    CE->>CE: ② 摘要化旧对话
-    CE->>J: ③ 持久化到 JSONL
-    CE->>CE: ④ 重试原始请求（如需要）
+    M-&gt;&gt;CE: Token 接近上限信号
+    CE-&gt;&gt;MEM: ① 静默记忆刷新（可选）
+    MEM--&gt;&gt;CE: 记忆写入完成
+    CE-&gt;&gt;CE: ② 摘要化旧对话
+    CE-&gt;&gt;J: ③ 持久化到 JSONL
+    CE-&gt;&gt;CE: ④ 重试原始请求（如需要）
 </div><figcaption>图 15.7 · 8 层 Prompt 栈</figcaption></figure>
 <table>
   <thead>
@@ -2056,10 +2110,10 @@ flowchart LR
         I["含图像的结果"]:::keep
     end
 
-    T -->|"可修剪"| PRUNE["修剪逻辑"]:::prune
-    U -->|"永不"| KEEP["保持"]:::keep
-    A -->|"永不"| KEEP
-    I -->|"永不"| KEEP
+    T --&gt;|"可修剪"| PRUNE["修剪逻辑"]:::prune
+    U --&gt;|"永不"| KEEP["保持"]:::keep
+    A --&gt;|"永不"| KEEP
+    I --&gt;|"永不"| KEEP
 
     classDef tool fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef keep fill:#dbeafe,stroke:#3b82f6,color:#1e40af
@@ -2303,13 +2357,13 @@ sequenceDiagram
   participant T as Tool Registry
   participant LLM
 
-  R->>M: 读取 user-[peer].md
-  R->>H: 读取最近 N 轮
-  R->>T: 获取工具列表
-  R->>R: 组装 8 层
-  R->>LLM: 完整 Prompt(messages)
-  LLM-->>R: 响应(content + tool_calls)
-  R->>H: 写入新消息
+  R-&gt;&gt;M: 读取 user-[peer].md
+  R-&gt;&gt;H: 读取最近 N 轮
+  R-&gt;&gt;T: 获取工具列表
+  R-&gt;&gt;R: 组装 8 层
+  R-&gt;&gt;LLM: 完整 Prompt(messages)
+  LLM--&gt;&gt;R: 响应(content + tool_calls)
+  R-&gt;&gt;H: 写入新消息
 </div><figcaption>图 5.6 · Prompt 组装流程——并行读取，顺序组装。</figcaption></figure>
 
 
@@ -2318,14 +2372,14 @@ sequenceDiagram
 
   <figure><div class="mermaid">
 flowchart LR
-  A["<b> Open</b><br/>任何人都能聊<br/>(高风险)"]
-  B["<b>Pairing</b><br/>配对码机制(推荐)"]
-  C["<b>Allowlist</b><br/>白名单用户"]
-  D["<b>Closed</b><br/>仅自己(关闭 DM)"]
+  A["&lt;b&gt; Open&lt;/b&gt;&lt;br/&gt;任何人都能聊&lt;br/&gt;(高风险)"]
+  B["&lt;b&gt;Pairing&lt;/b&gt;&lt;br/&gt;配对码机制(推荐)"]
+  C["&lt;b&gt;Allowlist&lt;/b&gt;&lt;br/&gt;白名单用户"]
+  D["&lt;b&gt;Closed&lt;/b&gt;&lt;br/&gt;仅自己(关闭 DM)"]
 
-  A -->|默认拒绝| B
-  B -->|更严| C
-  C -->|最严| D
+  A --&gt;|默认拒绝| B
+  B --&gt;|更严| C
+  C --&gt;|最严| D
 
   style A fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
   style B fill:#fef3c7,stroke:#d97706,color:#1a1f2b
@@ -2374,16 +2428,16 @@ sequenceDiagram
   participant G as Gateway
   participant A as 管理员
 
-  U->>C: 发送消息
-  C->>G: Envelope
-  G->>G: 检测未配对
-  G->>C: 返回 6 位配对码
-  C->>U: 显示 "配对码: ABC123"
-  U->>A: 私信管理员
-  A->>G: 批准 ABC123
-  G->>G: 标记 user.id = verified
-  G->>C: 解锁
-  C->>U: "欢迎! "
+  U-&gt;&gt;C: 发送消息
+  C-&gt;&gt;G: Envelope
+  G-&gt;&gt;G: 检测未配对
+  G-&gt;&gt;C: 返回 6 位配对码
+  C-&gt;&gt;U: 显示 "配对码: ABC123"
+  U-&gt;&gt;A: 私信管理员
+  A-&gt;&gt;G: 批准 ABC123
+  G-&gt;&gt;G: 标记 user.id = verified
+  G-&gt;&gt;C: 解锁
+  C-&gt;&gt;U: "欢迎! "
   Note over U,G: 后续消息正常处理
 </div><figcaption>图 5.8 · 配对流程——用户首次接触 → 配对码 → 管理员人工批准。</figcaption></figure>
 
@@ -2463,9 +2517,9 @@ sequenceDiagram
 flowchart LR
   G[Gateway]
 
-  G --> W1["workspace/work/<br/>配置: Sonnet<br/>路径: /home/me/work"]
-  G --> W2["workspace/personal/<br/>配置: 本地 qwen<br/>路径: /home/me/personal"]
-  G --> W3["workspace/family/<br/>配置: Haiku(便宜)<br/>路径: /home/me/family"]
+  G --&gt; W1["workspace/work/&lt;br/&gt;配置: Sonnet&lt;br/&gt;路径: /home/me/work"]
+  G --&gt; W2["workspace/personal/&lt;br/&gt;配置: 本地 qwen&lt;br/&gt;路径: /home/me/personal"]
+  G --&gt; W3["workspace/family/&lt;br/&gt;配置: Haiku(便宜)&lt;br/&gt;路径: /home/me/family"]
 
   style G fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style W1 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
@@ -2531,12 +2585,12 @@ flowchart LR
 
   <figure><div class="mermaid">
 flowchart LR
-  T1["<b>TRUSTED</b><br/>管理员 · 已配对<br/>完全信任 · 无限制"]
-  T2["<b>SEMI-TRUSTED</b><br/>已配对非管理员<br/>可调工具 · 受策略约束"]
-  T3["<b> UNTRUSTED</b><br/>未配对 · 陌生人<br/>仅查询 · 不调工具"]
+  T1["&lt;b&gt;TRUSTED&lt;/b&gt;&lt;br/&gt;管理员 · 已配对&lt;br/&gt;完全信任 · 无限制"]
+  T2["&lt;b&gt;SEMI-TRUSTED&lt;/b&gt;&lt;br/&gt;已配对非管理员&lt;br/&gt;可调工具 · 受策略约束"]
+  T3["&lt;b&gt; UNTRUSTED&lt;/b&gt;&lt;br/&gt;未配对 · 陌生人&lt;br/&gt;仅查询 · 不调工具"]
 
-  T1 -->|降级| T2
-  T2 -->|降级| T3
+  T1 --&gt;|降级| T2
+  T2 --&gt;|降级| T3
 
   style T1 fill:#d1fae5,stroke:#059669,color:#1a1f2b
   style T2 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
@@ -2680,5 +2734,5 @@ flowchart LR
           </div>
         </div>
       </div>
-    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body>
+    </footer><script src="/js/article-diagrams.js?v=9" defer></script></body>
 </html>

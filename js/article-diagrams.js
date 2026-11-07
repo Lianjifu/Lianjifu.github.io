@@ -152,11 +152,11 @@
   }
 
   // Mermaid writes width="100%" plus a max-width, so a wide diagram is scaled
-  // down until its labels are illegible. Draw the source-note diagrams at their
-  // natural width, shrink them only while the labels stay readable, and let the
-  // container scroll for the rest.
+  // down until its labels are illegible. Draw the source-note diagrams as large
+  // as the column allows, keep the few very wide ones at their natural width,
+  // and let those scroll sideways.
   var naturalWidth = document.body.getAttribute('data-series') === 'openclaw';
-  var MIN_SCALE = 0.68;
+  var MIN_SCALE = 0.5;
 
   function sizeToViewBox(div) {
     var svg = div.querySelector('svg');
@@ -186,6 +186,7 @@
       svg.style.setProperty('margin-left', 'auto', 'important');
       svg.style.setProperty('margin-right', 'auto', 'important');
     }
+    div.classList.toggle('is-scrollable', wide);
     toggleScrollHint(div, wide);
   }
 
@@ -200,10 +201,30 @@
     if (hint) return;
     hint = document.createElement('p');
     hint.className = 'diagram-scroll-hint';
-    hint.textContent = '← 可横向滚动查看完整图 →';
+    hint.textContent = '← 图比正文宽，横向滚动或点击放大查看完整内容 →';
     var caption = holder.querySelector('figcaption');
     if (caption) holder.insertBefore(hint, caption);
     else holder.insertBefore(hint, div.nextSibling);
+  }
+
+  // A wide diagram scrolls sideways, but a vertical wheel gesture does not
+  // pan a horizontal box, so the diagram looked stuck. Map the wheel over a
+  // diagram that can still scroll sideways onto its horizontal offset.
+  // The click-to-zoom overlay sits on top of the diagram, so the diagram is
+  // found through its wrapper.
+  if (naturalWidth) {
+    document.addEventListener('wheel', function(e) {
+      if (e.deltaX) return;
+      var wrap = e.target.closest && e.target.closest('.mermaid-zoom-container');
+      var div = wrap ? wrap.querySelector('.mermaid') : (e.target.closest && e.target.closest('.mermaid'));
+      if (!div || !div.classList.contains('is-scrollable')) return;
+      var max = div.scrollWidth - div.clientWidth;
+      if (max <= 0) return;
+      var next = div.scrollLeft + e.deltaY;
+      if (next <= 0 || next >= max) return;
+      div.scrollLeft = next;
+      e.preventDefault();
+    }, { passive: false });
   }
 
   // The fit depends on the column width, so recompute it when the window
@@ -236,11 +257,13 @@
   var modalInstance = null;
   function openMermaidModal(sourceDiv) {
     if (modalInstance) { modalInstance.remove(); modalInstance = null; }
-    var clone = sourceDiv.cloneNode(true);
-    var svg = clone.querySelector('svg');
-    if (!svg) return;
+    // Take the SVG itself, not the diagram box: the box scrolls on its own
+    // and would hide the modal's scrollbar.
+    var source = sourceDiv.querySelector('svg');
+    if (!source) return;
+    var svg = source.cloneNode(true);
     svg.removeAttribute('width'); svg.removeAttribute('height');
-    svg.style.width = '100%'; svg.style.height = 'auto'; svg.style.maxWidth = 'none';
+    svg.style.height = 'auto'; svg.style.maxWidth = 'none';
     var modal = document.createElement('div'); modal.className = 'mermaid-modal active';
     var content = document.createElement('div'); content.className = 'mermaid-modal-content';
     var header = document.createElement('div'); header.className = 'mermaid-modal-header';
@@ -248,10 +271,25 @@
     var article = sourceDiv.closest('article');
     if (article) { var h = article.querySelector('h2, h3'); if (h) hint = h.textContent.replace(/[#\d.]/g,'').trim().slice(0, 30); }
     header.innerHTML = '<div class="modal-title-wrap"><span class="modal-icon">⬡</span><span class="modal-title">' + (hint || '图表') + '</span></div><button class="modal-close" title="关闭 (ESC)">✕</button>';
-    var body = document.createElement('div'); body.className = 'mermaid-modal-body'; body.appendChild(clone);
+    var body = document.createElement('div'); body.className = 'mermaid-modal-body'; body.appendChild(svg);
     content.appendChild(header); content.appendChild(body); modal.appendChild(content); document.body.appendChild(modal);
+    // A diagram wider than the modal keeps its natural size: the modal body
+    // scrolls sideways, so nothing is shrunk into illegibility.
+    var box = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(parseFloat);
+    var natural = box.length === 4 ? box[2] : 0;
+    svg.style.width = natural > body.clientWidth && natural > 0 ? natural + 'px' : '100%';
     header.querySelector('.modal-close').addEventListener('click', function() { modal.remove(); modalInstance = null; });
     modal.addEventListener('click', function(e) { if (e.target === modal) { modal.remove(); modalInstance = null; } });
+    // The same wheel gesture: sideways for a diagram wider than the box.
+    body.addEventListener('wheel', function(e) {
+      if (e.deltaX) return;
+      var max = body.scrollWidth - body.clientWidth;
+      if (max <= 0) return;
+      var next = body.scrollLeft + e.deltaY;
+      if (next <= 0 || next >= max) return;
+      body.scrollLeft = next;
+      e.preventDefault();
+    }, { passive: false });
     modalInstance = modal;
   }
   document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && modalInstance) { modalInstance.remove(); modalInstance = null; } });

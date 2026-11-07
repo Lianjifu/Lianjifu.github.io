@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="/css/2026.css">
   <link rel="stylesheet" href="/css/portal.css?v=2">
   <link rel="stylesheet" href="/css/article.css?v=6">
-  <link rel="stylesheet" href="/css/openclaw.css?v=5">
+  <link rel="stylesheet" href="/css/openclaw.css?v=7">
   <script src="/js/portal.js?v=6" defer></script>
   <script src="/js/article-reader.js?v=2" defer></script>
 </head>
@@ -204,12 +204,66 @@
     </tbody>
   </table>
 
+<table>
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td colspan="2"><span></span>引导思考 <span>展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>工具调用是 LLM 与现实世界交互的桥梁，也是整条链路上最大的攻击面</li>
+          <li>提示注入只需要改一段外部文本，就能影响模型调什么工具</li>
+          <li>不可信执行这条原则，必须在工具层有具体落点</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>给每次工具调用套上四档沙箱与八个以上的钩子拦截点</li>
+          <li>让「策略」留在可信侧、「执行」留在不可信侧，两者之间只有受控接口</li>
+          <li>给出工具来源的边界：内置、插件、MCP 各自的能力与配置方式</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>LLM 与外部世界的边界——工具执行加钩子策略就是安全与能力的交汇点</li>
+          <li>执行层的核心，运行时在沙箱里，网关在沙箱外</li>
+          <li>与模块 02 的信任模型、模块 05 的会话边界直接相关</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>三类工具来源：内置工具、插件工具、MCP 桥接，统一暴露给模型</li>
+          <li>四档沙箱：none 无隔离、process 进程级、container 容器级、vm 虚拟机级</li>
+          <li>钩子链在关键路径上拦截：模型解析前、提示词构建前、回复生成前、工具执行前后</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
 
 
 
   <h2 id="sec-1">6.1 一句话定位</h2>
 
-  <div class="oc-keypoint">
+  <div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">工具是 LLM 与外部世界的桥梁，钩子是 Gateway 在不可信侧（Agent 执行）与可信侧（策略）之间建立受控接口。</p>本模块拆解：工具怎么执行、钩子怎么拦截、8 个关键路径决策在哪。
 </div>
@@ -260,10 +314,10 @@
 
   <figure><div class="mermaid">
 flowchart LR
-  A["<b>05 会话</b><br>Prompt 组装"] --> B["<b>06 工具</b><br>工具执行 + 钩子"]
-  B --> C["<b>03 通道</b><br>结果如何回传"]
-  B --> D["<b>02 架构</b><br>沙箱隔离机制"]
-  B --> E["<b>09 错误处理</b><br>工具失败如何恢复"]
+  A["&lt;b&gt;05 会话&lt;/b&gt;&lt;br&gt;Prompt 组装"] --&gt; B["&lt;b&gt;06 工具&lt;/b&gt;&lt;br&gt;工具执行 + 钩子"]
+  B --&gt; C["&lt;b&gt;03 通道&lt;/b&gt;&lt;br&gt;结果如何回传"]
+  B --&gt; D["&lt;b&gt;02 架构&lt;/b&gt;&lt;br&gt;沙箱隔离机制"]
+  B --&gt; E["&lt;b&gt;09 错误处理&lt;/b&gt;&lt;br&gt;工具失败如何恢复"]
 
   style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style B fill:#059669,stroke:#047857,color:#fff,stroke-width:2px
@@ -286,23 +340,23 @@ sequenceDiagram
   participant Tool as 工具实现
   participant AH as after_tool_call 钩子
 
-  LLM->>Agent: tool_use block
-  Agent->>BH: 拦截工具调用
-  BH->>Pol: 检查权限 (trust + 工具白名单)
-  Pol-->>BH: allow / deny
-  BH-->>Agent: 通过或阻断
+  LLM-&gt;&gt;Agent: tool_use block
+  Agent-&gt;&gt;BH: 拦截工具调用
+  BH-&gt;&gt;Pol: 检查权限 (trust + 工具白名单)
+  Pol--&gt;&gt;BH: allow / deny
+  BH--&gt;&gt;Agent: 通过或阻断
 
   alt 允许执行
-    Agent->>SB: sandbox.create(level)
-    SB->>Tool: execute(params, ctx)
-    Tool-->>SB: 结果
-    SB-->>AH: 拦截结果
-    AH->>AH: 脱敏 / 审计
-    AH-->>Agent: 最终结果
-    Agent->>LLM: 携带 tool_result 继续
+    Agent-&gt;&gt;SB: sandbox.create(level)
+    SB-&gt;&gt;Tool: execute(params, ctx)
+    Tool--&gt;&gt;SB: 结果
+    SB--&gt;&gt;AH: 拦截结果
+    AH-&gt;&gt;AH: 脱敏 / 审计
+    AH--&gt;&gt;Agent: 最终结果
+    Agent-&gt;&gt;LLM: 携带 tool_result 继续
   else 拒绝
-    Agent->>LLM: "Permission denied" 错误
-    LLM->>LLM: 选择其他工具或重新规划
+    Agent-&gt;&gt;LLM: "Permission denied" 错误
+    LLM-&gt;&gt;LLM: 选择其他工具或重新规划
   end
 </div><figcaption>图 6.2 · 工具执行流程——钩子拦截 → 策略检查 → 沙箱执行 → 结果审计 → 返回 LLM。</figcaption></figure>
 
@@ -312,14 +366,14 @@ sequenceDiagram
 
   <figure><div class="mermaid">
 flowchart LR
-  T["<b>工具注册表</b><br/>(registry)"]
-  B["<b> Built-in 内置</b><br/>核心自带"]
-  P["<b>Plugin 插件</b><br/>50+ 官方 + 社区"]
-  M["<b>MCP 协议</b><br/>外部服务"]
+  T["&lt;b&gt;工具注册表&lt;/b&gt;&lt;br/&gt;(registry)"]
+  B["&lt;b&gt; Built-in 内置&lt;/b&gt;&lt;br/&gt;核心自带"]
+  P["&lt;b&gt;Plugin 插件&lt;/b&gt;&lt;br/&gt;50+ 官方 + 社区"]
+  M["&lt;b&gt;MCP 协议&lt;/b&gt;&lt;br/&gt;外部服务"]
 
-  T --> B
-  T --> P
-  T --> M
+  T --&gt; B
+  T --&gt; P
+  T --&gt; M
 
   style T fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style B fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
@@ -443,7 +497,7 @@ flowchart LR
 </div>
 
 <h3 id="deep-19">6.6.3 权限模式与审批</h3>
-<div class="oc-keypoint">
+<div>
 <h3>本章要点</h3>
 <p class="oc-callout-lead">学习要点</p>
 <ul>
@@ -461,14 +515,14 @@ flowchart LR
 flowchart LR
     subgraph 模式决策树["根据安全性逐步放宽"]
         direction TB
-        D1["deny<br/>完全禁止"]:::deny
-        D2["allowlist<br/>仅白名单"]:::restrict
-        D3["ask<br/>逐个询问"]:::restrict
-        D4["auto<br/>自动审查"]:::auto
-        D5["full<br/>完全放行"]:::full
+        D1["deny&lt;br/&gt;完全禁止"]:::deny
+        D2["allowlist&lt;br/&gt;仅白名单"]:::restrict
+        D3["ask&lt;br/&gt;逐个询问"]:::restrict
+        D4["auto&lt;br/&gt;自动审查"]:::auto
+        D5["full&lt;br/&gt;完全放行"]:::full
     end
 
-    D1 --> D2 --> D3 --> D4 --> D5
+    D1 --&gt; D2 --&gt; D3 --&gt; D4 --&gt; D5
 
     classDef deny fill:#fee2e2,stroke:#ef4444,color:#991b1b
     classDef restrict fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -500,19 +554,19 @@ openclaw exec-policy show</pre>
 flowchart TB
     REQ["Agent 请求执行命令"]:::start
 
-    --> CHECK{"在 Safe Bins<br/>白名单中?"}:::check
-    CHECK -->|"是"| SAFE["直接放行<br/>(安全内置命令)"]:::safe
+    --&gt; CHECK{"在 Safe Bins&lt;br/&gt;白名单中?"}:::check
+    CHECK --&gt;|"是"| SAFE["直接放行&lt;br/&gt;(安全内置命令)"]:::safe
 
-    CHECK -->|"否"| RULES{"匹配审批规则?<br/>approvals.json"}:::check
-    RULES -->|"auto"| AUTO["自动执行"]:::auto
-    RULES -->|"ask"| ASK["显示确认框<br/>等待用户确认"]:::ask
-    RULES -->|"deny"| DENY["拒绝执行<br/>通知 Agent 调方案"]:::deny
+    CHECK --&gt;|"否"| RULES{"匹配审批规则?&lt;br/&gt;approvals.json"}:::check
+    RULES --&gt;|"auto"| AUTO["自动执行"]:::auto
+    RULES --&gt;|"ask"| ASK["显示确认框&lt;br/&gt;等待用户确认"]:::ask
+    RULES --&gt;|"deny"| DENY["拒绝执行&lt;br/&gt;通知 Agent 调方案"]:::deny
 
-    RULES -->|"未命中规则"| MODE{"exec.mode<br/>全局模式?"}:::check
-    MODE -->|"auto"| AUTO
-    MODE -->|"ask"| ASK
-    MODE -->|"deny/allowlist"| DENY
-    MODE -->|"full"| FULL["直接执行"]:::safe
+    RULES --&gt;|"未命中规则"| MODE{"exec.mode&lt;br/&gt;全局模式?"}:::check
+    MODE --&gt;|"auto"| AUTO
+    MODE --&gt;|"ask"| ASK
+    MODE --&gt;|"deny/allowlist"| DENY
+    MODE --&gt;|"full"| FULL["直接执行"]:::safe
 
     classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
     classDef check fill:#fef3c7,stroke:#f59e0b,color:#92400e
@@ -752,14 +806,14 @@ flowchart TB
 
   <figure><div class="mermaid">
 flowchart LR
-  A["<b> 钩子</b><br/>10+ 个拦截点"]
-  B["<b>Agent 生命周期</b><br/>模型 / Prompt / Reply"]
-  C["<b>Tool 工具调用</b><br/>before / after"]
-  D["<b>Command 内部命令</b><br/>/new /reset /stop"]
+  A["&lt;b&gt; 钩子&lt;/b&gt;&lt;br/&gt;10+ 个拦截点"]
+  B["&lt;b&gt;Agent 生命周期&lt;/b&gt;&lt;br/&gt;模型 / Prompt / Reply"]
+  C["&lt;b&gt;Tool 工具调用&lt;/b&gt;&lt;br/&gt;before / after"]
+  D["&lt;b&gt;Command 内部命令&lt;/b&gt;&lt;br/&gt;/new /reset /stop"]
 
-  A --> B
-  A --> C
-  A --> D
+  A --&gt; B
+  A --&gt; C
+  A --&gt; D
 
   style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style B fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
@@ -909,16 +963,16 @@ flowchart LR
 
   <figure><div class="mermaid">
 flowchart LR
-  LLM["LLM 请求<br/>tool_use block"] --> H1
-  H1["<b>钩子 1</b><br/>用户插件<br/>allow/transform"] --> H2
-  H2["<b>钩子 2</b><br/>团队插件<br/>allow/transform"] --> H3
-  H3["<b>钩子 3</b><br/>系统策略<br/>allow/transform"] --> EXEC{"全部<br/>allow?"}
-  EXEC -->|否| DENY["返回<br/>Permission denied"]
-  EXEC -->|是| TOOL["<b>工具执行</b><br/>沙箱内运行"]
-  TOOL --> H3b["<b>钩子 3</b><br/>sanitize"]
-  H3b --> H2b["<b>钩子 2</b><br/>sanitize"]
-  H2b --> H1b["<b>钩子 1</b><br/>sanitize"]
-  H1b --> RES["最终结果<br/>返回 LLM"]
+  LLM["LLM 请求&lt;br/&gt;tool_use block"] --&gt; H1
+  H1["&lt;b&gt;钩子 1&lt;/b&gt;&lt;br/&gt;用户插件&lt;br/&gt;allow/transform"] --&gt; H2
+  H2["&lt;b&gt;钩子 2&lt;/b&gt;&lt;br/&gt;团队插件&lt;br/&gt;allow/transform"] --&gt; H3
+  H3["&lt;b&gt;钩子 3&lt;/b&gt;&lt;br/&gt;系统策略&lt;br/&gt;allow/transform"] --&gt; EXEC{"全部&lt;br/&gt;allow?"}
+  EXEC --&gt;|否| DENY["返回&lt;br/&gt;Permission denied"]
+  EXEC --&gt;|是| TOOL["&lt;b&gt;工具执行&lt;/b&gt;&lt;br/&gt;沙箱内运行"]
+  TOOL --&gt; H3b["&lt;b&gt;钩子 3&lt;/b&gt;&lt;br/&gt;sanitize"]
+  H3b --&gt; H2b["&lt;b&gt;钩子 2&lt;/b&gt;&lt;br/&gt;sanitize"]
+  H2b --&gt; H1b["&lt;b&gt;钩子 1&lt;/b&gt;&lt;br/&gt;sanitize"]
+  H1b --&gt; RES["最终结果&lt;br/&gt;返回 LLM"]
 
   style LLM fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style H1 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
@@ -985,14 +1039,14 @@ openclaw hooks trace --name after_tool_call --follow</pre>
 
   <figure><div class="mermaid">
 flowchart LR
-  D1["<b>#1 会话隔离</b><br/>session.dmScope"]
-  D2["<b>#2 运行时选择</b><br/>模型级 → Provider 级"]
-  D3["<b>#3 队列模式</b><br/>queue.mode"]
-  D4["<b>#4 工具钩子</b><br/>before / after_tool_call"]
-  D5["<b>#5 压缩触发</b><br/>compaction.threshold"]
-  D6["<b>#6 流式策略</b><br/>block / preview"]
-  D7["<b>#7 Prompt 分层</b><br/>8 层结构"]
-  D8["<b>#8 超时取消</b><br/>AbortSignal"]
+  D1["&lt;b&gt;#1 会话隔离&lt;/b&gt;&lt;br/&gt;session.dmScope"]
+  D2["&lt;b&gt;#2 运行时选择&lt;/b&gt;&lt;br/&gt;模型级 → Provider 级"]
+  D3["&lt;b&gt;#3 队列模式&lt;/b&gt;&lt;br/&gt;queue.mode"]
+  D4["&lt;b&gt;#4 工具钩子&lt;/b&gt;&lt;br/&gt;before / after_tool_call"]
+  D5["&lt;b&gt;#5 压缩触发&lt;/b&gt;&lt;br/&gt;compaction.threshold"]
+  D6["&lt;b&gt;#6 流式策略&lt;/b&gt;&lt;br/&gt;block / preview"]
+  D7["&lt;b&gt;#7 Prompt 分层&lt;/b&gt;&lt;br/&gt;8 层结构"]
+  D8["&lt;b&gt;#8 超时取消&lt;/b&gt;&lt;br/&gt;AbortSignal"]
 
   style D1 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
   style D2 fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
@@ -1231,12 +1285,12 @@ flowchart LR
 
   <figure><div class="mermaid">
 flowchart LR
-  P1["<b>声明式</b><br/>优于命令式"]
-  P2["<b>可恢复</b><br/>优于防御性"]
-  P3["<b>可观测</b><br/>优于静默"]
-  P4["<b>可扩展</b><br/>优于完整"]
+  P1["&lt;b&gt;声明式&lt;/b&gt;&lt;br/&gt;优于命令式"]
+  P2["&lt;b&gt;可恢复&lt;/b&gt;&lt;br/&gt;优于防御性"]
+  P3["&lt;b&gt;可观测&lt;/b&gt;&lt;br/&gt;优于静默"]
+  P4["&lt;b&gt;可扩展&lt;/b&gt;&lt;br/&gt;优于完整"]
 
-  P1 --> P2 --> P3 --> P4
+  P1 --&gt; P2 --&gt; P3 --&gt; P4
 
   style P1 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
   style P2 fill:#d1fae5,stroke:#059669,color:#1a1f2b
@@ -1329,7 +1383,10 @@ flowchart LR
 
     <li>
       <div> 钩子性能开销大吗？</div>
-      <div>每个钩子目标 &lt；5ms。审计类钩子可以异步批写日志，几乎不阻塞主流程。详见 <code>openclaw hooks trace</code> 实时监控。</div>
+      <div class="thinking-note">
+<h3>思考笔记</h3>
+每个钩子目标 &lt；5ms。审计类钩子可以异步批写日志，几乎不阻塞主流程。详见 <code>openclaw hooks trace</code> 实时监控。
+</div>
     </li>
   </ul>
 
@@ -1386,5 +1443,5 @@ flowchart LR
           </div>
         </div>
       </div>
-    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body>
+    </footer><script src="/js/article-diagrams.js?v=9" defer></script></body>
 </html>
