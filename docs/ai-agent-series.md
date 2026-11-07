@@ -77,4 +77,6 @@
 
 01 补入六张工程方法图示：第二章为总览（方法与作用、核心流程），第三至七章分别对应 Prompt、Context、Harness、Loop、Graph 五种 Engineering。图示插在各章开篇段之后，与章节一一对应；原有四个 Mermaid 图示的图号顺延，全篇图号按文档顺序连续编号。
 
-图示以 WebP 存放于 `images/ai-programming-engineering/engineering-*.webp`，统一缩放到 1760px 宽，合计约 1.2MB，比原始 PNG 减少约九成；正文 `figure` 的默认左右外边距改为 0，让图示占满正文栏宽。正文基准同步重算。
+图示以 WebP 存放于 `images/ai-programming-engineering/engineering-*.webp`，统一缩放到 1760px 宽，合计约 1.2MB，比原始 PNG 减少约九成。正文基准同步重算。
+
+AI Agent 三篇共用 `ai-engineering-page` 样式：`figure` 的默认左右外边距改为 0，让图示占满正文栏宽；图注统一居中放在图示下方，Mermaid 图示一并调整。三篇的图注位置与图示宽度保持一致。

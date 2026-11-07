@@ -32,6 +32,8 @@
     .ai-engineering-page { background: #f8fafc; }
     .ai-engineering-page .post-block { max-width: 1180px; margin: 0 auto; }
     .ai-engineering-page .post-body { color: #172554; }
+    .ai-engineering-page .post-body figure { margin: 30px 0; }
+    .ai-engineering-page .post-body figcaption { text-align: center; }
     .ai-engineering-page .post-body h2 { margin-top: 3.2rem; padding-bottom: .7rem; border-bottom: 2px solid #dbeafe; color: #123b8f; }
     .ai-engineering-page .post-body h3 { color: #1d4ed8; }
     .ai-engineering-page .section-kicker { display: inline-block; margin: 2.2rem 0 .35rem; color: #2563eb; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
@@ -231,7 +233,7 @@
 <h3>02.1 先分清模型、工具与运行系统的职责</h3>
 <p>LLM 是参与判断的内核。面对“退出后旧凭据仍然有效”，它可以分析观察、提出调查方向、生成代码修改建议。工具与环境产生实际结果：文件有没有被修改，请求返回什么，测试是否通过，都需要真实执行。</p>
 <p>运行系统把两者接起来：为本轮调用选择上下文，检查动作与权限，调度工具，保存任务状态，组织验证，再决定继续、等待还是交付。这些职责可能放在客户端、服务端或不同组件中，不要求每个平台采用相同实现。</p>
-<figure><figcaption>图 1 · 先看阿明的交付时间线，再拆解平台原理</figcaption><div class="mermaid">flowchart TD
+<figure><div class="mermaid">flowchart TD
  A["委托：目标、现有 Session 约定、A1–A5"] --> B["T01：读仓库与规则，建立计划"]
  B --> C["T02–T03：注册、登录、当前用户及页面接入"]
  C --> D["T04：退出为 200，原凭据访问 /me 仍为 200"]
@@ -241,7 +243,7 @@
  G --> H["核对状态后续跑：A4 及相关登录条件重验"]
  H --> I["T05：集成回归，按需审阅页面与说明"]
  I --> J["T06：按最终说明启动，核验页面并交付证据"]
- J --> K["任务后：把漏查旧凭据沉淀为评测样本"]</div></figure>
+ J --> K["任务后：把漏查旧凭据沉淀为评测样本"]</div><figcaption>图 1 · 先看阿明的交付时间线，再拆解平台原理</figcaption></figure>
 <p>这张时间线说明故事先后，下一张运行图说明任意一个节点内部怎样往返。03–11 按理论组织，因此会从不同侧面回看同一事件；例如 07 解释修复如何验收，09 再还原验收前的中断恢复。章节顺序不代表任务要重新执行一次。</p>
 <h3>02.2 九项理论分别回答什么问题</h3>
 <table class="comparison-table"><thead><tr><th scope="col">理论与后文章节</th><th scope="col">通俗问题</th><th scope="col">认证案例中的落点</th></tr></thead><tbody><tr><td><a href="#part-03">03 · LLM 基础</a></td><td>模型能判断什么，哪些事实必须另外取得</td><td>知道常见认证方案，仍要读取项目使用的 Session</td></tr><tr><td><a href="#part-05">04 · 工具调用</a></td><td>模型提出的动作怎样真正发生</td><td>读取代码、写入补丁、执行请求和测试</td></tr><tr><td><a href="#react">05 · ReAct</a></td><td>出现意外后，怎样依据现场决定下一步</td><td>发现旧凭据仍可访问，继续核对环境与清理调用</td></tr><tr><td><a href="#part-07">06 · 规划执行</a></td><td>长任务怎样拆解，先做什么、后做什么</td><td>组织注册、登录、退出、联调、回归和交付说明</td></tr><tr><td><a href="#part-08">07 · 反思校验</a></td><td>怎样发现遗漏和假完成</td><td>退出响应成功后，继续检查旧凭据是否失效</td></tr><tr><td><a href="#part-09">08 · 多 Agent</a></td><td>什么时候值得分工，结果由谁汇总</td><td>按需分开接口实现与页面审阅，再统一验收</td></tr><tr><td><a href="#part-10">09 · Harness</a></td><td>谁维持整段执行，失败或中断怎样恢复</td><td>保存状态，管理权限、进程、预算和检查点</td></tr><tr><td><a href="#part-11">10 · 动态路由</a></td><td>当前问题应该交给哪个模型、工具或人工路径</td><td>读取代码与生产写入采用不同处理条件</td></tr><tr><td><a href="#part-12">11 · 持续演进</a></td><td>怎样减少下一次的同类失败</td><td>把旧会话失效纳入回归用例和评测集</td></tr></tbody></table>
@@ -253,7 +255,7 @@
 <p>Context 会贯穿模型输入、工具结果和恢复过程；Graph 会贯穿规划、分工、验证和状态变化。它们在本篇中继续存在，融入相关机制，不是额外排在九项理论之后的步骤。</p>
 <h3>02.4 学习可以按章推进，执行需要反复往返</h3>
 <p>后文按照从模型能力到运行和改进的顺序展开，实际任务不会把九项理论各运行一次就结束。一次模型调用可能同时涉及上下文、规划和工具选择；工具失败要先区分参数、环境或执行问题；业务验证失败则回到调查或修复。</p>
-<figure><figcaption>图 2 · 委托进入运行系统后的往返</figcaption><div class="mermaid">flowchart TD
+<figure><div class="mermaid">flowchart TD
  U["委托、约束与验收"] --> S["建立任务状态"]
  S --> C["选择当前事实与相关上下文"]
  C --> M["模型建议下一步"]
@@ -267,7 +269,7 @@
  D -->|验收满足| E["交付产物与证据"]
  P -->|需决定或条件不足| W
  P -->|禁止| X["不执行，记录原因并调整路径"]
- X --> D</div></figure>
+ X --> D</div><figcaption>图 2 · 委托进入运行系统后的往返</figcaption></figure>
 <p>如果旧凭据仍返回 200，就记录 A4 失败并继续调查；如果 Session 变更影响登录路径，就重新核对相关验收；如果缺少必须的业务决定，就保存进度并等待。工具已结束、任务已结束和业务已完成，需要分别表达。</p>
 <h3>02.5 用三个问题检查交付链有没有接上</h3>
 <p>理解一个平台时，可以持续追问：当前判断依据什么事实？建议的动作是否真的执行？完成结论对应什么验收证据？这三个问题分别帮助定位上下文、执行和验证上的缺口。</p>
@@ -317,7 +319,7 @@
 失败结果：错误类型、原因、是否可重试</code></pre>
 <p>描述过于宽泛时，模型可能选错工具；参数结构不明确时，可能传错路径或缺少字段。工具定义应让模型知道适用场景，执行器则真正落实访问限制。仅在提示中写“不要越界”无法替代权限检查。</p>
 <h3>04.2 从动作请求到结果回填，中间有执行边界</h3>
-<figure><figcaption>图 3 · 工具调用的边界</figcaption><div class="mermaid">sequenceDiagram
+<figure><div class="mermaid">sequenceDiagram
  participant M as 模型
  participant R as 运行系统
  participant P as 权限策略
@@ -333,7 +335,7 @@
  else 等待或拒绝
   P-->>R: 原因与恢复条件
   R-->>M: 不能执行的事实
- end</div></figure>
+ end</div><figcaption>图 3 · 工具调用的边界</figcaption></figure>
 <p>请求需要关联到任务、节点和本次调用，便于回答“哪个动作产生了哪条结果”。执行前检查参数、授权、目标环境和资源；执行后保存状态、输出和产物引用，再把与当前判断有关的结果放回上下文。某些确定步骤可以由系统直接调度，不必全部经过模型选择。</p>
 <p>测试等长进程要区分已提交、运行中、已结束、超时和取消。拿到进程标识只能说明它已启动，不能立刻报告测试通过。结果被截断时，应保留关键错误和完整记录入口。</p>
 <p>在 R1 上，请求工具实际执行“登录取得原凭据 → 退出 → 携原凭据访问 /me”。若界面显示调用已结束，它只说明工具结束；断言失败仍要返回 T04。这就是终端或测试工具与任务进度联动的具体方式。</p>
@@ -359,13 +361,13 @@
 <h3>05.1 ReAct 让判断与外部观察交替发生</h3>
 <p>ReAct 通常指 Reasoning 与 Acting 的结合。通俗地说，就是“看现场，决定一步，做完再看”。它适合文件内容、接口行为和错误原因尚不确定的任务，因为下一步往往要等工具返回后才能决定。</p>
 <p>这是一种交互模式，不是所有 Agent 都必须采用的固定算法。系统可以结合规则、计划和工具自动化；它也不要求公开模型的私有内部推理。对外可检查的是动作依据摘要、实际调用、观察和后续选择。</p>
-<figure><figcaption>图 4 · ReAct 的局部反馈回路</figcaption><div class="mermaid">flowchart TD
+<figure><div class="mermaid">flowchart TD
  A["观察：/me 仍返回 200"] --> B["提出可检查假设：Session 未销毁"]
  B --> C["动作：读清理调用、核对凭据、重现请求"]
  C --> D["新结果：定位缺失或环境差异"]
  D --> E{"是否足够解释现象？"}
  E -->|否| B
- E -->|是| F["修复并交给验证器"]</div></figure>
+ E -->|是| F["修复并交给验证器"]</div><figcaption>图 4 · ReAct 的局部反馈回路</figcaption></figure>
 <h3>05.2 把“可能有问题”拆成可被证伪的假设</h3>
 <table class="comparison-table"><thead><tr><th scope="col">当前问题</th><th scope="col">可检查的假设</th><th scope="col">取证动作</th><th scope="col">结果如何影响下一步</th></tr></thead><tbody><tr><td>为何旧凭据仍可访问</td><td>请求可能没有命中同一环境</td><td>核对服务地址、实例和测试配置</td><td>环境不一致先纠正，暂不改代码</td></tr><tr><td>凭据是否正确</td><td>请求链可能用了新凭据或漏带凭据</td><td>核对脱敏后的请求关联记录</td><td>修正测试流程再复现</td></tr><tr><td>会话为何未失效</td><td>清理调用或存储操作可能未完成</td><td>读退出路由及相关 Session 行为</td><td>结合运行记录判断修复位置</td></tr></tbody></table>
 <p>动作的价值在于区分候选原因。重复运行同一个请求只能再次确认现象，未必能说明原因。优先选择能带来新信息、范围较小且符合授权的动作。</p>
@@ -399,14 +401,14 @@
 <p>计划可以由模型提出，也可以来自固定流程或两者结合。模型给出的清单还需要与实际环境、资源和验收核对。任务名称应表达结果，例如“旧凭据退出后失效”，比“写退出函数”更能约束完成标准。</p>
 <h3>06.2 把六个节点与验收条件关联起来</h3>
 <table class="comparison-table"><thead><tr><th scope="col">节点</th><th scope="col">工作范围</th><th scope="col">推进依据</th></tr></thead><tbody><tr><td>T01 基线与约定</td><td>读取仓库规则、认证实现、环境和现有检查</td><td>形成适用事实与范围，记录基线问题</td></tr><tr><td>T02 注册</td><td>核对或补齐注册及关联页面接入</td><td>A1：有效、无效注册和重复邮箱</td></tr><tr><td>T03 登录与当前用户</td><td>登录、匿名访问、字段和相关页面接入</td><td>A2、A3：登录行为与当前用户边界</td></tr><tr><td>T04 退出</td><td>清理会话并验证原凭据行为</td><td>A4：退出后原凭据访问 /me 为 401</td></tr><tr><td>T05 集成回归</td><td>组合流程、受影响条件和差异审阅</td><td>功能回归与范围检查</td></tr><tr><td>T06 运行与交付</td><td>完善说明，按说明启动并核验页面，整理证据</td><td>A5 与最终清单；无法验证的条件明确保留</td></tr></tbody></table>
-<figure><figcaption>图 5 · 计划与依赖 Graph</figcaption><div class="mermaid">flowchart LR
+<figure><div class="mermaid">flowchart LR
  T1["T01 基线与约定"] --> T2["T02 注册"]
  T1 --> T3["T03 登录与 /me"]
  T3 --> T4["T04 退出与旧凭据失效"]
  T2 --> T5["T05 集成回归"]
  T4 --> T5
  T5 --> T6["T06 页面、运行说明、交付"]
- T4 -.影响.-> T3</div></figure>
+ T4 -.影响.-> T3</div><figcaption>图 5 · 计划与依赖 Graph</figcaption></figure>
 <p>T05 可以检查功能和变更范围，T06 再按最终说明验证启动与页面流程。不能在说明尚未形成时，就声称“按说明运行”已经验收。这两步分开，是为了避免完成条件互相循环依赖。</p>
 <h3>06.3 节点需要契约，Graph 需要表达不同关系</h3>
 <pre><code>教学节点：T04 退出与旧凭据失效
@@ -437,7 +439,7 @@
 <table class="comparison-table"><thead><tr><th scope="col">检查</th><th scope="col">R1：修复前</th><th scope="col">R2：恢复后重验</th></tr></thead><tbody><tr><td>登录后访问 /me</td><td>200，返回允许字段</td><td>200，返回允许字段</td></tr><tr><td>调用退出</td><td>200</td><td>200，服务端 Session 已按约定清理</td></tr><tr><td>原凭据再次访问 /me</td><td>200，A4 失败</td><td>401，A4 通过</td></tr><tr><td>新一次正常登录与匿名访问</td><td>已有局部记录</td><td>重新检查 A2、A3，通过对应断言</td></tr></tbody></table>
 <p>同样返回 200 的退出接口，在两份代码上对应了不同业务效果。平台不能只比较退出响应；关键证据是退出后的请求结果及相关回归。R2 的验证在中断恢复后取得，09 会解释这段恢复过程。</p>
 <h3>07.3 失败反馈要定位缺口，并返回合适的处理点</h3>
-<figure><figcaption>图 6 · 失败如何回到修复链</figcaption><div class="mermaid">flowchart TD
+<figure><div class="mermaid">flowchart TD
  A["A4 失败：旧凭据仍可访问 /me"] --> B["记录现象、代码状态、环境与请求证据"]
  B --> C["检查清理调用并提出假设"]
  C --> D["局部修复，补回归检查"]
@@ -445,7 +447,7 @@
  E --> F{"验收覆盖完整？"}
  F -->|是| G["关联证据，推进任务"]
  F -->|否| C
- F -->|缺权限或环境| H["保存状态，等待条件"]</div></figure>
+ F -->|缺权限或环境| H["保存状态，等待条件"]</div><figcaption>图 6 · 失败如何回到修复链</figcaption></figure>
 <p>“A4 失败”比“再完善一下”更有行动价值。反馈应包含预期、实际、复现条件、代码状态、原始记录入口及未确认点。若是环境错误，回到环境检查；若是实现不符，进入修复；若是验收歧义，等待业务决定。覆盖不足则补检查，不一定先改业务代码。</p>
 <h3>07.4 证据需要来源和有效范围</h3>
 <pre><code>教学验收记录 E03，非实测：
@@ -508,7 +510,7 @@ policy_ref: 当前授权、环境与预算</code></pre>
 <p>预算不仅是 Token，也包括总时长、工具次数、外部费用和重试上限。预算接近耗尽时，应优先保存有效进度与缺口。连续执行同一动作却没有新证据时，系统应识别无进展，避免陷入无限循环。</p>
 <h3>09.3 检查点保存任务线索，恢复要核对外部世界</h3>
 <table class="comparison-table"><thead><tr><th scope="col">检查点记录</th><th scope="col">恢复时重新核对</th></tr></thead><tbody><tr><td>契约、当前节点、等待原因</td><td>任务规则、业务决定和授权是否变化</td></tr><tr><td>代码状态、产物和证据引用</td><td>工作区是否被人或其他任务修改</td></tr><tr><td>运行中的进程和操作标识</td><td>动作仍在运行、已经完成还是结果不明</td></tr><tr><td>检查结果和环境引用</td><td>服务、依赖和数据是否使旧结论失效</td></tr></tbody></table>
-<figure><figcaption>图 7 · 中断后的恢复路径</figcaption><div class="mermaid">flowchart TD
+<figure><div class="mermaid">flowchart TD
  A["任务恢复"] --> B["读取契约、检查点与运行日志"]
  B --> C["核对工作区、进程、外部结果与授权"]
  C --> D{"动作状态是否明确？"}
@@ -517,7 +519,7 @@ policy_ref: 当前授权、环境与预算</code></pre>
  D -->|不确定| G["查询或协调外部状态"]
  E --> H["推进并重验受影响条件"]
  F --> H
- G --> C</div></figure>
+ G --> C</div><figcaption>图 7 · 中断后的恢复路径</figcaption></figure>
 <p>补丁写入之后、状态保存之前进程可能崩溃；远端动作也可能完成而响应丢失。恢复时不能把检查点当作外部世界的快照。先核对已发生的动作，再选择补录、续跑、重验或等待。</p>
 <p>中断演练的恢复记录如下。它插入在 R2 补丁写入之后、07 中的通过结果产生之前：</p>
 <ol class="step-list"><li>读取任务状态：T04 待验证，A4 没有可用的修复后通过记录。</li><li>核对工作区：R2 补丁仍在，且没有被其他任务改写，因此不重复应用补丁。</li><li>查询原测试进程：确认已经终止，没有可采信的最终结果；不是把“未收到输出”直接当成失败或未执行。</li><li>重新核对测试服务、会话存储、授权和测试数据，再启动一次检查。</li><li>新的结果完整返回后，关联 E03，更新 A4 和相关 A2、A3；随后继续 T05。</li></ol>
@@ -562,7 +564,7 @@ policy_ref: 当前授权、环境与预算</code></pre>
 <h3>11.2 诊断缺口，再选择要改的系统部分</h3>
 <table class="comparison-table"><thead><tr><th scope="col">缺口</th><th scope="col">可能改进</th><th scope="col">需验证什么</th></tr></thead><tbody><tr><td>目标遗漏退出后的行为</td><td>明确任务和验收表达</td><td>是否更完整覆盖，同时不误改其他认证策略</td></tr><tr><td>未读取现行 Session</td><td>优化调查规则和上下文选择</td><td>是否找到适用事实，而非增加无关材料</td></tr><tr><td>工具未回传失败状态</td><td>修正接口约定和状态处理</td><td>失败是否能稳定进入反馈</td></tr><tr><td>只看响应码就宣布完成</td><td>补断言、验收门槛和评测样本</td><td>误报完成是否下降</td></tr><tr><td>模型切换丢失上下文</td><td>完善路由交接信息</td><td>进度与证据是否保留</td></tr><tr><td>恢复后重复外部操作</td><td>改进去重与状态核对</td><td>中断场景是否安全续跑</td></tr></tbody></table>
 <h3>11.3 用固定基线和未参与调优的案例比较效果</h3>
-<figure><figcaption>图 8 · 从运行失败到版本改进</figcaption><div class="mermaid">flowchart LR
+<figure><div class="mermaid">flowchart LR
  A["运行失败"] --> B["保留现象与证据"]
  B --> C["定位缺口：提示、事实、工具、验证或路由"]
  C --> D["修改规则、测试或配置"]
@@ -570,7 +572,7 @@ policy_ref: 当前授权、环境与预算</code></pre>
  E --> F{"质量改善且回归可接受？"}
  F -->|是| G["发布版本并观察"]
  F -->|否| H["回退或继续修正"]
- H --> D</div></figure>
+ H --> D</div><figcaption>图 8 · 从运行失败到版本改进</figcaption></figure>
 <p>改动前先保存基线，改动后在相同环境与预算条件下比较。既测试旧凭据失效，也测试正常登录、匿名访问、页面接入和不适用的认证场景，避免新规则只对一个案例有效。随机性较大的任务需要多次运行，记录样本数和波动。</p>
 <p>调优用的案例与评估最终效果的保留案例应尽量分开。否则系统可能只记住固定解法，却没有提高对新任务的处理能力。评测不只看最终答案，还应核对实际产物、验收覆盖、误报完成、恢复和费用。</p>
 <p>本例沉淀的规则不是“所有退出都必须调用某个函数”，而是“对声明旧会话失效的任务，检查原凭据在退出后的实际行为”。将它加入适用范围明确的检查模板，再用未参与调优的任务验证，才能形成下一版本的改进。</p>
