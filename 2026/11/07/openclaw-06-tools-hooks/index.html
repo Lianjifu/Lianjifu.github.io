@@ -214,60 +214,6 @@
     </tbody>
   </table>
 
-<table>
-    <thead>
-      <tr>
-        <th>思考维度</th>
-        <th>内容</th>
-      </tr>
-    </thead>
-    <tbody>
-    <tr>
-      <td colspan="2"><span></span>引导思考 <span>展开</span></td>
-    </tr>
-    <tr>
-      <td><strong>它为什么存在</strong></td>
-      <td>
-        <ul>
-          <li>工具调用是 LLM 与现实世界交互的桥梁，也是整条链路上最大的攻击面</li>
-          <li>提示注入只需要改一段外部文本，就能影响模型调什么工具</li>
-          <li>不可信执行这条原则，必须在工具层有具体落点</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它解决什么问题</strong></td>
-      <td>
-        <ul>
-          <li>给每次工具调用套上四档沙箱与八个以上的钩子拦截点</li>
-          <li>让「策略」留在可信侧、「执行」留在不可信侧，两者之间只有受控接口</li>
-          <li>给出工具来源的边界：内置、插件、MCP 各自的能力与配置方式</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它在系统中的位置</strong></td>
-      <td>
-        <ul>
-          <li>LLM 与外部世界的边界——工具执行加钩子策略就是安全与能力的交汇点</li>
-          <li>执行层的核心，运行时在沙箱里，网关在沙箱外</li>
-          <li>与模块 02 的信任模型、模块 05 的会话边界直接相关</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它如何工作</strong></td>
-      <td>
-        <ul>
-          <li>三类工具来源：内置工具、插件工具、MCP 桥接，统一暴露给模型</li>
-          <li>四档沙箱：none 无隔离、process 进程级、container 容器级、vm 虚拟机级</li>
-          <li>钩子链在关键路径上拦截：模型解析前、提示词构建前、回复生成前、工具执行前后</li>
-        </ul>
-      </td>
-    </tr>
-    </tbody>
-  </table>
-
 
 
 
@@ -971,8 +917,7 @@ flowchart LR
   <h3 id="sec-12.2">6.12.2 钩子链执行</h3>
   <p>多个钩子按注册顺序链式执行——任何一个返回 <code>allow: false</code>，后续钩子和工具执行都被跳过：</p>
 
-  <figure><div class="mermaid">
-flowchart LR
+  <figure><div class="mermaid">flowchart TD
   LLM["LLM 请求&lt;br/&gt;tool_use block"] --&gt; H1
   H1["&lt;b&gt;钩子 1&lt;/b&gt;&lt;br/&gt;用户插件&lt;br/&gt;allow/transform"] --&gt; H2
   H2["&lt;b&gt;钩子 2&lt;/b&gt;&lt;br/&gt;团队插件&lt;br/&gt;allow/transform"] --&gt; H3
@@ -994,8 +939,7 @@ flowchart LR
   style H3b fill:#d1fae5,stroke:#059669,color:#1a1f2b
   style H2b fill:#d1fae5,stroke:#059669,color:#1a1f2b
   style H1b fill:#d1fae5,stroke:#059669,color:#1a1f2b
-  style RES fill:#d1fae5,stroke:#059669,color:#1a1f2b
-</div><figcaption>图 6.5 · 钩子链——前置钩子 1→2→3 顺序执行，后置钩子 3→2→1 反向执行（LIFO）。</figcaption></figure>
+  style RES fill:#d1fae5,stroke:#059669,color:#1a1f2b</div><figcaption>图 6.5 · 钩子链——前置钩子 1→2→3 顺序执行，后置钩子 3→2→1 反向执行（LIFO）。</figcaption></figure>
 
   <div class="thinking-note">
 <h3>要点</h3>

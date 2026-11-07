@@ -214,60 +214,6 @@
     </tbody>
   </table>
 
-<table>
-    <thead>
-      <tr>
-        <th>思考维度</th>
-        <th>内容</th>
-      </tr>
-    </thead>
-    <tbody>
-    <tr>
-      <td colspan="2"><span></span>引导思考 <span>展开</span></td>
-    </tr>
-    <tr>
-      <td><strong>它为什么存在</strong></td>
-      <td>
-        <ul>
-          <li>30+ 提供商、5 种 Runtime、几十个模型 ID，每家的协议和故障行为都不一样</li>
-          <li>把「模型训练」留给 OpenAI 与 Anthropic，OpenClaw 只做协调层</li>
-          <li>不把两件事拆开，配置就会变成一堆互相牵连的开关</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它解决什么问题</strong></td>
-      <td>
-        <ul>
-          <li>Provider 与 Model 是身份，Runtime 与 Harness 是执行方式——两者独立配置、自由组合</li>
-          <li>同一个模型可以换不同 Runtime，同一个 Runtime 也可以换不同模型</li>
-          <li>所有组合都能在 openclaw.json5 里声明，不必改代码</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它在系统中的位置</strong></td>
-      <td>
-        <ul>
-          <li>L3 推理层的具体实现——定义模型如何被调用</li>
-          <li>上游接适配器与路由层，下游接执行层与工具沙箱</li>
-          <li>与模块 03 一起构成消息进入模型之前的最后一段</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它如何工作</strong></td>
-      <td>
-        <ul>
-          <li>四层抽象栈：Provider → Model → Runtime → Harness，每层都是独立可配置项</li>
-          <li>Provider 负责协议与鉴权，Model 负责上下文与能力，Runtime 负责调度，Harness 负责装配</li>
-          <li>故障转移在 Provider 层实现：配额、限流、区域不可用各有回退路径</li>
-        </ul>
-      </td>
-    </tr>
-    </tbody>
-  </table>
-
 
 
 
@@ -1218,10 +1164,9 @@ flowchart TB
 <hr>
 <h4 id="deep-02-model-failover-1" data-toc-skip>两阶段故障处理</h4>
 <p>模型故障转移是 OpenClaw 的<strong>韧性保障</strong>，确保单模型失败不会导致整个系统不可用。</p>
-<figure><div class="mermaid">
-flowchart LR
+<figure><div class="mermaid">flowchart TD
     subgraph 阶段一["阶段一：主模型 Profile 轮换"]
-        direction LR
+        direction TB
         REQ["Agent 请求"]:::start
         P1["Profile 1&lt;br/&gt;anthropic:default"]:::profile
         P1A["Profile 2&lt;br/&gt;anthropic:backup"]:::profile
@@ -1229,7 +1174,7 @@ flowchart LR
     end
 
     subgraph 阶段二["阶段二：Fallback 模型切换"]
-        direction LR
+        direction TB
         FB1["Fallback 1&lt;br/&gt;openai/gpt-5.2"]:::fallback
         FB2["Fallback 2&lt;br/&gt;gemini/gemini-2.0"]:::fallback
         FAIL["All failed&lt;br/&gt;返回错误"]:::fail
@@ -1245,8 +1190,7 @@ flowchart LR
     classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
     classDef profile fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef fallback fill:#fef3c7,stroke:#f59e0b,color:#92400e
-    classDef fail fill:#fee2e2,stroke:#ef4444,color:#991b1b
-</div><figcaption>图 16.3 · Fallback · 模型故障切换</figcaption></figure>
+    classDef fail fill:#fee2e2,stroke:#ef4444,color:#991b1b</div><figcaption>图 16.3 · Fallback · 模型故障切换</figcaption></figure>
 <table>
   <thead>
     <tr><th>阶段</th><th>处理内容</th><th>失败处理</th></tr>

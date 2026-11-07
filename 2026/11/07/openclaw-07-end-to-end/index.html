@@ -214,60 +214,6 @@
     </tbody>
   </table>
 
-<table>
-    <thead>
-      <tr>
-        <th>思考维度</th>
-        <th>内容</th>
-      </tr>
-    </thead>
-    <tbody>
-    <tr>
-      <td colspan="2"><span></span>引导思考 <span>展开</span></td>
-    </tr>
-    <tr>
-      <td><strong>它为什么存在</strong></td>
-      <td>
-        <ul>
-          <li>六个模块分别读完，运行时仍然是散的——不知道它们怎么首尾相接</li>
-          <li>真实问题从来不是单点，而是「一条消息从进来到回复经历了什么」</li>
-          <li>需要一条可以逐段对照源码的完整时序</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它解决什么问题</strong></td>
-      <td>
-        <ul>
-          <li>用一条具体消息把前面六个模块串起来：9 个阶段、13 个参与者</li>
-          <li>给出端到端的参与者名单与每个阶段的输入输出</li>
-          <li>提供全局视角——这是验证前六章理解的最佳入口</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它在系统中的位置</strong></td>
-      <td>
-        <ul>
-          <li>全系列的汇聚点：把架构、通道、会话、模型、工具、钩子在一个场景里组合起来</li>
-          <li>场景从 WhatsApp 私聊出发，触发一次日历工具调用并返回自然语言答复</li>
-          <li>后续两章在这条时序上加耗时维度与失败视角</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它如何工作</strong></td>
-      <td>
-        <ul>
-          <li>九个阶段：通道接入、网关路由、Agent 启动、Prompt 组装、模型推理、工具执行、结果回填、回复生成、通道回复</li>
-          <li>阶段五到七可以循环，阶段八与九异步执行</li>
-          <li>十三个参与者按通道、网关、Agent、模型、工具、存储与出站七类分布</li>
-        </ul>
-      </td>
-    </tr>
-    </tbody>
-  </table>
-
 
 <!-- ============ 侧边 TOC(参考 01 风格) ============ -->
 
@@ -367,19 +313,29 @@ flowchart LR
 
   <h2 id="sec-5">7.5 9 个阶段概览</h2>
 
-  <figure><div class="mermaid">
-flowchart LR
-  S1["&lt;b&gt;阶段 1&lt;/b&gt;&lt;br/&gt;通道接入"]
-  S2["&lt;b&gt;阶段 2&lt;/b&gt;&lt;br/&gt;网关路由"]
-  S3["&lt;b&gt;阶段 3&lt;/b&gt;&lt;br/&gt;Agent 启动"]
-  S4["&lt;b&gt;阶段 4&lt;/b&gt;&lt;br/&gt;Prompt 组装"]
-  S5["&lt;b&gt;阶段 5&lt;/b&gt;&lt;br/&gt;模型推理"]
-  S6["&lt;b&gt;阶段 6&lt;/b&gt;&lt;br/&gt;工具执行"]
-  S7["&lt;b&gt;阶段 7&lt;/b&gt;&lt;br/&gt;流式 + 持久化"]
-  S8["&lt;b&gt;阶段 8&lt;/b&gt;&lt;br/&gt;通道回复"]
-  S9["&lt;b&gt;阶段 9&lt;/b&gt;&lt;br/&gt;善后"]
-
-  S1 --&gt; S2 --&gt; S3 --&gt; S4 --&gt; S5 --&gt; S6 --&gt; S7 --&gt; S8 --&gt; S9
+  <figure><div class="mermaid">flowchart TD
+  subgraph P1["① 接入与路由"]
+    direction LR
+    S1["&lt;b&gt;阶段 1&lt;/b&gt;&lt;br/&gt;通道接入"]
+    S2["&lt;b&gt;阶段 2&lt;/b&gt;&lt;br/&gt;网关路由"]
+    S3["&lt;b&gt;阶段 3&lt;/b&gt;&lt;br/&gt;Agent 启动"]
+    S1 --&gt; S2 --&gt; S3
+  end
+  subgraph P2["② 组装与推理"]
+    direction LR
+    S4["&lt;b&gt;阶段 4&lt;/b&gt;&lt;br/&gt;Prompt 组装"]
+    S5["&lt;b&gt;阶段 5&lt;/b&gt;&lt;br/&gt;模型推理"]
+    S6["&lt;b&gt;阶段 6&lt;/b&gt;&lt;br/&gt;工具执行"]
+    S4 --&gt; S5 --&gt; S6
+  end
+  subgraph P3["③ 交付与善后"]
+    direction LR
+    S7["&lt;b&gt;阶段 7&lt;/b&gt;&lt;br/&gt;流式 + 持久化"]
+    S8["&lt;b&gt;阶段 8&lt;/b&gt;&lt;br/&gt;通道回复"]
+    S9["&lt;b&gt;阶段 9&lt;/b&gt;&lt;br/&gt;善后"]
+    S7 --&gt; S8 --&gt; S9
+  end
+  P1 --&gt; P2 --&gt; P3
 
   style S1 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
   style S2 fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
@@ -389,8 +345,7 @@ flowchart LR
   style S6 fill:#d1fae5,stroke:#059669,color:#1a1f2b
   style S7 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
   style S8 fill:#f3f4f6,stroke:#6b7280,color:#1a1f2b
-  style S9 fill:#fef3c7,stroke:#f59e0b,color:#1a1f2b
-</div><figcaption>图 7.2 · 9 个阶段——阶段 5-7 可循环，阶段 8-9 异步。</figcaption></figure>
+  style S9 fill:#fef3c7,stroke:#f59e0b,color:#1a1f2b</div><figcaption>图 7.2 · 9 个阶段——阶段 5-7 可循环，阶段 8-9 异步。</figcaption></figure>
 
 
 
@@ -545,9 +500,8 @@ flowchart LR
 
   <p>把上面 9 阶段压缩成一张概览图——阶段 5-6 是循环（模型 ↔ 工具），其余单向。</p>
 
-  <figure><div class="mermaid">
-flowchart LR
-  Start([" 用户消息"]) --&gt; S1
+  <figure><div class="mermaid">flowchart TD
+  Start(["用户消息"]) --&gt; S1
   S1["&lt;b&gt;1 通道接入&lt;/b&gt;&lt;br/&gt;WA → 规范化&lt;br/&gt;→ WebSocket 帧"]
   S1 --&gt; S2
   S2["&lt;b&gt;2 网关路由&lt;/b&gt;&lt;br/&gt;Schema + 会话解析&lt;br/&gt;+ 入队"]
@@ -567,7 +521,7 @@ flowchart LR
   S8["&lt;b&gt;8 通道回复&lt;/b&gt;&lt;br/&gt;出站 + 送达回执"]
   S8 --&gt; S9
   S9["&lt;b&gt;9 善后&lt;/b&gt;&lt;br/&gt;压缩 + 状态更新"]
-  S9 --&gt; End([" 用户收到回复"])
+  S9 --&gt; End(["用户收到回复"])
 
   style Start fill:#f3f4f6,stroke:#6b7280,color:#1a1f2b
   style S1 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
@@ -580,8 +534,7 @@ flowchart LR
   style S8 fill:#f3f4f6,stroke:#6b7280,color:#1a1f2b
   style S9 fill:#fef3c7,stroke:#f59e0b,color:#1a1f2b
   style Q1 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
-  style End fill:#d1fae5,stroke:#059669,color:#1a1f2b
-</div><figcaption>图 7.3 · 9 步流程——阶段 5-6 是循环（模型 ↔ 工具），其余单向。</figcaption></figure>
+  style End fill:#d1fae5,stroke:#059669,color:#1a1f2b</div><figcaption>图 7.3 · 9 步流程——阶段 5-6 是循环（模型 ↔ 工具），其余单向。</figcaption></figure>
 
 
 
@@ -796,30 +749,27 @@ flowchart LR
 
   <h2 id="sec-12">7.12 完整 Mermaid 时序图</h2>
 
-  <p>用 sequenceDiagram 把 13 个参与者的完整消息流画出来——适合教学演示、文档插图、跨团队沟通。</p>
+  <p>用 sequenceDiagram 把完整消息流画出来——适合教学演示、文档插图、跨团队沟通。31 步挤进一张图会变成一条读不完的横线，所以按三段拆开：接入与入队、Agent 准备与推理、交付与善后。</p>
 
-  <figure><div class="mermaid">
-sequenceDiagram
-  autonumber
-  participant U as  用户
-  participant WA as  WhatsApp
-  participant Ch as  通道插件
+  <figure><div class="mermaid">sequenceDiagram
+  participant U as 用户
+  participant WA as WhatsApp
+  participant Ch as 通道插件
   participant GW as Gateway
-  participant Q as  队列
+  participant Q as 队列
   participant AL as Agent
-  participant PB as  Prompt Builder
-  participant PR as  Provider
-  participant TX as  工具
-  participant SP as  SQLite
-  participant CP as Compressor
-
   U-&gt;&gt;WA: 1. 发送消息
   WA-&gt;&gt;Ch: 2. Webhook 推送
   Ch-&gt;&gt;Ch: 3. 规范化 → Envelope
   Ch-&gt;&gt;GW: 4. WebSocket 帧
   GW-&gt;&gt;GW: 5. 校验 Schema + 解析 session
   GW-&gt;&gt;Q: 6. 入队(按 queue.mode)
-  Q-&gt;&gt;AL: 7. 出队 + 触发 Agent
+  Q-&gt;&gt;AL: 7. 出队 + 触发 Agent</div><figcaption>图 7.5 · 接入与入队（1–7 步）——消息从 WhatsApp 进入 Gateway 队列并触发 Agent。</figcaption></figure><figure><div class="mermaid">sequenceDiagram
+  participant AL as Agent
+  participant PB as Prompt Builder
+  participant SP as SQLite
+  participant PR as Provider
+  participant TX as 工具
   AL-&gt;&gt;SP: 8. 加载历史
   SP--&gt;&gt;AL: 9. 历史消息
   AL-&gt;&gt;PB: 10. 请求组装 Prompt
@@ -840,15 +790,22 @@ sequenceDiagram
   AL-&gt;&gt;PR: 22. 携带 tool_result 继续
   PR--&gt;&gt;AL: 23. 最终响应(无 tool_use)
   AL-&gt;&gt;SP: 24. 写入 messages/tool_calls/events
-  SP--&gt;&gt;AL: 25. 持久化完成
+  SP--&gt;&gt;AL: 25. 持久化完成</div><figcaption>图 7.6 · Agent 准备与推理（8–25 步）——历史加载、Prompt 组装、模型推理与工具调用循环。</figcaption></figure><figure><div class="mermaid">sequenceDiagram
+  participant U as 用户
+  participant WA as WhatsApp
+  participant Ch as 通道插件
+  participant AL as Agent
+  participant CP as Compressor
+  participant SP as SQLite
+  participant Q as 队列
   AL-&gt;&gt;Ch: 26. 推送最终回复
   Ch-&gt;&gt;WA: 27. 出站 API
   WA-&gt;&gt;U: 28. 用户看到回复
   AL-&gt;&gt;CP: 29. 异步压缩检查
   CP-&gt;&gt;SP: 30. 归档超期会话
   AL-&gt;&gt;Q: 31. 推进下一条消息
-  Note over U,CP: 总耗时 3-8s
-</div><figcaption>图 7.5 · 完整时序图——31 步消息流，13 个参与者，涵盖主流程 + 异步善后。</figcaption></figure>
+  Note over U,CP: 主流程总耗时 3-8s</div><figcaption>图 7.7 · 交付与善后（26–31 步）——回复送达、异步压缩与下一条消息推进。</figcaption></figure>
+<p class="note-meta">三张图合起来是完整的 31 步。会话管理器（SM）与出站发送器（WM）的动作并入了相邻步骤，13 个参与者的完整对照见 <a href="#sec-4.2">7.4.2 参与者名单</a>。</p>
 
   <h3 id="sec-12.1">7.12.1 参与者对照表</h3>
   <table>

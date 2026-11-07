@@ -214,60 +214,6 @@
     </tbody>
   </table>
 
-<table>
-    <thead>
-      <tr>
-        <th>思考维度</th>
-        <th>内容</th>
-      </tr>
-    </thead>
-    <tbody>
-    <tr>
-      <td colspan="2"><span></span>引导思考 <span>展开</span></td>
-    </tr>
-    <tr>
-      <td><strong>它为什么存在</strong></td>
-      <td>
-        <ul>
-          <li>「可信的网关、不可信的执行、确定性的策略」如果只是口号，就没法落到代码上</li>
-          <li>原则必须能回答三个问题：职责怎么切、代码放哪、安全边界在哪</li>
-          <li>没有架构地图，后面每个模块都只能靠猜</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它解决什么问题</strong></td>
-      <td>
-        <ul>
-          <li>把抽象原则映射到 apps/gateway/src/ 的具体子模块，让原则可寻、可查</li>
-          <li>用四层架构说清职责边界，用三级信任模型说清安全边界</li>
-          <li>给出 Gateway 七个子模块的分工，解释运行时地图的完整形状</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它在系统中的位置</strong></td>
-      <td>
-        <ul>
-          <li>把模块 01 的三原则展开成四层架构、Gateway 七个子模块与三级信任模型</li>
-          <li>L1 到 L4 分层：接入层、推理层、执行层、控制层</li>
-          <li>后面所有模块都是这张地图的细化</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <td><strong>它如何工作</strong></td>
-      <td>
-        <ul>
-          <li>三原则一一对应三个核心子模块：gateway/、tools/sandbox/、config/</li>
-          <li>四层架构从上到下：接入 → 推理 → 执行 → 控制</li>
-          <li>三级信任模型划出可信边界：可信网关、可信配置、不可信执行</li>
-        </ul>
-      </td>
-    </tr>
-    </tbody>
-  </table>
-
 
 
 
@@ -1215,30 +1161,29 @@ sequenceDiagram
 <hr>
 <h4 id="deep-01-agent-loop-workflow-4" data-toc-skip>runEmbeddedPiAgent 内部流程</h4>
 <p>`runEmbeddedPiAgent（...）` 是 Agent Loop 的<strong>核心调度函数</strong>，内部依次经历以下阶段：</p>
-<figure><div class="mermaid">
-flowchart LR
+<figure><div class="mermaid">flowchart TD
     subgraph 队列控制
-        direction LR
+        direction TB
         Q1["① 每会话队列串行化&lt;br/&gt;session lane concurrency=1"]:::queue
         Q2["② 全局队列串行化&lt;br/&gt;global lane maxPending=M"]:::queue
     end
 
     subgraph 会话构建
-        direction LR
+        direction TB
         S1["③ 解析模型配置&lt;br/&gt;primary + fallbacks"]:::build
         S2["④ 加载认证配置&lt;br/&gt;auth profiles"]:::build
         S3["⑤ 构建 pi 会话&lt;br/&gt;SessionManager"]:::build
     end
 
     subgraph 执行
-        direction LR
+        direction TB
         E1["⑥ 订阅 pi 事件&lt;br/&gt;subscribeEmbeddedPiSession"]:::exec
         E2["⑦ 流式输出增量&lt;br/&gt;assistant + tool events"]:::exec
         E3["⑧ 强制超时中止&lt;br/&gt;timeoutSeconds"]:::exec
     end
 
     subgraph 返回
-        direction LR
+        direction TB
         R1["⑨ 返回负载 payload&lt;br/&gt;助手文本 + 工具结果"]:::ret
         R2["⑩ 返回用量元数据&lt;br/&gt;usage + provider + model"]:::ret
     end
@@ -1248,8 +1193,7 @@ flowchart LR
     classDef queue fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef build fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
-    classDef ret fill:#fce7f3,stroke:#ec4899,color:#9d174d
-</div><figcaption>图 5.4 · 消息生命周期</figcaption></figure>
+    classDef ret fill:#fce7f3,stroke:#ec4899,color:#9d174d</div><figcaption>图 5.4 · 消息生命周期</figcaption></figure>
 <h4 id="sec-12-7-1" data-toc-skip>各步骤详解</h4>
 <table>
   <thead>
@@ -2172,8 +2116,7 @@ flowchart LR
 <hr>
 <h4 id="deep-03-core-source-index-2" data-toc-skip>消息完整旅程</h4>
 <p>从用户发送消息到收到回复的<strong>完整调用链</strong>（含源码路径）：</p>
-<figure><div class="mermaid">
-flowchart LR
+<figure><div class="mermaid">flowchart TD
     CH[Channel&lt;br/&gt;Telegram / Discord / Slack&lt;br/&gt;src/channels/]:::chan
     --&gt; GW[Gateway&lt;br/&gt;server.impl.ts&lt;br/&gt;src/gateway/]:::gw
     --&gt; AU[Auth&lt;br/&gt;auth.ts&lt;br/&gt;src/gateway/]:::gw
@@ -2190,8 +2133,7 @@ flowchart LR
     classDef gw fill:#fef3c7,stroke:#f59e0b,color:#92400e
     classDef rout fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
-    classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
-</div><figcaption>图 6.3 · Gateway 子模块</figcaption></figure>
+    classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d</div><figcaption>图 6.3 · Gateway 子模块</figcaption></figure>
 <h4 id="sec-10-25-1" data-toc-skip>各阶段详述</h4>
 <table>
   <thead>
@@ -2842,10 +2784,9 @@ sequenceDiagram
 
 <h4 id="deep-04-cli-command-system-1" data-toc-skip>CLI 入口流程</h4>
 <p>OpenClaw 的 CLI 从 `src/entry.ts` 启动，经过一系列初始化后到达命令执行阶段：</p>
-<figure><div class="mermaid">
-flowchart LR
+<figure><div class="mermaid">flowchart TD
     subgraph entry.ts["① 进程初始化 entry.ts"]
-        direction LR
+        direction TB
         E1["设置进程名 「openclaw」"]:::init
         E2["处理 --no-color 标志"]:::init
         E3["respawn 注入&lt;br/&gt;--disable-warning=ExperimentalWarning"]:::init
@@ -2855,7 +2796,7 @@ flowchart LR
     end
 
     subgraph run.ts["② 命令路由 run-main.ts"]
-        direction LR
+        direction TB
         R1["加载 .env&lt;br/&gt;标准化环境变量"]:::route
         R2["tryRouteCli()&lt;br/&gt;→ 快路径命令匹配"]:::route
         R3["buildProgram() +&lt;br/&gt;registerCoreCliByName()"]:::route
@@ -2871,8 +2812,7 @@ flowchart LR
 
     classDef init fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     classDef route fill:#fef3c7,stroke:#f59e0b,color:#92400e
-    classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
-</div><figcaption>图 6.9 · Gateway 子模块</figcaption></figure>
+    classDef done fill:#d1fae5,stroke:#10b981,color:#065f46</div><figcaption>图 6.9 · Gateway 子模块</figcaption></figure>
 <h4 id="sec-11-55-1" data-toc-skip>entry.ts 各步骤说明</h4>
 <table>
   <thead>
@@ -3121,8 +3061,7 @@ openclaw gateway call config.patch --params &#x27;{...}&#x27;</pre>
 <hr>
 <h4 id="deep-03-websocket-protocol-1" data-toc-skip>四层结构</h4>
 <p>WebSocket 协议层是 Gateway 的<strong>连接中枢</strong>，所有与客户端的长连接通信都经过这四层处理：</p>
-<figure><div class="mermaid">
-flowchart LR
+<figure><div class="mermaid">flowchart TD
     subgraph L1["① 连接层 — Connection Layer"]
         direction TB
         C1["ws-connection.ts&lt;br/&gt;WebSocket 连接管理"]
@@ -3150,8 +3089,7 @@ flowchart LR
 
     L1 --&gt;|"握手成功"| L2
     L2 --&gt;|"帧校验通过"| L3
-    L3 --&gt;|"方法分发"| L4
-</div><figcaption>图 7.2 · 5 条接口契约</figcaption></figure>
+    L3 --&gt;|"方法分发"| L4</div><figcaption>图 7.2 · 5 条接口契约</figcaption></figure>
 <h4 id="sec-11-47-1" data-toc-skip>各层职责</h4>
 <table>
   <thead>
