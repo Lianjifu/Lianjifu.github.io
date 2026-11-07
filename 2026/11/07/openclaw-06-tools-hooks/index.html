@@ -23,7 +23,7 @@
   <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="/css/2026.css?v=2">
-  <link rel="stylesheet" href="/css/portal.css?v=3">
+  <link rel="stylesheet" href="/css/portal.css?v=5">
   <link rel="stylesheet" href="/css/article.css?v=7">
   <link rel="stylesheet" href="/css/openclaw.css?v=7">
   <script src="/js/portal.js?v=7" defer></script>
@@ -1325,82 +1325,9 @@ flowchart LR
 
 
 
-  <h2 id="sec-16">6.16 阅读路径 + FAQ + 总结</h2>
+  <h2 id="sec-16">6.16 总结</h2>
 
-  <h3 id="sec-16.1">6.16.1 阅读路径</h3>
-  <p>本页约 18 分钟读完。如果你只关心一部分，挑适合的读法：</p>
-
-  <h4 data-toc-skip>架构派 · 通读者</h4>
-<p class="oc-meta">18 分钟 · 全章</p>
-
-        <ol>
-          <li>6.1-3 定位 + 三原则</li>
-          <li>6.4-9 工具执行 + 沙箱 + 超时 + 并发</li>
-          <li>6.10-13 钩子分类 + 注册 + 链</li>
-          <li>6.14-15 8 个决策 + 4 个哲学</li>
-
-<h4 data-toc-skip>实用派 · 应用开发者</h4>
-<p class="oc-meta">7 分钟 · 选段</p>
-
-        <ol>
-          <li>6.5 3 类工具来源</li>
-          <li>6.6 沙箱机制 + 6.8 超时</li>
-          <li>6.14 决策 4——钩子用法</li>
-          <li>遇到问题 → 跳回 6.7 / 6.13</li>
-
-<h4 data-toc-skip>插件派 · 插件开发者</h4>
-<p class="oc-meta">10 分钟</p>
-
-        <ol>
-          <li>6.10 3 大类钩子 + 6.11 注册</li>
-          <li>6.12 返回值约定 + 链式执行</li>
-          <li>6.13 调试技巧</li>
-          <li>跳 <a href="/2026/11/07/openclaw-10-source-walkthrough/">模块 10 源码</a> 看插件框架</li>
-
-
-  <h3 id="sec-16.2">6.16.2 常见问题</h3>
-
-  <ul>
-    <li>
-      <div> 工具调用失败会怎样？</div>
-      <div>默认返回错误给 LLM，LLM 可重试或换工具。超时（默认 30s）会自动 kill。</div>
-    </li>
-
-    <li>
-      <div> 如何限制某个用户不能调 shell？</div>
-      <div>在 <code>before_tool_call</code> 钩子里检查 <code>session.trustLevel</code>，非管理员返回 <code>{ allow: false }</code>。</div>
-    </li>
-
-    <li>
-      <div> 钩子和中间件有什么区别？</div>
-      <div>钩子是离散事件点（粗粒度、任务级）；中间件是请求/响应链（细粒度、请求级）。OpenClaw 用钩子。</div>
-    </li>
-
-    <li>
-      <div> 插件能阻止工具调用吗？</div>
-      <div>能。任何一个钩子返回 <code>{ allow: false }</code>，后续钩子和工具执行都被跳过。</div>
-    </li>
-
-    <li>
-      <div> exec 必须用 container 沙箱吗？</div>
-      <div>强烈建议 ≥ container（默认 OpenClaw 也这么配）。即使 trusted 用户，Shell 仍是高风险工具，container 隔离防止命令注入、文件误删。</div>
-    </li>
-
-    <li>
-      <div> 并行执行安全吗？</div>
-      <div>默认串行（同会话内）。需要并行必须显式声明 <code>parallel: true</code> + <code>maxConcurrency</code>。exec 永远串行。</div>
-    </li>
-
-    <li>
-      <div> 钩子性能开销大吗？</div>
-      <div class="thinking-note">
-<h3>思考笔记</h3>
-每个钩子目标 &lt；5ms。审计类钩子可以异步批写日志，几乎不阻塞主流程。详见 <code>openclaw hooks trace</code> 实时监控。
-</div>
-    </li>
-  </ul>
-
-  <h3 id="sec-16.3">6.16.3 一句话总结</h3>
+  <h3 id="sec-16.1">6.16.1 一句话总结</h3>
   <div class="thinking-note">
 <h3>要点</h3>
 <p class="oc-callout-lead">工具 = 3 类来源 × 4 级沙箱 × 5 类超时 × 显式并发——钩子 = 唯一可扩展的信任边界——8 个决策 = 关键路径速查。</p>
@@ -1408,7 +1335,7 @@ flowchart LR
     安全默认：exec → container、并行默认关闭、超时必设、结果必截断；钩子默认审计、不阻断。
 </div>
 
-  <h3 id="sec-16.4">6.16.4 相关阅读</h3>
+  <h3 id="sec-16.2">6.16.2 相关阅读</h3>
   <ul>
 <li><a href="/2026/11/07/openclaw-05-sessions/"><strong>05 · 会话 会话与状态</strong></a> — Layer 2 的 Tools Schema 怎么生成的？8 层 Prompt 与工具调用的关系。</li>
 <li><a href="/2026/11/07/openclaw-02-architecture/#sec-8"><strong>02.4 · 架构 信任边界</strong></a> — 3 级信任度模型与钩子拦截的关系——工具钩子就是信任边界的实现机制。</li>
@@ -1418,7 +1345,7 @@ flowchart LR
 
 
 
-</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">6.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">6.2 工具层的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">6.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">6.4 工具执行流程</a><a class="reading-toc-link level-2" href="#sec-5">6.5 3 类工具来源</a><a class="reading-toc-link level-3" href="#sec-5.1">6.5.1 Built-in · 内置工具</a><a class="reading-toc-link level-3" href="#sec-5.2">6.5.2 Plugin · 插件工具</a><a class="reading-toc-link level-3" href="#sec-5.3">6.5.3 MCP · 外部工具</a><a class="reading-toc-link level-2" href="#sec-6">6.6 沙箱机制</a><a class="reading-toc-link level-3" href="#sec-6.1">6.6.1 为什么需要沙箱？</a><a class="reading-toc-link level-3" href="#sec-6.2">6.6.2 4 级沙箱</a><a class="reading-toc-link level-3" href="#deep-19">6.6.3 权限模式与审批</a><a class="reading-toc-link level-2" href="#sec-7">6.7 执行器实现</a><a class="reading-toc-link level-2" href="#sec-8">6.8 超时控制</a><a class="reading-toc-link level-2" href="#sec-9">6.9 并发 · 结果限制 · 重试</a><a class="reading-toc-link level-3" href="#sec-9.1">6.9.1 并发控制</a><a class="reading-toc-link level-3" href="#sec-9.2">6.9.2 结果大小限制</a><a class="reading-toc-link level-3" href="#sec-9.3">6.9.3 重试与降级</a><a class="reading-toc-link level-2" href="#sec-10">6.10 3 大类钩子</a><a class="reading-toc-link level-3" href="#sec-10.1">6.10.1 Agent 生命周期钩子</a><a class="reading-toc-link level-3" href="#sec-10.2">6.10.2 Tool · 工具调用钩子</a><a class="reading-toc-link level-3" href="#sec-10.3">6.10.3 Command · 内部命令钩子</a><a class="reading-toc-link level-2" href="#sec-11">6.11 钩子注册</a><a class="reading-toc-link level-2" href="#sec-12">6.12 返回值约定 + 钩子链</a><a class="reading-toc-link level-3" href="#sec-12.1">6.12.1 返回值约定</a><a class="reading-toc-link level-3" href="#sec-12.2">6.12.2 钩子链执行</a><a class="reading-toc-link level-2" href="#sec-13">6.13 调试技巧 · 钩子 vs 中间件</a><a class="reading-toc-link level-3" href="#sec-13.1">6.13.1 调试技巧</a><a class="reading-toc-link level-3" href="#sec-13.2">6.13.2 钩子 vs 中间件</a><a class="reading-toc-link level-2" href="#sec-14">6.14 8 个核心决策</a><a class="reading-toc-link level-3" href="#sec-14.1">6.14.1 1⃣ 会话隔离策略</a><a class="reading-toc-link level-3" href="#sec-14.2">6.14.2 2⃣ 运行时选择</a><a class="reading-toc-link level-3" href="#sec-14.3">6.14.3 3⃣ 队列模式</a><a class="reading-toc-link level-3" href="#sec-14.4">6.14.4 4⃣ 工具钩子</a><a class="reading-toc-link level-3" href="#sec-14.5">6.14.5 5⃣ 压缩触发</a><a class="reading-toc-link level-3" href="#sec-14.6">6.14.6 6⃣ 流式策略</a><a class="reading-toc-link level-3" href="#sec-14.7">6.14.7 7⃣ 提示词分层</a><a class="reading-toc-link level-3" href="#sec-14.8">6.14.8 8⃣ 超时与取消</a><a class="reading-toc-link level-2" href="#sec-15">6.15 决策速查表 + 设计哲学</a><a class="reading-toc-link level-3" href="#sec-15.1">6.15.1 8 决策速查</a><a class="reading-toc-link level-3" href="#sec-15.2">6.15.2 4 个设计哲学</a><a class="reading-toc-link level-2" href="#sec-16">6.16 阅读路径 + FAQ + 总结</a><a class="reading-toc-link level-3" href="#sec-16.1">6.16.1 阅读路径</a><a class="reading-toc-link level-3" href="#sec-16.2">6.16.2 常见问题</a><a class="reading-toc-link level-3" href="#sec-16.3">6.16.3 一句话总结</a><a class="reading-toc-link level-3" href="#sec-16.4">6.16.4 相关阅读</a></nav></details></aside>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">6.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">6.2 工具层的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">6.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">6.4 工具执行流程</a><a class="reading-toc-link level-2" href="#sec-5">6.5 3 类工具来源</a><a class="reading-toc-link level-3" href="#sec-5.1">6.5.1 Built-in · 内置工具</a><a class="reading-toc-link level-3" href="#sec-5.2">6.5.2 Plugin · 插件工具</a><a class="reading-toc-link level-3" href="#sec-5.3">6.5.3 MCP · 外部工具</a><a class="reading-toc-link level-2" href="#sec-6">6.6 沙箱机制</a><a class="reading-toc-link level-3" href="#sec-6.1">6.6.1 为什么需要沙箱？</a><a class="reading-toc-link level-3" href="#sec-6.2">6.6.2 4 级沙箱</a><a class="reading-toc-link level-3" href="#deep-19">6.6.3 权限模式与审批</a><a class="reading-toc-link level-2" href="#sec-7">6.7 执行器实现</a><a class="reading-toc-link level-2" href="#sec-8">6.8 超时控制</a><a class="reading-toc-link level-2" href="#sec-9">6.9 并发 · 结果限制 · 重试</a><a class="reading-toc-link level-3" href="#sec-9.1">6.9.1 并发控制</a><a class="reading-toc-link level-3" href="#sec-9.2">6.9.2 结果大小限制</a><a class="reading-toc-link level-3" href="#sec-9.3">6.9.3 重试与降级</a><a class="reading-toc-link level-2" href="#sec-10">6.10 3 大类钩子</a><a class="reading-toc-link level-3" href="#sec-10.1">6.10.1 Agent 生命周期钩子</a><a class="reading-toc-link level-3" href="#sec-10.2">6.10.2 Tool · 工具调用钩子</a><a class="reading-toc-link level-3" href="#sec-10.3">6.10.3 Command · 内部命令钩子</a><a class="reading-toc-link level-2" href="#sec-11">6.11 钩子注册</a><a class="reading-toc-link level-2" href="#sec-12">6.12 返回值约定 + 钩子链</a><a class="reading-toc-link level-3" href="#sec-12.1">6.12.1 返回值约定</a><a class="reading-toc-link level-3" href="#sec-12.2">6.12.2 钩子链执行</a><a class="reading-toc-link level-2" href="#sec-13">6.13 调试技巧 · 钩子 vs 中间件</a><a class="reading-toc-link level-3" href="#sec-13.1">6.13.1 调试技巧</a><a class="reading-toc-link level-3" href="#sec-13.2">6.13.2 钩子 vs 中间件</a><a class="reading-toc-link level-2" href="#sec-14">6.14 8 个核心决策</a><a class="reading-toc-link level-3" href="#sec-14.1">6.14.1 1⃣ 会话隔离策略</a><a class="reading-toc-link level-3" href="#sec-14.2">6.14.2 2⃣ 运行时选择</a><a class="reading-toc-link level-3" href="#sec-14.3">6.14.3 3⃣ 队列模式</a><a class="reading-toc-link level-3" href="#sec-14.4">6.14.4 4⃣ 工具钩子</a><a class="reading-toc-link level-3" href="#sec-14.5">6.14.5 5⃣ 压缩触发</a><a class="reading-toc-link level-3" href="#sec-14.6">6.14.6 6⃣ 流式策略</a><a class="reading-toc-link level-3" href="#sec-14.7">6.14.7 7⃣ 提示词分层</a><a class="reading-toc-link level-3" href="#sec-14.8">6.14.8 8⃣ 超时与取消</a><a class="reading-toc-link level-2" href="#sec-15">6.15 决策速查表 + 设计哲学</a><a class="reading-toc-link level-3" href="#sec-15.1">6.15.1 8 决策速查</a><a class="reading-toc-link level-3" href="#sec-15.2">6.15.2 4 个设计哲学</a><a class="reading-toc-link level-2" href="#sec-16">6.16 总结</a><a class="reading-toc-link level-3" href="#sec-16.1">6.16.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-16.2">6.16.2 相关阅读</a></nav></details></aside>
     </div>
     <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-05-sessions/"><small>← 上一篇</small><span>会话生命周期与状态管理</span></a></div><div><a href="/2026/11/07/openclaw-07-end-to-end/"><small>下一篇 →</small><span>端到端消息流程</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
   </article>

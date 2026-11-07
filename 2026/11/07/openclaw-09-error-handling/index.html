@@ -23,7 +23,7 @@
   <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="/css/2026.css?v=2">
-  <link rel="stylesheet" href="/css/portal.css?v=3">
+  <link rel="stylesheet" href="/css/portal.css?v=5">
   <link rel="stylesheet" href="/css/article.css?v=7">
   <link rel="stylesheet" href="/css/openclaw.css?v=7">
   <script src="/js/portal.js?v=7" defer></script>
@@ -927,85 +927,11 @@ flowchart LR
   </ul>
 
 
-<!-- ============ 9.14 · 阅读路径 + FAQ + 总结 + 相关阅读 ============ -->
+<!-- ============ 9.14 · 总结 + 相关阅读 ============ -->
 
-  <h2 id="sec-14">9.14 阅读路径 + FAQ + 总结</h2>
+  <h2 id="sec-14">9.14 总结</h2>
 
-  <h3 id="sec-14.1">9.14.1 阅读路径</h3>
-  <p>本页约 14 分钟读完。建议顺序：错误分类 → 恢复策略 → 可观测性。</p>
-
-  <h4 data-toc-skip>应用开发者 · 开发者</h4>
-<p class="oc-meta">14 分钟 · 全章</p>
-
-        <ol>
-          <li>9.1-3 定位 + 三原则</li>
-          <li>9.4-6 5 类错误 + 矩阵</li>
-          <li>9.7-9 4 类策略 + 决策流</li>
-          <li>9.10-13 可观测性 + SLO</li>
-
-<h4 data-toc-skip>SRE / 运维 · SRE</h4>
-<p class="oc-meta">8 分钟 · 选段</p>
-
-        <ol>
-          <li>9.6 错误处理配置</li>
-          <li>9.7-9 4 策略 + 案例</li>
-          <li>9.10-13 监控 + 告警 + SLO</li>
-
-<h4 data-toc-skip>设计容错 · 设计派</h4>
-<p class="oc-meta">12 分钟</p>
-
-        <ol>
-          <li>9.4-6 5 类错误 + 矩阵 + 配置</li>
-          <li>9.7-9 4 策略 + 决策 + 案例</li>
-          <li>结合 <a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具钩子</a> 实现</li>
-
-
-  <h3 id="sec-14.2">9.14.2 常见问题</h3>
-
-  <ul>
-    <li>
-      <div> 哪些错误会自动重试？</div>
-      <div>网络超时、5xx 错误、临时资源不足——走指数退避。其他错误（如 4xx）直接返回 LLM。</div>
-    </li>
-
-    <li>
-      <div> 重试多少次合适？</div>
-      <div>工具调用默认 3 次（指数退避 1s→2s→4s），LLM 调用默认 fallback chain 切换 1 次。</div>
-    </li>
-
-    <li>
-      <div> 怎么监控？</div>
-      <div>OpenClaw 内置 metrics + structured logs，接入 Prometheus / Grafana / OpenTelemetry。详见 9.10-13。</div>
-    </li>
-
-    <li>
-      <div> 如何防止雪崩？</div>
-      <div>Circuit breaker——当错误率 > 阈值时，自动熔断，降级到 fallback。详见 9.8 策略 3。</div>
-    </li>
-
-    <li>
-      <div> 熔断器阈值怎么设？</div>
-      <div>推荐 50% 错误率，至少 10 个请求为窗口基础，5 分钟冷却。生产环境先观察一周再调优。</div>
-    </li>
-
-    <li>
-      <div> 不可恢复错误应该重试吗？</div>
-      <div>不应该。Schema 错、API Key 无效等，重试无限次也不会成功——应该立即告警 + 拒绝请求。</div>
-    </li>
-
-    <li>
-      <div class="thinking-note">
-<h3>思考笔记</h3>
-4 件套缺一不可吗？
-</div>
-      <div class="thinking-note">
-<h3>思考笔记</h3>
-是的。Metrics（数值趋势） + Logs（具体事件） + Traces（调用链） + Alerts（主动通知）——任一缺失都难以快速定位问题。
-</div>
-    </li>
-  </ul>
-
-  <h3 id="sec-14.3">9.14.3 一句话总结</h3>
+  <h3 id="sec-14.1">9.14.1 一句话总结</h3>
   <div class="thinking-note">
 <h3>要点</h3>
 <p class="oc-callout-lead">5 类错误 × 4 类策略 × 4 件套可观测性 = 完整的"失败视角"。</p>
@@ -1013,7 +939,7 @@ flowchart LR
     <strong>用户报障前必须知道</strong>——4 件套缺一不可。OpenClaw 内置全部，你只需要接 Prometheus + Grafana + Jaeger。
 </div>
 
-  <h3 id="sec-14.4">9.14.4 相关阅读</h3>
+  <h3 id="sec-14.2">9.14.2 相关阅读</h3>
   <ul>
 <li><a href="/2026/11/07/openclaw-07-end-to-end/"><strong>07 · 端到端 端到端流程</strong></a> — 9 阶段时序图——看到每一步可能失败的位置，对应 9.4-5 的错误分类。</li>
 <li><a href="/2026/11/07/openclaw-06-tools-hooks/"><strong>06 · 工具 工具与钩子</strong></a> — before/after_tool_call 钩子——实现 9.7 策略 1（重试）和 4（降级）的钩子级实现。</li>
@@ -1023,7 +949,7 @@ flowchart LR
 
 
 
-</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">9.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">9.2 错误处理的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">9.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">9.4 5 大错误类别</a><a class="reading-toc-link level-2" href="#sec-5">9.5 5 大类详解</a><a class="reading-toc-link level-3" href="#sec-5.1">9.5.1 通道层错误</a><a class="reading-toc-link level-3" href="#sec-5.2">9.5.2 网关层错误</a><a class="reading-toc-link level-3" href="#sec-5.3">9.5.3 Agent 层错误</a><a class="reading-toc-link level-3" href="#sec-5.4">9.5.4 工具层错误</a><a class="reading-toc-link level-3" href="#sec-5.5">9.5.5 配置层错误</a><a class="reading-toc-link level-2" href="#sec-6">9.6 可恢复性矩阵 + 错误处理配置</a><a class="reading-toc-link level-3" href="#sec-6.1">9.6.1 可恢复性矩阵</a><a class="reading-toc-link level-3" href="#sec-6.2">9.6.2 可恢复 vs 不可恢复</a><a class="reading-toc-link level-3" href="#sec-6.3">9.6.3 错误处理配置</a><a class="reading-toc-link level-2" href="#sec-7">9.7 4 类恢复策略</a><a class="reading-toc-link level-2" href="#sec-8">9.8 4 策略详解</a><a class="reading-toc-link level-3" href="#sec-8.1">9.8.1 指数退避重试（Exponential Backoff）</a><a class="reading-toc-link level-3" href="#sec-8.2">9.8.2 Fallback Chain（主备链）</a><a class="reading-toc-link level-3" href="#sec-8.3">9.8.3 Circuit Breaker（熔断器）</a><a class="reading-toc-link level-3" href="#sec-8.4">9.8.4 优雅降级（Graceful Degradation）</a><a class="reading-toc-link level-2" href="#sec-9">9.9 决策流程 + 案例</a><a class="reading-toc-link level-3" href="#sec-9.1">9.9.1 决策流程</a><a class="reading-toc-link level-3" href="#sec-9.2">9.9.2 案例</a><a class="reading-toc-link level-2" href="#sec-10">9.10 可观测性 4 件套</a><a class="reading-toc-link level-2" href="#sec-11">9.11 指标 + 日志</a><a class="reading-toc-link level-3" href="#sec-11.1">9.11.1 指标（Metrics）</a><a class="reading-toc-link level-3" href="#sec-11.2">9.11.2 日志（Logs）</a><a class="reading-toc-link level-2" href="#sec-12">9.12 追踪 + 告警</a><a class="reading-toc-link level-3" href="#sec-12.1">9.12.1 追踪（Traces）</a><a class="reading-toc-link level-3" href="#sec-12.2">9.12.2 告警（Alerts）</a><a class="reading-toc-link level-2" href="#sec-13">9.13 关键 SLO + 模板 + 清单</a><a class="reading-toc-link level-3" href="#sec-13.1">9.13.1 关键 SLO</a><a class="reading-toc-link level-3" href="#sec-13.2">9.13.2 模板与工具</a><a class="reading-toc-link level-3" href="#sec-13.3">9.13.3 上线检查清单</a><a class="reading-toc-link level-2" href="#sec-14">9.14 阅读路径 + FAQ + 总结</a><a class="reading-toc-link level-3" href="#sec-14.1">9.14.1 阅读路径</a><a class="reading-toc-link level-3" href="#sec-14.2">9.14.2 常见问题</a><a class="reading-toc-link level-3" href="#sec-14.3">9.14.3 一句话总结</a><a class="reading-toc-link level-3" href="#sec-14.4">9.14.4 相关阅读</a></nav></details></aside>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">9.1 一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">9.2 错误处理的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">9.3 模块位置</a><a class="reading-toc-link level-2" href="#sec-4">9.4 5 大错误类别</a><a class="reading-toc-link level-2" href="#sec-5">9.5 5 大类详解</a><a class="reading-toc-link level-3" href="#sec-5.1">9.5.1 通道层错误</a><a class="reading-toc-link level-3" href="#sec-5.2">9.5.2 网关层错误</a><a class="reading-toc-link level-3" href="#sec-5.3">9.5.3 Agent 层错误</a><a class="reading-toc-link level-3" href="#sec-5.4">9.5.4 工具层错误</a><a class="reading-toc-link level-3" href="#sec-5.5">9.5.5 配置层错误</a><a class="reading-toc-link level-2" href="#sec-6">9.6 可恢复性矩阵 + 错误处理配置</a><a class="reading-toc-link level-3" href="#sec-6.1">9.6.1 可恢复性矩阵</a><a class="reading-toc-link level-3" href="#sec-6.2">9.6.2 可恢复 vs 不可恢复</a><a class="reading-toc-link level-3" href="#sec-6.3">9.6.3 错误处理配置</a><a class="reading-toc-link level-2" href="#sec-7">9.7 4 类恢复策略</a><a class="reading-toc-link level-2" href="#sec-8">9.8 4 策略详解</a><a class="reading-toc-link level-3" href="#sec-8.1">9.8.1 指数退避重试（Exponential Backoff）</a><a class="reading-toc-link level-3" href="#sec-8.2">9.8.2 Fallback Chain（主备链）</a><a class="reading-toc-link level-3" href="#sec-8.3">9.8.3 Circuit Breaker（熔断器）</a><a class="reading-toc-link level-3" href="#sec-8.4">9.8.4 优雅降级（Graceful Degradation）</a><a class="reading-toc-link level-2" href="#sec-9">9.9 决策流程 + 案例</a><a class="reading-toc-link level-3" href="#sec-9.1">9.9.1 决策流程</a><a class="reading-toc-link level-3" href="#sec-9.2">9.9.2 案例</a><a class="reading-toc-link level-2" href="#sec-10">9.10 可观测性 4 件套</a><a class="reading-toc-link level-2" href="#sec-11">9.11 指标 + 日志</a><a class="reading-toc-link level-3" href="#sec-11.1">9.11.1 指标（Metrics）</a><a class="reading-toc-link level-3" href="#sec-11.2">9.11.2 日志（Logs）</a><a class="reading-toc-link level-2" href="#sec-12">9.12 追踪 + 告警</a><a class="reading-toc-link level-3" href="#sec-12.1">9.12.1 追踪（Traces）</a><a class="reading-toc-link level-3" href="#sec-12.2">9.12.2 告警（Alerts）</a><a class="reading-toc-link level-2" href="#sec-13">9.13 关键 SLO + 模板 + 清单</a><a class="reading-toc-link level-3" href="#sec-13.1">9.13.1 关键 SLO</a><a class="reading-toc-link level-3" href="#sec-13.2">9.13.2 模板与工具</a><a class="reading-toc-link level-3" href="#sec-13.3">9.13.3 上线检查清单</a><a class="reading-toc-link level-2" href="#sec-14">9.14 总结</a><a class="reading-toc-link level-3" href="#sec-14.1">9.14.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-14.2">9.14.2 相关阅读</a></nav></details></aside>
     </div>
     <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-08-performance/"><small>← 上一篇</small><span>性能基线与延迟分析</span></a></div><div><a href="/2026/11/07/openclaw-10-source-walkthrough/"><small>下一篇 →</small><span>源码导览与目录树</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
   </article>
