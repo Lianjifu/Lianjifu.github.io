@@ -159,11 +159,16 @@
   // About uses static star artwork and native content, so it never downloads Three.js.
   if (!stage) return;
 
+  // Three.js is 671 KB and only decorates the hero, so it waits for the
+  // browser to be idle instead of competing with the page's own resources.
+  // The observer only pulls it in again once the hero is back on screen.
+  let idleReady = false;
+
   const observer = new IntersectionObserver(
     (entries) => {
       heroVisible = entries[0].isIntersecting;
       syncMotion();
-      if (heroVisible) loadScene();
+      if (heroVisible && idleReady) loadScene();
     },
     { threshold: 0 },
   );
@@ -219,8 +224,18 @@
   });
   // Load after the HTML is usable; reduced-motion visitors never need Three.js.
   if ("requestIdleCallback" in window)
-    requestIdleCallback(loadScene, { timeout: 1800 });
-  else setTimeout(loadScene, 100);
+    requestIdleCallback(
+      () => {
+        idleReady = true;
+        loadScene();
+      },
+      { timeout: 1800 },
+    );
+  else
+    setTimeout(() => {
+      idleReady = true;
+      loadScene();
+    }, 100);
   window.addEventListener("pagehide", (event) => {
     if (event.persisted) {
       if (scene) scene.setRunning(false);

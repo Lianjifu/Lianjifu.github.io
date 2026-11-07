@@ -60,7 +60,8 @@
 | 统一站点界面 | 首页、关于页、目录、专题页和文章页共享导航、页脚与视觉系统。 |
 | 首页动效 | 本地 Three.js 场景按需加载，支持暂停、减少动态效果和 WebGL 不可用时的静态图降级。 |
 | 长文阅读 | 文章页提供静态目录、章节高亮、移动端折叠、代码复制和专题内上一篇 / 下一篇导航。 |
-| Mermaid 图示 | CDN 优先、本地资源回退；支持图示放大，解析失败时保留源文本。 |
+| Mermaid 图示 | 图示接近视口时才加载并绘制，CDN 优先、本地资源回退；支持图示放大，解析失败时保留源文本。 |
+| 加载性能 | 文章页首屏不拉取图示库与图标字体；首页头像用 WebP，星空图改为分组 SVG。 |
 | 响应式布局 | 面向桌面和移动端适配，浏览器检查覆盖 390px 与 1440px 等常用视口。 |
 | GitHub Pages | 使用仓库根目录静态文件部署，自定义域名由 CNAME 指定为 `www.lianjifu.cn`。 |
 
@@ -71,7 +72,7 @@
 | 站点来源 | Hexo + NexT（Pisces）生成的静态输出 |
 | 页面层 | 独立 HTML、CSS 与原生 JavaScript，无构建步骤 |
 | 首页场景 | 本地 Three.js 0.169.0（MIT），只在首页按需加载 |
-| 文章图示 | Mermaid，CDN 优先、本地资源回退 |
+| 文章图示 | Mermaid，按需加载，CDN 优先、本地资源回退 |
 | 历史资源 | NexT、Velocity.js、Font Awesome、本地搜索等资源继续保留在旧页面 |
 | 发布方式 | GitHub Pages + `CNAME`（`www.lianjifu.cn`） |
 
@@ -153,13 +154,13 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 
 - atom.xml 当前仍有历史 XML 转义问题：`ATT&CK` 未写成 `ATT&amp;CK`，严格 XML 解析会在第 528 行失败。
 - /categories/ 没有分类总览页，请使用五个专题入口或 [/archives/](https://lianjifu.cn/archives/)。
-- Mermaid 使用 CDN 优先、本地资源回退；网络不可用时，页面可能保留 Mermaid 源文本。
+- Mermaid 使用 CDN 优先、本地资源回退，并在图示接近视口时才加载；网络不可用时，页面可能保留 Mermaid 源文本。
 
 ## ✦ 作者
 
 <div align="center">
 
-<img src="./uploads/avatar.png" alt="JiFu Lian 的头像" width="96" />
+<img src="./uploads/avatar.webp" alt="JiFu Lian 的头像" width="96" />
 
 **JiFu Lian**
 

@@ -12,7 +12,7 @@
 (function() {
   var MERMAID_CDN = 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js';
   var MERMAID_LOCAL = '/lib/mermaid.min.js?v=2';
-  var mermaidDivs = document.querySelectorAll('.mermaid');
+  var mermaidDivs = Array.prototype.slice.call(document.querySelectorAll('.mermaid'));
   if (mermaidDivs.length === 0) return;
 
   // A few generated diagrams contain compact directives such as "style节点 fill".
@@ -87,64 +87,22 @@
     if (typeof mermaid === 'undefined') {
       throw new Error('mermaid is not available');
     }
-    try {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'base',
-        themeVariables: {
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
-          primaryColor: '#ffffff',
-          primaryTextColor: '#1e293b',
-          primaryBorderColor: '#e2e8f0',
-          lineColor: '#64748b',
-          secondaryColor: '#f1f5f9',
-          tertiaryColor: '#f8fafc',
-        },
-        securityLevel: 'loose',
-        flowchart: { curve: 'basis', padding: 15, nodeSpacing: 50, rankSpacing: 80 },
-        maxTextSize: 50000,
-      });
-      var nodes = Array.from(mermaidDivs).filter(function(d) {
-        return !d.hasAttribute('data-processed') && !d.querySelector('svg');
-      });
-      nodes.forEach(function(div) {
-        var source = div.textContent;
-        var normalized = normalizeSource(source);
-        originalSources.set(div, normalized);
-        div.dataset.mermaidSource = normalized;
-        if (normalized !== source) div.textContent = normalized;
-      });
-      nodes.forEach(function(div) {
-        div.classList.remove('mermaid-loading');
-      });
-      if (nodes.length > 0) {
-        // Mermaid 11 has shared internal state that mis-renders when many
-        // diagrams are kicked off concurrently: every div ends up with the
-        // same timestamp id and only one survives. Process them sequentially.
-        (async () => {
-          for (const div of nodes) {
-            try {
-              await mermaid.run({ nodes: [div] });
-              if (!div.querySelector('svg')) throw new Error('no SVG output');
-              if (naturalWidth) sizeToViewBox(div);
-            } catch (error) {
-              console.error('Mermaid diagram skipped:', error);
-              div.classList.remove('mermaid-loading');
-              if (!div.querySelector('svg')) {
-                div.classList.add('mermaid-error');
-                div.setAttribute('role', 'img');
-                div.setAttribute('aria-label', '图表解析失败');
-                div.innerHTML = '<p>图表暂时无法渲染，原始图示代码仍保留。</p><pre>' +
-                  escapeDiagramSource(originalSources.get(div) || div.dataset.mermaidSource || '') + '</pre>';
-              }
-            }
-          }
-          mermaidDivs.forEach(wrapZoomable);
-        })();
-      }
-    } catch (e) {
-      console.error('Mermaid init error:', e);
-    }
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      themeVariables: {
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+        primaryColor: '#ffffff',
+        primaryTextColor: '#1e293b',
+        primaryBorderColor: '#e2e8f0',
+        lineColor: '#64748b',
+        secondaryColor: '#f1f5f9',
+        tertiaryColor: '#f8fafc',
+      },
+      securityLevel: 'loose',
+      flowchart: { curve: 'basis', padding: 15, nodeSpacing: 50, rankSpacing: 80 },
+      maxTextSize: 50000,
+    });
   }
 
   function escapeDiagramSource(source) {
@@ -294,14 +252,104 @@
   }
   document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && modalInstance) { modalInstance.remove(); modalInstance = null; } });
 
-  ensureMermaid().then(initMermaid).catch(function(err) {
-    console.error('Mermaid load failed:', err);
-    mermaidDivs.forEach(function(div) {
+  // ----- rendering pipeline -----
+  //
+  // The Mermaid bundle is 554 KB. On most articles the first diagram sits far
+  // below the fold, so the library is only fetched once a diagram comes near
+  // the viewport, and each diagram is drawn as the reader reaches it. A reader
+  // who stops at the top of an article never downloads the bundle at all.
+
+  // Mermaid 11 has shared internal state that mis-renders when many diagrams
+  // are kicked off concurrently: every div ends up with the same timestamp id
+  // and only one survives. Draw them one at a time.
+  var renderQueue = Promise.resolve();
+  var wanted = new Set();
+
+  function renderDiagram(div) {
+    if (div.getAttribute('data-processed') === 'true' || div.querySelector('svg')) return renderQueue;
+    renderQueue = renderQueue.then(function() {
+      if (div.getAttribute('data-processed') === 'true' || div.querySelector('svg')) return null;
+      var source = div.textContent;
+      var normalized = normalizeSource(source);
+      originalSources.set(div, normalized);
+      div.dataset.mermaidSource = normalized;
+      if (normalized !== source) div.textContent = normalized;
+      // Keep the source out of sight until the figure is drawn.
       div.classList.remove('mermaid-loading');
+      div.classList.add('mermaid-rendering');
+      return mermaid.run({ nodes: [div] }).then(function() {
+        if (!div.querySelector('svg')) throw new Error('no SVG output');
+        div.classList.remove('mermaid-rendering');
+        if (naturalWidth) sizeToViewBox(div);
+        wrapZoomable(div);
+      });
+    }).catch(function(error) {
+      console.error('Mermaid diagram skipped:', error);
+      div.classList.remove('mermaid-loading');
+      div.classList.remove('mermaid-rendering');
       if (!div.querySelector('svg')) {
         div.classList.add('mermaid-error');
-        div.innerHTML = '<p>图表库加载失败，请检查网络后刷新页面。</p>';
+        div.setAttribute('role', 'img');
+        div.setAttribute('aria-label', '图表解析失败');
+        div.innerHTML = '<p>图表暂时无法渲染，原始图示代码仍保留。</p><pre>' +
+          escapeDiagramSource(originalSources.get(div) || div.dataset.mermaidSource || '') + '</pre>';
       }
     });
-  });
+    return renderQueue;
+  }
+
+  function renderWanted() {
+    // Draw the diagrams the reader is looking at first: each one takes a
+    // moment, and the queue is serial.
+    var pending = mermaidDivs.filter(function(div) {
+      return wanted.has(div) &&
+        div.getAttribute('data-processed') !== 'true' &&
+        !div.querySelector('svg');
+    });
+    var middle = window.innerHeight / 2;
+    pending.sort(function(a, b) {
+      var da = Math.abs(a.getBoundingClientRect().top - middle);
+      var db = Math.abs(b.getBoundingClientRect().top - middle);
+      return da - db;
+    });
+    pending.forEach(renderDiagram);
+  }
+
+  var libraryPromise = null;
+  function loadLibrary() {
+    if (!libraryPromise) {
+      libraryPromise = ensureMermaid().then(function() {
+        initMermaid();
+      }).catch(function(err) {
+        console.error('Mermaid load failed:', err);
+        mermaidDivs.forEach(function(div) {
+          div.classList.remove('mermaid-loading');
+          if (!div.querySelector('svg')) {
+            div.classList.add('mermaid-error');
+            div.innerHTML = '<p>图表库加载失败，请检查网络后刷新页面。</p>';
+          }
+        });
+        throw err;
+      });
+    }
+    return libraryPromise.then(renderWanted, function() {});
+  }
+
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function(entries) {
+      var hit = false;
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) return;
+        wanted.add(entry.target);
+        hit = true;
+      });
+      if (hit) loadLibrary();
+    }, { rootMargin: '600px 0px' });
+    mermaidDivs.forEach(function(div) { observer.observe(div); });
+  } else {
+    // Without an observer there is no way to tell where the reader is, so
+    // draw everything as soon as the library is there.
+    mermaidDivs.forEach(function(div) { wanted.add(div); });
+    loadLibrary();
+  }
 })();
