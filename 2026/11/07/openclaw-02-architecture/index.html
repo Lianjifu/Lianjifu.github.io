@@ -546,22 +546,33 @@ flowchart TB
 <h4 id="deep-01-layered-architecture-3" data-toc-skip>智能体 5 层状态机</h4>
 <p>真实链路不是一次 `model.generate（）`，而是<strong>多层状态机</strong>协同工作。这是 OpenClaw 能够"长期运行"的核心机制：</p>
 <figure><div class="mermaid">
-flowchart LR
-    SL["session lane&lt;br/&gt;会话队列"]:::cli
-    GL["global lane&lt;br/&gt;全局队列"]:::cli
-    AT["attempt&lt;br/&gt;单次执行"]:::agent
-    SB["subscribe&lt;br/&gt;流式事件"]:::agent
-    WC["wait compaction&lt;br/&gt;等压缩稳定"]:::gw
-    FZ["finalize&lt;br/&gt;收尾"]:::agent
-    ER{error?}:::ai
-    RF["rotate profile&lt;br/&gt;换密钥"]:::ai
-    CP["compact&lt;br/&gt;压缩"]:::gw
-    FB["fallback&lt;br/&gt;换模型"]:::ai
-    DONE["完成"]:::side
-
-    SL --&gt; GL --&gt; AT --&gt; SB --&gt; WC --&gt; FZ --&gt; ER
-    ER --&gt;|yes| RF --&gt; CP --&gt; FB
-    ER --&gt;|no| DONE
+flowchart TD
+    subgraph QUEUE["排队"]
+      direction LR
+      SL["session lane&lt;br/&gt;会话队列"]:::cli
+      GL["global lane&lt;br/&gt;全局队列"]:::cli
+      SL --&gt; GL
+    end
+    subgraph EXEC["一次执行"]
+      direction LR
+      AT["attempt&lt;br/&gt;单次执行"]:::agent
+      SB["subscribe&lt;br/&gt;流式事件"]:::agent
+      WC["wait compaction&lt;br/&gt;等压缩稳定"]:::gw
+      FZ["finalize&lt;br/&gt;收尾"]:::agent
+      AT --&gt; SB --&gt; WC --&gt; FZ
+    end
+    subgraph ERR["错误处理"]
+      direction LR
+      ER{error?}:::ai
+      RF["rotate profile&lt;br/&gt;换密钥"]:::ai
+      CP["compact&lt;br/&gt;压缩"]:::gw
+      FB["fallback&lt;br/&gt;换模型"]:::ai
+      DONE["完成"]:::side
+      ER --&gt;|yes| RF --&gt; CP --&gt; FB
+      ER --&gt;|no| DONE
+    end
+    QUEUE --&gt; EXEC
+    EXEC --&gt; ERR
     FB --&gt; AT
 
     classDef cli fill:#dbeafe,stroke:#3b82f6,color:#1e40af
@@ -569,7 +580,7 @@ flowchart LR
     classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
     classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
     classDef side fill:#f1f5f9,stroke:#64748b,color:#334155
-</div><figcaption>图 4.4 · 四层架构</figcaption></figure>
+</div><figcaption>图 4.4 · 四层架构——智能体 5 层状态机的主链路与异常回退。</figcaption></figure>
 <table>
   <thead>
     <tr><th>状态</th><th>所属层</th><th>职责</th><th>容错</th></tr>

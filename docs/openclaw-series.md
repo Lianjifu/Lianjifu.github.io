@@ -100,6 +100,30 @@ h2  章.节 总结
 - 图内文字不能被裁切；若 `foreignObject` 装不下文字，先改图，不靠 CSS 缩放补救。
 - Mermaid 运行时（554 KB）按需加载：图示接近视口时才下载并绘制，图示源码始终留在 HTML 里。未渲染时显示占位框，不显示源码。
 
+### 长链图示改写（2026-11-08）
+
+「缩到一半以上就等比缩到栏宽」这条规则只对宽度适中的图示有效。模块 02 的「智能体 5 层状态机」原是一条 `flowchart LR` 长链，11 个状态加 4 个分支节点自然宽度 2084px，是正文栏宽（836px）的 2.5 倍；按规则缩到 40% 已经读不清，只能保持自然尺寸横向滚动，读者在正文里永远看不到完整链路。
+
+改法是把它重画成三段式纵向图，而不是缩小：
+
+```
+flowchart TD
+  subgraph QUEUE["排队"]      # session lane → global lane
+  subgraph EXEC["一次执行"]    # attempt → subscribe → wait compaction → finalize
+  subgraph ERR["错误处理"]     # error? →(yes) rotate profile → compact → fallback
+                               # error? →(no) 完成
+  QUEUE --> EXEC
+  EXEC --> ERR
+  FB --> AT
+```
+
+自然宽度降到 776px，小于栏宽，缩放规则直接按原尺寸绘制，图示在正文里完整可见。分段还顺带把「排队 / 一次执行 / 错误处理」三段流程显式标出来，与图下的状态表对照。
+
+两条写图示的坑：
+
+- subgraph 里的 `direction LR` 只在**该段没有任何跨段节点级连线**时才生效。一旦某个节点连到段外的节点，方向会被重置成父级方向，整段退化成竖排。所以跨段一律用 cluster 级连线（`QUEUE --> EXEC`），段内保持节点级连线。
+- 本篇页面的 Mermaid 源码里 `>` 一律转义：`-->` 写成 `--&gt;`，节点标签里的 `<br/>` 写成 `&lt;br/&gt;`。改源码时漏掉转义会让浏览器把源码当标记吃掉。
+
 ## 页面样式
 
 - 页面加载 `css/2026.css`（引导思考表、思考笔记、Mermaid 层）、`css/portal.css`、`css/article.css`、`css/openclaw.css`，顺序与其它文章页一致。
