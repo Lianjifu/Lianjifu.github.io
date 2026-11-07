@@ -4,13 +4,13 @@
 
 # JiFu Lian · 个人技术博客
 
-**一个记录 AI 编程、Claude Code 与智能系统工程实践的静态博客。**
+**一个记录 AI 编程、Claude Code、OpenClaw 与智能系统工程实践的静态博客。**
 
 从问题出发，写清原理、实现路径和验证方法。
 
 [![在线阅读](https://img.shields.io/badge/在线阅读-lianjifu.cn-6366f1?style=flat-square)](https://lianjifu.cn/)
-[![文章](https://img.shields.io/badge/文章-91-0ea5e9?style=flat-square)](https://lianjifu.cn/archives/)
-[![专题](https://img.shields.io/badge/专题-4-f97316?style=flat-square)](https://lianjifu.cn/archives/)
+[![文章](https://img.shields.io/badge/文章-101-0ea5e9?style=flat-square)](https://lianjifu.cn/archives/)
+[![专题](https://img.shields.io/badge/专题-5-f97316?style=flat-square)](https://lianjifu.cn/archives/)
 [![部署](https://img.shields.io/badge/部署-GitHub%20Pages-111827?style=flat-square)](https://github.com/Lianjifu/Lianjifu.github.io)
 [![静态站点](https://img.shields.io/badge/类型-Static%20Site-10b981?style=flat-square)](#-技术实现)
 
@@ -22,7 +22,7 @@
 
 ## ✦ 项目介绍
 
-这是 [lianjifu.cn](https://lianjifu.cn/) 的 GitHub Pages 静态发布仓库，保存 Hexo 生成后的 HTML、CSS、JavaScript 和站点资源。博客关注 AI 编程与 Agent 产品工程，也记录 Claude Code 源码、安全运营和系统运维可观测性的长期研究。
+这是 [lianjifu.cn](https://lianjifu.cn/) 的 GitHub Pages 静态发布仓库，保存 Hexo 生成后的 HTML、CSS、JavaScript 和站点资源。博客关注 AI 编程与 Agent 产品工程，也记录 Claude Code 与 OpenClaw 源码、安全运营和系统运维可观测性的长期研究。
 
 博客文章尽量把一个主题拆成可以复查的工程问题：
 
@@ -37,12 +37,13 @@
 
 ## ✦ 内容专题
 
-当前文章清单以 [docs/article-manifest.json](./docs/article-manifest.json) 为准，共 91 篇文章、4 个专题。
+当前文章清单以 [docs/article-manifest.json](./docs/article-manifest.json) 为准，共 101 篇文章、5 个专题。
 
 | 专题 | 篇数 | 主要内容 | 在线入口 |
 | --- | ---: | --- | --- |
 | AI 编程工程实践 | 5 | AI 编程、Agent 原理、Agent 产品、数字员工与 AI 办公工作台 | [五阶段阅读路径](https://lianjifu.cn/categories/ai-agent/) |
-| Claude Code 源码分析 | 28 | 启动、类型系统、工具、MCP、Agent 运行时、权限与工程实践 | [章节目录](https://lianjifu.cn/categories/claude-code/) |
+| Claude Code 源码笔记 | 28 | 启动、类型系统、工具、MCP、Agent 运行时、权限与工程实践 | [章节目录](https://lianjifu.cn/categories/claude-code/) |
+| OpenClaw 源码笔记 | 10 | 网关与信任边界、通道协议、模型与会话、工具与钩子、端到端链路、性能与降级 | [模块目录](https://lianjifu.cn/categories/openclaw/) |
 | 智能安全运营可观测性 | 31 | 安全感知、事件研判、攻击溯源、影响评估与 SOC 运营 | [安全运营专题](https://lianjifu.cn/categories/observable-security/) |
 | 智能系统运维可观测性 | 27 | 拓扑感知、故障诊断、根因分析、决策、自动执行与 SRE Agent | [系统运维专题](https://lianjifu.cn/categories/observable-ops/) |
 
@@ -107,12 +108,13 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 ├── index.html                    # 首页
 ├── about/index.html              # 关于页
 ├── archives/                     # 完整目录、年度与月份归档
-├── categories/                   # 四个专题入口
-├── 2026/                         # 91 篇文章页面
-│   ├── 05/21/                    # Claude Code 源码分析
+├── categories/                   # 五个专题入口
+├── 2026/                         # 101 篇文章页面
+│   ├── 05/21/                    # Claude Code 源码笔记
 │   ├── 06/10/                    # 智能安全运营可观测性
 │   ├── 06/13/                    # 智能系统运维可观测性
-│   └── 08/                       # AI 编程工程实践
+│   ├── 08/                       # AI 编程工程实践
+│   └── 11/07/                    # OpenClaw 源码笔记
 ├── css/                          # 公共、专题和文章样式
 ├── js/                           # 导航、动效、目录和图示脚本
 ├── images/                       # Logo、静态背景和文章配图
@@ -120,7 +122,7 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 ├── lib/                          # Three.js、Mermaid 等第三方资源
 ├── docs/                         # 页面维护文档、系列约束和文章清单
 ├── scripts/                      # 迁移、正文基准重算、校验和浏览器检查脚本
-├── search.xml                    # 旧搜索页面使用的搜索索引
+├── search.xml                    # 旧搜索页面使用的搜索索引（101 条）
 ├── atom.xml                      # Atom 订阅文件
 ├── CNAME                         # GitHub Pages 自定义域名
 └── README.md
@@ -143,13 +145,14 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 | [docs/homepage.md](./docs/homepage.md) | 首页资源边界、动效降级和页面检查 |
 | [docs/article-pages.md](./docs/article-pages.md) | 文章页迁移、正文基准、目录和专题导航 |
 | [docs/ai-agent-series.md](./docs/ai-agent-series.md) | AI 编程工程实践五篇系列的顺序、定位和写作约束 |
+| [docs/openclaw-series.md](./docs/openclaw-series.md) | OpenClaw 源码笔记十篇系列的顺序、图示和写作约束 |
 | [docs/article-manifest.json](./docs/article-manifest.json) | 文章文件、正文长度和 SHA-256 基准 |
 | [lib/three/README.md](./lib/three/README.md) | 本地 Three.js 来源和许可证 |
 
 ## ✦ 已知限制
 
 - atom.xml 当前仍有历史 XML 转义问题：`ATT&CK` 未写成 `ATT&amp;CK`，严格 XML 解析会在第 528 行失败。
-- /categories/ 没有分类总览页，请使用四个专题入口或 [/archives/](https://lianjifu.cn/archives/)。
+- /categories/ 没有分类总览页，请使用五个专题入口或 [/archives/](https://lianjifu.cn/archives/)。
 - Mermaid 使用 CDN 优先、本地资源回退；网络不可用时，页面可能保留 Mermaid 源文本。
 
 ## ✦ 作者

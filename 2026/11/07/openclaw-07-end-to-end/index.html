@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 7 章：端到端消息流程 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 07 · 端到端消息流程。从发送到回复：完整 e2e 时序——把之前 6 个模块串成一条完整的消息旅程。9 个阶段 × 13 个参与者 × 全链路追踪。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 7 章：端到端消息流程">
+  <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-07-end-to-end/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="模块 07 · 端到端消息流程。从发送到回复：完整 e2e 时序——把之前 6 个模块串成一条完整的消息旅程。9 个阶段 × 13 个参与者 × 全链路追踪。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="openclaw">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" href="http://lianjifu.cn/2026/11/07/openclaw-07-end-to-end/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/portal.css?v=2">
+  <link rel="stylesheet" href="/css/article.css?v=6">
+  <link rel="stylesheet" href="/css/openclaw.css?v=3">
+  <script src="/js/portal.js?v=6" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="openclaw"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+    </svg><header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
+      <span class="article-kicker">第 7 章：流程追踪</span>
+      <h1 class="post-title" itemprop="name headline">端到端消息流程</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-calendar"></i></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-folder"></i></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body openclaw-body" itemprop="articleBody">
+
+<p class="post-lede">
+  <strong>从发送到回复：完整 e2e 时序</strong>——把之前 6 个模块串成一条完整的消息旅程。9 个阶段 × 13 个参与者 × 全链路追踪。
+</p>
+
+<!-- ============ 侧边 TOC(参考 01 风格) ============ -->
+<section class="doc-section">
+  <h2 id="sec-1"><span class="sec-num">§ 1</span>一句话定位</h2>
+
+  <div class="intro-callout">
+    <strong>端到端 = 用一条具体消息，把前面 6 个模块串起来看——是"全局视角"的最佳入口。</strong>本模块是 OpenClaw 文档的"汇聚点"，从一条 WhatsApp 消息出发，走完 9 个阶段、13 个参与者，把架构、通道、会话、模型、工具、钩子全串起来。
+  </div>
+
+  <div class="fact-grid">
+    <div class="fact"><div class="fact-num">13</div><div class="fact-label">个参与者<br>U·WA·Ch·GW·Q·AL…</div></div>
+    <div class="fact"><div class="fact-num">9</div><div class="fact-label">个阶段<br>通道接入→善后</div></div>
+    <div class="fact"><div class="fact-num">31</div><div class="fact-label">步时序图<br>完整消息流</div></div>
+    <div class="fact"><div class="fact-num">3-8s</div><div class="fact-label">典型总耗时<br>从发送到回复</div></div>
+    <div class="fact"><div class="fact-num">~70%</div><div class="fact-label">耗时占比<br>LLM 推理最大</div></div>
+    <div class="fact"><div class="fact-num">2</div><div class="fact-label">个场景<br>WhatsApp·9 步概览</div></div>
+  </div>
+</section>
+
+
+
+
+
+<section class="doc-section">
+  <h2 id="sec-2"><span class="sec-num">§ 2</span>端到端流程的三个原则</h2>
+
+  <div class="principles-preview">
+    <div class="pp-card pp-gateway">
+ 
+      <div class="pp-name">具体场景 = 知识的具体化</div>
+      <div class="pp-desc">用一条真实消息走完全链路——比抽象架构图有效 10 倍。WhatsApp 日程查询是最经典的"含工具调用"场景。</div>
+    </div>
+    <div class="pp-card pp-exec">
+ 
+      <div class="pp-name">阶段 5-6 是循环的</div>
+      <div class="pp-desc">模型推理 ↔ 工具执行 形成闭环，直到 LLM 输出最终答案——这就是 Agent 与单次 LLM 调用的根本区别。</div>
+    </div>
+    <div class="pp-card pp-policy">
+ 
+      <div class="pp-name">单一可信网关 + 不可信执行</div>
+      <div class="pp-desc">所有消息过 Gateway 集中路由，所有外部动作走沙箱 + 钩子——这就是 OpenClaw 安全模型的物理落地点。</div>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-3"><span class="sec-num">§ 3</span>模块位置</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  A["<b>01-06 分散模块</b><br/>架构/通道/会话/工具/..."] --> B["<b>07 端到端</b><br>完整链路串联"]
+  B --> C["<b>08 性能</b><br/>耗时分布"]
+  B --> D["<b>09 错误处理</b><br/>失败时怎么办"]
+  B --> E["<b>10 源码</b><br/>代码层验证"]
+
+  style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style B fill:#0891b2,stroke:#0e7490,color:#fff,stroke-width:2px
+  style C fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style D fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style E fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+</div><figcaption>图 7.1 · 模块 07 是"汇聚点"——把前面模块的组件在具体场景中组合起来。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-4"><span class="sec-num">§ 4</span>场景设定 + 13 参与者</h2>
+
+  <h3 class="view-h3" id="sec-4.1"><span class="sec-num">§ 4.1</span>场景设定<span class="vh-tag">scenario</span></h3>
+  <ul>
+    <li><strong>通道</strong>：WhatsApp DM（私聊）</li>
+    <li><strong>触发消息</strong>:<code>Hey, what's on my calendar today?</code></li>
+    <li><strong>预期路径</strong>：触发 <code>calendar.list_events</code> 工具调用，返回自然语言答复</li>
+    <li><strong>用户</strong>：已配对的个人账号（work_bot）</li>
+  </ul>
+
+  <h3 class="view-h3" id="sec-4.2"><span class="sec-num">§ 4.2</span>13 个参与者<span class="vh-tag">actors</span></h3>
+  <div class="actor-grid">
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">U</div>
+        <div class="a-name">用户终端</div>
+        <div class="a-loc">WhatsApp App</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">WA</div>
+        <div class="a-name">WhatsApp Cloud</div>
+        <div class="a-loc">Meta 服务器</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">Ch</div>
+        <div class="a-name">通道插件</div>
+        <div class="a-loc">extensions/whatsapp/</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">GW</div>
+        <div class="a-name">网关</div>
+        <div class="a-loc">src/gateway/</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">Q</div>
+        <div class="a-name">命令队列</div>
+        <div class="a-loc">网关内进程</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">AL</div>
+        <div class="a-name">Agent Runner</div>
+        <div class="a-loc">src/agents/</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">PB</div>
+        <div class="a-name">Prompt 构建器</div>
+        <div class="a-loc">packages/agent-core/</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">PR</div>
+        <div class="a-name">模型 Provider</div>
+        <div class="a-loc">extensions/anthropic</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">TX</div>
+        <div class="a-name">工具执行器</div>
+        <div class="a-loc">src/tools/ + 沙箱</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">SM</div>
+        <div class="a-name">会话管理器</div>
+        <div class="a-loc">session-manager.ts</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">CP</div>
+        <div class="a-name">压缩</div>
+        <div class="a-loc">compaction.ts</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">SP</div>
+        <div class="a-name">持久化</div>
+        <div class="a-loc">SQLite</div>
+      </div>
+    </div>
+    <div class="actor">
+ 
+      <div class="a-info">
+        <div class="a-code">WM</div>
+        <div class="a-name">出站发送器</div>
+        <div class="a-loc">WhatsApp 出站</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-5"><span class="sec-num">§ 5</span>9 个阶段概览</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  S1["<b>阶段 1</b><br/>通道接入"]
+  S2["<b>阶段 2</b><br/>网关路由"]
+  S3["<b>阶段 3</b><br/>Agent 启动"]
+  S4["<b>阶段 4</b><br/>Prompt 组装"]
+  S5["<b>阶段 5</b><br/>模型推理"]
+  S6["<b>阶段 6</b><br/>工具执行"]
+  S7["<b>阶段 7</b><br/>流式 + 持久化"]
+  S8["<b>阶段 8</b><br/>通道回复"]
+  S9["<b>阶段 9</b><br/>善后"]
+
+  S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9
+
+  style S1 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style S2 fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+  style S3 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style S4 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style S5 fill:#cffafe,stroke:#0891b2,color:#1a1f2b
+  style S6 fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style S7 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+  style S8 fill:#f3f4f6,stroke:#6b7280,color:#1a1f2b
+  style S9 fill:#fef3c7,stroke:#f59e0b,color:#1a1f2b
+</div><figcaption>图 7.2 · 9 个阶段——阶段 5-7 可循环，阶段 8-9 异步。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-6"><span class="sec-num">§ 6</span>9 阶段详解</h2>
+
+  <div class="stage-card s1">
+    <span class="sc-num">阶段 1 · 通道接入</span>
+    <h3 id="sec-6.1"><span class="sec-num">§ 6.1</span> 1⃣ 通道接入——消息进 Gateway</h3>
+    <p><strong>参与</strong>:U → WA → Ch</p>
+    <p><strong>动作</strong>:</p>
+    <ul>
+      <li>用户 WhatsApp App 发送消息到 Meta 服务器</li>
+      <li>Meta Webhook 推送到 <code>extensions/whatsapp/</code></li>
+      <li>规范化（去除 WhatsApp 特定字段）→ <strong>Envelope</strong></li>
+      <li>WebSocket 帧发送到 Gateway 控制平面</li>
+    </ul>
+    <p><strong>耗时</strong>:50-200ms</p>
+  </div>
+
+  <div class="stage-card s2">
+    <span class="sc-num">阶段 2 · 网关路由</span>
+    <h3 id="sec-6.2"><span class="sec-num">§ 6.2</span> 2⃣ 网关路由——Schema + 会话 + 入队</h3>
+    <p><strong>参与</strong>:GW → Q</p>
+    <p><strong>动作</strong>:</p>
+    <ul>
+      <li>JSON Schema 校验 Envelope</li>
+      <li>解析 <code>channel:account:peer</code> → 定位 Session ID</li>
+      <li>查 <code>session.dmScope</code>（决策 1）确定会话范围</li>
+      <li>消息入队（<code>queue.mode</code> 决策 3）</li>
+    </ul>
+    <p><strong>耗时</strong>:5-20ms</p>
+  </div>
+
+  <div class="stage-card s3">
+    <span class="sc-num">阶段 3 · Agent 启动</span>
+    <h3 id="sec-6.3"><span class="sec-num">§ 6.3</span> 3⃣ Agent 循环启动——加载 + 解析</h3>
+    <p><strong>参与</strong>:AL + SM</p>
+    <p><strong>动作</strong>:</p>
+    <ul>
+      <li>从队列取出消息</li>
+      <li>加载历史（SQLite + Markdown 记忆）</li>
+      <li>解析 model/runtime/skills（决策 2）</li>
+      <li>初始化运行栈</li>
+    </ul>
+    <p><strong>耗时</strong>:50-200ms</p>
+  </div>
+
+  <div class="stage-card s4">
+    <span class="sc-num">阶段 4 · Prompt 组装</span>
+    <h3 id="sec-6.4"><span class="sec-num">§ 6.4</span> 4⃣ 提示词组装——8 层叠加</h3>
+    <p><strong>参与</strong>:PB</p>
+    <p><strong>动作</strong>:</p>
+    <ul>
+      <li>加载 basePrompt + skills + bootstrap</li>
+      <li>注入 memory（history summary）</li>
+      <li>追加历史 messages</li>
+      <li>附 user input + attachments</li>
+    </ul>
+    <p><strong>耗时</strong>:10-100ms</p>
+  </div>
+
+  <div class="stage-card s5">
+    <span class="sc-num">阶段 5 · 模型推理</span>
+    <h3 id="sec-6.5"><span class="sec-num">§ 6.5</span> 5⃣ 模型推理——鉴权 + 流式</h3>
+    <p><strong>参与</strong>:PR</p>
+    <p><strong>动作</strong>:</p>
+    <ul>
+      <li>鉴权（OAuth / API Key）</li>
+      <li>发送请求到 LLM API</li>
+      <li>流式接收 token → 触发阶段 7 事件</li>
+      <li>检测 <code>tool_use</code> block → 进入阶段 6</li>
+    </ul>
+    <p><strong>耗时</strong>：1-5s（典型）</p>
+  </div>
+
+  <div class="stage-card s6">
+    <span class="sc-num">阶段 6 · 工具执行 · 核心</span>
+    <h3 id="sec-6.6"><span class="sec-num">§ 6.6</span> 6⃣ 工具执行——钩子 + 沙箱</h3>
+    <p><strong>参与</strong>:TX</p>
+    <p><strong>动作</strong>:</p>
+    <ul>
+      <li><code>before_tool_call</code> 钩子链（决策 4）→ 审计/阻断/改写</li>
+      <li>沙箱创建（container 级别）</li>
+      <li>执行 <code>calendar.list_events</code></li>
+      <li>返回结果 → <code>after_tool_call</code> 脱敏</li>
+    </ul>
+    <p><strong>耗时</strong>:500ms-30s</p>
+    <p><strong>可循环</strong>：模型拿到结果后，可能继续推理（回到阶段 5）</p>
+  </div>
+
+  <div class="stage-card s7">
+    <span class="sc-num">阶段 7 · 流式 + 持久化</span>
+    <h3 id="sec-6.7"><span class="sec-num">§ 6.7</span> 7⃣ 流式输出 + 持久化——事件推送</h3>
+    <p><strong>参与</strong>：SP + 通道</p>
+    <p><strong>动作</strong>:</p>
+    <ul>
+      <li>流式 token 推到通道（<code>streaming</code> 决策 6）</li>
+      <li>检查 <code>compaction.threshold</code>（决策 5）</li>
+      <li>写入 SQLite（messages / tool_calls / events）</li>
+    </ul>
+    <p><strong>耗时</strong>：与阶段 5 并行</p>
+  </div>
+
+  <div class="stage-card s8">
+    <span class="sc-num">阶段 8 · 通道回复</span>
+    <h3 id="sec-6.8"><span class="sec-num">§ 6.8</span> 8⃣ 通道回复——出站 + 送达回执</h3>
+    <p><strong>参与</strong>:WM → WA → U</p>
+    <p><strong>动作</strong>:</p>
+    <ul>
+      <li>最终消息格式化为 WhatsApp 模板</li>
+      <li>通过 Meta API 发送</li>
+      <li>接收送达/已读回执</li>
+    </ul>
+    <p><strong>耗时</strong>:100-500ms</p>
+  </div>
+
+  <div class="stage-card s9">
+    <span class="sc-num">阶段 9 · 善后</span>
+    <h3 id="sec-6.9"><span class="sec-num">§ 6.9</span> 9⃣ 善后——异步清理</h3>
+    <p><strong>参与</strong>:CP + Q</p>
+    <p><strong>动作</strong>:</p>
+    <ul>
+      <li>压缩超期会话（用户无感知）</li>
+      <li>更新统计 metrics</li>
+      <li>推进队列里的下一条</li>
+    </ul>
+    <p><strong>耗时</strong>：0-数秒（后台）</p>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-7"><span class="sec-num">§ 7</span>用户体验时间线</h2>
+
+  <div class="timeline">
+    <div class="timeline-item"><span class="ti-time">0s</span><span class="ti-what">用户在 WhatsApp 发送消息</span></div>
+    <div class="timeline-item"><span class="ti-time">0.05s</span><span class="ti-what">OpenClaw 收到消息（经过阶段 1-3）</span></div>
+    <div class="timeline-item"><span class="ti-time">0.1s</span><span class="ti-what">Prompt 组装完成（阶段 4）</span></div>
+    <div class="timeline-item"><span class="ti-time">1-3s</span><span class="ti-what">开始看到首个 token（阶段 5 → 7）</span></div>
+    <div class="timeline-item"><span class="ti-time">2-5s</span><span class="ti-what">看到工具调用 <code>calendar.list_events</code>（阶段 6）</span></div>
+    <div class="timeline-item"><span class="ti-time">3-8s</span><span class="ti-what">完整回复结束（阶段 7-8）</span></div>
+    <div class="timeline-item"><span class="ti-time">8s+</span><span class="ti-what">异步善后处理（阶段 9，用户无感知）</span></div>
+  </div>
+
+  <div class="callout">
+    <strong>教学价值</strong>：这条场景展示了 OpenClaw 的 3 个核心特征——<strong>单一可信网关</strong>（阶段 2 集中路由）、<strong>不可信执行</strong>（阶段 6 沙箱 + 钩子）、<strong>声明式策略</strong>（所有决策在 config 里）。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-8"><span class="sec-num">§ 8</span>9 步流程图（鸟瞰）</h2>
+
+  <p>把上面 9 阶段压缩成一张概览图——阶段 5-6 是循环（模型 ↔ 工具），其余单向。</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  Start([" 用户消息"]) --> S1
+  S1["<b>1 通道接入</b><br/>WA → 规范化<br/>→ WebSocket 帧"]
+  S1 --> S2
+  S2["<b>2 网关路由</b><br/>Schema + 会话解析<br/>+ 入队"]
+  S2 --> S3
+  S3["<b>3 Agent 启动</b><br/>加载历史 + 解析 model"]
+  S3 --> S4
+  S4["<b>4 Prompt 组装</b><br/>8 层叠加"]
+  S4 --> S5
+  S5["<b>5 模型推理</b><br/>流式生成"]
+  S5 --> Q1{"有<br/>tool_use?"}
+  Q1 -->|是| S6
+  S6["<b>6 工具执行</b><br/>钩子 + 沙箱"]
+  S6 --> S5
+  Q1 -->|否| S7
+  S7["<b>7 持久化 + 流式</b><br/>SQLite + 推送通道"]
+  S7 --> S8
+  S8["<b>8 通道回复</b><br/>出站 + 送达回执"]
+  S8 --> S9
+  S9["<b>9 善后</b><br/>压缩 + 状态更新"]
+  S9 --> End([" 用户收到回复"])
+
+  style Start fill:#f3f4f6,stroke:#6b7280,color:#1a1f2b
+  style S1 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style S2 fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+  style S3 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style S4 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style S5 fill:#cffafe,stroke:#0891b2,color:#1a1f2b
+  style S6 fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style S7 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+  style S8 fill:#f3f4f6,stroke:#6b7280,color:#1a1f2b
+  style S9 fill:#fef3c7,stroke:#f59e0b,color:#1a1f2b
+  style Q1 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style End fill:#d1fae5,stroke:#059669,color:#1a1f2b
+</div><figcaption>图 7.3 · 9 步流程——阶段 5-6 是循环（模型 ↔ 工具），其余单向。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-9"><span class="sec-num">§ 9</span>9 步详解（快速卡片）</h2>
+
+  <div class="step-grid n1">
+    <div class="sg-num">1</div>
+    <div>
+      <h3 id="sec-9.1"><span class="sec-num">§ 9.1</span> 通道接入</h3>
+      <p>WhatsApp/Telegram/Slack → <strong>规范化</strong> → Envelope → WebSocket 帧。</p>
+      <div class="sg-meta">
+        <span>模块 03</span>
+        <span>50-200ms</span>
+        <span>失败：Webhook 重试</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-grid n2">
+    <div class="sg-num">2</div>
+    <div>
+      <h3 id="sec-9.2"><span class="sec-num">§ 9.2</span> 网关路由</h3>
+      <p>Schema 校验 → 会话 ID 解析（<code>channel:account:peer</code>) → <code>queue.mode</code> 入队。</p>
+      <div class="sg-meta">
+        <span>决策 1·3</span>
+        <span>5-20ms</span>
+        <span>失败：Schema 错直接拒绝</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-grid n3">
+    <div class="sg-num">3</div>
+    <div>
+      <h3 id="sec-9.3"><span class="sec-num">§ 9.3</span> Agent 启动</h3>
+      <p>加载历史（SQLite + Markdown） → 解析 <code>model/runtime/skills</code> → 初始化运行栈。</p>
+      <div class="sg-meta">
+        <span>决策 2</span>
+        <span>50-200ms</span>
+        <span>失败：fallback model</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-grid n4">
+    <div class="sg-num">4</div>
+    <div>
+      <h3 id="sec-9.4"><span class="sec-num">§ 9.4</span> Prompt 组装</h3>
+      <p>basePrompt + skills + bootstrap + memory + history + user input → 完整 Prompt。</p>
+      <div class="sg-meta">
+        <span>决策 7</span>
+        <span>10-100ms</span>
+        <span>失败：截断历史</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-grid n5">
+    <div class="sg-num">5</div>
+    <div>
+      <h3 id="sec-9.5"><span class="sec-num">§ 9.5</span> 模型推理</h3>
+      <p>鉴权 → 流式调用 LLM → 接收 token 流 → 检测 <code>tool_use</code> block。</p>
+      <div class="sg-meta">
+        <span>决策 2</span>
+        <span>1-5s</span>
+        <span>失败：fallback chain 重试</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-grid n6">
+    <div class="sg-num">6</div>
+    <div>
+      <h3 id="sec-9.6"><span class="sec-num">§ 9.6</span> 工具执行</h3>
+      <p><code>before_tool_call</code> 钩子 → 沙箱创建 → 执行 → <code>after_tool_call</code> 脱敏。</p>
+      <div class="sg-meta">
+        <span>决策 4·核心</span>
+        <span>0.5-30s</span>
+        <span>失败：返回错误给 LLM</span>
+      </div>
+      <p><strong>可循环</strong>：模型拿到 tool_result 后可能继续推理，回到步骤 5。</p>
+    </div>
+  </div>
+
+  <div class="step-grid n7">
+    <div class="sg-num">7</div>
+    <div>
+      <h3 id="sec-9.7"><span class="sec-num">§ 9.7</span> 持久化 + 流式推送</h3>
+      <p>流式 token 推到通道（<code>streaming</code>） → 检查压缩阈值 → 写入 SQLite。</p>
+      <div class="sg-meta">
+        <span>决策 5·6</span>
+        <span>与步骤 5 并行</span>
+        <span>失败：WAL 模式保护</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-grid n8">
+    <div class="sg-num">8</div>
+    <div>
+      <h3 id="sec-9.8"><span class="sec-num">§ 9.8</span> 通道回复</h3>
+      <p>格式化为通道模板 → Meta/Telegram API → 接收送达/已读回执。</p>
+      <div class="sg-meta">
+        <span>模块 03</span>
+        <span>100-500ms</span>
+        <span>失败：平台 API 重试</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-grid n9">
+    <div class="sg-num">9</div>
+    <div>
+      <h3 id="sec-9.9"><span class="sec-num">§ 9.9</span> 善后</h3>
+      <p>压缩超期会话 → 更新 metrics → 推进队列里的下一条消息。</p>
+      <div class="sg-meta">
+        <span>决策 5</span>
+        <span>0-数秒（后台）</span>
+        <span>用户无感知</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-10"><span class="sec-num">§ 10</span>性能瓶颈 + 错误恢复</h2>
+
+  <h3 class="view-h3" id="sec-10.1"><span class="sec-num">§ 10.1</span>性能瓶颈<span class="vh-tag">bottlenecks</span></h3>
+  <p>从 9 步流程中识别出 4 个典型瓶颈：</p>
+
+  <table class="info-table">
+    <thead><tr><th>瓶颈</th><th>位置</th><th>典型耗时</th><th>占比</th></tr></thead>
+    <tbody>
+      <tr><td><strong>LLM 推理</strong></td><td>步骤 5</td><td>1-5s</td><td>~70%</td></tr>
+      <tr><td><strong>工具调用</strong></td><td>步骤 6</td><td>0.5-30s</td><td>~25%</td></tr>
+      <tr><td><strong>Prompt 组装</strong></td><td>步骤 4</td><td>10-100ms</td><td>~2%</td></tr>
+      <tr><td><strong>通道传输</strong></td><td>步骤 1， 8</td><td>100-300ms</td><td>~3%</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>优化方向</strong>：LLM 推理占大头——用更小的模型 / prompt caching / streaming / batch 处理。详见 <a href="/2026/11/07/openclaw-08-performance/">模块 08 性能</a>。
+  </div>
+
+  <h3 class="view-h3" id="sec-10.2"><span class="sec-num">§ 10.2</span>错误恢复路径<span class="vh-tag">recovery</span></h3>
+  <p>每个步骤都有对应的恢复策略——这就是"可恢复优于防御性"：</p>
+
+  <table class="info-table">
+    <thead><tr><th>失败步骤</th><th>恢复策略</th></tr></thead>
+    <tbody>
+      <tr><td>1 通道接入</td><td>Webhook 重试 / 丢弃（超 N 次）</td></tr>
+      <tr><td>2 网关路由</td><td>Schema 错拒绝（不可恢复）</td></tr>
+      <tr><td>3 Agent 启动</td><td>回退到默认 model</td></tr>
+      <tr><td>4 Prompt 组装</td><td>截断历史 + 简化 memory</td></tr>
+      <tr><td>5 模型推理</td><td>fallback chain（模型 1→2→3）</td></tr>
+      <tr><td>6 工具执行</td><td>错误返回给 LLM，LLM 换工具</td></tr>
+      <tr><td>7 持久化</td><td>WAL 模式 + retry queue</td></tr>
+      <tr><td>8 通道回复</td><td>平台 API 重试 / 降级到邮件</td></tr>
+      <tr><td>9 善后</td><td>后台任务，不阻塞主流程</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <strong>不可恢复的失败</strong>：Schema 校验失败、配置错误、磁盘满——这些只能报错给用户。建议在生产环境配置监控告警（详见 <a href="/2026/11/07/openclaw-09-error-handling/">09.3 监控</a>）。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-11"><span class="sec-num">§ 11</span>模型 ↔ 工具循环</h2>
+
+  <p>阶段 5-6 是 <strong>可循环</strong> 的——这就是 Agent 与 LLM 一次性调用的根本区别：</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  L["<b>5 模型推理</b><br/>生成响应"] --> Q{"有 tool_use?"}
+  Q -->|是| T["<b>6 工具执行</b><br/>沙箱调用"]
+  T -->|"tool_result"| L
+  Q -->|否| Next["<b>7 流式 + 持久化</b>"]
+
+  style L fill:#cffafe,stroke:#0891b2,color:#1a1f2b
+  style T fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style Q fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style Next fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+</div><figcaption>图 7.4 · 模型 ↔ 工具循环——这是 Agent 的核心特征，直至 LLM 输出最终回答。</figcaption></figure>
+
+  <div class="callout">
+    <strong>循环上限</strong>：默认 20 轮（可在 <code>agents.defaults.maxToolRounds</code> 配置）。超出后强制结束——防止"无限循环烧 token"。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-12"><span class="sec-num">§ 12</span>完整 Mermaid 时序图</h2>
+
+  <p>用 sequenceDiagram 把 13 个参与者的完整消息流画出来——适合教学演示、文档插图、跨团队沟通。</p>
+
+  <figure><div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as  用户
+  participant WA as  WhatsApp
+  participant Ch as  通道插件
+  participant GW as Gateway
+  participant Q as  队列
+  participant AL as Agent
+  participant PB as  Prompt Builder
+  participant PR as  Provider
+  participant TX as  工具
+  participant SP as  SQLite
+  participant CP as Compressor
+
+  U->>WA: 1. 发送消息
+  WA->>Ch: 2. Webhook 推送
+  Ch->>Ch: 3. 规范化 → Envelope
+  Ch->>GW: 4. WebSocket 帧
+  GW->>GW: 5. 校验 Schema + 解析 session
+  GW->>Q: 6. 入队(按 queue.mode)
+  Q->>AL: 7. 出队 + 触发 Agent
+  AL->>SP: 8. 加载历史
+  SP-->>AL: 9. 历史消息
+  AL->>PB: 10. 请求组装 Prompt
+  PB->>SP: 11. 读 memory 文件
+  SP-->>PB: 12. memory 摘要
+  PB-->>AL: 13. 完整 Prompt (8 层)
+  AL->>PR: 14. 调用 LLM(完整 Prompt)
+  PR-->>AL: 15. 流式 token(开始)
+  Note over AL,PR: token 流持续推送到通道
+  PR-->>AL: 16. tool_use block
+  AL->>AL: 17. 触发 before_tool_call 钩子
+  Note right of AL: 钩子:审计/阻断/改写
+  AL->>TX: 18. 在沙箱内执行工具
+  TX->>TX: 19. 创建容器沙箱
+  TX-->>AL: 20. tool_result
+  AL->>AL: 21. 触发 after_tool_call 钩子
+  Note right of AL: 钩子:脱敏/审计
+  AL->>PR: 22. 携带 tool_result 继续
+  PR-->>AL: 23. 最终响应(无 tool_use)
+  AL->>SP: 24. 写入 messages/tool_calls/events
+  SP-->>AL: 25. 持久化完成
+  AL->>Ch: 26. 推送最终回复
+  Ch->>WA: 27. 出站 API
+  WA->>U: 28. 用户看到回复
+  AL->>CP: 29. 异步压缩检查
+  CP->>SP: 30. 归档超期会话
+  AL->>Q: 31. 推进下一条消息
+  Note over U,CP: 总耗时 3-8s
+</div><figcaption>图 7.5 · 完整时序图——31 步消息流，13 个参与者，涵盖主流程 + 异步善后。</figcaption></figure>
+
+  <h3 class="view-h3" id="sec-12.1"><span class="sec-num">§ 12.1</span>参与者对照表<span class="vh-tag">legend</span></h3>
+  <table class="info-table">
+    <thead><tr><th>标识</th><th>角色</th><th>位置</th></tr></thead>
+    <tbody>
+      <tr><td>U</td><td>用户终端</td><td>WhatsApp App</td></tr>
+      <tr><td>WA</td><td>WhatsApp Cloud</td><td>Meta 服务器</td></tr>
+      <tr><td>Ch</td><td>通道插件</td><td><code>extensions/whatsapp/</code></td></tr>
+      <tr><td>GW</td><td>网关</td><td><code>src/gateway/</code></td></tr>
+      <tr><td>Q</td><td>命令队列</td><td>网关内进程</td></tr>
+      <tr><td>AL</td><td>Agent Runner</td><td><code>src/agents/</code></td></tr>
+      <tr><td>PB</td><td>Prompt Builder</td><td><code>packages/agent-core/</code></td></tr>
+      <tr><td>PR</td><td>Provider</td><td><code>extensions/anthropic</code> 等</td></tr>
+      <tr><td>TX</td><td>工具执行器</td><td><code>src/tools/</code> + 沙箱</td></tr>
+      <tr><td>SP</td><td>持久化层</td><td>SQLite (WAL)</td></tr>
+      <tr><td>CP</td><td>压缩器</td><td><code>compaction.ts</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-13"><span class="sec-num">§ 13</span>关键步骤拆解 + 4 个亮点</h2>
+
+  <h3 class="view-h3" id="sec-13.1"><span class="sec-num">§ 13.1</span>关键步骤拆解<span class="vh-tag">steps</span></h3>
+
+  <div class="step-card">
+    <h3 id="sec-13.2"><span class="sec-num">§ 13.2</span> 步骤 1-6 · 消息进 Gateway（50-200ms）</h3>
+    <p>用户消息从手机 → WhatsApp 服务器 → 通道插件 → Gateway 队列。</p>
+    <p><strong>关键决策</strong>:<code>session.dmScope</code>（决策 1）、<code>queue.mode</code>（决策 3）</p>
+  </div>
+
+  <div class="step-card">
+    <h3 id="sec-13.3"><span class="sec-num">§ 13.3</span> 步骤 7-13 · Agent 准备（50-300ms）</h3>
+    <p>从队列取出 → 加载历史 → 组装 8 层 Prompt → 准备调用 LLM。</p>
+    <p><strong>关键决策</strong>:<code>model</code> 选择（决策 2）、<code>systemPrompt</code> 配置（决策 7）</p>
+  </div>
+
+  <div class="step-card">
+    <h3 id="sec-13.4"><span class="sec-num">§ 13.4</span> 步骤 14-23 · 模型 ↔ 工具循环（1-30s）</h3>
+    <p>LLM 推理 → 流式推送 → 检测 <code>tool_use</code> → 钩子拦截 → 沙箱执行 → 回到 LLM。</p>
+    <p><strong>关键决策</strong>：钩子（决策 4）、沙箱级别、<code>compaction.threshold</code>（决策 5）</p>
+  </div>
+
+  <div class="step-card">
+    <h3 id="sec-13.5"><span class="sec-num">§ 13.5</span> 步骤 24-28 · 回复与持久化（200-500ms）</h3>
+    <p>写入 SQLite → 通道出站 → 用户看到消息。</p>
+    <p><strong>关键决策</strong>:<code>streaming</code>（决策 6）</p>
+  </div>
+
+  <div class="step-card">
+    <h3 id="sec-13.6"><span class="sec-num">§ 13.6</span> 步骤 29-31 · 异步善后（后台）</h3>
+    <p>压缩超期会话、更新 metrics、推进下一条消息——用户无感知。</p>
+  </div>
+
+  <h3 class="view-h3" id="sec-13.7"><span class="sec-num">§ 13.7</span>4 个亮点<span class="vh-tag">highlights</span></h3>
+  <ol>
+    <li><strong>步骤 5 集中路由</strong>：所有消息都过 Gateway Schema 校验——这是 OpenClaw 单一可信入口的核心。</li>
+    <li><strong>步骤 17/21 钩子拦截</strong>：工具调用的审计/阻断/脱敏都在这两个步骤——安全模型的物理落地点。</li>
+    <li><strong>步骤 18 沙箱隔离</strong>：哪怕模型被注入，工具也只能在容器内乱搞——这是"不可信执行"的边界。</li>
+    <li><strong>步骤 29 异步善后</strong>：压缩不阻塞用户响应，这是"流式先于善后"的体现。</li>
+  </ol>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-14"><span class="sec-num">§ 14</span>Mermaid 源码</h2>
+
+  <p>如果想自己修改这张图，直接复制下面的 Mermaid 源码：</p>
+
+  <pre class="code-block"><span class="comment"># OpenClaw 完整时序图 · Mermaid 源码</span>
+<span class="kw">sequenceDiagram</span>
+  autonumber
+  participant U as 用户
+  participant WA as WhatsApp
+  participant Ch as 通道插件
+  participant GW as Gateway
+  participant Q as 队列
+  participant AL as Agent
+  participant PB as Prompt Builder
+  participant PR as Provider
+  participant TX as 工具
+  participant SP as SQLite
+  participant CP as Compressor
+
+  U-&gt;&gt;WA: 发送消息
+  WA-&gt;&gt;Ch: Webhook
+  Ch-&gt;&gt;Ch: 规范化
+  Ch-&gt;&gt;GW: WebSocket 帧
+  GW-&gt;&gt;GW: Schema 校验
+  GW-&gt;&gt;Q: 入队
+  Q-&gt;&gt;AL: 出队
+  AL-&gt;&gt;SP: 加载历史
+  SP--&gt;&gt;AL: 历史
+  AL-&gt;&gt;PB: 组装 Prompt
+  PB-&gt;&gt;SP: 读 memory
+  SP--&gt;&gt;PB: memory
+  PB--&gt;&gt;AL: Prompt (8 层)
+  AL-&gt;&gt;PR: 调用 LLM
+  PR--&gt;&gt;AL: 流式 token
+  PR--&gt;&gt;AL: tool_use
+  AL-&gt;&gt;AL: before_tool_call 钩子
+  AL-&gt;&gt;TX: 沙箱执行
+  TX--&gt;&gt;AL: tool_result
+  AL-&gt;&gt;AL: after_tool_call 钩子
+  AL-&gt;&gt;PR: 继续推理
+  PR--&gt;&gt;AL: 最终响应
+  AL-&gt;&gt;SP: 写入
+  AL-&gt;&gt;Ch: 推送回复
+  Ch-&gt;&gt;WA: 出站
+  WA-&gt;&gt;U: 用户看到
+  AL-&gt;&gt;CP: 异步压缩
+  CP-&gt;&gt;SP: 归档</pre>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-15"><span class="sec-num">§ 15</span>阅读路径 + FAQ + 总结</h2>
+
+  <h3 class="view-h3" id="sec-15.1"><span class="sec-num">§ 15.1</span>阅读路径<span class="vh-tag">paths</span></h3>
+  <p>本页约 20 分钟读完。建议顺序：9 步概览 → 9 阶段详解 → 完整时序图。</p>
+
+  <div class="path-grid">
+    <div class="path-card pc-curious">
+      <span class="pc-tag">首次阅读</span>
+      <div class="pc-title">鸟瞰派</div>
+      <div class="pc-time"> 8 分钟 · § 5+§ 8+§ 11</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 5 9 阶段概览</li>
+          <li>§ 8 9 步流程图</li>
+          <li>§ 11 模型 ↔ 工具循环</li>
+          <li>想要细节 → 跳 § 6 / § 9 / § 12</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-quick">
+      <span class="pc-tag">想看具体旅程</span>
+      <div class="pc-title">场景派</div>
+      <div class="pc-time"> 10 分钟 · § 4-7</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 4 场景 + 13 参与者</li>
+          <li>§ 6 9 阶段详解</li>
+          <li>§ 7 用户体验时间线</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-deep">
+      <span class="pc-tag">教学演示</span>
+      <div class="pc-title">演示派</div>
+      <div class="pc-time"> 12 分钟 · § 10 + 14</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 12 完整 Mermaid 时序图</li>
+          <li>§ 14 复制源码</li>
+          <li>在 PPT/文档中嵌入图</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="view-h3" id="sec-15.2"><span class="sec-num">§ 15.2</span>常见问题<span class="vh-tag">faq</span></h3>
+
+  <ul class="faq-list">
+    <li class="faq-item">
+      <div class="faq-q"> 完整时序的耗时分布如何？</div>
+      <div class="faq-a">大多数消息 1-3s 完成，工具调用型 5-30s。详见 <a href="/2026/11/07/openclaw-08-performance/">模块 08 性能</a>。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 失败时如何恢复？</div>
+      <div class="faq-a">每个阶段都有 fallback——模型层 fallback chain、工具层重试、通道层重发。详见 <a href="/2026/11/07/openclaw-09-error-handling/">模块 09 错误处理</a>。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 阶段 5-6 循环多少次算多？</div>
+      <div class="faq-a">默认上限 20 轮（可在 <code>agents.defaults.maxToolRounds</code> 配置）。通常 1-3 轮就够；超过 5 轮通常意味着任务太复杂需要拆解。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 用户在阶段 9 善后时还在线吗？</div>
+      <div class="faq-a">可能在也可能不在。善后任务不阻塞响应，且支持失败重试（在 OpenClaw 重启后自动恢复）。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 如何验证我的理解？</div>
+      <div class="faq-a">对照 <a href="/2026/11/07/openclaw-10-source-walkthrough/">模块 10 源码剖析</a> 看代码层映射。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> Telegram / Slack 旅程和 WhatsApp 一样吗？</div>
+      <div class="faq-a">完全一样，只是阶段 1 和 8 用的 SDK 不同。所有内部 actor（阶段 2-9）与通道无关。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 31 步时序图怎么读？</div>
+      <div class="faq-a">从左到右是时间，每行是一个 actor；实线箭头 = 请求、虚线箭头 = 响应。Note 块补充关键事件。前 13 步是主流程，14-23 是模型 ↔ 工具循环，24-28 是回复，29-31 是异步善后。</div>
+    </li>
+  </ul>
+
+  <h3 class="view-h3" id="sec-15.3"><span class="sec-num">§ 15.3</span>一句话总结<span class="vh-tag">summary</span></h3>
+  <div class="callout">
+    <strong>一条 WhatsApp 消息 = 9 个阶段 × 13 个参与者 × 31 步时序 × 8 个核心决策 × 4 个设计哲学的实例化。</strong>
+    <br><br>
+    理解这条场景 = 理解 OpenClaw 怎么把"用户问一句"变成"系统安全地行动"。本模块是文档的"汇聚点"——用 1 页把前面 6 个模块串成一张图。
+  </div>
+
+  <h3 class="view-h3" id="sec-15.4"><span class="sec-num">§ 15.4</span>相关阅读<span class="vh-tag">related</span></h3>
+  <div class="related-grid">
+    <a class="related-card" href="/2026/11/07/openclaw-03-channels/">
+      <span class="rc-eyebrow">03 · 通道</span>
+      <span class="rc-title">消息通道</span>
+      <span class="rc-desc">阶段 1 + 8 详解——Envelope 归一化、出站消息的块到平台映射。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-04-models-runtimes/">
+      <span class="rc-eyebrow">04 · 模型</span>
+      <span class="rc-title">模型与运行时</span>
+      <span class="rc-desc">阶段 5 的 LLM 调用——4 级模型选择 + Fallback 链路。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-06-tools-hooks/">
+      <span class="rc-eyebrow">06 · 工具</span>
+      <span class="rc-title">工具与钩子</span>
+      <span class="rc-desc">阶段 6 详解——钩子拦截、沙箱执行、4 级沙箱 + 5 类超时。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-08-performance/">
+      <span class="rc-eyebrow">08 · 性能</span>
+      <span class="rc-title">性能与延迟</span>
+      <span class="rc-desc">9 步耗时分布、TTFT 优化、prompt caching、流式策略。</span>
+    </a>
+    <a class="related-card" href="https://docs.openclaw.ai/e2e" target="_blank" rel="noopener">
+      <span class="rc-eyebrow">官方文档</span>
+      <span class="rc-title">End-to-End Guide</span>
+      <span class="rc-desc">完整 e2e 指南——视频教程 + 真实场景 demo。</span>
+    </a>
+    <a class="related-card" href="https://github.com/openclaw/openclaw/tree/main/src" target="_blank" rel="noopener">
+      <span class="rc-eyebrow">源码</span>
+      <span class="rc-title">src/ 目录</span>
+      <span class="rc-desc">13 个参与者的代码位置——从 src/gateway/ 到 src/tools/。</span>
+    </a>
+  </div>
+</section>
+
+
+</div>
+      <aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">端到端流程的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">模块位置</a><a class="reading-toc-link level-2" href="#sec-4">场景设定 + 13 参与者</a><a class="reading-toc-link level-3" href="#sec-4.1">场景设定 scenario</a><a class="reading-toc-link level-3" href="#sec-4.2">13 个参与者 actors</a><a class="reading-toc-link level-2" href="#sec-5">9 个阶段概览</a><a class="reading-toc-link level-2" href="#sec-6">9 阶段详解</a><a class="reading-toc-link level-3" href="#sec-6.1">1⃣ 通道接入 — 消息进 Gateway</a><a class="reading-toc-link level-3" href="#sec-6.2">2⃣ 网关路由 — Schema + 会话 + 入队</a><a class="reading-toc-link level-3" href="#sec-6.3">3⃣ Agent 循环启动 — 加载 + 解析</a><a class="reading-toc-link level-3" href="#sec-6.4">4⃣ 提示词组装 — 8 层叠加</a><a class="reading-toc-link level-3" href="#sec-6.5">5⃣ 模型推理 — 鉴权 + 流式</a><a class="reading-toc-link level-3" href="#sec-6.6">6⃣ 工具执行 — 钩子 + 沙箱</a><a class="reading-toc-link level-3" href="#sec-6.7">7⃣ 流式输出 + 持久化 — 事件推送</a><a class="reading-toc-link level-3" href="#sec-6.8">8⃣ 通道回复 — 出站 + 送达回执</a><a class="reading-toc-link level-3" href="#sec-6.9">9⃣ 善后 — 异步清理</a><a class="reading-toc-link level-2" href="#sec-7">用户体验时间线</a><a class="reading-toc-link level-2" href="#sec-8">9 步流程图(鸟瞰)</a><a class="reading-toc-link level-2" href="#sec-9">9 步详解(快速卡片)</a><a class="reading-toc-link level-3" href="#sec-9.1">通道接入</a><a class="reading-toc-link level-3" href="#sec-9.2">网关路由</a><a class="reading-toc-link level-3" href="#sec-9.3">Agent 启动</a><a class="reading-toc-link level-3" href="#sec-9.4">Prompt 组装</a><a class="reading-toc-link level-3" href="#sec-9.5">模型推理</a><a class="reading-toc-link level-3" href="#sec-9.6">工具执行</a><a class="reading-toc-link level-3" href="#sec-9.7">持久化 + 流式推送</a><a class="reading-toc-link level-3" href="#sec-9.8">通道回复</a><a class="reading-toc-link level-3" href="#sec-9.9">善后</a><a class="reading-toc-link level-2" href="#sec-10">性能瓶颈 + 错误恢复</a><a class="reading-toc-link level-3" href="#sec-10.1">性能瓶颈 bottlenecks</a><a class="reading-toc-link level-3" href="#sec-10.2">错误恢复路径 recovery</a><a class="reading-toc-link level-2" href="#sec-11">模型 ↔ 工具循环</a><a class="reading-toc-link level-2" href="#sec-12">完整 Mermaid 时序图</a><a class="reading-toc-link level-3" href="#sec-12.1">参与者对照表 legend</a><a class="reading-toc-link level-2" href="#sec-13">关键步骤拆解 + 4 个亮点</a><a class="reading-toc-link level-3" href="#sec-13.1">关键步骤拆解 steps</a><a class="reading-toc-link level-3" href="#sec-13.2">步骤 1-6 · 消息进 Gateway(50-200ms)</a><a class="reading-toc-link level-3" href="#sec-13.3">步骤 7-13 · Agent 准备(50-300ms)</a><a class="reading-toc-link level-3" href="#sec-13.4">步骤 14-23 · 模型 ↔ 工具循环(1-30s)</a><a class="reading-toc-link level-3" href="#sec-13.5">步骤 24-28 · 回复与持久化(200-500ms)</a><a class="reading-toc-link level-3" href="#sec-13.6">步骤 29-31 · 异步善后(后台)</a><a class="reading-toc-link level-3" href="#sec-13.7">4 个亮点 highlights</a><a class="reading-toc-link level-2" href="#sec-14">Mermaid 源码</a><a class="reading-toc-link level-2" href="#sec-15">阅读路径 + FAQ + 总结</a><a class="reading-toc-link level-3" href="#sec-15.1">阅读路径 paths</a><a class="reading-toc-link level-3" href="#sec-15.2">常见问题 faq</a><a class="reading-toc-link level-3" href="#sec-15.3">一句话总结 summary</a><a class="reading-toc-link level-3" href="#sec-15.4">相关阅读 related</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-06-tools-hooks/"><small>← 上一篇</small><span>工具执行与钩子拦截</span></a></div><div><a href="/2026/11/07/openclaw-08-performance/"><small>下一篇 →</small><span>性能基线与延迟分析</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body>
+</html>

@@ -1,0 +1,3561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 2 章：核心架构与三原则落地 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 02 · 核心架构与三原则落地。OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型——三原则决定&quot;为什么这样设计&quot;，四层架构决定&quot;职责如何切分&quot;，Gateway 7 子模块决定&quot;代码放哪里&quot;，三级信任模型决定&quot;安全边界在哪&quot;。看完本模块，你能在脑中画出一张完整的运行时地图。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 2 章：核心架构与三原则落地">
+  <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-02-architecture/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="模块 02 · 核心架构与三原则落地。OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型——三原则决定&quot;为什么这样设计&quot;，四层架构决定&quot;职责如何切分&quot;，Gateway 7 子模块决定&quot;代码放哪里&quot;，三级信任模型决定&quot;安全边界在哪&quot;。看完本模块，你能在脑中画出一张完整的运行时地图。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="openclaw">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" href="http://lianjifu.cn/2026/11/07/openclaw-02-architecture/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/portal.css?v=2">
+  <link rel="stylesheet" href="/css/article.css?v=6">
+  <link rel="stylesheet" href="/css/openclaw.css?v=3">
+  <script src="/js/portal.js?v=6" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="openclaw"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+    </svg><header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
+      <span class="article-kicker">第 2 章：架构原理</span>
+      <h1 class="post-title" itemprop="name headline">核心架构与三原则落地</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-calendar"></i></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-folder"></i></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body openclaw-body" itemprop="articleBody">
+
+<p class="post-lede">
+  <strong>OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型</strong>——三原则决定"为什么这样设计"，四层架构决定"职责如何切分"，Gateway 7 子模块决定"代码放哪里"，三级信任模型决定"安全边界在哪"。看完本模块，你能在脑中画出一张完整的运行时地图。
+</p>
+
+
+<section class="doc-section">
+  <h2 id="sec-1"><span class="sec-num">§ 1</span>一句话定位</h2>
+
+  <p class="section-lede">从 § 1 的产品定位出发，这一节回答最直接的问题——<strong>架构是什么、用什么模式组合、为什么这样设计</strong>。如果只能读一节，看这里。</p>
+
+  <div class="intro-callout">
+    <strong>OpenClaw 架构 = 三原则 + 四层 + Gateway 7 子模块 + 三级信任模型。</strong>三原则决定"为什么这样设计"，四层架构决定"职责如何切分"，Gateway 7 子模块决定"代码放哪里"，三级信任模型决定"安全边界在哪"。
+  </div>
+
+
+<div class="thinking-note">
+  <p>本节的"架构 = 三原则 + 四层 + Gateway + 信任"是 OpenClaw 的<strong>一张心智地图</strong>。后面所有章节都是这张地图的细化——不要迷失在细节里，随时回到这里对照。</p>
+</div>
+</section>
+
+
+
+<section class="doc-section">
+  <h2 id="sec-2"><span class="sec-num">§ 2</span>核心架构的三个原则</h2>
+
+  <p class="section-lede">第 1 节讲了"为什么"（三原则），第 4 节将讲"是什么"（四层架构）。这一节作为桥梁——<strong>把每条原则映射到具体代码位置</strong>，让抽象原则可见可寻。</p>
+
+  <p>三原则（见 <a href="/2026/11/07/openclaw-01-overview/#sec-2">模块 01 § 4</a>）不是抽象口号——每条原则都对应到 <code>apps/gateway/src/</code> 的具体子模块。</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  P1["<b>原则 1</b><br/>可信的网关"]
+  P2["<b>原则 2</b><br/>不可信的执行"]
+  P3["<b>原则 3</b><br/>确定性的策略"]
+
+  C1["<b>gateway/</b><br/>server.ts · router.ts"]
+  C2["<b>tools/sandbox/</b><br/>none · process · container · vm"]
+  C3["<b>config/</b><br/>loader · schema · watcher"]
+
+  P1 -.对应.-> C1
+  P2 -.对应.-> C2
+  P3 -.对应.-> C3
+
+  style P1 fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style P2 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style P3 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style C1 fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+  style C2 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style C3 fill:#cffafe,stroke:#0891b2,color:#1a1f2b
+</div><figcaption>图 2.1 · 三原则 → 三个核心子模块——一一对应。</figcaption></figure>
+
+  <h3 class="view-h3" id="sec-2.1"><span class="sec-num">§ 2.1</span>原则一 · 可信的网关 → <code>gateway/</code> 子模块<span class="vh-tag">trusted</span></h3>
+  <p><strong>核心</strong>：单进程长期运行，掌控所有密钥 · 会话 · 通道连接 · 策略执行。</p>
+  <p><strong>代码位置</strong>:<code>apps/gateway/src/gateway/</code></p>
+  <ul>
+    <li><code>server.ts</code>——WebSocket + HTTP 入口（端口 18789）</li>
+    <li><code>router.ts</code>——JSON-RPC 路由（请求分发）</li>
+    <li><code>queue.ts</code>——命令队列（顺序/并发/收集三种模式）</li>
+    <li><code>envelope.ts</code>——Envelope 类型定义（标准化消息）</li>
+    <li><code>schema-validator.ts</code>——JSON Schema 校验</li>
+  </ul>
+
+  <h3 class="view-h3" id="sec-2.2"><span class="sec-num">§ 2.2</span>原则二 · 不可信的执行 → <code>tools/sandbox/</code> 子模块<span class="vh-tag">untrusted</span></h3>
+  <p><strong>核心</strong>：LLM 推理 · 工具执行 · 文件访问都运行在网关隔离之外。</p>
+  <p><strong>代码位置</strong>:<code>apps/gateway/src/tools/sandbox/</code></p>
+  <table class="info-table">
+    <thead><tr><th>沙箱</th><th>隔离强度</th><th>性能</th><th>适用场景</th></tr></thead>
+    <tbody>
+      <tr><td>none</td><td>无</td><td>最快</td><td>只读 HTTP / 内部工具</td></tr>
+      <tr><td>process</td><td>进程级</td><td>快</td><td>可信子进程</td></tr>
+      <tr><td>container</td><td>容器级</td><td>中等</td><td>需要文件系统隔离</td></tr>
+      <tr><td>vm</td><td>VM 级</td><td>最慢</td><td>不可信代码（最大隔离）</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="view-h3" id="sec-2.3"><span class="sec-num">§ 2.3</span>原则三 · 确定性的策略 → <code>config/</code> 子模块<span class="vh-tag">deterministic</span></h3>
+  <p><strong>核心</strong>：策略以声明式配置管理，不分散在各个执行上下文里。</p>
+  <p><strong>代码位置</strong>:<code>apps/gateway/src/config/</code></p>
+  <ul>
+    <li><code>loader.ts</code>——加载 <code>openclaw.config.yaml</code></li>
+    <li><code>schema.ts</code>——配置 Schema（Zod 校验）</li>
+    <li><code>watcher.ts</code>——文件变更监听 → <strong>热重载</strong>（无需重启）</li>
+  </ul>
+
+  <h3 class="view-h3" id="sec-2.4"><span class="sec-num">§ 2.4</span>三原则的相互约束<span class="vh-tag">constraints</span></h3>
+  <p>三原则不是孤立的——它们之间有张力，需要平衡：</p>
+  <ul>
+    <li><strong>可信网关 vs 不可信执行</strong>——Gateway 掌握所有密钥，但又不能信任 LLM 推理——通过"Gateway 签名 / 执行隔离"分离</li>
+    <li><strong>不可信执行 vs 确定性策略</strong>——沙箱行为可能因环境差异而不同——通过"配置化沙箱选择"约束</li>
+    <li><strong>确定性策略 vs 可信网关</strong>——配置改动不能重启 Gateway（破坏可信性）——通过"热重载"解决</li>
+  </ul>
+
+
+<div class="thinking-note">
+  <p>原则 → 代码的映射<strong>不是一一对应</strong>：原则一是"设计约束"，体现在 Gateway 整个进程，而非某个文件。看到多个文件共同服务同一条原则，这是健康的架构。</p>
+</div>
+</section>
+<section class="doc-section">
+  <h2 id="sec-3"><span class="sec-num">§ 3</span>模块位置</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  A["<b>03 消息通道</b><br/>外部消息进来"] --> B["<b>02 核心架构</b><br/>四层 · Gateway · 信任"]
+  B --> C["<b>04 模型运行时</b><br/>选模型 · 跑循环"]
+  B --> D["<b>05 会话与状态</b><br/>Prompt 分层 · 记忆"]
+  B --> E["<b>06 工具与钩子</b><br/>沙箱 · 拦截"]
+  B --> F["<b>07 端到端流程</b><br/>9 阶段串联"]
+
+  style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style B fill:#f59e0b,stroke:#d97706,color:#fff,stroke-width:2px
+  style C fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style D fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style E fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style F fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+</div><figcaption>图 2.1 · 模块 02 是整个站点的中枢——通道把消息送进来，模型/会话/工具/流程四模块都挂在它下面。</figcaption></figure>
+
+  <div class="thinking-note">
+    <p><strong>怎么读这一页</strong>：如果你是<strong>第一次接触 OpenClaw</strong>，从 § 2 三原则开始；如果你是<strong>要改代码</strong>，
+    直接跳到 § 4 四层架构，对着 L1-L4 找你要动的那一层；如果你在<strong>排查线上问题</strong>，看 § 8 三级信任模型和 § 9 威胁与防护。</p>
+  </div>
+</section>
+
+
+
+<section class="doc-section">
+  <h2 id="sec-4"><span class="sec-num">§ 4</span>四层架构</h2>
+
+  <p class="section-lede">四层架构是 OpenClaw 的"骨架"——每层职责单一，层间接口清晰。本节用 L1-L4 标注层次，让你能<strong>在脑中画出完整的运行时结构</strong>。</p>
+
+  <p>OpenClaw 把所有职责切成 4 层——从外到内，每层只与相邻层交互，层间接口稳定。</p>
+
+  <figure><div class="mermaid">
+flowchart TB
+  L1["<b>L1 接入层</b><br/>Access Layer<br/>通道适配器 · Webhook 接收"]
+  L2["<b>L2 编排层</b><br/>Orchestration Layer<br/>Agent 循环 · Prompt 组装"]
+  L3["<b>L3 推理层</b><br/>Inference Layer<br/>LLM 调用 · 工具执行"]
+  L4["<b>L4 持久层</b><br/>Persistence Layer<br/>SQLite · Markdown 记忆"]
+
+  L1 -->|Envelope| L2
+  L2 -->|AgentInput| L3
+  L3 -->|ToolCall| L3
+  L3 -->|SessionOp| L4
+  L4 -->|State| L2
+
+  style L1 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b,stroke-width:2px
+  style L2 fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+  style L3 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style L4 fill:#d1fae5,stroke:#059669,color:#1a1f2b
+</div><figcaption>图 2.2 · 四层架构全景——L1 接收消息，L2 编排 Agent，L3 推理 + 执行，L4 持久化。</figcaption></figure>
+
+  <h3 class="view-h3" id="sec-4.1"><span class="sec-num">§ 4.1</span>L1 · 接入层 （Access Layer）<span class="vh-tag">L1</span></h3>
+  <p><strong>职责</strong>：把外部消息平台的 webhook 归一化为内部 <code>Envelope</code>。</p>
+  <p><strong>关键文件</strong>:</p>
+  <ul>
+    <li><code>apps/gateway/src/gateway/server.ts</code>——WebSocket + HTTP 服务器</li>
+    <li><code>apps/gateway/src/gateway/router.ts</code>——JSON-RPC 路由</li>
+    <li><code>apps/gateway/src/gateway/envelope.ts</code>——Envelope 类型定义</li>
+    <li><code>apps/gateway/src/channels/registry.ts</code>——通道插件注册表</li>
+  </ul>
+  <p><strong>接口契约</strong>: <code>Envelope = { id, channel, account, peer, content, timestamp, metadata? }</code></p>
+
+  <h3 class="view-h3" id="sec-4.2"><span class="sec-num">§ 4.2</span>L2 · 编排层 （Orchestration Layer）<span class="vh-tag">L2</span></h3>
+  <p><strong>职责</strong>：Agent 循环 + Prompt 组装 + 会话管理。</p>
+  <p><strong>关键文件</strong>:</p>
+  <ul>
+    <li><code>apps/gateway/src/agents/runner.ts</code> — <code>Agent.run()</code> 主入口</li>
+    <li><code>apps/gateway/src/agents/prompt-builder.ts</code>——8 层 Prompt 组装</li>
+    <li><code>apps/gateway/src/agents/loop-controller.ts</code>——最大工具轮次 + 提前结束</li>
+    <li><code>apps/gateway/src/session/manager.ts</code>——会话管理</li>
+  </ul>
+  <p><strong>接口契约</strong>: <code>AgentInput = { sessionId, userMessage, attachments? }</code> → <code>AgentOutput = { text, toolCalls?, stopReason }</code></p>
+
+  <h3 class="view-h3" id="sec-4.3"><span class="sec-num">§ 4.3</span>L3 · 推理层 （Inference Layer）<span class="vh-tag">L3</span></h3>
+  <p><strong>职责</strong>：调用 LLM + 执行工具（在沙箱中）。</p>
+  <p><strong>关键文件</strong>:</p>
+  <ul>
+    <li><code>apps/gateway/src/agents/provider.ts</code>——LLM Provider 接口</li>
+    <li><code>apps/gateway/src/tools/executor.ts</code>——工具执行器</li>
+    <li><code>apps/gateway/src/tools/sandbox/</code>——4 种沙箱实现</li>
+    <li><code>apps/gateway/src/hooks/chain.ts</code>——钩子链</li>
+  </ul>
+  <p><strong>接口契约</strong>: <code>ToolCall = { id, name, arguments }</code> → <code>ToolResult = { success, output, error? }</code></p>
+
+  <h3 class="view-h3" id="sec-4.4"><span class="sec-num">§ 4.4</span>L4 · 持久层 （Persistence Layer）<span class="vh-tag">L4</span></h3>
+  <p><strong>职责</strong>：会话状态 + 长期记忆 + 配置存储。</p>
+  <p><strong>关键文件</strong>:</p>
+  <ul>
+    <li><code>apps/gateway/src/session/storage.ts</code>——SQLite 存储</li>
+    <li><code>apps/gateway/src/session/compaction.ts</code>——上下文压缩</li>
+    <li><code>apps/gateway/src/session/memory.ts</code>——Markdown 记忆</li>
+  </ul>
+  <p><strong>接口契约</strong>: <code>Session = { id, messages, metadata, lastActive }</code></p>
+
+  <h3 class="view-h3" id="sec-4.5"><span class="sec-num">§ 4.5</span>为什么是 4 层而不是 3 层或 5 层？<span class="vh-tag">why-4</span></h3>
+  <p>4 层是经验总结——经过 3 年迭代才稳定。</p>
+  <ul>
+    <li><strong>3 层不够</strong>：把 LLM 和工具合一层会让"沙箱边界"模糊</li>
+    <li><strong>5 层太多</strong>：加"中间件层 / 队列层"会增加跳跃成本</li>
+    <li><strong>4 层正好</strong>：每层职责单一、层间接口稳定、可独立测试</li>
+  </ul>
+
+
+<div class="thinking-note">
+  <p>四层架构<strong>不是微服务</strong>——都在同一个 Gateway 进程内，层间是函数调用（不是网络请求）。这意味着延迟低、调试简单、但单点容量受限——横向扩展是必要的。</p>
+</div>
+
+<h3 class="view-h3" id="deep-11"><span class="sec-num">§ 4.6</span>分层架构全景</h3>
+<p class="section-lede">从一句话定义开始，逐层展开 OpenClaw 的运行时骨架——从最外层用户交互，到 Gateway 控制平面，再到 AI Agent 执行引擎，最后到持久化层。看完这一节，你能<strong>在脑中画出完整的运行时架构图</strong>，并理解每层的边界和接口。</p>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>OpenClaw 的整体架构分几层？每层的核心组件和职责是什么？</li>
+  <li>智能体 5 层状态机如何驱动消息从入站到回复的完整转化？</li>
+  <li>Gateway 为什么是"控制平面"和"单一事实来源"？</li>
+  <li>新手最容易忽略哪三条规则？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-01-layered-architecture-1" data-toc-skip><span class="sec-num">§ 4.6.1</span>一句话版</h4>
+<pre class="code-block">OpenClaw = 一个自托管 Gateway 网关 + 一个 AI Agent + 很多通道、插件和节点</pre>
+<ul><li><strong>自托管</strong>：运行在自己的电脑或服务器上，配置、会话、记忆默认都在本机</li></ul>
+<ul><li><strong>核心设计问题</strong>：OpenClaw 的智能体为什么"能长期跑"，而不是只在 demo 里跑一次？</li></ul>
+<p>答案在于多层架构的<strong>韧性设计</strong>——会话持久化、队列并发控制、状态机容错、模型故障转移。每一层都有独立的容错和重试逻辑，单点故障不会导致整个 Agent 卡死。</p>
+<hr>
+<h4 class="view-h3" id="deep-01-layered-architecture-2" data-toc-skip><span class="sec-num">§ 4.6.2</span>整体分层架构</h4>
+<figure><div class="mermaid">
+flowchart TB
+    CLI[CLI / Control UI<br/>用户交互]:::cli
+    --> GW[Gateway<br/>控制平面]:::gw
+    GW --> CH[Channel<br/>消息入口]:::chan
+    GW --> RT[Router<br/>消息路由]:::chan
+    GW --> PL[Plugin<br/>扩展框架]:::chan
+
+    CH --> AG[Agent Runner<br/>执行引擎]:::agent
+    RT --> AG
+    PL --> AG
+
+    AG --> AI[AI Provider<br/>模型调用]:::ai
+
+    subgraph Storage["持久化层"]
+        SS[Sessions<br/>会话存储]:::side
+        MEM[Memory<br/>记忆文件]:::side
+        CFG[Config<br/>配置文件]:::side
+    end
+
+    AG -.-> Storage
+
+    classDef cli fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef gw fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef chan fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef side fill:#f1f5f9,stroke:#64748b,color:#334155
+
+    linkStyle 5,6,7 stroke:#d1fae5,stroke-width:2px
+</div><figcaption>图 4.3 · 四层架构</figcaption></figure>
+<h4 id="sec-10-4-1" data-toc-skip><span class="sec-num">§ 4.6.3</span> 各层职责</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>层级</th><th>核心组件</th><th>源码目录</th><th>职责</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>接入层</strong></td><td>CLI / Control UI</td><td><code>src/cli/</code></td><td>用户交互界面，命令行或浏览器控制面板</td></tr>
+    <tr><td><strong>网关层</strong></td><td>Gateway</td><td><code>src/gateway/</code></td><td>控制平面，管理连接、会话生命周期、配置热重载</td></tr>
+    <tr><td><strong>通道与路由层</strong></td><td>Channel / Router / Plugin</td><td><code>src/channels/</code>, <code>src/routing/</code>, <code>src/plugins/</code></td><td>消息入口适配，路由分发，插件扩展</td></tr>
+    <tr><td><strong>执行层</strong></td><td>Agent Runner</td><td><code>src/agents/embedded-agent-runner/</code></td><td>智能体循环（Agent Loop），LLM 调用、工具执行、流式输出</td></tr>
+    <tr><td><strong>模型层</strong></td><td>AI Provider</td><td><code>src/providers/</code></td><td>对接各类大模型 API，统一接口屏蔽差异</td></tr>
+    <tr><td><strong>持久化层</strong></td><td>Sessions / Memory / Config</td><td><code>src/config/</code></td><td>会话历史、记忆文件、配置存储</td></tr>
+  </tbody>
+</table>
+<blockquote><p><strong>核心规则</strong>：所有会话状态由网关"主控"。UI 客户端必须查询网关获取会话列表和 Token 计数，不读本地文件。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-01-layered-architecture-3" data-toc-skip><span class="sec-num">§ 4.6.4</span>智能体 5 层状态机</h4>
+<p>真实链路不是一次 `model.generate（）`，而是<strong>多层状态机</strong>协同工作。这是 OpenClaw 能够"长期运行"的核心机制：</p>
+<figure><div class="mermaid">
+flowchart LR
+    SL["session lane<br/>会话队列"]:::cli
+    GL["global lane<br/>全局队列"]:::cli
+    AT["attempt<br/>单次执行"]:::agent
+    SB["subscribe<br/>流式事件"]:::agent
+    WC["wait compaction<br/>等压缩稳定"]:::gw
+    FZ["finalize<br/>收尾"]:::agent
+    ER{error?}:::ai
+    RF["rotate profile<br/>换密钥"]:::ai
+    CP["compact<br/>压缩"]:::gw
+    FB["fallback<br/>换模型"]:::ai
+    DONE["完成"]:::side
+
+    SL --> GL --> AT --> SB --> WC --> FZ --> ER
+    ER -->|yes| RF --> CP --> FB
+    ER -->|no| DONE
+    FB --> AT
+
+    classDef cli fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef gw fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef side fill:#f1f5f9,stroke:#64748b,color:#334155
+</div><figcaption>图 4.4 · 四层架构</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>状态</th><th>所属层</th><th>职责</th><th>容错</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>session lane</strong></td><td>接入层</td><td>会话级队列，保证同一会话消息串行</td><td>concurrency=1</td></tr>
+    <tr><td><strong>global lane</strong></td><td>接入层</td><td>全局并发控制，限制同时运行数</td><td>maxPending 兜底</td></tr>
+    <tr><td><strong>attempt</strong></td><td>执行层</td><td>单次真实执行事务，调用 LLM + 工具</td><td>超时中止</td></tr>
+    <tr><td><strong>subscribe</strong></td><td>执行层</td><td>流式事件稳定化，收集增量消息</td><td>事件缓冲 + 幂等</td></tr>
+    <tr><td><strong>wait compaction</strong></td><td>网关层</td><td>压缩等待，腾出上下文空间</td><td>compactionRetryPromise</td></tr>
+    <tr><td><strong>finalize</strong></td><td>执行层</td><td>收尾：回复整形、持久化</td><td>异常捕获</td></tr>
+    <tr><td><strong>rotate profile</strong></td><td>模型层</td><td>密钥轮换，换账号重试</td><td>多 profile 轮换</td></tr>
+    <tr><td><strong>compact</strong></td><td>网关层</td><td>压缩旧对话为摘要</td><td>reserveTokensFloor</td></tr>
+    <tr><td><strong>fallback</strong></td><td>模型层</td><td>模型回退，换一个模型继续</td><td>多候选 Fallback 列表</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-layered-architecture-4" data-toc-skip><span class="sec-num">§ 4.6.5</span>消息完整旅程</h4>
+<p>从用户发送消息到收到回复的<strong>完整跨层链路</strong>（含调用链源码路径）：</p>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant C as Channel
+    participant G as Gateway
+    participant R as Router
+    participant D as Dispatch
+    participant A as Agent Runner
+    participant L as LLM
+
+    U->>C: [1] 发送消息
+    C->>G: [2] InboundMessage
+    G->>R: [3] 路由解析
+    R->>D: [4] 消息分发 + hooks
+    D->>A: [5] 启动 Agent Loop
+    A->>L: [6] LLM 调用
+    L-->>A: [7] 流式回复
+    A-->>G: [8] routeReply
+    G-->>C: [9] 格式化回复
+    C-->>U: [10] 用户收到
+</div><figcaption>图 4.5 · 四层架构</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>步骤</th><th>组件</th><th>关键文件</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>[1]</td><td>User</td><td>—</td><td>用户通过任意通道发送消息</td></tr>
+    <tr><td>[2]</td><td>Channel</td><td><code>src/channels/</code></td><td>适配器接收并标准化为 InboundMessage</td></tr>
+    <tr><td>[3]</td><td>Gateway</td><td><code>src/gateway/server.impl.ts</code></td><td>认证与会话绑定</td></tr>
+    <tr><td>[4]</td><td>Router</td><td><code>src/routing/resolve-route.ts</code></td><td>解析 session key，确定目标 Agent</td></tr>
+    <tr><td>[5]</td><td>Dispatch</td><td><code>src/auto-reply/dispatch.ts</code></td><td>执行 hooks，编排自动回复</td></tr>
+    <tr><td>[6]</td><td>Agent</td><td><code>src/agents/embedded-agent-runner/run.ts</code></td><td>构建上下文、调用 LLM</td></tr>
+    <tr><td>[7]</td><td>LLM</td><td><code>src/providers/</code></td><td>模型推理，流式返回 Token</td></tr>
+    <tr><td>[8]</td><td>Gateway</td><td><code>src/gateway/server-chat.ts</code></td><td>routeReply 回复路由</td></tr>
+    <tr><td>[9]</td><td>Channel</td><td>—</td><td>格式化为目标通道消息</td></tr>
+    <tr><td>[10]</td><td>User</td><td>—</td><td>收到回复</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-10-7-1" data-toc-skip><span class="sec-num">§ 4.6.6</span> 核心调用链（文本版）</h4>
+<pre class="code-block">src/entry.ts → src/runtime.ts → src/gateway/server.impl.ts
+    → src/gateway/auth.ts → src/routing/resolve-route.ts
+    → src/auto-reply/dispatch.ts → src/agents/embedded-agent-runner/run.ts
+    → src/providers/anthropic.ts (或 openai.ts)
+    → src/agents/openclaw-tools.ts (多轮循环)
+    → src/auto-reply/reply/ → src/channels/ → 用户</pre>
+<hr>
+<h4 class="view-h3" id="deep-01-layered-architecture-5" data-toc-skip><span class="sec-num">§ 4.6.7</span>完整架构全景图</h4>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph CHANNELS["通道层"]
+    direction LR
+        TG[Telegram]
+        WA[WhatsApp]
+        DC[Discord]
+        SL[Slack]
+        WEB[WebChat]
+        MS[Microsoft Teams]
+    end
+
+    subgraph GATEWAY["网关层"]
+
+    direction LR
+        CAPI[HTTP API]
+        WS[WebSocket<br/>连接管理]
+        AUTH[Auth<br/>速率限制]
+    end
+
+    subgraph ROUTING["路由层"]
+
+    direction LR
+        ROU[Router<br/>resolve-route.ts]
+        KEY[Session Key<br/>session-key.ts]
+    end
+
+    subgraph EXECUTION["执行层"]
+
+    direction LR
+        DISP[Dispatch<br/>dispatch.ts]
+        AGENT[Agent Runner<br/>embedded-agent-runner]
+        TOOL[Tool System<br/>openclaw-tools.ts]
+        CTX[Context Guard<br/>context-window-guard.ts]
+        FALL[Model Fallback<br/>model-fallback.ts]
+    end
+
+    CHANNELS --> GATEWAY
+    GATEWAY --> ROUTING
+    ROUTING --> EXECUTION
+</div><figcaption>图 4.6 · 四层架构——主链路：消息从通道进入网关，经路由后交给执行层。</figcaption></figure>
+<figure><div class="mermaid">
+flowchart TB
+    subgraph EXECUTION["执行层"]
+        direction LR
+        DISP[Dispatch<br/>dispatch.ts]
+        AGENT[Agent Runner<br/>embedded-agent-runner]
+        TOOL[Tool System<br/>openclaw-tools.ts]
+        CTX[Context Guard<br/>context-window-guard.ts]
+        FALL[Model Fallback<br/>model-fallback.ts]
+    end
+
+    subgraph PROVIDER["模型层"]
+        direction LR
+        ANTH[Anthropic<br/>Claude]
+        OPE[OpenAI<br/>GPT]
+        OLL[Ollama<br/>Local]
+    end
+
+    subgraph PLUGIN["插件层"]
+        direction LR
+        PL[Plugin Loader<br/>plugins/loader.ts]
+        PR[Plugin Registry<br/>plugins/]
+    end
+
+    subgraph STORAGE["存储层"]
+        direction LR
+        SESS[Session Store<br/>config/sessions/store.ts]
+        MED[Media Store<br/>media/]
+        CFG[Config IO<br/>config/io.ts]
+    end
+
+    subgraph SIDECAR["附属能力"]
+        direction LR
+        CR[Cron<br/>定时任务]
+        MEM[Memory<br/>记忆系统]
+        SEC[Security<br/>安全审计]
+        NODE[Nodes<br/>节点扩展]
+    end
+
+    EXECUTION --> PROVIDER
+    EXECUTION --> PLUGIN
+    EXECUTION --> STORAGE
+    EXECUTION --- SIDECAR
+    PLUGIN --> PROVIDER
+    PLUGIN --> STORAGE
+    SIDECAR --> STORAGE
+    SIDECAR --> GATEWAY
+</div><figcaption>图 4.7 · 四层架构——执行层的下游：模型、插件、存储与附属能力。</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-01-layered-architecture-6" data-toc-skip><span class="sec-num">§ 4.6.8</span>部署模式</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>模式</th><th>说明</th><th>适用场景</th><th>安全等级</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>本地部署</strong></td><td>直接运行在本地机器</td><td>开发/测试</td><td>高</td></tr>
+    <tr><td><strong>Docker 部署</strong></td><td>使用 Docker 容器</td><td>生产环境</td><td>中</td></tr>
+    <tr><td><strong>云服务器</strong></td><td>部署到云服务器</td><td>远程访问</td><td>中</td></tr>
+    <tr><td><strong>节点连接</strong></td><td>移动端/桌面端作为节点</td><td>能力扩展</td><td>注意网络安全</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-layered-architecture-7" data-toc-skip><span class="sec-num">§ 4.6.9</span>自检清单</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>检查项</th><th>说明</th><th>预期答案</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>消息路径</strong></td><td>消息从通道到模型经过了哪 10 步？</td><td>能画出消息完整旅程</td></tr>
+    <tr><td><strong>并发安全</strong></td><td>同一会话的消息会乱序吗？</td><td>不会，Session Lane concurrency=1</td></tr>
+    <tr><td><strong>容错链路</strong></td><td>模型调用失败后有哪些兜底？</td><td>Profile 轮换 → Fallback 模型</td></tr>
+    <tr><td><strong>会话隔离</strong></td><td>Alice 和 Bob 通过同一 Bot 发消息互看隐私？</td><td>不会，per-channel-peer 隔离</td></tr>
+    <tr><td><strong>配置热重载</strong></td><td>改了通道配置需要重启吗？</td><td>不需要，hybrid 模式即时生效</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-layered-architecture-8" data-toc-skip><span class="sec-num">§ 4.6.10</span>新手 3 条规则</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>#</th><th>规则</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>①</td><td><strong>Gateway 要一直运行</strong></td><td>它停了，所有通道和 Control UI 都失连</td></tr>
+    <tr><td>②</td><td><strong>先用 Control UI 验证，再接聊天软件</strong></td><td>确认 AI 能回复，再接 Telegram/WhatsApp</td></tr>
+    <tr><td>③</td><td><strong>远程访问看安全配置</strong></td><td>不要随便把 18789 端口暴露到公网</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-02-core-concepts-1">02 - 核心概念模型</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-core-source-index-1">03 - 核心源码索引</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-01-gateway-positioning-1">02 - 网关与控制平面</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">03 - 执行引擎</a> · <a href="/2026/11/07/openclaw-03-channels/#deep-01-routing-engine-1">04 - 路由与会话管理</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-12"><span class="sec-num">§ 4.7</span>核心概念模型</h3>
+<p class="section-lede">分层架构回答"代码怎么组织"，概念模型回答"运行时有哪些对象"。OpenClaw 有 <strong>6 个核心实体</strong>（Agent、Session、Channel、Tool、Memory、Config），它们的协作关系决定了消息如何被处理。理解这 6 个实体，就掌握了阅读源码的"词汇表"。</p>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>OpenClaw 的六大核心实体是什么？它们之间如何分层协作？</li>
+  <li>各核心概念对应的详细学习模块在哪里？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-02-core-concepts-1" data-toc-skip><span class="sec-num">§ 4.7.1</span>六大核心实体</h4>
+<p>OpenClaw 的架构由<strong>六大核心实体</strong>构成，它们分层协作完成从消息接收到底层模型调用的完整链路：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 入口层["消息入口"]
+        CH["Channel<br/>消息通道"]:::chan
+    end
+
+    subgraph 调度层["调度与控制"]
+        GW["Gateway<br/>控制平面"]:::gw
+        RT["Router<br/>消息路由"]:::gw
+    end
+
+    subgraph 执行层["智能体执行"]
+        AG["Agent<br/>执行智能体"]:::agent
+    end
+
+    subgraph 能力层["AI 与扩展"]
+        PR["Provider<br/>模型供应商"]:::ai
+        PL["Plugin<br/>插件扩展"]:::ai
+    end
+
+    CH --> GW --> RT --> AG --> PR
+    PL -.-> AG
+
+    classDef chan fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef gw fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
+</div><figcaption>图 4.9 · 四层架构</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>实体</th><th>一句话定位</th><th>生命周期</th><th>详细模块</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Channel</strong></td><td>消息入口，接收用户消息并标准化</td><td>通道持续运行</td><td><a href="/2026/11/07/openclaw-03-channels/#deep-04-channels-nodes-1">04 · 通道与节点架构</a></td></tr>
+    <tr><td><strong>Gateway</strong></td><td>调度中心，管理连接、会话、配置</td><td>进程级持续运行</td><td><a href="/2026/11/07/openclaw-02-architecture/#deep-01-gateway-positioning-1">02 · 网关与控制平面</a></td></tr>
+    <tr><td><strong>Router</strong></td><td>决策中枢，解析 Session Key</td><td>每次消息触发</td><td><a href="/2026/11/07/openclaw-03-channels/#deep-01-routing-engine-1">04 · 路由层与 Session Key</a></td></tr>
+    <tr><td><strong>Agent</strong></td><td>执行智能体，推理+工具+记忆</td><td>会话级别</td><td><a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">03 · 智能体执行引擎</a></td></tr>
+    <tr><td><strong>Provider</strong></td><td>模型供应商，统一调用接口</td><td>全局配置</td><td><a href="/2026/11/07/openclaw-04-models-runtimes/#deep-01-provider-adapters-1">08 · Provider 与模型</a></td></tr>
+    <tr><td><strong>Plugin</strong></td><td>扩展骨架，新增通道/工具/Provider</td><td>启动时加载</td><td><a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-01-plugin-system-1">09 · 插件系统</a></td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-core-concepts-2" data-toc-skip><span class="sec-num">§ 4.7.2</span>核心概念速览</h4>
+<h4 id="sec-10-15-1" data-toc-skip><span class="sec-num">§ 4.7.3</span> Agent Loop（智能体循环）</h4>
+<blockquote><p>将一条消息转化为操作和最终回复的完整路径。不是一次 `model.generate（）`，而是多层状态机协同。</p></blockquote>
+<blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">03 · Agent Loop 工作流</a></p></blockquote>
+<h4 id="sec-10-16-1" data-toc-skip><span class="sec-num">§ 4.7.4</span> Agent Runtime（运行时）</h4>
+<blockquote><p>定义 Agent 的"工作方式"：`pi`（默认，完整循环）、`codex`（代码执行）、`claude-cli`（CLI 任务）、`acp`（外部 Agent）。</p></blockquote>
+<blockquote><p>新手先用默认 `pi`，确认 Provider 稳定后再研究其他。</p></blockquote>
+<h4 id="sec-10-17-1" data-toc-skip><span class="sec-num">§ 4.7.5</span> Agent Workspace（工作区）</h4>
+<blockquote><p>Agent 的工作目录，包含 AGENTS.md（工作手册）和 SOUL.md（人格说明）。</p></blockquote>
+<blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-05-workspace-config-1">09 · 工作区配置</a></p></blockquote>
+<h4 id="sec-10-18-1" data-toc-skip><span class="sec-num">§ 4.7.6</span> 队列模式</h4>
+<blockquote><p>当新消息在 Agent 执行中到达时，决定处理方式：`collect`（合并）、`steer`（导向）、`followup`（排队）、`interrupt`（中断）。</p></blockquote>
+<blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-02-concurrency-control-1">03 · 队列与并发控制</a></p></blockquote>
+<h4 id="sec-10-19-1" data-toc-skip><span class="sec-num">§ 4.7.7</span> Session Key（会话键）</h4>
+<blockquote><p>路由的核心标识，格式 `agent：{agentId}：{channel}：{scope}：{peerId}`，决定消息属于哪个会话。</p></blockquote>
+<blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-03-channels/#deep-01-routing-engine-1">04 · 路由层与 Session Key</a></p></blockquote>
+<h4 id="sec-10-20-1" data-toc-skip><span class="sec-num">§ 4.7.8</span> dmScope（会话隔离）</h4>
+<blockquote><p>控制 DM 会话的隔离粒度：`main`（单用户）、`per-peer`（按用户跨通道）、`per-channel-peer`（推荐多用户）。</p></blockquote>
+<blockquote><p><strong>详见</strong>：<a href="/2026/11/07/openclaw-03-channels/#deep-01-routing-engine-1">04 · 路由层与 Session Key</a></p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-02-core-concepts-3" data-toc-skip><span class="sec-num">§ 4.7.9</span>完整协作关系</h4>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant CH as Channel
+    participant GW as Gateway
+    participant RT as Router
+    participant AG as Agent
+    participant PR as Provider
+
+    CH->>GW: 用户消息
+    GW->>RT: 路由解析
+    RT-->>GW: Session Key
+    GW->>AG: 转发到 Agent
+    AG->>PR: LLM 调用
+    PR-->>AG: 推理结果
+    AG-->>GW: routeReply
+    GW-->>CH: 回复用户
+</div><figcaption>图 4.10 · 四层架构</figcaption></figure>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-layered-architecture-1">01 - 分层架构全景</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-core-source-index-1">03 - 核心源码索引</a> · 各概念对应的详细模块见上表</p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-22"><span class="sec-num">§ 4.8</span>工具系统架构</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>OpenClaw 提供哪些内置工具？各自的功能和适用场景是什么？</li>
+  <li>工具和插件在概念上有什么本质区别？插件如何扩展工具？</li>
+  <li>工具策略如何通过 allow/deny 列表配置？通配符和优先级规则是什么？</li>
+  <li>Agent 工具调用从发起到执行经过哪些权限校验层？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-01-tool-system-1" data-toc-skip><span class="sec-num">§ 4.8.1</span>工具系统概述</h4>
+<p>模型负责"想"，工具负责"做"。如果没有工具，AI 只能在聊天框里回答；有了工具，它就可以查网页、读写文件、运行命令、生成图片。</p>
+<h4 id="sec-13-3-1" data-toc-skip><span class="sec-num">§ 4.8.2</span> 工具系统架构</h4>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 工具层["工具层（Tools）"]
+        direction TB
+        T1["Browser<br/>网页浏览"]:::tool
+        T2["Exec<br/>命令执行"]:::tool
+        T3["Read / Write<br/>文件读写"]:::tool
+        T4["Web Search / Fetch<br/>网络搜索"]:::tool
+        T5["Canvas / Image<br/>可视化"]:::tool
+        T6["PDF / Code Exec<br/>文档与沙箱"]:::tool
+    end
+
+    subgraph 权限层["权限控制层"]
+        direction LR
+        P1["tools.allow / deny<br/>通配符匹配"]:::perm
+        P2["exec.mode<br/>deny/allowlist/ask/auto/full"]:::perm
+        P3["approvals.json<br/>命令级审批规则"]:::perm
+    end
+
+    subgraph 执行层["执行层"]
+        E1["Safe Binaries<br/>内置安全白名单"]:::exec
+        E2["Sandbox<br/>沙箱隔离（可选）"]:::exec
+    end
+
+    T1 & T2 & T3 & T4 & T5 & T6 --> P1
+    P1 --> P2
+    P2 --> P3
+    P3 --> E1 & E2
+
+    classDef tool fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef perm fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 4.11 · 四层架构</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-01-tool-system-2" data-toc-skip><span class="sec-num">§ 4.8.3</span>内置工具一览</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>工具</th><th>功能</th><th>适合场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Browser</strong> </td><td>打开网页、点击按钮、读取页面</td><td>登录后台、网页自动化</td></tr>
+    <tr><td><strong>Web Search</strong></td><td>搜索网页、抓取内容</td><td>查资料、读文档</td></tr>
+    <tr><td><strong>Web Fetch</strong></td><td>读取一个网页正文</td><td>已知 URL 的内容提取</td></tr>
+    <tr><td><strong>Exec</strong></td><td>在允许范围内运行命令</td><td>构建项目、跑测试</td></tr>
+    <tr><td><strong>Code Execution</strong></td><td>远程 Python 沙盒</td><td>分析计算、统计分析</td></tr>
+    <tr><td><strong>Read</strong></td><td>读取文件内容</td><td>查看源码、查阅文档</td></tr>
+    <tr><td><strong>Write</strong></td><td>写入文件内容</td><td>修改配置、创建文件</td></tr>
+    <tr><td><strong>Edit</strong></td><td>编辑已有文件</td><td>修改代码、更新内容</td></tr>
+    <tr><td><strong>PDF</strong></td><td>阅读 PDF 文件</td><td>合同、论文、说明书</td></tr>
+    <tr><td><strong>Canvas</strong></td><td>在节点上展示可视化界面</td><td>手机/桌面交互</td></tr>
+    <tr><td><strong>Image Generate</strong></td><td>生成图片</td><td>配图、草图、视觉素材</td></tr>
+    <tr><td><strong>Loop Detection</strong></td><td>发现无意义重复</td><td>防止 Agent 卡住</td></tr>
+    <tr><td><strong>Goal</strong></td><td>固定当前会话目标</td><td>长任务、PR 收尾</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-13-5-1" data-toc-skip><span class="sec-num">§ 4.8.4</span> 工具按来源分类</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>来源</th><th>说明</th><th>示例</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>内置工具</strong></td><td>Gateway 原生提供，始终可用</td><td>Read, Write, Exec, Browser</td></tr>
+    <tr><td><strong>技能工具</strong></td><td>由技能（Skill）提供</td><td>自定义脚本、专用工具</td></tr>
+    <tr><td><strong>插件工具</strong></td><td>由插件注册提供</td><td>第三方 API 集成、专业工具</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-tool-system-3" data-toc-skip><span class="sec-num">§ 4.8.5</span>工具 vs 插件</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>维度</th><th>工具（Tool）</th><th>插件（Plugin）</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>定位</strong></td><td>真正执行具体操作的功能单元</td><td>像"安装包"，提供新能力的载体</td></tr>
+    <tr><td><strong>粒度</strong></td><td>单一功能（读文件、执行命令）</td><td>可包含多个工具、通道、命令</td></tr>
+    <tr><td><strong>来源</strong></td><td>内置或由插件注册</td><td>第三方或自研扩展包</td></tr>
+    <tr><td><strong>示例</strong></td><td><code>read</code>, <code>exec</code>, <code>browser</code></td><td>Telegram 通道插件、自定义工具集</td></tr>
+  </tbody>
+</table>
+<blockquote><p>一个插件可以提供：新频道、新工具、新命令、新的配置页面或元数据。工具是插件的"功能单元"。</p></blockquote>
+<h4 id="sec-13-7-1" data-toc-skip><span class="sec-num">§ 4.8.6</span> 技能加载顺序</h4>
+<p>当一个工具被调用时，OpenClaw 按以下优先级查找：</p>
+<pre class="code-block">1. 捆绑的（随安装包附带的系统工具）
+2. 托管/本地：~/.openclaw/skills
+3. 工作区：workspace/skills（名称冲突时优先）</pre>
+<hr>
+<h4 class="view-h3" id="deep-01-tool-system-4" data-toc-skip><span class="sec-num">§ 4.8.7</span>工具策略配置</h4>
+<h4 id="sec-13-9-1" data-toc-skip><span class="sec-num">§ 4.8.8</span> 工具 allow/deny 列表</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      tools: {
+        allow: [&quot;exec&quot;, &quot;read&quot;, &quot;write&quot;, &quot;edit&quot;],
+        deny: [&quot;browser&quot;, &quot;nodes&quot;],
+      },
+    },
+  },
+}</pre>
+<h4 id="sec-13-10-1" data-toc-skip><span class="sec-num">§ 4.8.9</span> 匹配规则</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>规则</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>**通配符 <code>*</code>**</td><td><code>allow: ["*"]</code> 允许所有工具</td></tr>
+    <tr><td><strong>deny 优先</strong></td><td>同时匹配 allow 和 deny 时，deny 生效</td></tr>
+    <tr><td><strong>大小写不敏感</strong></td><td><code>Exec</code> 和 <code>exec</code> 视为相同</td></tr>
+    <tr><td><strong>空 allow</strong></td><td>空列表 = 所有工具被允许</td></tr>
+    <tr><td><strong>空 deny</strong></td><td>无拒绝项 = 仅 allow 列表中的可用</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-13-11-1" data-toc-skip><span class="sec-num">§ 4.8.10</span> 每 Agent 工具配置</h4>
+<p>可以为不同 Agent 设置独立的工具策略：</p>
+<pre class="code-block">{
+  agents: {
+    list: [
+      {
+        id: &quot;main&quot;,
+        tools: {
+          allow: [&quot;exec&quot;, &quot;read&quot;, &quot;write&quot;, &quot;edit&quot;, &quot;browser&quot;],
+        },
+      },
+      {
+        id: &quot;family&quot;,
+        tools: {
+          allow: [&quot;read&quot;, &quot;sessions_list&quot;, &quot;sessions_history&quot;],
+          deny: [&quot;exec&quot;, &quot;write&quot;, &quot;edit&quot;, &quot;apply_patch&quot;, &quot;browser&quot;],
+        },
+      },
+    ],
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-01-tool-system-5" data-toc-skip><span class="sec-num">§ 4.8.11</span>扩展能力</h4>
+<p>除内置工具外，OpenClaw 还提供以下 Agent 扩展方式：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>能力</th><th>说明</th><th>适用场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Skills</strong></td><td>给 Agent 加一份专门说明书</td><td>特定领域的操作指南</td></tr>
+    <tr><td><strong>子智能体 Subagents</strong></td><td>把一个大任务拆给多个 Agent 并行处理</td><td>复杂任务分解</td></tr>
+    <tr><td><strong>斜杠命令</strong></td><td>用短命令触发固定动作</td><td>快速操作、常用功能</td></tr>
+    <tr><td><strong>BTW 临时问题</strong></td><td>问旁支问题，不污染主会话上下文</td><td>临时查询</td></tr>
+    <tr><td><strong>Steer 引导</strong></td><td>Agent 正忙时轻轻纠偏</td><td>实时方向调整</td></tr>
+    <tr><td><strong>ACP Agents</strong></td><td>把外部编码 harness 接进 OpenClaw</td><td>专业编码环境</td></tr>
+    <tr><td><strong>ClawHub</strong></td><td>搜索、安装、更新和发布技能/插件</td><td>生态扩展</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-tool-system-6" data-toc-skip><span class="sec-num">§ 4.8.12</span>架构总览</h4>
+<pre class="code-block">┌─────────────────────────────────────────────────────────────────────────┐
+│                          工具系统架构                                    │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                    工具层（Tools）                               │   │
+│  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐        │   │
+│  │  │Browser │ │  Exec  │ │  Read  │ │ Write  │ │ Canvas │        │   │
+│  │  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘        │   │
+│  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────┐     │   │
+│  │  │  Web   │ │  PDF   │ │  Image │ │  Goal  │ │ Loop Det │     │   │
+│  │  └────────┘ └────────┘ └────────┘ └────────┘ └──────────┘     │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                    │                                    │
+│                                    ▼                                    │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                      权限控制层                                   │   │
+│  │  tools.allow / deny ─── 工具级黑白名单                           │   │
+│  │  tools.exec.mode ────── deny │ allowlist │ ask │ auto │ full    │   │
+│  │  approvals.json ─────── 命令级审批规则                            │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                    │                                    │
+│                                    ▼                                    │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                    安全 Binaries + 沙箱                         │   │
+│  │  ls / cat / git status / grep / find / pwd / echo / which ...  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘</pre>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-06-tools-hooks/#deep-02-permission-approval-1">02 - 权限模式与审批</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-safety-strategy-1">03 - 安全策略配置</a> · <a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-01-plugin-system-1">09 - 插件系统</a> · <a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-05-workspace-config-1">09 - 工作区配置</a></p></blockquote>
+
+
+
+  
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-5"><span class="sec-num">§ 5</span>消息生命周期</h2>
+
+  <p class="section-lede">有了骨架还需要看"血液"如何流动——这一节追踪一条消息从发送到回复的<strong>7 步完整旅程</strong>。这个时序图是 OpenClaw 最重要的"全局地图"。</p>
+
+  <p>从用户发送消息到收到回复，消息在 4 层间流转——这就是模块 07 的详细时序的"架构骨架"。</p>
+
+  <figure><div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant L1 as L1 接入层
+  participant L2 as L2 编排层
+  participant L3 as L3 推理层
+  participant L4 as L4 持久层
+
+  U->>L1: 发送消息(WhatsApp)
+  L1->>L1: 解析 + 校验 + 归一化 Envelope
+  L1->>L2: 转发 Envelope
+  L2->>L4: 查找/创建 Session
+  L2->>L2: 组装 8 层 Prompt
+  L2->>L3: 发送 AgentInput
+  L3->>L3: 调用 LLM
+  L3-->>L2: 返回文本/工具调用
+  alt 工具调用
+    L3->>L3: 沙箱中执行工具
+    L3-->>L2: 工具结果
+    L2->>L3: 继续推理
+  end
+  L2->>L1: 最终回复
+  L1->>U: 出站消息
+  L2->>L4: 持久化 Session 更新
+</div><figcaption>图 2.3 · 一条消息在 4 层间的完整流转——11 步时序。</figcaption></figure>
+
+  <h3 class="view-h3" id="sec-5.1"><span class="sec-num">§ 5.1</span>每层的职责总结<span class="vh-tag">layers-sum</span></h3>
+  <table class="info-table">
+    <thead><tr><th>层</th><th>输入</th><th>输出</th><th>状态</th></tr></thead>
+    <tbody>
+      <tr><td>L1 接入层</td><td>平台消息（WebSocket / Webhook）</td><td>标准化 Envelope</td><td>无状态（每个 Envelope 独立处理）</td></tr>
+      <tr><td>L2 编排层</td><td>Envelope</td><td>AgentOutput</td><td>有状态（管理 Session）</td></tr>
+      <tr><td>L3 推理层</td><td>AgentInput</td><td>ToolResult / 文本</td><td>有状态（LLM context + 沙箱）</td></tr>
+      <tr><td>L4 持久层</td><td>SessionOp</td><td>持久化的 Session</td><td>持久（SQLite + Markdown）</td></tr>
+    </tbody>
+  </table>
+
+
+<div class="thinking-note">
+  <p>注意 <strong>ST（存储） 是在最后一步</strong>——持久化是<strong>副效应</strong>，不影响主路径的时延。如果存储慢了，用户消息不受影响（只是历史记录可能延迟）。</p>
+</div>
+
+<h3 class="view-h3" id="deep-18"><span class="sec-num">§ 5.2</span>Agent Loop 完整工作流</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>Agent Loop 从用户消息到最终回复经历了哪些阶段？</li>
+  <li>调度层、执行层、事件层各负责什么？5 层状态机如何协作？</li>
+  <li>runEmbeddedPiAgent 的内部流程是怎样的？</li>
+  <li>Auto-Reply 的决策流程如何决定消息是丢弃、重置还是执行？</li>
+  <li>流式输出如何通过事件分离（lifecycle/assistant/tool）工作？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-01-agent-loop-workflow-1" data-toc-skip><span class="sec-num">§ 5.2.1</span>Agent Loop 概述</h4>
+<p>智能体循环（Agent Loop）是将一条消息转化为操作和最终回复的<strong>权威路径</strong>。一次循环是每个会话的<strong>单次串行运行</strong>。</p>
+<blockquote><p>Agent Loop 的核心思想：不是一次 `model.generate（）` 就结束，而是<strong>多层状态机</strong>协同工作——队列控制（session lane → global lane）→ 执行（attempt）→ 事件稳定化（subscribe）→ 压缩等待（wait compaction）→ 收尾（finalize）→ 出错时自动恢复（profile 轮换 → compact → fallback）。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-01-agent-loop-workflow-2" data-toc-skip><span class="sec-num">§ 5.2.2</span>入口点</h4>
+<p>Agent Loop 可以通过以下两种方式触发：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>入口</th><th>用途</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Gateway RPC</strong></td><td><code>agent</code> + <code>agent.wait</code></td><td>远程调用，异步模式：<code>agent</code> 返回 runId，<code>agent.wait</code> 轮询结果</td></tr>
+    <tr><td><strong>CLI</strong></td><td><code>agent</code> 命令</td><td>本地命令行执行，适合调试</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-agent-loop-workflow-3" data-toc-skip><span class="sec-num">§ 5.2.3</span>完整调用流程</h4>
+<p>一次完整的 Agent 调用从客户端发起请求到收到最终回复：</p>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant GW as Gateway
+    participant AR as Agent Runner
+    participant AT as Attempt
+    participant SS as Subscribe
+    participant M as AI Model
+
+    Note over C,M: 第 1 步：发起运行
+    C->>GW: agent.run(message)
+    GW->>GW: 验证参数 + 解析会话
+    GW-->>C: { runId, acceptedAt }
+
+    Note over GW,M: 第 2 步：执行循环
+    GW->>AR: runEmbeddedPiAgent()
+    AR->>AR: session lane 排队 → global lane 排队
+    AR->>AR: 构建 pi 会话
+    AR->>AT: runEmbeddedAttempt()
+
+    Note over AT,SS: 第 3 步：LLM 调用 + 流式事件
+    AT->>SS: subscribe
+    SS->>M: LLM 调用
+    M-->>SS: stream events (token / tool_use)
+    SS-->>AT: 事件稳定化
+
+    Note over AT,GW: 第 4 步：返回
+    AT-->>AR: payload + usage meta
+    AR-->>GW: lifecycle end
+
+    Note over C,GW: 第 5 步：查询结果
+    C->>GW: agent.wait(runId)
+    GW-->>C: { status, startedAt, endedAt }
+</div><figcaption>图 5.3 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-5-1" data-toc-skip><span class="sec-num">§ 5.2.4</span> 各阶段说明</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>阶段</th><th>步骤</th><th>核心组件</th><th>关键操作</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>① 发起</strong></td><td>验证参数 + 解析 session</td><td>Gateway</td><td><code>agent.run()</code> 返回 <code>runId + acceptedAt</code></td></tr>
+    <tr><td><strong>② 排队</strong></td><td>session lane → global lane</td><td>Agent Runner</td><td>双层排队保证会话内串行</td></tr>
+    <tr><td><strong>③ 构建</strong></td><td>加载技能、注入提示词</td><td>Agent Runner</td><td>系统提示词 = 基础 + 技能 + 引导 + 覆盖</td></tr>
+    <tr><td><strong>④ 执行</strong></td><td>LLM 调用 + 工具循环</td><td>Attempt</td><td>真实 model.generate（） + 工具解析执行</td></tr>
+    <tr><td><strong>⑤ 流式</strong></td><td>事件分离收集</td><td>Subscribe</td><td>lifecycle/assistant/tool 三流</td></tr>
+    <tr><td><strong>⑥ 返回</strong></td><td>payload + usage meta</td><td>Agent Runner</td><td>回复负载 + Token 用量</td></tr>
+    <tr><td><strong>⑦ 查询</strong></td><td>轮询运行状态</td><td>Gateway</td><td><code>agent.wait({ status, startedAt, endedAt })</code></td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-agent-loop-workflow-4" data-toc-skip><span class="sec-num">§ 5.2.5</span>runEmbeddedPiAgent 内部流程</h4>
+<p>`runEmbeddedPiAgent（...）` 是 Agent Loop 的<strong>核心调度函数</strong>，内部依次经历以下阶段：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 队列控制
+        direction LR
+        Q1["① 每会话队列串行化<br/>session lane concurrency=1"]:::queue
+        Q2["② 全局队列串行化<br/>global lane maxPending=M"]:::queue
+    end
+
+    subgraph 会话构建
+        direction LR
+        S1["③ 解析模型配置<br/>primary + fallbacks"]:::build
+        S2["④ 加载认证配置<br/>auth profiles"]:::build
+        S3["⑤ 构建 pi 会话<br/>SessionManager"]:::build
+    end
+
+    subgraph 执行
+        direction LR
+        E1["⑥ 订阅 pi 事件<br/>subscribeEmbeddedPiSession"]:::exec
+        E2["⑦ 流式输出增量<br/>assistant + tool events"]:::exec
+        E3["⑧ 强制超时中止<br/>timeoutSeconds"]:::exec
+    end
+
+    subgraph 返回
+        direction LR
+        R1["⑨ 返回负载 payload<br/>助手文本 + 工具结果"]:::ret
+        R2["⑩ 返回用量元数据<br/>usage + provider + model"]:::ret
+    end
+
+    Q1 & Q2 --> S1 --> S2 --> S3 --> E1 --> E2 --> E3 --> R1 & R2
+
+    classDef queue fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef build fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef ret fill:#fce7f3,stroke:#ec4899,color:#9d174d
+</div><figcaption>图 5.4 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-7-1" data-toc-skip><span class="sec-num">§ 5.2.6</span> 各步骤详解</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>步骤</th><th>说明</th><th>关键参数</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>① session lane</strong></td><td>每会话一个队列，concurrency=1，保证消息顺序</td><td>按 session key 隔离</td></tr>
+    <tr><td><strong>② global lane</strong></td><td>全局队列，限制最大并发运行数</td><td><code>maxPending</code> 兜底</td></tr>
+    <tr><td><strong>③ 模型配置</strong></td><td>解析 agents.defaults.model.primary + fallbacks</td><td><code>model-fallback.ts</code></td></tr>
+    <tr><td><strong>④ 认证配置</strong></td><td>加载 auth profiles，按优先级轮换</td><td><code>auth-profiles.json</code></td></tr>
+    <tr><td><strong>⑤ 构建会话</strong></td><td>创建 SessionManager，准备写锁</td><td><code>SessionManager</code></td></tr>
+    <tr><td><strong>⑥ 事件订阅</strong></td><td>订阅 pi 事件流，分离三路事件</td><td><code>subscribeEmbeddedPiSession</code></td></tr>
+    <tr><td><strong>⑦ 流式输出</strong></td><td>assistant 增量 + tool start/update/end</td><td>实时推送</td></tr>
+    <tr><td><strong>⑧ 超时中止</strong></td><td>超过 timeoutSeconds 强制中止</td><td><code>agents.defaults.timeoutSeconds</code> 默认 600s</td></tr>
+    <tr><td><strong>⑨ 返回负载</strong></td><td>助手文本 + 工具摘要 + 错误文本 → routeReply</td><td><code>payload</code></td></tr>
+    <tr><td><strong>⑩ 用量元数据</strong></td><td>provider、model、usage tokens</td><td><code>meta</code></td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-agent-loop-workflow-5" data-toc-skip><span class="sec-num">§ 5.2.7</span>事件桥接（Event Bridge）</h4>
+<p>Pi 事件通过桥接机制映射为 OpenClaw 的三类流式事件：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph Pi 事件["Pi Agent Core 事件"]
+        direction LR
+        P1["工具事件<br/>tool start/update/end"]:::pi
+        P2["助手增量<br/>text delta"]:::pi
+        P3["生命周期<br/>phase: start/end/error"]:::pi
+    end
+
+    subgraph 桥接层["subscribeEmbeddedPiSession"]
+        direction TB
+        BR["事件桥接器"]:::bridge
+    end
+
+    subgraph OpenClaw 流["OpenClaw Stream"]
+        direction LR
+        S1["stream: 「tool」"]:::oc
+        S2["stream: 「assistant」"]:::oc
+        S3["stream: 「lifecycle」"]:::oc
+    end
+
+    P1 --> BR --> S1
+    P2 --> BR --> S2
+    P3 --> BR --> S3
+
+    classDef pi fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef bridge fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef oc fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 5.5 · 消息生命周期</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>Pi 事件</th><th>OpenClaw 流</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>工具 start/update/end</strong></td><td><code>stream: "tool"</code></td><td>工具调用触发、进度更新、执行结束</td></tr>
+    <tr><td><strong>文本 delta（增量）</strong></td><td><code>stream: "assistant"</code></td><td>LLM 回复的实时 Token 流</td></tr>
+    <tr><td><strong>phase: start/end/error</strong></td><td><code>stream: "lifecycle"</code></td><td>生命周期的开始、结束、错误信号</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-agent-loop-workflow-6" data-toc-skip><span class="sec-num">§ 5.2.8</span>Auto-Reply 决策流程</h4>
+<p>Auto-Reply 是消息到达 Agent Runner 之前的<strong>第一道决策闸门</strong>，决定消息是丢弃、重置还是继续执行：</p>
+<figure><div class="mermaid">
+flowchart TB
+    MSG[入站消息]:::start
+    --> D1{用户消息?}
+    D1 -->|否| DROP["丢弃<br/>(非用户消息)"]:::drop
+    D1 -->|是| D2{match sendPolicy<br/>deny 规则?}
+
+    D2 -->|是| DROP
+    D2 -->|否| D3{match resetTriggers<br/>如 /new /reset?}
+
+    D3 -->|是| RESET["重置会话<br/>新 sessionId"]:::reset
+    D3 -->|否| D4{/send on/off<br/>运行时覆盖?}
+
+    D4 -->|"on / inherit"| EXEC["触发 Agent 执行"]:::exec
+    D4 -->|off| DROP
+
+    classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef drop fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef reset fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 5.6 · 消息生命周期</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>决策点</th><th>判断依据</th><th>通过则</th><th>不通过则</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>用户消息？</strong></td><td>消息来源类型</td><td>进入下一步</td><td>丢弃</td></tr>
+    <tr><td><strong>sendPolicy deny?</strong></td><td><code>sessions.sendPolicy.rules</code> 匹配</td><td>丢弃</td><td>进入下一步</td></tr>
+    <tr><td><strong>resetTriggers?</strong></td><td>匹配 <code>/new</code> <code>/reset</code> 等</td><td>重置会话</td><td>进入下一步</td></tr>
+    <tr><td><strong>/send on/off?</strong></td><td>会话级运行时覆盖</td><td>on → 执行 / off → 丢弃</td><td>执行</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-02-concurrency-control-1">02 - 队列与并发控制</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-streaming-events-1">03 - 流式输出与事件机制</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-04-timeout-lifecycle-1">04 - 超时与生命周期</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-01-gateway-positioning-1">01 - Gateway 定位与职责</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-19"><span class="sec-num">§ 5.3</span>队列与并发控制</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>Session Lane 和 Global Lane 如何协同实现并发隔离？</li>
+  <li>六种队列模式分别适用什么场景？如何选择？</li>
+  <li>队列引导（Queue Steering）在运行时边界如何处理新消息？</li>
+  <li>重试策略如何配置？通道间的重试行为有何差异？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-02-concurrency-control-1" data-toc-skip><span class="sec-num">§ 5.3.1</span>Lane 并发模型</h4>
+<p>当多个入站消息几乎同时到达时，Lane 模型确保会话安全、资源可控：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph SL["Session Lanes（每会话一个）"]
+        direction LR
+        S1["Session A<br/>concurrency=1<br/>agent:main:tg:dm:111"]:::session
+        S2["Session B<br/>concurrency=1<br/>agent:main:tg:dm:222"]:::session
+        S3["Session C<br/>concurrency=1<br/>agent:main:tg:dm:333"]:::session
+    end
+
+    GL["Global Lane<br/>concurrency=N<br/>maxPending=M"]:::global
+
+    EXEC["Agent Run\n（同一时间只有 N 个运行）"]:::exec
+
+    S1 & S2 & S3 -->|enqueue| GL
+    GL -->|调度| EXEC
+
+    classDef session fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef global fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 5.7 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-12-1" data-toc-skip><span class="sec-num">§ 5.3.2</span> 为什么需要 Lane？</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>问题</th><th>解决方案</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>消息乱序</strong>：Alice 发了两条消息，后发的可能先被处理</td><td>Session Lane concurrency=1，同一会话串行</td></tr>
+    <tr><td><strong>资源竞争</strong>：多个 Agent 同时 LLM 调用，超出 API 速率限制</td><td>Global Lane 控制全局并发数</td></tr>
+    <tr><td><strong>会话间干扰</strong>：Alice 的慢查询拖慢 Bob 的快速回复</td><td>Lane 间独立排队，互不阻塞</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-12-13-1" data-toc-skip><span class="sec-num">§ 5.3.3</span> Lane 参数</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>组件</th><th>约束</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Session Lane</strong></td><td>concurrency=1</td><td>每会话最多一个运行，保证会话内消息顺序</td></tr>
+    <tr><td><strong>Global Lane</strong></td><td>concurrency=N, maxPending=M</td><td>全局同时运行数上限 + 排队上限</td></tr>
+    <tr><td><strong>并发模型</strong></td><td>per-session=1, global=N</td><td>会话内串行，会话间并行</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-concurrency-control-2" data-toc-skip><span class="sec-num">§ 5.3.4</span>队列模式</h4>
+<p>当用户在当前 Agent 运行过程中发送新消息时，队列模式决定如何处理：</p>
+<figure><div class="mermaid">
+flowchart LR
+    MSG[新消息到达<br/>Agent 正在执行中]:::start
+
+    MSG --> MODE{当前队列模式}:::decision
+
+    MODE -->|collect| C["收集多条<br/>防抖批处理"]:::collect
+    MODE -->|steer| S["立即导向<br/>追加到当前 run"]:::steer
+    MODE -->|followup| F["后续排队<br/>等当前 run 结束"]:::follow
+    MODE -->|steer-backlog| SB["导向 + 保留<br/>既方向调整又保留消息"]:::steer
+    MODE -->|interrupt| I["紧急中断<br/>中止当前 run"]:::interrupt
+    MODE -->|queue| Q["依次排队<br/>(steer 旧别名)"]:::queue
+
+    classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef decision fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef collect fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef steer fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef follow fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef interrupt fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef queue fill:#f1f5f9,stroke:#64748b,color:#1e293b
+</div><figcaption>图 5.8 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-15-1" data-toc-skip><span class="sec-num">§ 5.3.5</span> 模式选择指南</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>模式</th><th>行为</th><th>适用场景</th><th>示例</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>collect</strong> （默认）</td><td>收集多条消息，防抖后一起处理</td><td>正常聊天</td><td>用户快速连续发多条消息</td></tr>
+    <tr><td><strong>steer</strong></td><td>立即注入当前 run，追加到上下文中</td><td>实时方向调整</td><td>"等一下，换个思路"</td></tr>
+    <tr><td><strong>followup</strong></td><td>等当前 run 结束后自动排入下一轮</td><td>复杂任务</td><td>"处理完这个，再看看 XX"</td></tr>
+    <tr><td><strong>steer-backlog</strong></td><td>立即导向 + 保留消息用于后续轮次</td><td>既要又要</td><td>"先看这个，稍后还有问题"</td></tr>
+    <tr><td><strong>interrupt</strong></td><td>中止当前 run，立即处理新消息</td><td>紧急中止</td><td>"停！不要继续了"</td></tr>
+    <tr><td><strong>queue</strong></td><td>等同于 steer（旧版别名）</td><td>兼容旧配置</td><td>迁移场景</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-concurrency-control-3" data-toc-skip><span class="sec-num">§ 5.3.6</span>队列配置</h4>
+<pre class="code-block">{
+  messages: {
+    queue: {
+      mode: &quot;collect&quot;,          // 默认队列模式
+      debounceMs: 1000,         // 防抖窗口（毫秒）
+      cap: 20,                  // 每会话最大排队数
+      drop: &quot;summarize&quot;,        // 溢出策略
+      byChannel: {
+        discord: &quot;collect&quot;,     // 按通道覆盖
+      },
+    },
+  },
+}</pre>
+<h4 id="sec-12-17-1" data-toc-skip><span class="sec-num">§ 5.3.7</span> 参数说明</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>debounceMs</code></td><td>1000</td><td>开始处理前等待的安静时间（防抖）</td></tr>
+    <tr><td><code>cap</code></td><td>20</td><td>每会话最大排队消息数，超过触发溢出策略</td></tr>
+    <tr><td><code>drop</code></td><td><code>summarize</code></td><td>溢出策略，可选 <code>old</code>（丢弃最早）/ <code>new</code>（丢弃最新）/ <code>summarize</code></td></tr>
+  </tbody>
+</table>
+<h4 id="sec-12-18-1" data-toc-skip><span class="sec-num">§ 5.3.8</span> 溢出策略（drop）</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>策略</th><th>行为</th><th>推荐场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>old</strong></td><td>丢弃最早排队的消息</td><td>关注最新消息</td></tr>
+    <tr><td><strong>new</strong></td><td>丢弃最新到达的消息</td><td>关注历史完整度</td></tr>
+    <tr><td><strong>summarize</strong> </td><td>丢弃消息但保留要点列表，注入为合成后续提示</td><td>兼顾信息量和新鲜度</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-12-19-1" data-toc-skip><span class="sec-num">§ 5.3.9</span> 每会话覆盖</h4>
+<pre class="code-block">/queue collect debounce:2s cap:25 drop:summarize   # 临时切换模式
+/queue default                                      # 清除会话级覆盖
+/queue reset                                        # 重置为全局默认</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-concurrency-control-4" data-toc-skip><span class="sec-num">§ 5.3.10</span>队列引导（Queue Steering）</h4>
+<p>当 Agent 正在执行工具调用时，OpenClaw 在<strong>运行时边界</strong>处理新消息：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 正常执行
+        direction LR
+        T1["工具调用 1"]:::tool
+        T2["工具调用 2"]:::tool
+        T3["工具调用 3"]:::tool
+    end
+
+    subgraph 边界处理
+        direction LR
+        CHK["检查队列<br/>有新消息?"]:::check
+        DONE["继续下一步"]:::done
+    end
+
+    T1 --> T2 --> CHK
+    CHK -->|"无新消息"| T3
+    CHK -->|"有 steer/followup"| DONE
+
+    classDef tool fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef check fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 5.9 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-21-1" data-toc-skip><span class="sec-num">§ 5.3.11</span> 安全边界说明</h4>
+<blockquote><p>如果 Agent 正在执行工具调用，OpenClaw <strong>不会在最危险的中间点硬切</strong>。每次工具调用完成后，在进入下一轮之前检查队列：</p></blockquote>
+<pre class="code-block">当前工具调用完成
+    ↓
+检查有没有新消息
+    ↓
+决定引导（steer）、排队（followup）或中断（interrupt）
+    ↓
+继续下一步</pre>
+<h4 id="sec-12-22-1" data-toc-skip><span class="sec-num">§ 5.3.12</span> 场景判断</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>消息类型</th><th>推荐队列模式</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>"停，不要继续了"</strong></td><td><code>interrupt</code></td><td>紧急中止，立即处理</td></tr>
+    <tr><td><strong>"刚才那个命令错了"</strong></td><td><code>steer</code></td><td>方向调整，影响当前任务</td></tr>
+    <tr><td><strong>"顺便看看这个链接"</strong></td><td><code>followup</code></td><td>补充信息，不打断当前执行</td></tr>
+    <tr><td><strong>"然后帮我做 XX"</strong></td><td><code>collect</code></td><td>后续任务，等当前完成后处理</td></tr>
+    <tr><td><strong>普通补充信息</strong></td><td><code>steer</code> / <code>followup</code></td><td>取决于紧急程度</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-concurrency-control-5" data-toc-skip><span class="sec-num">§ 5.3.13</span>重试策略</h4>
+<h4 id="sec-12-24-1" data-toc-skip><span class="sec-num">§ 5.3.14</span> 设计原则</h4>
+<ul><li><strong>按 HTTP 请求重试</strong>，而非按多步流程重试</li></ul>
+<ul><li><strong>仅重试当前步骤</strong>以保持顺序，避免重复非幂等操作</li></ul>
+<ul><li>Markdown 解析错误<strong>不重试</strong>，回退到纯文本</li></ul>
+<h4 id="sec-12-25-1" data-toc-skip><span class="sec-num">§ 5.3.15</span> 默认值</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>attempts</td><td>3</td><td>最大尝试次数</td></tr>
+    <tr><td>maxDelayMs</td><td>30000</td><td>最大延迟上限（30s）</td></tr>
+    <tr><td>jitter</td><td>0.1</td><td>抖动系数（10%），避免惊群</td></tr>
+    <tr><td>Telegram minDelay</td><td>400ms</td><td>Telegram 最小重试间隔</td></tr>
+    <tr><td>Discord minDelay</td><td>500ms</td><td>Discord 最小重试间隔</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-12-26-1" data-toc-skip><span class="sec-num">§ 5.3.16</span> 通道行为差异</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>通道</th><th>触发条件</th><th>不重试场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Discord</strong></td><td>仅 HTTP 429（速率限制）</td><td>所有其他错误</td></tr>
+    <tr><td><strong>Telegram</strong></td><td>429、超时、连接重置/关闭、临时不可用</td><td>语法错误、权限错误</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-12-27-1" data-toc-skip><span class="sec-num">§ 5.3.17</span> 配置示例</h4>
+<pre class="code-block">{
+  channels: {
+    telegram: {
+      retry: {
+        attempts: 3,         // 最多重试 3 次
+        minDelayMs: 400,     // 首次延迟 400ms
+        maxDelayMs: 30000,   // 最长等待 30s
+        jitter: 0.1,         // 10% 随机抖动
+      },
+    },
+    discord: {
+      retry: {
+        attempts: 3,
+        minDelayMs: 500,
+        maxDelayMs: 30000,
+        jitter: 0.1,
+      },
+    },
+  },
+}</pre>
+<h4 id="sec-12-28-1" data-toc-skip><span class="sec-num">§ 5.3.18</span> 队列保证</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>保证</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>会话内串行</strong></td><td>同一会话同一时间只有一个 Agent 运行</td></tr>
+    <tr><td><strong>无外部依赖</strong></td><td>纯 TypeScript + Promise 实现</td></tr>
+    <tr><td><strong>默认通道隔离</strong></td><td>主通道（main）对入站 + 心跳使用进程级隔离</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">01 - Agent Loop 工作流</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-streaming-events-1">03 - 流式输出与事件机制</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-04-timeout-lifecycle-1">04 - 超时与生命周期</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-20"><span class="sec-num">§ 5.4</span>流式输出与事件机制</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>三类事件（lifecycle / assistant / tool）各自由谁产生、流向何处？</li>
+  <li>流式输出的增量机制如何实现实时推送？</li>
+  <li>事件桥接如何将 Pi 事件映射为 OpenClaw 的三路流？</li>
+  <li>回复整形规则如何过滤 NO_REPLY 和重复项？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-03-streaming-events-1" data-toc-skip><span class="sec-num">§ 5.4.1</span>事件类型（3 类）</h4>
+<p>OpenClaw 将 Agent 执行过程中的所有输出抽象为<strong>三类事件流</strong>：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>流</th><th>来源</th><th>说明</th><th>客户端响应</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>lifecycle</strong></td><td>subscribeEmbeddedPiSession</td><td>生命周期信号：start / end / error</td><td>状态更新</td></tr>
+    <tr><td><strong>assistant</strong></td><td>pi-agent-core</td><td>助手增量文本流，LLM 回复 Token</td><td>实时渲染</td></tr>
+    <tr><td><strong>tool</strong></td><td>pi-agent-core</td><td>工具调用事件：start / update / end</td><td>执行工具</td></tr>
+  </tbody>
+</table>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 事件源["事件产生源"]
+        direction LR
+        L1["lifecycle<br/>生命周期<br/>subscribeEmbeddedPiSession"]:::life
+        L2["assistant<br/>助手增量<br/>pi-agent-core"]:::asst
+        L3["tool<br/>工具事件<br/>pi-agent-core"]:::tool
+    end
+
+    subgraph 事件总线["事件桥接"]
+        direction TB
+        E["subscribeEmbeddedPiSession<br/>三路事件分离器"]:::bridge
+    end
+
+    subgraph 订阅层["订阅与稳定化"]
+        S1["waitForCompactionRetry<br/>压缩等待"]:::sub
+    end
+
+    L1 --> E
+    L2 --> E
+    L3 --> E
+    E --> S1
+
+    classDef life fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef asst fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef tool fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef bridge fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef sub fill:#f1f5f9,stroke:#64748b,color:#1e293b
+</div><figcaption>图 5.10 · 消息生命周期</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-03-streaming-events-2" data-toc-skip><span class="sec-num">§ 5.4.2</span>流式输出机制</h4>
+<p>从 LLM 流式 Token 到客户端实时渲染的完整链路：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph LLM 端["LLM 流式输出"]
+        direction LR
+        L1["LLM Stream"]:::llm
+        L2["助手 Token 增量"]:::llm
+        L3["工具调用信号"]:::llm
+    end
+
+    subgraph 桥接["Pi → OpenClaw 事件转换"]
+        direction LR
+        B1["assistant 事件<br/>stream: 「assistant」"]:::bridge
+        B2["tool 事件<br/>stream: 「tool」"]:::bridge
+        B3["lifecycle 事件<br/>stream: 「lifecycle」"]:::bridge
+    end
+
+    subgraph 客户端["客户端消费"]
+        direction LR
+        C1["实时渲染文本"]:::client
+        C2["执行工具调用"]:::client
+        C3["更新状态指示"]:::client
+    end
+
+    L1 --> L2 & L3
+    L2 --> B1 --> C1
+    L3 --> B2 --> C2
+    L1 --> B3 --> C3
+
+    classDef llm fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef bridge fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef client fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+</div><figcaption>图 5.11 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-32-1" data-toc-skip><span class="sec-num">§ 5.4.3</span> 输出类型详解</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>输出类型</th><th>触发时机</th><th>事件格式</th><th>客户端行为</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>助手增量</strong></td><td>LLM 持续生成 Token 时</td><td><code>assistant</code> 流，每次 delta</td><td>逐步渲染到回复框</td></tr>
+    <tr><td><strong>块流式</strong></td><td><code>text_end</code> / <code>message_end</code></td><td>完整的文本块</td><td>确认段落完成</td></tr>
+    <tr><td><strong>推理流式</strong></td><td>LLM 在思考时</td><td><code>reasoning</code> 流</td><td>显示"思考中..."</td></tr>
+    <tr><td><strong>工具调用</strong></td><td>LLM 请求执行工具</td><td><code>tool</code> 流：start → update → end</td><td>UI 显示工具执行状态</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-streaming-events-3" data-toc-skip><span class="sec-num">§ 5.4.4</span>事件桥接（Event Bridge）</h4>
+<p>Pi Agent Core 产生的事件通过 `subscribeEmbeddedPiSession` 桥接到 OpenClaw 的事件系统：</p>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant GW as Gateway
+    participant PI as Pi Agent Core
+    participant SS as Subscribe Bridge
+    participant M as AI Model
+
+    Note over C,M: 第 1 步：订阅
+    GW->>PI: runEmbeddedPiAgent()
+    PI->>SS: subscriber
+
+    Note over C,M: 第 2 步：LLM 流式响应
+    PI->>M: model.generate()
+    M-->>PI: stream: text delta
+    PI-->>SS: tool: start → update → end
+    PI-->>SS: assistant: delta
+    PI-->>SS: lifecycle: start
+    M-->>PI: stream: message_end
+    PI-->>SS: lifecycle: end
+
+    Note over C,M: 第 3 步：桥接转发
+    SS-->>GW: tool 事件流
+    SS-->>GW: assistant 事件流
+    SS-->>GW: lifecycle 事件
+
+    Note over C,M: 第 4 步：客户端接收
+    GW-->>C: 流式推送
+</div><figcaption>图 5.12 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-34-1" data-toc-skip><span class="sec-num">§ 5.4.5</span> 映射关系</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>Pi 事件</th><th>OpenClaw 流</th><th>桥接行为</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>工具事件</strong></td><td><code>stream: "tool"</code></td><td>按 start → update → end 序列透传，合并连续 update</td></tr>
+    <tr><td><strong>助手增量</strong></td><td><code>stream: "assistant"</code></td><td>每个文本 delta 转为独立事件，保持顺序</td></tr>
+    <tr><td><strong>生命周期</strong></td><td><code>stream: "lifecycle"</code></td><td>phase 字段区分 start/end/error</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-streaming-events-4" data-toc-skip><span class="sec-num">§ 5.4.6</span>回复整形规则</h4>
+<p>在最终回复发出之前，OpenClaw 应用以下整形规则：</p>
+<figure><div class="mermaid">
+flowchart TB
+    RAW["原始回复负载"]:::start
+    --> A1["组装载荷<br/>助手文本 + 推理 + 工具摘要 + 错误"]:::assemble
+    --> F1{"NO_REPLY 标记?"}:::filter
+    F1 -->|"是"| DROP["丢弃<br/>静默 Token"]:::drop
+    F1 -->|"否"| F2{"消息工具<br/>重复项?"}:::filter
+    F2 -->|"是"| RM["移除重复"]:::drop
+    F2 -->|"否"| F3{"无可渲染负载<br/>+ 工具错误?"}:::filter
+    F3 -->|"是"| FALLBACK["备用错误回复"]:::fallback
+    F3 -->|"否"| OUT["最终负载"]:::done
+
+    classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef assemble fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef filter fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef drop fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef fallback fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 5.13 · 消息生命周期</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>规则</th><th>行为</th><th>触发条件</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>NO_REPLY 过滤</strong></td><td>视为静默 Token，从出站负载中完全移除</td><td>Agent 返回 NO_REPLY 标记</td></tr>
+    <tr><td><strong>消息工具重复</strong></td><td>从最终负载列表中移除重复的助手确认消息</td><td>模型多次返回相同工具确认</td></tr>
+    <tr><td><strong>无可渲染负载 + 错误</strong></td><td>返回备用错误回复，而不是空回复</td><td>无有效文本 + 存在工具错误</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-streaming-events-5" data-toc-skip><span class="sec-num">§ 5.4.7</span>聊天通道处理</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>阶段</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>增量缓冲</strong></td><td>助手增量被缓冲为聊天 delta 消息</td></tr>
+    <tr><td><strong>Final 发出</strong></td><td>在 <code>lifecycle end/error</code> 时发出完整的聊天 final</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-12-37-1" data-toc-skip><span class="sec-num">§ 5.4.8</span> 压缩（Compaction）事件流</h4>
+<p>压缩过程中的事件处理：</p>
+<figure><div class="mermaid">
+flowchart LR
+    C1["触发压缩<br/>上下文窗口接近上限"]:::trigger
+    --> C2["发出 compaction 流事件"]:::event
+    --> C3["重试原始请求<br/>用压缩后的上下文"]:::retry
+    --> C4["内存缓冲区重置"]:::reset
+    --> C5["工具摘要重置"]:::reset
+    --> C6["避免重复输出<br/>按幂等键去重"]:::done
+
+    classDef trigger fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef event fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef retry fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef reset fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 5.14 · 消息生命周期</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-03-streaming-events-6" data-toc-skip><span class="sec-num">§ 5.4.9</span>工具执行事件</h4>
+<p>工具事件流包含三个阶段：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>阶段</th><th>事件</th><th>说明</th><th>示例</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>① start</strong></td><td><code>tool: start</code></td><td>工具开始执行</td><td><code>read("file.txt")</code> 开始</td></tr>
+    <tr><td><strong>② update</strong></td><td><code>tool: update</code></td><td>进度更新（可选）</td><td>已读取 50%</td></tr>
+    <tr><td><strong>③ end</strong></td><td><code>tool: end</code></td><td>执行完成，携带结果</td><td><code>file.txt</code> 内容返回</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-12-39-1" data-toc-skip><span class="sec-num">§ 5.4.10</span> 工具结果清理</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>清理项</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>大小限制</strong></td><td>大型工具结果自动截断</td></tr>
+    <tr><td><strong>图像负载</strong></td><td>图像类型结果按 token 限制清理</td></tr>
+    <tr><td><strong>消息工具追踪</strong></td><td>抑制重复的助手确认，避免冗余输出</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">01 - Agent Loop 工作流</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-concurrency-control-1">02 - 队列与并发控制</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-04-timeout-lifecycle-1">04 - 超时与生命周期</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-01-context-window-1">01 - 上下文工程</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-21"><span class="sec-num">§ 5.5</span>超时与生命周期</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>Agent 有哪些超时机制？`agent.wait` 超时和智能体运行时超时有什么区别？</li>
+  <li>提前结束的四种场景分别如何处理？</li>
+  <li>Agent 三种执行模式（同步/流式/后台）各适用什么场景？</li>
+  <li>超时发生后，智能体内部的状态机如何处理？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-04-timeout-lifecycle-1" data-toc-skip><span class="sec-num">§ 5.5.1</span>超时模型</h4>
+<p>OpenClaw 在<strong>两个层级</strong>设置超时：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 客户端层["客户端等待超时"]
+        direction LR
+        W["agent.wait(timeoutMs)<br/>默认 30s"]:::client
+        W -->|超时| WT["timeout 状态返回<br/>不停止智能体"]:::warn
+    end
+
+    subgraph 执行层["智能体运行时超时"]
+        direction LR
+        R["agents.defaults.timeoutSeconds<br/>默认 600s (10min)"]:::runner
+        R -->|超时| RT["强制中止运行<br/>停止所有执行"]:::abort
+    end
+
+    classDef client fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef runner fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef warn fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef abort fill:#fee2e2,stroke:#ef4444,color:#991b1b
+</div><figcaption>图 5.15 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-42-1" data-toc-skip><span class="sec-num">§ 5.5.2</span> 超时配置</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>层级</th><th>默认值</th><th>配置路径</th><th>超时后果</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>agent.wait</strong></td><td>30s</td><td>RPC 参数 <code>timeoutMs</code></td><td>返回 timeout 状态，智能体继续运行</td></tr>
+    <tr><td><strong>智能体运行时</strong></td><td>600s (10min)</td><td><code>agents.defaults.timeoutSeconds</code></td><td>强制中止整个运行</td></tr>
+  </tbody>
+</table>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      timeoutSeconds: 600,          // 智能体最长运行时间
+      // 按 Agent 覆盖
+    },
+  },
+}</pre>
+<blockquote><p><strong>核心区别</strong>：`agent.wait` 超时<strong>不停止智能体</strong>，只是客户端不再等待；智能体超时<strong>强制中止整个 Agent 运行</strong>。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-04-timeout-lifecycle-2" data-toc-skip><span class="sec-num">§ 5.5.3</span>提前结束场景</h4>
+<p>智能体可能在以下四种场景提前结束：</p>
+<figure><div class="mermaid">
+flowchart TB
+    EXEC["Agent 运行中..."]:::running
+
+    EXEC --> T1{"timeoutSeconds<br/>超时?"}:::check
+    T1 -->|"是"| A1["中止运行\n强制停止所有执行\n返回 error 状态"]:::abort
+
+    T1 -->|"否"| T2{"AbortSignal<br/>用户中断?"}:::check
+    T2 -->|"是"| A2["立即停止\n清除所有排队消息\n通知网关"]:::abort
+
+    T2 -->|"否"| T3{"网关断开<br/>RPC 超时?"}:::check
+    T3 -->|"是"| A3["连接中断\n保持后台运行\n恢复后同步状态"]:::warn
+
+    T3 -->|"否"| T4{"agent.wait<br/>等待超时?"}:::check
+    T4 -->|"是"| A4["返回 timeout\n智能体继续执行\n可再次查询"]:::warn
+
+    T4 -->|"否"| DONE["正常完成"]:::done
+
+    classDef running fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef check fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef abort fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef warn fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 5.16 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-44-1" data-toc-skip><span class="sec-num">§ 5.5.4</span> 四种场景对比</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>场景</th><th>触发条件</th><th>智能体状态</th><th>客户端反应</th><th>配置</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>智能体超时</strong></td><td>超过 <code>timeoutSeconds</code></td><td>强制中止</td><td>收到 error</td><td><code>agents.defaults.timeoutSeconds</code></td></tr>
+    <tr><td><strong>用户中断</strong></td><td>AbortSignal（/stop 命令）</td><td>立即停止</td><td>收到 error</td><td>用户主动触发</td></tr>
+    <tr><td><strong>网关断开</strong></td><td>网络问题/RPC 超时</td><td>连接中断</td><td>收到错误</td><td>网络重连策略</td></tr>
+    <tr><td><strong>agent.wait 超时</strong></td><td>等待超过 <code>timeoutMs</code></td><td><strong>继续运行</strong></td><td>收到 timeout</td><td>RPC 参数 <code>timeoutMs</code></td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-04-timeout-lifecycle-3" data-toc-skip><span class="sec-num">§ 5.5.5</span>Agent 三种执行模式</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>模式</th><th>说明</th><th>返回方式</th><th>适用场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>同步模式</strong> （默认）</td><td>等待执行完成后再返回</td><td>完整 payload</td><td>需要立即结果的交互</td></tr>
+    <tr><td><strong>流式模式</strong></td><td>流式输出增量结果</td><td>实时 stream</td><td>长回复、逐步展示</td></tr>
+    <tr><td><strong>后台模式</strong></td><td>立即返回 runId，不等待</td><td>仅 runId</td><td>耗时任务、无需即时响应</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-12-46-1" data-toc-skip><span class="sec-num">§ 5.5.6</span> 模式选择对比</h4>
+<figure><div class="mermaid">
+flowchart LR
+    REQ[Agent 请求]:::start
+    --> MODE{执行模式}:::decision
+
+    MODE -->|"同步"| SYNC["等待完成<br/>→ 返回 payload"]:::sync
+    MODE -->|"流式"| STREAM["实时推送<br/>→ 增量事件"]:::stream
+    MODE -->|"后台"| BG["立即返回 runId<br/>→ 后续查询"]:::bg
+
+    classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef decision fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef sync fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef stream fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef bg fill:#fce7f3,stroke:#ec4899,color:#9d174d
+</div><figcaption>图 5.17 · 消息生命周期</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>模式</th><th>超时处理</th><th>适合任务</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>同步</strong></td><td>客户端等待，超时返回 error</td><td>短查询（<30s）、快速回复</td></tr>
+    <tr><td><strong>流式</strong></td><td>持续推送，连接断开即止</td><td>长回复、代码生成、分析报告</td></tr>
+    <tr><td><strong>后台</strong></td><td>全由智能体超时控制</td><td>批处理、定时任务、长时间工具调用</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-04-timeout-lifecycle-4" data-toc-skip><span class="sec-num">§ 5.5.7</span>超时后的状态机处理</h4>
+<p>当超时发生时，OpenClaw 的内部状态机执行以下收尾流程：</p>
+<figure><div class="mermaid">
+flowchart TB
+    subgraph 超时处理
+        direction LR
+        T["超时触发"]:::trigger
+        --> C["clearActiveEmbeddedRun<br/>清理活跃运行"]:::clean
+        --> D["discard queued messages<br/>丢弃排队消息"]:::clean
+        --> S["stop subagents<br/>停止子智能体"]:::clean
+        --> N["notify lifecycle end<br/>通知生命周期结束"]:::notify
+    end
+
+    classDef trigger fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef clean fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef notify fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+</div><figcaption>图 5.18 · 消息生命周期</figcaption></figure>
+<h4 id="sec-12-48-1" data-toc-skip><span class="sec-num">§ 5.5.8</span> 清理操作</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>步骤</th><th>操作</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>①</td><td><code>clearActiveEmbeddedRun</code></td><td>按 handle 匹配清理，防止残留运行继续消耗资源</td></tr>
+    <tr><td>②</td><td>丢弃排队消息</td><td>清除当前会话的待处理消息队列</td></tr>
+    <tr><td>③</td><td>停止子智能体</td><td>递归停止所有通过 <code>sessions_spawn</code> 派生的子智能体</td></tr>
+    <tr><td>④</td><td>通知生命周期</td><td>发出 <code>lifecycle: error</code> 事件，通知各订阅者</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-04-timeout-lifecycle-5" data-toc-skip><span class="sec-num">§ 5.5.9</span>超时配置最佳实践</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      timeoutSeconds: 600,          // 生产环境：10 分钟足够大多数任务
+      // 按 Agent ID 覆盖示例：
+    },
+    list: [
+      {
+        id: &quot;quick-chat&quot;,
+        timeoutSeconds: 120,        // 聊天 Agent：2 分钟
+      },
+      {
+        id: &quot;deep-research&quot;,
+        timeoutSeconds: 1800,       // 研究 Agent：30 分钟
+      },
+    ],
+  },
+}</pre>
+<h4 id="sec-12-50-1" data-toc-skip><span class="sec-num">§ 5.5.10</span> 推荐配置</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>场景</th><th>推荐 timeout</th><th>理由</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>日常聊天</strong></td><td>120s (2min)</td><td>大多数对话在 1 分钟内完成</td></tr>
+    <tr><td><strong>编码辅助</strong></td><td>300s (5min)</td><td>代码生成可能涉及多轮工具调用</td></tr>
+    <tr><td><strong>研究分析</strong></td><td>600s (10min)</td><td>可能需要多次搜索 + 分析循环</td></tr>
+    <tr><td><strong>批处理任务</strong></td><td>1800s (30min)</td><td>长时间运行，使用后台模式</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">01 - Agent Loop 工作流</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-concurrency-control-1">02 - 队列与并发控制</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-streaming-events-1">03 - 流式输出与事件机制</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a></p></blockquote>
+
+</section>
+
+
+<section class="doc-section deep-dive" id="deep-dive-02-deep-13">
+  
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-6"><span class="sec-num">§ 6</span>Gateway 子模块</h2>
+
+  <p class="section-lede">Gateway 是所有数据流的中心——这一节展开它的 7 大子模块，每个模块的<strong>职责、关键 API、内部数据结构</strong>。看完这一节，你能在 IDE 里直接定位代码。</p>
+
+  <p><code>apps/gateway/src/</code> 内嵌 7 个职责单一的子目录——每个对应一个具体概念。</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  SRC["<b>apps/gateway/src/</b>"]
+  SRC --> G["<b>gateway/</b><br/>WebSocket + 路由"]
+  SRC --> A["<b>agents/</b><br/>Agent 循环"]
+  SRC --> T["<b>tools/</b><br/>工具 + 沙箱"]
+  SRC --> C["<b>channels/</b><br/>通道注册"]
+  SRC --> S["<b>session/</b><br/>会话持久化"]
+  SRC --> CF["<b>config/</b><br/>配置加载"]
+  SRC --> H["<b>hooks/</b><br/>钩子链"]
+
+  style SRC fill:#7c3aed,stroke:#7c3aed,color:#fff,stroke-width:2px
+  style G fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style A fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+  style T fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style C fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style S fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style CF fill:#cffafe,stroke:#0891b2,color:#1a1f2b
+  style H fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+</div><figcaption>图 2.4 · Gateway 7 大子目录——7 色 7 模块。</figcaption></figure>
+
+  <h3 class="view-h3" id="sec-6.1"><span class="sec-num">§ 6.1</span>7 大子模块详解<span class="vh-tag">modules</span></h3>
+
+  <h4 id="sec-6-2-1" data-toc-skip><span class="sec-num">§ 6.1.1</span> 1. <code>gateway/</code>——WebSocket 服务器</h4>
+  <p><strong>对应文档</strong>：本模块 § 2 原则一</p>
+  <p><strong>职责</strong>：HTTP/WS 服务器、JSON-RPC 路由、命令队列、Schema 校验。</p>
+  <p><strong>关键文件</strong>:<code>server.ts</code> · <code>router.ts</code> · <code>queue.ts</code> · <code>envelope.ts</code> · <code>schema-validator.ts</code></p>
+
+  <h4 id="sec-6-3-1" data-toc-skip><span class="sec-num">§ 6.1.2</span> 2. <code>agents/</code>——Agent 循环</h4>
+  <p><strong>对应文档</strong>：本模块 § 4 L2 编排层 + <a href="/2026/11/07/openclaw-04-models-runtimes/">模块 04 模型</a></p>
+  <p><strong>职责</strong>：Agent.run（） 主循环、Prompt 组装、LLM 调用、循环控制。</p>
+  <p><strong>关键文件</strong>:<code>runner.ts</code> · <code>prompt-builder.ts</code> · <code>provider.ts</code> · <code>loop-controller.ts</code></p>
+  <p><strong>阅读顺序</strong>:<code>runner.ts → prompt-builder.ts → provider.ts → loop-controller.ts</code></p>
+
+  <h4 id="sec-6-4-1" data-toc-skip><span class="sec-num">§ 6.1.3</span> 3. <code>tools/</code>——工具 + 沙箱</h4>
+  <p><strong>对应文档</strong>：本模块 § 2 原则二 + <a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具</a></p>
+  <p><strong>职责</strong>：工具执行、沙箱隔离、超时、并发、结果截断。</p>
+  <p><strong>关键文件</strong>:<code>executor.ts</code> · <code>registry.ts</code> · <code>sandbox/{none,process,container,vm}.ts</code> · <code>truncate.ts</code></p>
+
+  <h4 id="sec-6-5-1" data-toc-skip><span class="sec-num">§ 6.1.4</span> 4. <code>channels/</code>——通道适配器</h4>
+  <p><strong>对应文档</strong>:<a href="/2026/11/07/openclaw-03-channels/">模块 03 通道</a></p>
+  <p><strong>职责</strong>：通道插件注册、Envelope 规范化、出站消息格式化。</p>
+  <p><strong>关键文件</strong>:<code>registry.ts</code> · <code>normalizer.ts</code></p>
+  <p><strong>注意</strong>：实际通道实现在 <code>extensions/whatsapp/</code> 等，这里是注册表。</p>
+
+  <h4 id="sec-6-6-1" data-toc-skip><span class="sec-num">§ 6.1.5</span> 5. <code>session/</code>——会话管理</h4>
+  <p><strong>对应文档</strong>:<a href="/2026/11/07/openclaw-05-sessions/">模块 05 会话</a></p>
+  <p><strong>职责</strong>：SessionManager、SQLite 存储、压缩、Markdown 记忆。</p>
+  <p><strong>关键文件</strong>:<code>manager.ts</code> · <code>storage.ts</code> · <code>compaction.ts</code> · <code>memory.ts</code></p>
+
+  <h4 id="sec-6-7-1" data-toc-skip><span class="sec-num">§ 6.1.6</span> 6. <code>config/</code>——配置加载</h4>
+  <p><strong>对应文档</strong>：本模块 § 2 原则三</p>
+  <p><strong>职责</strong>：YAML 加载、JSON Schema 校验、热重载。</p>
+  <p><strong>关键文件</strong>:<code>loader.ts</code> · <code>schema.ts</code> · <code>watcher.ts</code></p>
+
+  <h4 id="sec-6-8-1" data-toc-skip><span class="sec-num">§ 6.1.7</span> 7. <code>hooks/</code>——钩子系统</h4>
+  <p><strong>对应文档</strong>:<a href="/2026/11/07/openclaw-06-tools-hooks/">模块 06 工具</a></p>
+  <p><strong>职责</strong>：钩子注册、钩子链、事件触发。</p>
+  <p><strong>关键文件</strong>:<code>registry.ts</code> · <code>chain.ts</code> · <code>types.ts</code></p>
+
+  <h3 class="view-h3" id="sec-6.2"><span class="sec-num">§ 6.2</span>入口文件 <code>index.ts</code><span class="vh-tag">entry</span></h3>
+  <p>Gateway 进程入口——4 行启动代码：</p>
+
+  <pre class="code-block"><span class="comment">// apps/gateway/src/index.ts(简化版)</span>
+<span class="key">import</span> { loadConfig } <span class="key">from</span> <span class="str">'./config/loader.js'</span>;
+<span class="key">import</span> { startServer } <span class="key">from</span> <span class="str">'./gateway/server.js'</span>;
+<span class="key">import</span> { loadExtensions } <span class="key">from</span> <span class="str">'./channels/registry.js'</span>;
+<span class="key">import</span> { initLogger } <span class="key">from</span> <span class="str">'./logger.js'</span>;
+
+<span class="key">async function</span> <span class="file">main</span>() {
+  <span class="key">const</span> config = <span class="key">await</span> loadConfig();
+  initLogger(config.logging);
+  <span class="key">await</span> loadExtensions(config);
+  <span class="key">await</span> startServer(config);
+}
+
+<span class="file">main</span>().catch(err => {
+  console.error(<span class="str">'Fatal:'</span>, err);
+  process.exit(<span class="num">1</span>);
+});</pre>
+
+
+<div class="thinking-note">
+  <p>Gateway 7 子模块的<strong>调用频度差异极大</strong>——Channel Adapter 几乎每条消息都调用，而 session manager 只在创建/恢复时调用。理解频度有助于做性能优化。</p>
+</div>
+
+<h3 class="view-h3" id="deep-13"><span class="sec-num">§ 6.3</span>核心源码索引</h3>
+<p class="section-lede">概念和架构最终都要落到代码上。这一类给出 <strong>核心源码的目录索引和分层映射</strong>，让你能在 IDE 里直接 <code>Ctrl+P</code> 跳转到关键文件。配合 § 5 消息生命周期，能精准定位"某一步发生在哪个文件的哪个函数"。</p>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>OpenClaw 各模块的源码结构是怎样的？关键入口文件在哪里？</li>
+  <li>从用户消息到 AI 回复，完整的代码调用链路是什么？</li>
+  <li>如何根据功能需求快速定位到对应的源码文件？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-03-core-source-index-1" data-toc-skip><span class="sec-num">§ 6.3.1</span>模块索引</h4>
+<p>下表按调用顺序列出 OpenClaw 的核心模块及其源码入口：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>调用顺序</th><th>模块</th><th>关键文件</th><th>功能说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>①</td><td><strong>CLI 入口</strong></td><td><code>src/entry.ts</code>, <code>src/runtime.ts</code></td><td>进程初始化、命令行参数解析、CLI profile 加载</td></tr>
+    <tr><td>②</td><td><strong>命令注册</strong></td><td><code>src/cli/program.ts</code>, <code>src/commands/</code></td><td>命令树构建、懒加载子命令模块、快路径路由</td></tr>
+    <tr><td>③</td><td><strong>Gateway 入口</strong></td><td><code>src/gateway/server.impl.ts</code></td><td>HTTP/WebSocket 服务启动、连接生命周期管理</td></tr>
+    <tr><td>④</td><td><strong>WS 认证</strong></td><td><code>src/gateway/auth.ts</code>, <code>src/gateway/auth-rate-limit.ts</code></td><td>握手挑战、Token 验证、连接速率限制</td></tr>
+    <tr><td>⑤</td><td><strong>方法鉴权</strong></td><td><code>src/gateway/auth-mode-policy.ts</code>, <code>src/gateway/auth-surface-resolution.ts</code></td><td>role + scope 检查、鉴权策略决议</td></tr>
+    <tr><td>⑥</td><td><strong>通道管理</strong></td><td><code>src/channels/</code></td><td>Telegram / Discord / Slack / WhatsApp 等通道适配器</td></tr>
+    <tr><td>⑦</td><td><strong>路由解析</strong></td><td><code>src/routing/resolve-route.ts</code>, <code>src/routing/session-key.ts</code></td><td>消息路由目标解析、Session Key 生成与管理</td></tr>
+    <tr><td>⑧</td><td><strong>自动回复</strong></td><td><code>src/auto-reply/dispatch.ts</code>, <code>src/auto-reply/reply/</code></td><td>消息分发编排、钩子执行、回复格式化</td></tr>
+    <tr><td>⑨</td><td><strong>Agent 调度</strong></td><td><code>src/agents/embedded-agent-runner/</code></td><td>智能体运行循环：Lane 排队、会话管理、工具执行</td></tr>
+    <tr><td>⑩</td><td><strong>单次执行</strong></td><td><code>src/agents/embedded-agent-runner/run.ts</code></td><td>单次 LLM 调用事务、上下文组装、流式输出</td></tr>
+    <tr><td>⑪</td><td><strong>事件订阅</strong></td><td><code>src/agents/embedded-agent-runner/subscribe.ts</code></td><td>Pi 事件桥接、lifecycle/assistant/tool 三流分离</td></tr>
+    <tr><td>⑫</td><td><strong>工具系统</strong></td><td><code>src/agents/openclaw-tools.ts</code>, <code>src/agents/openclaw-plugin-tools.ts</code></td><td>工具清单构造、工具调用执行、插件工具注册</td></tr>
+    <tr><td>⑬</td><td><strong>上下文守护</strong></td><td><code>src/agents/context-window-guard.ts</code></td><td>上下文窗口预检、Token 上限检测、溢出保护</td></tr>
+    <tr><td>⑭</td><td><strong>模型回退</strong></td><td><code>src/agents/model-fallback.ts</code>, <code>src/agents/failover-error.ts</code></td><td>多候选模型轮换、Profile 冷却、指数退避</td></tr>
+    <tr><td>⑮</td><td><strong>会话存储</strong></td><td><code>src/config/sessions/store.ts</code></td><td>sessions.json 元数据读写、jsonl 对话记录</td></tr>
+    <tr><td>⑯</td><td><strong>媒体管理</strong></td><td><code>src/media/</code>, <code>src/media-understanding/</code></td><td>媒体文件存储、图像/音频理解</td></tr>
+    <tr><td>⑰</td><td><strong>安全审计</strong></td><td><code>src/security/</code></td><td>审计通道、认证事件记录</td></tr>
+    <tr><td>⑱</td><td><strong>插件加载</strong></td><td><code>src/plugins/loader.ts</code>, <code>src/plugins/</code></td><td>manifest 解析、插件注册、运行时钩子</td></tr>
+    <tr><td>⑲</td><td><strong>配置 IO</strong></td><td><code>src/config/io.ts</code></td><td>JSON5 配置读写、环境变量替换、热重载</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-core-source-index-2" data-toc-skip><span class="sec-num">§ 6.3.2</span>消息完整旅程</h4>
+<p>从用户发送消息到收到回复的<strong>完整调用链</strong>（含源码路径）：</p>
+<figure><div class="mermaid">
+flowchart LR
+    CH[Channel<br/>Telegram / Discord / Slack<br/>src/channels/]:::chan
+    --> GW[Gateway<br/>server.impl.ts<br/>src/gateway/]:::gw
+    --> AU[Auth<br/>auth.ts<br/>src/gateway/]:::gw
+    --> RT[Router<br/>resolve-route.ts<br/>src/routing/]:::rout
+    --> DP[Dispatch<br/>dispatch.ts<br/>src/auto-reply/]:::exec
+    --> AG[Agent Runner<br/>embedded-agent-runner<br/>src/agents/]:::exec
+    --> LLM[LLM<br/>Anthropic / OpenAI<br/>src/providers/]:::ai
+    LLM --> TL[Tools<br/>openclaw-tools.ts<br/>src/agents/]:::exec
+    TL -.->|多轮循环| LLM
+    AG --> RP[Reply<br/>reply/<br/>src/auto-reply/]:::exec
+    RP --> CH
+
+    classDef chan fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef gw fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef rout fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
+</div><figcaption>图 6.3 · Gateway 子模块</figcaption></figure>
+<h4 id="sec-10-25-1" data-toc-skip><span class="sec-num">§ 6.3.3</span> 各阶段详述</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>步骤</th><th>组件</th><th>关键文件</th><th>核心行为</th><th>返回/事件</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>①</td><td><strong>Channel</strong></td><td><code>src/channels/</code></td><td>从 Telegram/Discord 等接收消息，适配器标准化为内部 InboundMessage 格式</td><td>→ 入站消息</td></tr>
+    <tr><td>②</td><td><strong>Gateway</strong></td><td><code>src/gateway/server.impl.ts</code></td><td>WebSocket/HTTP 网关接收消息，会话绑定</td><td>→ 认证请求</td></tr>
+    <tr><td>③</td><td><strong>Auth</strong></td><td><code>src/gateway/auth.ts</code></td><td>握手挑战 → Token 验证 → 速率限制检查</td><td>→ 鉴权通过</td></tr>
+    <tr><td>④</td><td><strong>Router</strong></td><td><code>src/routing/resolve-route.ts</code></td><td>解析 channel/accountId/peerId → 确定 session key 和目标 agent</td><td>→ 路由结果</td></tr>
+    <tr><td>⑤</td><td><strong>Dispatch</strong></td><td><code>src/auto-reply/dispatch.ts</code></td><td>执行 hooks → 组装自动回复 → 管理前台回复围栏</td><td>→ 执行指令</td></tr>
+    <tr><td>⑥</td><td><strong>Agent</strong></td><td><code>src/agents/embedded-agent-runner/run.ts</code></td><td>上下文构建 → 提示词组装 → 会话写锁</td><td>→ LLM 请求</td></tr>
+    <tr><td>⑦</td><td><strong>LLM</strong></td><td><code>src/providers/anthropic.ts</code></td><td>Provider 适配 → 模型调用 → 流式 Token → 工具调用解析</td><td>← 流式事件</td></tr>
+    <tr><td>⑧</td><td><strong>Tools</strong></td><td><code>src/agents/openclaw-tools.ts</code></td><td>工具清单构造 → 执行工具 → 结果收集 → 回传 LLM</td><td>← 工具结果</td></tr>
+    <tr><td>⑨</td><td><strong>Reply</strong></td><td><code>src/auto-reply/reply/</code></td><td>回复整形 → NO_REPLY 过滤 → routeReply → Channel 输出</td><td>→ 用户消息</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-10-26-1" data-toc-skip><span class="sec-num">§ 6.3.4</span> 完整调用链</h4>
+<pre class="code-block">src/entry.ts → src/runtime.ts → src/gateway/server.impl.ts
+    → src/gateway/auth.ts → src/routing/resolve-route.ts
+    → src/auto-reply/dispatch.ts → src/agents/embedded-agent-runner/run.ts
+    → src/providers/anthropic.ts (或 openai.ts)
+    → src/agents/openclaw-tools.ts (多轮)
+    → src/auto-reply/reply/ → src/channels/ → 用户</pre>
+<hr>
+<h4 class="view-h3" id="deep-03-core-source-index-3" data-toc-skip><span class="sec-num">§ 6.3.5</span>源码分层架构</h4>
+<p>OpenClaw 的源码按功能划分为以下层次：</p>
+<figure><div class="mermaid">
+flowchart TB
+    subgraph L1["① 入口层 entry.ts / runtime.ts"]
+        direction TB
+        P1["进程初始化"]
+        P2["CLI 参数解析"]
+        P3["配置加载"]
+    end
+
+    subgraph L2["② 网关层 src/gateway/"]
+        direction TB
+        G1["server.impl.ts<br/>HTTP/WS 服务"]
+        G2["auth.ts<br/>认证"]
+        G3["auth-rate-limit.ts<br/>限流"]
+    end
+
+    subgraph L3["③ 路由层 src/routing/"]
+        direction TB
+        R1["resolve-route.ts<br/>路由解析"]
+        R2["session-key.ts<br/>会话键"]
+    end
+
+    subgraph L4["④ 执行层 src/agents/"]
+        direction TB
+        A1["embedded-agent-runner/<br/>Agent 循环"]
+        A2["openclaw-tools.ts<br/>工具系统"]
+        A3["context-window-guard.ts<br/>上下文"]
+        A4["model-fallback.ts<br/>模型回退"]
+    end
+
+    subgraph L5["⑤ 模型层 src/providers/"]
+        direction TB
+        M1["anthropic.ts"]
+        M2["openai.ts"]
+        M3["ollama.ts"]
+    end
+
+    subgraph L6["⑥ 存储层 src/config/"]
+        direction TB
+        S1["sessions/store.ts<br/>会话"]
+        S2["io.ts<br/>配置"]
+    end
+
+    subgraph L7["⑦ 扩展层 src/plugins/"]
+        direction TB
+        X1["loader.ts<br/>加载"]
+        X2["registry.ts<br/>注册"]
+    end
+
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
+    L4 --> L6
+    L4 --> L7
+</div><figcaption>图 6.4 · Gateway 子模块</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-03-core-source-index-4" data-toc-skip><span class="sec-num">§ 6.3.6</span>核心数据流</h4>
+<p>以下数据在模块间流转：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>数据</th><th>类型</th><th>来源模块</th><th>目标模块</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>InboundMessage</strong></td><td>消息对象</td><td>Channel</td><td>Gateway</td><td>标准化的入站消息</td></tr>
+    <tr><td><strong>SessionKey</strong></td><td>字符串</td><td>Router</td><td>Dispatch</td><td>唯一会话标识</td></tr>
+    <tr><td><strong>AgentRun</strong></td><td>运行上下文</td><td>Agent Runner</td><td>Provider</td><td>LLM 调用请求</td></tr>
+    <tr><td><strong>StreamEvent</strong></td><td>流事件</td><td>Provider</td><td>Subscribe</td><td>流式 Token + 工具调用</td></tr>
+    <tr><td><strong>ToolResult</strong></td><td>执行结果</td><td>Tool System</td><td>Agent</td><td>工具执行返回值</td></tr>
+    <tr><td><strong>RouteReply</strong></td><td>回复对象</td><td>Agent</td><td>Channel</td><td>格式化回复</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-core-source-index-5" data-toc-skip><span class="sec-num">§ 6.3.7</span>快速定位指南</h4>
+<p>当需要修改或理解特定功能时，按以下规则定位源码：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>场景</th><th>入口文件</th><th>搜索关键词</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>想改 CLI 命令</td><td><code>src/cli/</code></td><td><code>registerCoreCliByName</code></td></tr>
+    <tr><td>想改消息路由规则</td><td><code>src/routing/resolve-route.ts</code></td><td><code>resolveRoute</code></td></tr>
+    <tr><td>想改会话管理</td><td><code>src/config/sessions/store.ts</code></td><td><code>sessions.json</code></td></tr>
+    <tr><td>想改 Agent 执行逻辑</td><td><code>src/agents/embedded-agent-runner/run.ts</code></td><td><code>runEmbeddedPiAgent</code></td></tr>
+    <tr><td>想改 LLM 调用</td><td><code>src/providers/</code></td><td><code>provider</code></td></tr>
+    <tr><td>想改工具系统</td><td><code>src/agents/openclaw-tools.ts</code></td><td><code>openclaw-tools</code></td></tr>
+    <tr><td>想改配置热重载</td><td><code>src/config/io.ts</code></td><td><code>reload</code></td></tr>
+    <tr><td>想改插件加载</td><td><code>src/plugins/loader.ts</code></td><td><code>manifest</code></td></tr>
+    <tr><td>想改认证安全</td><td><code>src/gateway/auth.ts</code></td><td><code>authorizeGatewayMethod</code></td></tr>
+    <tr><td>想改通道适配</td><td><code>src/channels/</code></td><td><code>channel</code></td></tr>
+  </tbody>
+</table>
+<hr>
+<p><strong>相关模块</strong>:<a href="#deep-11">01 · 分层架构全景</a> · <a href="#deep-12">02 · 核心概念模型</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-dive-02-deep-12">03 · 执行引擎</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-dive-02-deep-11">02 · 网关控制</a></p>
+
+<div class="thinking-note">
+<p><strong>本 wrapper 关键收获</strong>:</p>
+<ul>
+  <li><strong>OpenClaw = 1 个 Gateway + 1 个 AI Agent + 多个通道/插件</strong>。所有复杂逻辑都集中在 Gateway 进程，易于理解、调试、部署。</li>
+  <li><strong>5 层智能体状态机</strong>把"消息 → 回复"拆解为 5 个稳定阶段，每个阶段都有明确状态和可重入性保证——这是 OpenClaw 长期运行不卡死的核心。</li>
+  <li><strong>6 个核心实体</strong>（Agent/Session/Channel/Tool/Memory/Config）是阅读源码的"词汇表"——任何复杂流程都能用这 6 个对象解释。</li>
+  <li><strong>新手 3 条规则</strong>：① 一切以 Gateway 为中心；② 状态变化走事件总线，不要直接改内存；③ 持久化是副作用，不阻塞主路径。</li>
+</ul>
+<p>读完 § 10，你应该能：在 IDE 中打开 <code>gateway/index.ts</code> 和 <code>agent/loop.ts</code>，对照本节分层图定位任意一行代码的作用。</p>
+</div>
+
+</section>
+
+<section class="doc-section deep-dive" id="deep-dive-02-deep-11">
+  
+<h3 class="view-h3" id="deep-14"><span class="sec-num">§ 6.4</span>Gateway 定位与职责</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>Gateway 在 OpenClaw 中扮演什么角色？为什么被称为"控制平面"？</li>
+  <li>为什么说 Gateway 是"单一事实来源"？</li>
+  <li>Gateway 管理哪些核心资源？广播哪些事件？</li>
+  <li>智能体 5 层状态机是如何在 Gateway 的协调下工作的？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-01-gateway-positioning-1" data-toc-skip><span class="sec-num">§ 6.4.1</span>网关定位</h4>
+<p>Gateway（网关）是 OpenClaw 的<strong>总服务台</strong>，负责调度整个系统。所有连接——无论是聊天通道、设备节点、浏览器控制面板——都首先到达 Gateway。</p>
+<h4 id="sec-11-3-1" data-toc-skip><span class="sec-num">§ 6.4.2</span> Gateway 在架构中的位置</h4>
+<figure><div class="mermaid">
+flowchart LR
+    CH[Channel<br/>Telegram / WhatsApp / Discord]:::chan --> GW[Gateway<br/>控制平面]:::gw
+    ND[Node<br/>iOS / Android]:::node --> GW
+    UI[Control UI<br/>浏览器面板]:::cli --> GW
+    GW --> AG[Agent<br/>执行智能体]:::agent
+    AG --> PR[Provider<br/>AI 大脑]:::ai
+
+    classDef chan fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef node fill:#e0e7ff,stroke:#6366f1,color:#3730a3
+    classDef cli fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef gw fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
+</div><figcaption>图 6.5 · Gateway 子模块</figcaption></figure>
+<h4 id="sec-11-4-1" data-toc-skip><span class="sec-num">§ 6.4.3</span> 组件职责对比</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>组件</th><th>职责</th><th>Gateway 的关系</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Channel</strong></td><td>前台入口（消息收发）</td><td>Gateway 管理通道生命周期、消息路由</td></tr>
+    <tr><td><strong>Node</strong></td><td>外接设备（提供能力）</td><td>Gateway 管理节点配对、权限调用</td></tr>
+    <tr><td><strong>Control UI</strong></td><td>浏览器操作面板</td><td>Gateway 提供 HTTP 管理接口</td></tr>
+    <tr><td><strong>Agent</strong></td><td>具体执行者（推理+工具）</td><td>Gateway 调度 Agent 运行、管理会话</td></tr>
+    <tr><td><strong>Provider</strong></td><td>AI 大脑（模型调用）</td><td>Gateway 管理 Provider 配置、认证轮换</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-gateway-positioning-2" data-toc-skip><span class="sec-num">§ 6.4.4</span>Gateway 核心职责</h4>
+<p>Gateway 是<strong>控制平面</strong> + <strong>单一事实来源</strong>。所有会话状态、连接状态、配置版本都由 Gateway 统一管理。</p>
+<h4 id="sec-11-6-1" data-toc-skip><span class="sec-num">§ 6.4.5</span> 七大职责</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>职责</th><th>说明</th><th>机制</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>管理长连接</strong></td><td>WebSocket 全双工通信</td><td>10s 握手超时、自动重连、心跳保活</td></tr>
+    <tr><td><strong>管理 Control UI</strong></td><td>浏览器操作面板</td><td>HTTP 服务 + Config 可视化标签页</td></tr>
+    <tr><td><strong>管理通道连接</strong></td><td>聊天软件入口</td><td>通道适配器注册、DM 策略、群组策略</td></tr>
+    <tr><td><strong>管理节点连接</strong></td><td>外接设备</td><td>设备配对、commands/caps 注册、权限调用</td></tr>
+    <tr><td><strong>校验请求</strong></td><td>格式和权限</td><td>AJV 帧校验、role + scope 鉴权、速率限制</td></tr>
+    <tr><td><strong>广播事件</strong></td><td>系统事件通知</td><td>agent / chat / presence / health / heartbeat / cron 六类事件</td></tr>
+    <tr><td><strong>配置管理</strong></td><td>热重载与版本管理</td><td>hybrid/hot/restart/off 四种热重载模式</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-11-7-1" data-toc-skip><span class="sec-num">§ 6.4.6</span> 核心规则</h4>
+<blockquote><p><strong>所有会话状态由网关"主控"</strong>。UI 客户端（macOS 应用、WebChat 等）必须查询网关获取会话列表和 Token 计数，不读本地文件。</p></blockquote>
+<h4 id="sec-11-8-1" data-toc-skip><span class="sec-num">§ 6.4.7</span> 为什么是"单一事实来源"？</h4>
+<pre class="code-block">                    ┌─────────────────┐
+                    │   Control UI    │ ← 通过 API 查询状态
+                    └────────┬────────┘
+                             │
+    ┌──────────────┐        │        ┌──────────────┐
+    │  macOS 客户端 │─────── Gateway ───────│  WebChat   │
+    └──────────────┘    (唯一真相源)        └──────────────┘
+                             │
+                    ┌────────┴────────┐
+                    │  sessions.json  │
+                    │  (本地存储)      │
+                    └─────────────────┘</pre>
+<p>所有客户端<strong>不直接读取本地文件</strong>，而是通过 Gateway API 获取会话信息。这避免了多个客户端同时读写导致的竞态条件和状态不一致。</p>
+<hr>
+<h4 class="view-h3" id="deep-01-gateway-positioning-3" data-toc-skip><span class="sec-num">§ 6.4.8</span>执行协调——5 层状态机</h4>
+<p>Gateway 通过协调多层状态机来驱动 Agent 执行。详见 <a href="/2026/11/07/openclaw-02-architecture/#deep-01-layered-architecture-1">01 - 分层架构全景</a> 第 2 节的完整展开。简言之：</p>
+<figure><div class="mermaid">
+flowchart LR
+    SL["session lane"]:::cli --> GL["global lane"]:::cli
+    GL --> AT["attempt"]:::agent --> DONE["完成"]:::side
+    AT -->|error| FB["fallback 回退"]:::ai
+
+    classDef cli fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef side fill:#f1f5f9,stroke:#64748b,color:#334155
+</div><figcaption>图 6.6 · Gateway 子模块</figcaption></figure>
+<blockquote><p>每一层都有独立的容错和重试逻辑，确保单点故障不会导致整个 Agent 卡死。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-01-gateway-positioning-4" data-toc-skip><span class="sec-num">§ 6.4.9</span>事件广播系统</h4>
+<p>Gateway 广播六类系统事件，各订阅者按需监听：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>事件类型</th><th>触发时机</th><th>典型订阅者</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>agent</strong></td><td>Agent 运行状态变更</td><td>Control UI、日志系统</td></tr>
+    <tr><td><strong>chat</strong></td><td>聊天消息收发</td><td>通道适配器、WebChat</td></tr>
+    <tr><td><strong>presence</strong></td><td>节点上线/离线</td><td>节点管理器</td></tr>
+    <tr><td><strong>health</strong></td><td>Gateway 健康状态</td><td>监控系统、心跳检查</td></tr>
+    <tr><td><strong>heartbeat</strong></td><td>周期性心跳</td><td>agent heartbeat 机制</td></tr>
+    <tr><td><strong>cron</strong></td><td>定时任务触发</td><td>Cron 调度器</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-11-11-1" data-toc-skip><span class="sec-num">§ 6.4.10</span> 事件处理机制</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>机制</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>慢消费者丢弃</strong></td><td>消费速度跟不上时自动丢弃，防止积压</td></tr>
+    <tr><td><strong>幂等缓存</strong></td><td>重复事件自动去重</td></tr>
+    <tr><td><strong>广播路由</strong></td><td>按事件类型路由到不同订阅组</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-gateway-positioning-5" data-toc-skip><span class="sec-num">§ 6.4.11</span>网关端口与默认配置</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>端口</th><th>用途</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>18789</strong></td><td>Gateway HTTP 端口（默认），提供 REST API + Control UI</td></tr>
+    <tr><td><strong>18780</strong></td><td>WebSocket 端口，长连接通信</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-11-13-1" data-toc-skip><span class="sec-num">§ 6.4.12</span> 默认地址</h4>
+<pre class="code-block">127.0.0.1:18789  （本机地址，外部默认不可访问）</pre>
+<blockquote><p><strong>安全警告</strong>：远程部署时，不要直接暴露 18789 端口到公网。使用反向代理（Nginx/Caddy）配合 TLS + Token 认证。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-01-gateway-positioning-6" data-toc-skip><span class="sec-num">§ 6.4.13</span>Gateway 生命周期</h4>
+<figure><div class="mermaid">
+flowchart LR
+    START[启动]:::cli --> CFG[加载配置<br/>openclaw.json]:::gw
+    CFG --> WS[启动 WebSocket<br/>端口 18780]:::gw
+    CFG --> HT[启动 HTTP<br/>端口 18789]:::gw
+    WS --> AUTH[认证就绪]:::gw
+    HT --> UI[Control UI 就绪]:::gw
+    AUTH --> RUN[运行中]:::agent
+    UI --> RUN
+    RUN -->|收到停止信号| STOP[优雅关闭<br/>断开所有连接]:::ai
+
+    classDef cli fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef gw fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef ai fill:#fce7f3,stroke:#ec4899,color:#9d174d
+</div><figcaption>图 6.7 · Gateway 子模块</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-01-gateway-positioning-7" data-toc-skip><span class="sec-num">§ 6.4.14</span>Gateway 源码入口</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>文件</th><th>作用</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>src/gateway/server.impl.ts</code></td><td>Gateway 主入口，HTTP + WebSocket 服务启动</td></tr>
+    <tr><td><code>src/gateway/server/ws-connection.ts</code></td><td>WebSocket 连接管理</td></tr>
+    <tr><td><code>src/gateway/server/message-handler.ts</code></td><td>消息处理 + 握手超时</td></tr>
+    <tr><td><code>src/gateway/server-methods.ts</code></td><td>方法分发 + 鉴权</td></tr>
+    <tr><td><code>src/gateway/server-broadcast.ts</code></td><td>事件广播</td></tr>
+    <tr><td><code>src/gateway/server-channels.ts</code></td><td>通道管理</td></tr>
+    <tr><td><code>src/gateway/server-chat.ts</code></td><td>聊天事件处理</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-websocket-protocol-1">03 - WebSocket 协议层</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-04-cli-command-system-1">04 - CLI 层与命令系统</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">03 - 执行引擎</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-15"><span class="sec-num">§ 6.5</span>配置系统与热重载</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>OpenClaw 的配置文件在哪里？JSON5 格式有哪些优势？</li>
+  <li>配置热重载支持哪四种模式？各自的行为差异是什么？</li>
+  <li>安全更改和关键更改如何区分？热应用的工作原理是什么？</li>
+  <li>如何通过环境变量注入配置？Docker 部署时如何配置？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-02-config-system-1" data-toc-skip><span class="sec-num">§ 6.5.1</span>配置文件</h4>
+<p>OpenClaw 使用 `~/.openclaw/openclaw.json` 作为主配置文件，采用 <strong>JSON5</strong> 格式。</p>
+<h4 id="sec-11-18-1" data-toc-skip><span class="sec-num">§ 6.5.2</span> JSON5 格式优势</h4>
+<p>JSON5 是 JSON 的超集，相比标准 JSON 多了以下便利：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>特性</th><th>说明</th><th>示例</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>注释</strong></td><td>单行 <code>//</code> 和多行 <code>/* */</code></td><td>配置说明、临时注释</td></tr>
+    <tr><td><strong>Trailing comma</strong></td><td>最后一个属性后加逗号</td><td>增删行时减少 diff 噪音</td></tr>
+    <tr><td><strong>无引号键名</strong></td><td>不含特殊字符的键无需引号</td><td><code>workspace: "~/.openclaw/workspace"</code></td></tr>
+    <tr><td><strong>单引号字符串</strong></td><td>支持单引号</td><td><code>model: 'claude-sonnet-4-5'</code></td></tr>
+    <tr><td><strong>多行字符串</strong></td><td>支持反斜杠换行</td><td>长配置值可换行书写</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-11-19-1" data-toc-skip><span class="sec-num">§ 6.5.3</span> 最小配置示例</h4>
+<pre class="code-block">// ~/.openclaw/openclaw.json — OpenClaw 配置文件
+{
+  agents: {
+    defaults: {
+      workspace: &quot;~/.openclaw/workspace&quot;,  // Agent 工作区路径
+      model: {
+        primary: &quot;anthropic/claude-sonnet-4-5&quot;,   // 主模型
+        fallbacks: [&quot;openai/gpt-5.2&quot;],             // 回退模型
+      },
+    },
+  },
+  channels: {
+    whatsapp: {
+      allowFrom: [&quot;+15555550123&quot;],                 // 允许的用户
+    },
+  },
+}</pre>
+<h4 id="sec-11-20-1" data-toc-skip><span class="sec-num">§ 6.5.4</span> 配置文件的严格验证</h4>
+<blockquote><p>OpenClaw <strong>仅接受完全匹配 schema 的配置</strong>。未知键、格式错误的类型或无效值会导致网关拒绝启动。这确保了配置的确定性和可预测性。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-02-config-system-2" data-toc-skip><span class="sec-num">§ 6.5.5</span>配置编辑方式</h4>
+<p>OpenClaw 提供 5 种配置编辑方式：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>方式</th><th>命令/路径</th><th>适用场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>交互式设置</strong></td><td><code>openclaw onboard</code></td><td>新用户首次部署，引导完成基础配置</td></tr>
+    <tr><td><strong>配置向导</strong></td><td><code>openclaw configure</code></td><td>需要逐步引导修改配置</td></tr>
+    <tr><td><strong>CLI 命令</strong></td><td><code>openclaw config get/set</code></td><td>脚本化配置、快速单行修改</td></tr>
+    <tr><td><strong>Control UI</strong></td><td><code>http://127.0.0.1:18789</code></td><td>运维管理，可视化表单 + Raw JSON 编辑</td></tr>
+    <tr><td><strong>直接编辑</strong></td><td><code>~/.openclaw/openclaw.json</code></td><td>批量修改、高级配置（Gateway 自动热应用）</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-11-22-1" data-toc-skip><span class="sec-num">§ 6.5.6</span> 常用 CLI 命令</h4>
+<pre class="code-block"># 设置 exec 权限模式
+openclaw config set tools.exec.mode auto
+
+# 查看当前生效配置
+openclaw config get agents.defaults.model
+
+# 重启 Gateway（热重载无法生效时）
+openclaw gateway restart</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-config-system-3" data-toc-skip><span class="sec-num">§ 6.5.7</span>配置拆分（$include）</h4>
+<p>当配置变得复杂时，可以使用 `$include` 指令将配置拆分为多个文件：</p>
+<pre class="code-block">{
+  gateway: { port: 18789 },
+
+  // 独立文件维护 Agent 配置
+  agents: { $include: &quot;./agents.json5&quot; },
+
+  // 数组合并多个文件（后者优先）
+  broadcast: { $include: [&quot;./clients/a.json5&quot;, &quot;./clients/b.json5&quot;] },
+}</pre>
+<h4 id="sec-11-24-1" data-toc-skip><span class="sec-num">§ 6.5.8</span> $include 规则</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>规则</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>单文件</strong></td><td>替换包含对象，<code>agents: { $include: "./agents.json5" }</code></td></tr>
+    <tr><td><strong>文件数组</strong></td><td>深度合并，后者优先</td></tr>
+    <tr><td><strong>相对路径</strong></td><td>相对于包含文件所在目录解析</td></tr>
+    <tr><td><strong>条件引用</strong></td><td><code>$include:if-file-exists</code> 文件存在时引入、缺失时静默跳过</td></tr>
+    <tr><td><strong>通配符</strong></td><td><code>{ $include: "./conf.d/*.json" }</code> 按字母序合并</td></tr>
+    <tr><td><strong>嵌套</strong></td><td>被引用的文件也可以使用 $include</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-config-system-4" data-toc-skip><span class="sec-num">§ 6.5.9</span>配置热重载</h4>
+<p>OpenClaw 的文件监视器（file watcher）持续监控配置文件及其 `$include` 引用文件的变更。检测到变更后，根据热重载模式执行不同行为。</p>
+<h4 id="sec-11-26-1" data-toc-skip><span class="sec-num">§ 6.5.10</span> 四种重载模式</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>模式</th><th>行为</th><th>适用场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>hybrid</strong> （默认）</td><td>安全更改即时热应用；关键更改自动重启</td><td>生产环境推荐</td></tr>
+    <tr><td><strong>hot</strong></td><td>仅热应用安全更改；关键更改时记录警告</td><td>不希望自动重启</td></tr>
+    <tr><td><strong>restart</strong></td><td>任何配置更改都重启网关</td><td>开发环境、快速验证</td></tr>
+    <tr><td><strong>off</strong></td><td>禁用文件监视，需手动重启</td><td>生产环境静默期</td></tr>
+  </tbody>
+</table>
+<pre class="code-block">{
+  gateway: {
+    reload: {
+      mode: &quot;hybrid&quot;,    // hybrid | hot | restart | off
+      debounceMs: 300,   // 防抖时间，避免频繁触发
+    },
+  },
+}</pre>
+<h4 id="sec-11-27-1" data-toc-skip><span class="sec-num">§ 6.5.11</span> 安全更改 vs 关键更改</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>类别</th><th>示例</th><th>需要重启？</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>通道配置</strong></td><td>新增/删除 Channel，修改 DM Policy</td><td>否</td></tr>
+    <tr><td><strong>Agent 配置</strong></td><td>修改模型、工作区路径</td><td>否</td></tr>
+    <tr><td><strong>自动化配置</strong></td><td>Hooks、Cron、Heartbeat</td><td>否</td></tr>
+    <tr><td><strong>会话配置</strong></td><td>dmScope、sendPolicy、重置策略</td><td>否</td></tr>
+    <tr><td><strong>工具配置</strong></td><td>工具 allow/deny 列表</td><td>否</td></tr>
+    <tr><td><strong>路由绑定</strong></td><td>Bindings 增删改</td><td>否</td></tr>
+    <tr><td><strong>Gateway 服务器</strong></td><td>port、bind、TLS 证书</td><td>是</td></tr>
+    <tr><td><strong>基础设施</strong></td><td>discovery、canvasHost、plugins 目录</td><td>是</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-11-28-1" data-toc-skip><span class="sec-num">§ 6.5.12</span> 热应用的工作原理（Atomic Swap）</h4>
+<p>当检测到安全更改时，OpenClaw 通过<strong>原子式切换</strong>实现零停机热加载：</p>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant W as File Watcher
+    participant C as Config Manager
+    participant O as Old Instance
+    participant N as New Instance
+
+    W->>C: 检测到文件变更
+    C->>C: 解析新配置
+    C->>C: 校验 schema
+    alt 校验通过
+        C->>N: 创建新实例
+        N-->>C: 就绪
+        C->>C: 原子式指针切换
+        C->>O: 优雅关闭旧实例
+        O-->>C: 旧连接完成
+        Note over O,N: 零停机：进行中的请求<br/>走旧配置，新请求走新配置
+    else 校验失败
+        C-->>W: 记录错误，保持旧配置运行
+    end
+</div><figcaption>图 6.8 · Gateway 子模块</figcaption></figure>
+<h4 id="sec-11-29-1" data-toc-skip><span class="sec-num">§ 6.5.13</span> 自动重启通知</h4>
+<p>当配置变更需要重启时，日志输出：</p>
+<pre class="code-block">[INFO] Configuration change detected: gateway.port changed from 18789 to 19000
+[INFO] This change requires a restart to take effect.
+[INFO] Run &#x27;openclaw gateway restart&#x27; to apply.</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-config-system-5" data-toc-skip><span class="sec-num">§ 6.5.14</span>程序化配置更新</h4>
+<p>OpenClaw 提供 RPC 接口进行程序化配置更新：</p>
+<h4 id="sec-11-31-1" data-toc-skip><span class="sec-num">§ 6.5.15</span> config.apply（完整替换）</h4>
+<pre class="code-block">openclaw gateway call config.apply --params &#x27;{
+  &quot;raw&quot;: &quot;{ agents: { defaults: { model: { primary: \&quot;anthropic/claude-opus-4-6\&quot; } } } }&quot;,
+  &quot;baseHash&quot;: &quot;&lt;current-hash&gt;&quot;,
+  &quot;sessionKey&quot;: &quot;agent:main:whatsapp:dm:+15555550123&quot;
+}&#x27;</pre>
+<h4 id="sec-11-32-1" data-toc-skip><span class="sec-num">§ 6.5.16</span> config.patch（部分更新）</h4>
+<pre class="code-block">openclaw gateway call config.patch --params &#x27;{
+  &quot;raw&quot;: &quot;{ channels: { telegram: { groups: { \&quot;*\&quot;: { requireMention: false } } } } }&quot;,
+  &quot;baseHash&quot;: &quot;&lt;current-hash&gt;&quot;
+}&#x27;</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-config-system-6" data-toc-skip><span class="sec-num">§ 6.5.17</span>环境变量配置</h4>
+<p>适用于容器化部署和 CI/CD 场景。</p>
+<h4 id="sec-11-34-1" data-toc-skip><span class="sec-num">§ 6.5.18</span> .env 文件加载顺序</h4>
+<pre class="code-block">当前工作目录/.env                 ← 优先加载
+~/.openclaw/.env                 ← 全局回退</pre>
+<h4 id="sec-11-35-1" data-toc-skip><span class="sec-num">§ 6.5.19</span> 配置中引用</h4>
+<pre class="code-block">{
+  env: {
+    OPENROUTER_API_KEY: &quot;sk-or-...&quot;,
+    vars: { GROQ_API_KEY: &quot;gsk-...&quot; },
+  },
+}</pre>
+<h4 id="sec-11-36-1" data-toc-skip><span class="sec-num">§ 6.5.20</span> 字符串替换</h4>
+<pre class="code-block">{
+  gateway: { auth: { token: &quot;${OPENCLAW_GATEWAY_TOKEN}&quot; } },
+  models: {
+    providers: {
+      custom: { apiKey: &quot;${CUSTOM_API_KEY}&quot; },
+    },
+  },
+}</pre>
+<h4 id="sec-11-37-1" data-toc-skip><span class="sec-num">§ 6.5.21</span> 替换规则</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>语法</th><th>行为</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>${VAR}</code></td><td>替换为环境变量的值，未设置时报错</td></tr>
+    <tr><td><code>${VAR:-default}</code></td><td>未设置时使用默认值</td></tr>
+    <tr><td><code>${VAR:?msg}</code></td><td>未设置时抛出自定义错误信息</td></tr>
+    <tr><td><code>$${VAR}</code></td><td>转义为字面量 <code>$VAR</code>，不做替换</td></tr>
+    <tr><td>类型转换</td><td><code>.split(",")</code>, <code>Number()</code>, <code>Boolean()</code> 等</td></tr>
+  </tbody>
+</table>
+<blockquote><p>仅匹配大写名称：`[A-Z_][A-Z0-9_]*`</p></blockquote>
+<h4 id="sec-11-38-1" data-toc-skip><span class="sec-num">§ 6.5.22</span> 优先级（从高到低）</h4>
+<pre class="code-block">1. 环境变量                        ← 最高优先级
+2. local-override.json ($include)  ← 环境特定覆盖
+3. openclaw.json                   ← 主配置
+4. 代码内置默认值                  ← 最低优先级</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-config-system-7" data-toc-skip><span class="sec-num">§ 6.5.23</span>通道管理配置</h4>
+<pre class="code-block">{
+  channels: {
+    telegram: {
+      enabled: true,
+      botToken: &quot;123:abc&quot;,
+      dmPolicy: &quot;pairing&quot;,       // DM 策略
+      allowFrom: [&quot;tg:123&quot;],
+    },
+  },
+}</pre>
+<h4 id="sec-11-40-1" data-toc-skip><span class="sec-num">§ 6.5.24</span> DM 策略</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>策略</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>pairing</code>（默认）</td><td>未知发送者获得一次性配对码以供审批</td></tr>
+    <tr><td><code>allowlist</code></td><td>仅 <code>allowFrom</code> 中的发送者可通过</td></tr>
+    <tr><td><code>open</code></td><td>允许所有入站 DM（需 <code>allowFrom: ["*"]</code>）</td></tr>
+    <tr><td><code>disabled</code></td><td>忽略所有 DM</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-11-41-1" data-toc-skip><span class="sec-num">§ 6.5.25</span> 群组策略</h4>
+<pre class="code-block">{
+  agents: {
+    list: [{
+      id: &quot;main&quot;,
+      groupChat: { mentionPatterns: [&quot;@openclaw&quot;, &quot;openclaw&quot;] },
+    }],
+  },
+  channels: {
+    whatsapp: {
+      groups: { &quot;*&quot;: { requireMention: true } },
+    },
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-config-system-8" data-toc-skip><span class="sec-num">§ 6.5.26</span>模型配置</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      model: {
+        primary: &quot;anthropic/claude-sonnet-4-5&quot;,      // 主模型
+        fallbacks: [&quot;openai/gpt-5.2&quot;],                // 回退模型
+      },
+      models: {
+        &quot;anthropic/claude-sonnet-4-5&quot;: { alias: &quot;Sonnet&quot; },
+        &quot;openai/gpt-5.2&quot;: { alias: &quot;GPT&quot; },
+      },
+    },
+  },
+}</pre>
+<h4 id="sec-11-43-1" data-toc-skip><span class="sec-num">§ 6.5.27</span> 心跳配置</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      heartbeat: {
+        every: &quot;30m&quot;,           // 间隔（0m 禁用）
+        target: &quot;last&quot;,         // last | whatsapp | telegram | none
+      },
+    },
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-config-system-9" data-toc-skip><span class="sec-num">§ 6.5.28</span>沙箱配置</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      sandbox: {
+        mode: &quot;non-main&quot;,   // off | non-main | all
+        scope: &quot;agent&quot;,
+      },
+    },
+  },
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>模式</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>off</code></td><td>不使用沙箱</td></tr>
+    <tr><td><code>non-main</code></td><td>非主会话启用沙箱</td></tr>
+    <tr><td><code>all</code></td><td>所有会话启用沙箱</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-gateway-positioning-1">01 - Gateway 定位与职责</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-websocket-protocol-1">03 - WebSocket 协议层</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-04-cli-command-system-1">04 - CLI 层与命令系统</a> · <a href="/2026/11/07/openclaw-04-models-runtimes/#deep-01-provider-adapters-1">06 - Provider 与模型管理</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-17"><span class="sec-num">§ 6.6</span>CLI 层与命令系统</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>OpenClaw 的 CLI 入口流程是怎样的？从 entry.ts 到命令执行经历了哪些步骤？</li>
+  <li>什么是"快路径命令"？它相比完整命令解析有什么优势？</li>
+  <li>命令注册如何通过懒加载减少冷启动时间？</li>
+  <li>有哪些实用的会话诊断 CLI 命令？</li>
+</ul>
+</div>
+<hr>
+<div class="intro-callout" style="background:rgba(124,58,237,0.06);border-color:#7c3aed;">
+<strong>本 wrapper 包含 4 个源文件合集（共 31 个子节）：</strong>
+<ul style="margin:0.4rem 0;">
+<li><a href="#deep-04-cli-command-system-1"><strong>01 · Gateway 定位与职责</strong></a>——7 个子节</li>
+<li><a href="#deep-04-cli-command-system-2"><strong>02 · 配置系统与热重载</strong></a>——9 个子节</li>
+<li><a href="#deep-04-cli-command-system-3"><strong>03 · WebSocket 协议层</strong></a>——5 个子节</li>
+<li><a href="#deep-04-cli-command-system-4"><strong>04 · CLI 层与命令系统</strong></a>——6 个子节</li>
+</ul>
+<small style="color:var(--text-muted);">提示：本 wrapper 内容很长，建议用 <code>Ctrl+F</code> 搜索定位。</small>
+</div>
+
+<h4 class="view-h3" id="deep-04-cli-command-system-1" data-toc-skip><span class="sec-num">§ 6.6.1</span>CLI 入口流程</h4>
+<p>OpenClaw 的 CLI 从 `src/entry.ts` 启动，经过一系列初始化后到达命令执行阶段：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph entry.ts["① 进程初始化 entry.ts"]
+        direction LR
+        E1["设置进程名 「openclaw」"]:::init
+        E2["处理 --no-color 标志"]:::init
+        E3["respawn 注入<br/>--disable-warning=ExperimentalWarning"]:::init
+        E4["Windows argv 归一化"]:::init
+        E5["CLI Profile 解析"]:::init
+        E6["调用 run-main.ts"]:::init
+    end
+
+    subgraph run.ts["② 命令路由 run-main.ts"]
+        direction LR
+        R1["加载 .env<br/>标准化环境变量"]:::route
+        R2["tryRouteCli()<br/>→ 快路径命令匹配"]:::route
+        R3["buildProgram() +<br/>registerCoreCliByName()"]:::route
+        R4["按主命令名<br/>懒加载子命令模块"]:::route
+    end
+
+    E1 --> E2 --> E3 --> E4 --> E5 --> E6
+    E6 --> R1
+    R1 --> R2
+    R2 -->|"匹配成功"| DONE["直接执行"]:::done
+    R2 -->|"未命中"| R3
+    R3 --> R4
+
+    classDef init fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef route fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 6.9 · Gateway 子模块</figcaption></figure>
+<h4 id="sec-11-55-1" data-toc-skip><span class="sec-num">§ 6.6.2</span> entry.ts 各步骤说明</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>步骤</th><th>说明</th><th>源码位置</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>设置进程名</strong></td><td>将进程名改为 <code>openclaw</code>，便于系统监控识别</td><td><code>process.title</code></td></tr>
+    <tr><td><strong>处理 --no-color</strong></td><td>禁用终端颜色输出，适用于 CI 环境</td><td>参数解析</td></tr>
+    <tr><td><strong>respawn 注入</strong></td><td>通过 Node.js <code>--disable-warning=ExperimentalWarning</code> 压制实验性功能警告</td><td><code>child_process.spawn</code></td></tr>
+    <tr><td><strong>Windows argv</strong></td><td>对 Windows 系统的命令行参数做归一化处理</td><td><code>process.argv</code> 处理</td></tr>
+    <tr><td><strong>CLI Profile</strong></td><td>解析当前使用的 CLI Profile，决定配置目录</td><td><code>OPENCLAW_PROFILE</code> 环境变量</td></tr>
+    <tr><td><strong>调用主入口</strong></td><td>将控制权交给 <code>run-main.ts</code></td><td><code>src/cli/run-main.ts</code></td></tr>
+  </tbody>
+</table>
+<h4 id="sec-11-56-1" data-toc-skip><span class="sec-num">§ 6.6.3</span> run-main.ts 命令路由</h4>
+<figure><div class="mermaid">
+flowchart TB
+    subgraph 命令路由
+        direction LR
+        CMD[用户输入命令]:::cmd --> FAST["tryRouteCli()<br/>快路径匹配"]:::fast
+        FAST -->|"命中"| EXEC[直接执行<br/>无需加载完整命令树]:::done
+        FAST -->|"未命中"| FULL["buildProgram()<br/>构建完整命令树"]:::full
+        FULL --> LAZY[懒加载子命令模块]:::full
+        LAZY --> EXEC2[执行对应命令]:::done
+    end
+
+    classDef cmd fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef fast fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef done fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef full fill:#fef3c7,stroke:#f59e0b,color:#92400e
+</div><figcaption>图 6.10 · Gateway 子模块</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-04-cli-command-system-2" data-toc-skip><span class="sec-num">§ 6.6.4</span>快路径命令</h4>
+<p>"快路径命令"是不需要加载完整命令树的常用命令，可以绕过 `buildProgram（）`，直接执行逻辑。</p>
+<h4 id="sec-11-58-1" data-toc-skip><span class="sec-num">§ 6.6.5</span> 优势</h4>
+<ul><li><strong>显著缩短冷启动时间</strong>：省去了命令树的构建和注册过程</li></ul>
+<ul><li><strong>适用于高频命令</strong>：`status`、`health` 等常用命令总是走快路径</li></ul>
+<h4 id="sec-11-59-1" data-toc-skip><span class="sec-num">§ 6.6.6</span> 快路径命令一览</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>命令</th><th>用途</th><th>示例</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong><code>openclaw status</code></strong></td><td>状态查询</td><td>显示存储路径和最近的会话</td></tr>
+    <tr><td><strong><code>openclaw health</code></strong></td><td>健康检查</td><td>Gateway 运行状态</td></tr>
+    <tr><td><strong><code>openclaw sessions</code></strong></td><td>会话列表</td><td>列出所有会话</td></tr>
+    <tr><td><strong><code>openclaw config get</code></strong></td><td>配置读取</td><td>读取当前配置</td></tr>
+    <tr><td><strong><code>openclaw models list</code></strong></td><td>模型列表</td><td>列出可用模型</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-04-cli-command-system-3" data-toc-skip><span class="sec-num">§ 6.6.7</span>会话诊断命令</h4>
+<p>除了快路径命令外，OpenClaw 还提供一套会话诊断命令，用于调试和运维排查：</p>
+<h4 id="sec-11-61-1" data-toc-skip><span class="sec-num">§ 6.6.8</span> CLI 诊断命令</h4>
+<pre class="code-block"># 显示存储路径和最近会话
+openclaw status
+
+# 转储每个会话条目
+openclaw sessions --json
+
+# 仅查看活跃会话（N 分钟内更新的）
+openclaw sessions --active
+
+# 读取配置项
+openclaw config get agents.defaults.model</pre>
+<h4 id="sec-11-62-1" data-toc-skip><span class="sec-num">§ 6.6.9</span> 会话内诊断命令</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>命令</th><th>用途</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong><code>/status</code></strong></td><td>查看窗口使用率和会话设置</td></tr>
+    <tr><td><strong><code>/context list</code></strong></td><td>查看注入的文件和大致大小</td></tr>
+    <tr><td><strong><code>/context detail</code></strong></td><td>详细上下文分解：按文件/工具/schema/技能</td></tr>
+    <tr><td><strong><code>/new</code></strong></td><td>开始新会话 ID + 问候轮次</td></tr>
+    <tr><td><strong><code>/reset</code></strong></td><td>重置当前会话</td></tr>
+    <tr><td><strong><code>/stop</code></strong></td><td>中止当前运行 + 清除排队</td></tr>
+    <tr><td><strong><code>/compact [说明]</code></strong></td><td>摘要化上下文，释放窗口空间</td></tr>
+    <tr><td><strong><code>/queue</code></strong></td><td>查看/设置队列模式</td></tr>
+    <tr><td><strong><code>/send on/off/inherit</code></strong></td><td>发送策略覆盖</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-04-cli-command-system-4" data-toc-skip><span class="sec-num">§ 6.6.10</span>命令注册机制</h4>
+<p>OpenClaw 的命令系统采用<strong>懒加载</strong>模式，只有在命令实际需要时才加载对应的子命令模块：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 注册阶段["buildProgram() 注册阶段"]
+        direction TB
+        B1["buildProgram()<br/>构建顶层命令结构"]:::reg
+        B2["registerCoreCliByName()<br/>注册主命令名→加载器映射"]:::reg
+        B3["子命令模块<br/>懒加载（按需）"]:::reg
+    end
+
+    subgraph 执行阶段["运行时阶段"]
+        direction TB
+        X1["用户输入完整命令"]:::exec
+        X2["tryRouteCli()<br/>快路径优先匹配"]:::exec
+        X3["懒加载器被调用<br/>按需加载模块"]:::exec
+        X4["执行命令处理函数"]:::exec
+    end
+
+    B1 --> B2 --> B3
+    X1 --> X2
+    X2 -->|未命中| X3 --> X4
+
+    classDef reg fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef exec fill:#fef3c7,stroke:#f59e0b,color:#92400e
+</div><figcaption>图 6.11 · Gateway 子模块</figcaption></figure>
+<h4 id="sec-11-64-1" data-toc-skip><span class="sec-num">§ 6.6.11</span> 关键设计原则</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>设计</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>快路径优先</strong></td><td>先尝试快路径命令匹配，匹配成功则直接执行</td></tr>
+    <tr><td><strong>懒加载</strong></td><td>子命令模块按需加载，显著减少冷启动时间</td></tr>
+    <tr><td><strong>CLI Profile</strong></td><td>支持多配置切换（通过 <code>OPENCLAW_PROFILE</code> 环境变量）</td></tr>
+    <tr><td><strong>Module 注册</strong></td><td>主命令名 → 加载器函数的映射表</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-04-cli-command-system-5" data-toc-skip><span class="sec-num">§ 6.6.12</span>CLI ↔ Gateway 通信</h4>
+<p>CLI 通过以下方式与运行中的 Gateway 通信：</p>
+<figure><div class="mermaid">
+flowchart TB
+    CLI[CLI 命令行]:::cli -->|"openclaw gateway call"| RPC[Gateway RPC]:::gw
+    CLI -->|"openclaw config set"| CFG[Config Manager]:::gw
+    CLI -->|"openclaw health"| CHK[Health Check]:::gw
+
+    RPC -->|"agent.run / sessions.list"| EXEC[Gateway Methods]:::exec
+    CFG -->|热重载| HOT[File Watcher]:::gw
+    CHK -->|心跳| PONG["OK / Error"]:::done
+
+    classDef cli fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef gw fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef exec fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef done fill:#f1f5f9,stroke:#64748b,color:#1e293b
+</div><figcaption>图 6.12 · Gateway 子模块</figcaption></figure>
+<h4 id="sec-11-66-1" data-toc-skip><span class="sec-num">§ 6.6.13</span> 常用 Gateway RPC 调用</h4>
+<pre class="code-block"># 调用 Gateway 方法
+openclaw gateway call sessions.list
+openclaw gateway call config.apply --params &#x27;{...}&#x27;
+openclaw gateway call config.patch --params &#x27;{...}&#x27;</pre>
+<hr>
+<h4 class="view-h3" id="deep-04-cli-command-system-6" data-toc-skip><span class="sec-num">§ 6.6.14</span>关键源码文件</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>文件</th><th>作用</th><th>执行时机</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>src/entry.ts</code></td><td>程序入口，进程初始化 + CLI Profile 解析</td><td>每次 CLI 调用</td></tr>
+    <tr><td><code>src/cli/run-main.ts</code></td><td>CLI 主入口，加载环境变量 + 命令路由</td><td>entry.ts 之后</td></tr>
+    <tr><td><code>src/cli/program/build-program.ts</code></td><td>命令程序构建，注册懒加载器</td><td>快路径未命中时</td></tr>
+    <tr><td><code>src/cli/command-registry.ts</code></td><td>命令注册表，管理主命令名→加载器映射</td><td>构建时</td></tr>
+    <tr><td><code>src/gateway/server-methods.ts</code></td><td>Gateway 可调用方法注册</td><td>Gateway 启动时</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-gateway-positioning-1">01 - Gateway 定位与职责</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-websocket-protocol-1">03 - WebSocket 协议层</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">03 - 执行引擎</a></p></blockquote>
+
+</section>
+
+
+<section class="doc-section deep-dive" id="deep-dive-02-deep-12">
+  
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-7"><span class="sec-num">§ 7</span>5 条接口契约</h2>
+
+  <p class="section-lede">层与层之间用什么"说话"？这一节给出 OpenClaw 中 <strong>5 条关键接口契约</strong> 的完整数据结构——知道它们，就能精确预测消息流向。</p>
+
+  <p>5 条核心数据结构定义了整个 OpenClaw 的"语言"——任何扩展都要遵守这些契约。</p>
+
+  <h3 class="view-h3" id="sec-7.1"><span class="sec-num">§ 7.1</span><code>Envelope</code>——标准化消息<span class="vh-tag">envelope</span></h3>
+  <pre class="code-block"><span class="comment">// packages/protocol/src/envelope.ts</span>
+<span class="key">export interface</span> <span class="file">Envelope</span> {
+  <span class="key">id</span>: string;                       <span class="comment">// UUID</span>
+  <span class="key">channel</span>: string;                 <span class="comment">// "whatsapp" | "telegram" | "slack" | "web"</span>
+  <span class="key">account</span>: string;                 <span class="comment">// 账户 ID</span>
+  <span class="key">peer</span>: { <span class="key">id</span>: string; <span class="key">name</span>?: string };
+  <span class="key">content</span>: MessageContent;
+  <span class="key">timestamp</span>: number;
+  <span class="key">metadata</span>?: Record&lt;string, unknown&gt;;
+}</pre>
+
+  <h3 class="view-h3" id="sec-7.2"><span class="sec-num">§ 7.2</span><code>ToolCall</code>——工具调用<span class="vh-tag">tool-call</span></h3>
+  <pre class="code-block"><span class="comment">// packages/protocol/src/tool-call.ts</span>
+<span class="key">export interface</span> <span class="file">ToolCall</span> {
+  <span class="key">id</span>: string;
+  <span class="key">name</span>: string;                     <span class="comment">// "web_search" | "calendar" | ...</span>
+  <span class="key">arguments</span>: Record&lt;string, unknown&gt;;
+}</pre>
+
+  <h3 class="view-h3" id="sec-7.3"><span class="sec-num">§ 7.3</span><code>RpcRequest</code>——JSON-RPC 请求<span class="vh-tag">rpc</span></h3>
+  <pre class="code-block"><span class="comment">// packages/protocol/src/json-rpc.ts</span>
+<span class="key">export interface</span> <span class="file">RpcRequest</span> {
+  <span class="key">jsonrpc</span>: <span class="str">"2.0"</span>;
+  <span class="key">id</span>: string | number;
+  <span class="key">method</span>: string;
+  <span class="key">params</span>?: unknown;
+}</pre>
+
+  <h3 class="view-h3" id="sec-7.4"><span class="sec-num">§ 7.4</span><code>Outbound</code>——出站消息<span class="vh-tag">outbound</span></h3>
+  <pre class="code-block"><span class="key">export interface</span> <span class="file">Outbound</span> {
+  <span class="key">peer</span>: { <span class="key">id</span>: string; <span class="key">name</span>?: string };
+  <span class="key">text</span>: string;
+  <span class="key">attachments</span>?: Attachment[];
+  <span class="key">replyTo</span>?: string;                 <span class="comment">// 引用的 Envelope.id</span>
+}</pre>
+
+  <h3 class="view-h3" id="sec-7.5"><span class="sec-num">§ 7.5</span><code>Provider</code>——LLM Provider 接口<span class="vh-tag">provider</span></h3>
+  <pre class="code-block"><span class="comment">// packages/agent-core/src/Provider.ts</span>
+<span class="key">export interface</span> <span class="file">Provider</span> {
+  <span class="key">readonly</span> name: string;
+  <span class="file">chat</span>(req: ChatRequest): Promise&lt;ChatResponse&gt;;
+  <span class="file">stream</span>(req: ChatRequest): AsyncIterable&lt;ChatChunk&gt;;
+}</pre>
+
+  <h3 class="view-h3" id="sec-7.6"><span class="sec-num">§ 7.6</span>子模块之间怎么通信？<span class="vh-tag">comms</span></h3>
+  <p>子模块之间通过<strong>函数调用</strong>（同步） + <strong>事件总线</strong>（异步） 两种方式通信：</p>
+  <ul>
+    <li><strong>函数调用</strong>——L2 调用 L3 的 <code>agent.run(input)</code>，L3 调用 L2 的 <code>session.append(event)</code></li>
+    <li><strong>事件总线</strong>——钩子系统 （<code>api.on(event, handler)</code>） 用于跨模块的"广播"</li>
+  </ul>
+  <p><strong>不推荐</strong>：直接 import 另一个子模块的内部函数——通过它们暴露的接口。</p>
+
+
+<div class="thinking-note">
+  <p>5 条接口契约<strong>不是凭空设计</strong>——它们是"如果改动这条契约，会破坏多少下游"的边界。Envelop 是最稳定的，Tool Result 是最容易演化的。</p>
+</div>
+
+<h3 class="view-h3" id="deep-16"><span class="sec-num">§ 7.7</span>WebSocket 协议层</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>WebSocket 协议层的 4 层结构如何划分？每层的源码文件在哪里？</li>
+  <li>"三层总闸"分别是什么？如何层层递进保障系统安全？</li>
+  <li>一次完整的协议校验流程是怎样的？</li>
+  <li>六类广播事件分别由谁触发、谁消费？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-03-websocket-protocol-1" data-toc-skip><span class="sec-num">§ 7.7.1</span>四层结构</h4>
+<p>WebSocket 协议层是 Gateway 的<strong>连接中枢</strong>，所有与客户端的长连接通信都经过这四层处理：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph L1["① 连接层 — Connection Layer"]
+        direction TB
+        C1["ws-connection.ts<br/>WebSocket 连接管理"]
+        C2["message-handler.ts<br/>10s 握手超时保护"]
+    end
+
+    subgraph L2["② 协议层 — Protocol Layer"]
+        direction TB
+        P1["protocol/index.ts<br/>AJV 帧结构校验"]
+        P2["统一错误码体系"]
+    end
+
+    subgraph L3["③ 方法层 — Method Layer"]
+        direction TB
+        M1["server-methods.ts<br/>authorizeGatewayMethod"]
+        M2["role + scope 检查"]
+    end
+
+    subgraph L4["④ 事件层 — Event Layer"]
+        direction TB
+        E1["server-broadcast.ts<br/>事件广播"]
+        E2["server-chat.ts<br/>聊天事件"]
+        E3["慢消费者丢弃 + 幂等缓存"]
+    end
+
+    L1 -->|"握手成功"| L2
+    L2 -->|"帧校验通过"| L3
+    L3 -->|"方法分发"| L4
+</div><figcaption>图 7.2 · 5 条接口契约</figcaption></figure>
+<h4 id="sec-11-47-1" data-toc-skip><span class="sec-num">§ 7.7.2</span> 各层职责</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>层级</th><th>源码文件</th><th>核心职责</th><th>关键机制</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>① 连接层</strong></td><td><code>ws-connection.ts</code></td><td>WebSocket 连接建立与生命周期管理</td><td>10s 握手超时保护，超时自动断开</td></tr>
+    <tr><td><strong>② 协议层</strong></td><td><code>protocol/index.ts</code></td><td>帧结构格式校验与解析</td><td>AJV JSON Schema 校验 + 统一错误码</td></tr>
+    <tr><td><strong>③ 方法层</strong></td><td><code>server-methods.ts</code></td><td>方法分发 + 权限鉴权</td><td>role + scope 双维度检查</td></tr>
+    <tr><td><strong>④ 事件层</strong></td><td><code>server-broadcast.ts</code></td><td>事件广播与推送</td><td>慢消费者丢弃 + 幂等缓存去重</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-websocket-protocol-2" data-toc-skip><span class="sec-num">§ 7.7.3</span>三层总闸</h4>
+<p>在请求进入四层处理之前，OpenClaw 设置了<strong>三道总闸</strong>进行安全过滤：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 三道总闸
+        direction TB
+        G1["连接总闸<br/>message-handler.ts"]:::gate1
+        G2["权限总闸<br/>authorizeGatewayMethod"]:::gate2
+        G3["带宽总闸<br/>MAX_PAYLOAD_BYTES"]:::gate3
+    end
+
+    subgraph 安全效果
+        direction TB
+        E1["握手必须成功<br/>否则关闭 WS 连接"]:::effect
+        E2["role/scope 检查<br/>不符合直接拒绝"]:::effect
+        E3["单连接负载限制<br/>防止系统被拖垮"]:::effect
+    end
+
+    G1 --> E1
+    G2 --> E2
+    G3 --> E3
+
+    classDef gate1 fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef gate2 fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef gate3 fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef effect fill:#f1f5f9,stroke:#64748b,color:#1e293b
+</div><figcaption>图 7.3 · 5 条接口契约</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>总闸</th><th>源码位置</th><th>检查方式</th><th>失败后果</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>连接总闸</strong></td><td><code>message-handler.ts</code></td><td>握手必须在 10s 内完成</td><td>直接关闭 WS 连接</td></tr>
+    <tr><td><strong>权限总闸</strong></td><td><code>authorizeGatewayMethod</code></td><td>每次方法调用检查 role + scope</td><td>拒绝并返回错误码</td></tr>
+    <tr><td><strong>带宽总闸</strong></td><td><code>MAX_PAYLOAD_BYTES</code></td><td>单连接负载上限检查</td><td>拒绝超限请求</td></tr>
+  </tbody>
+</table>
+<blockquote><p>三道闸门层层递进、互不绕过，任何一道未通过则请求直接被拒绝。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-03-websocket-protocol-3" data-toc-skip><span class="sec-num">§ 7.7.4</span>协议校验流程</h4>
+<p>一次完整的 WebSocket 通信从建立连接到方法调用，经历以下校验流程：</p>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant WS as WebSocket
+    participant GW as Gateway
+    participant PH as Protocol Handler
+    participant MH as Message Handler
+    participant BC as Broadcast
+
+    Note over C,BC: 第一步：建立连接
+    C->>WS: 发起 WebSocket 连接
+    WS->>GW: 连接事件
+    GW->>GW: ① 连接总闸检查
+    alt 握手通过
+        GW-->>WS: 握手成功
+    else 超时/拒绝
+        GW-->>WS: 关闭连接
+    end
+
+    Note over C,BC: 第二步：消息通信
+    C->>WS: 发送消息帧
+    WS->>GW: 消息事件
+    GW->>PH: 协议帧校验
+    PH->>PH: ② AJV Schema 校验
+    alt 校验通过
+        PH->>GW: 校验通过
+        GW->>GW: ③ 权限总闸检查
+        alt 鉴权通过
+            GW->>MH: 转发到方法处理器
+            MH-->>GW: 处理结果
+            opt 需要广播
+                GW->>BC: 触发事件广播
+            end
+            GW-->>WS: 响应帧
+            WS-->>C: 响应
+        else 鉴权失败
+            GW-->>WS: 权限错误码
+        end
+    else 校验失败
+        GW-->>WS: 格式错误码
+    end
+</div><figcaption>图 7.4 · 5 条接口契约</figcaption></figure>
+<h4 id="sec-11-50-1" data-toc-skip><span class="sec-num">§ 7.7.5</span> 校验流程要点</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>阶段</th><th>检查点</th><th>通过条件</th><th>失败处理</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>连接建立</strong></td><td>握手挑战</td><td>10s 内完成挑战响应</td><td>关闭连接</td></tr>
+    <tr><td><strong>帧校验</strong></td><td>AJV Schema</td><td>JSON 结构完全匹配</td><td>返回统一格式错误码</td></tr>
+    <tr><td><strong>权限检查</strong></td><td>role + scope</td><td>角色有权限 + 作用域匹配</td><td>返回权限错误码</td></tr>
+    <tr><td><strong>带宽检查</strong></td><td>负载大小</td><td>不超过 MAX_PAYLOAD_BYTES</td><td>拒绝超限请求</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-websocket-protocol-4" data-toc-skip><span class="sec-num">§ 7.7.6</span>帧协议格式</h4>
+<p>OpenClaw WebSocket 帧使用 JSON 格式，基本结构如下：</p>
+<pre class="code-block">{
+  &quot;type&quot;: &quot;method_call&quot; | &quot;method_response&quot; | &quot;event&quot; | &quot;error&quot;,
+  &quot;method&quot;: &quot;agent.run&quot; | &quot;agent.wait&quot; | &quot;sessions.list&quot; | &quot;...&quot;,
+  &quot;params&quot;: { },
+  &quot;id&quot;: &quot;request-id-123&quot;
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>帧类型</th><th>方向</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>method_call</code></td><td>Client → Gateway</td><td>调用一个 Gateway 方法</td></tr>
+    <tr><td><code>method_response</code></td><td>Gateway → Client</td><td>方法调用的返回结果</td></tr>
+    <tr><td><code>event</code></td><td>Gateway → Client</td><td>服务端主动推送的事件</td></tr>
+    <tr><td><code>error</code></td><td>双向</td><td>错误信息</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-websocket-protocol-5" data-toc-skip><span class="sec-num">§ 7.7.7</span>关键源码文件</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>文件</th><th>作用</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>src/gateway/server/ws-connection.ts</code></td><td>WebSocket 连接管理：握手、心跳、重连</td></tr>
+    <tr><td><code>src/gateway/server/message-handler.ts</code></td><td>消息处理 + 握手超时保护</td></tr>
+    <tr><td><code>src/gateway/protocol/index.ts</code></td><td>帧结构定义 + AJV Schema 校验</td></tr>
+    <tr><td><code>src/gateway/server-methods.ts</code></td><td>方法分发 + authorizeGatewayMethod 鉴权</td></tr>
+    <tr><td><code>src/gateway/server-broadcast.ts</code></td><td>事件广播：慢消费者丢弃、幂等缓存</td></tr>
+    <tr><td><code>src/gateway/server-chat.ts</code></td><td>聊天事件处理</td></tr>
+    <tr><td><code>src/gateway/auth.ts</code></td><td>连接认证 Token 验证</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-gateway-positioning-1">01 - Gateway 定位与职责</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-04-cli-command-system-1">04 - CLI 层与命令系统</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-01-layered-architecture-1">01 - 架构全景</a></p></blockquote>
+
+
+
+  
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-8"><span class="sec-num">§ 8</span>三级信任模型</h2>
+
+  <p class="section-lede">三原则是"为什么这样设计"，三级信任是"具体落地为安全边界"。这一节把"可信 / 不可信 / 隔离"原则展开为 <strong>3 层可识别的边界</strong>。</p>
+
+  <p>OpenClaw 假设 <strong>没有任何输入是可信的</strong>——所有外部消息都需校验。信任分 3 级，影响不同行为。</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  T1["<b>Level 1 可信</b><br/>TRUSTED<br/> Gateway 自身"]
+  T2["<b>Level 2 半可信</b><br/>SEMI-TRUSTED<br/> extensions/ 插件"]
+  T3["<b>Level 3 不可信</b><br/>UNTRUSTED<br/> 外部消息 + LLM 输出"]
+
+  T1 -->|签名 / 验证| T2
+  T2 -->|沙箱隔离| T3
+  T3 -->|校验后转可信| T1
+
+  style T1 fill:#d1fae5,stroke:#059669,color:#1a1f2b,stroke-width:2px
+  style T2 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style T3 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+</div><figcaption>图 2.5 · 三级信任——越靠外越不可信。</figcaption></figure>
+
+  <h3 class="view-h3" id="sec-8.1"><span class="sec-num">§ 8.1</span>Level 1 · 可信 （TRUSTED）<span class="vh-tag">L1</span></h3>
+  <p><strong>谁</strong>：Gateway 自身的代码 + 配置 + 密钥存储。</p>
+  <p><strong>特征</strong>:</p>
+  <ul>
+    <li>掌握所有 API Key、OAuth Token、用户偏好</li>
+    <li>执行配置中声明的策略（谁用什么工具、限额多少）</li>
+    <li>不依赖任何外部输入做"关键决策"</li>
+  </ul>
+  <p><strong>代码位置</strong>:<code>apps/gateway/src/</code> 全部子目录。</p>
+
+  <h3 class="view-h3" id="sec-8.2"><span class="sec-num">§ 8.2</span>Level 2 · 半可信 （SEMI-TRUSTED）<span class="vh-tag">L2</span></h3>
+  <p><strong>谁</strong>:<code>extensions/</code> 下的所有插件（通道、模型、工具）。</p>
+  <p><strong>特征</strong>:</p>
+  <ul>
+    <li>通过 <code>package.json</code> + <code>openclaw.config.yaml</code> 显式启用</li>
+    <li>运行在 <code>extensions/</code> 子目录，不直接访问 Gateway 内部状态</li>
+    <li>可以读配置 + 调用 L2 接口，但不能绕过沙箱</li>
+  </ul>
+  <p><strong>代码位置</strong>:<code>extensions/&lt;name&gt;/</code> 下的所有 <code>.ts</code> 文件。</p>
+
+  <h3 class="view-h3" id="sec-8.3"><span class="sec-num">§ 8.3</span>Level 3 · 不可信 （UNTRUSTED）<span class="vh-tag">L3</span></h3>
+  <p><strong>谁</strong>:</p>
+  <ul>
+    <li><strong>外部消息</strong>——WhatsApp / Telegram / Slack 发来的所有内容</li>
+    <li><strong>LLM 输出</strong>——所有 LLM 返回的文本、工具调用参数</li>
+    <li><strong>工具结果</strong>——第三方 API 返回的数据</li>
+  </ul>
+  <p><strong>特征</strong>:</p>
+  <ul>
+    <li>所有内容在 Gateway 处理前都要校验（Schema + Zod）</li>
+    <li>LLM 输出绝不直接执行，必须经过钩子链</li>
+    <li>工具结果在用作下一轮 LLM 输入前，要做大小截断 + 内容过滤</li>
+  </ul>
+
+
+<div class="thinking-note">
+  <p>三级信任模型的<strong>关键不是"信任"本身，而是"边界"</strong>——你在哪条边界上，决定你能调什么 API、读什么数据。开发者最常犯的错是"忘记自己处于哪条边界"。</p>
+</div>
+
+
+<div class="thinking-note">
+  <p>三级信任模型的<strong>关键不是"信任"本身，而是"边界"</strong>——你在哪条边界上，决定你能调什么 API、读什么数据。开发者最常犯的错是"忘记自己处于哪条边界"。</p>
+</div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-9"><span class="sec-num">§ 9</span>威胁与防护</h2>
+
+  <p class="section-lede">原则不会自动产生安全——这一节列出 <strong>11 个具体威胁场景</strong> 和 5 项<strong>必做的安全检查</strong>。上线前过一遍，避免 80% 的常见漏洞。</p>
+
+  <h3 class="view-h3" id="sec-9.1"><span class="sec-num">§ 9.1</span>主要威胁场景 + OpenClaw 应对<span class="vh-tag">threats</span></h3>
+  <table class="info-table">
+    <thead><tr><th>威胁</th><th>攻击向量</th><th>OpenClaw 应对</th></tr></thead>
+    <tbody>
+      <tr><td><strong>提示词注入</strong></td><td>恶意消息让 LLM 调用危险工具</td><td>工具沙箱隔离 + 钩子链 + 工具白名单</td></tr>
+      <tr><td><strong>Token 窃取</strong></td><td>插件读取 Gateway 内部状态</td><td>插件运行在 extensions/ 沙箱，无文件系统访问</td></tr>
+      <tr><td><strong>Webhook 伪造</strong></td><td>攻击者直接 POST 到 18789</td><td>默认只监听 loopback，远程需 reverse proxy + auth</td></tr>
+      <tr><td><strong>SQL 注入</strong></td><td>会话数据污染</td><td>所有 SQL 走 prepared statement + 参数化查询</td></tr>
+      <tr><td><strong>DoS</strong></td><td>恶意消息淹没队列</td><td>每用户速率限制 + 队列满熔断</td></tr>
+      <tr><td><strong>记忆污染</strong></td><td>恶意消息写入 <code>memory.md</code></td><td>Markdown 记忆需用户显式确认</td></tr>
+      <tr><td><strong>插件供应链</strong></td><td>第三方 extensions 注入恶意代码</td><td>沙箱执行 + 权限白名单 + 审计日志</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="view-h3" id="sec-9.2"><span class="sec-num">§ 9.2</span>安全配置检查清单<span class="vh-tag">checklist</span></h3>
+  <ul>
+    <li><code>openclaw.config.yaml</code> 在 600 权限（<code>chmod 600</code>)</li>
+    <li>所有 API Key 用 <code>${env:XXX}</code> 引用，不硬编码</li>
+    <li>Gateway 默认绑定 <code>127.0.0.1</code>，不暴露公网</li>
+    <li>反向代理（Nginx / Caddy）启用 HTTPS</li>
+    <li>启用 <code>tools.sandbox</code> 默认 <code>container</code> 档</li>
+    <li>配置速率限制（<code>rate_limit.messages_per_minute</code>)</li>
+    <li>启用 <code>audit_log</code> 记录所有工具调用</li>
+    <li>定期轮换 OAuth Token</li>
+    <li>启用 fail2ban / 防火墙保护 18789 端口</li>
+    <li>备份 SQLite（<code>openclaw.db</code>) + <code>memory.md</code></li>
+  </ul>
+
+
+<div class="thinking-note">
+  <p>威胁场景按"攻击面"分类——通道 / 工具 / 配置 / 凭据。OpenClaw 已经在<strong>架构层</strong>做了防护（沙箱、scope、Zod 校验），但应用层需要自己做（比如限流、审计日志）。</p>
+</div>
+
+<h3 class="view-h3" id="deep-23"><span class="sec-num">§ 9.3</span>安全策略配置</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>OpenClaw 的 4 层鉴权架构分别检查什么？三层总闸和四层鉴权如何协同？</li>
+  <li>ACPX Harness 的权限模式有哪些？非交互式场景下如何处理权限弹窗？</li>
+  <li>核心安全原则有哪些？危险命令如何配置？</li>
+  <li>如何排查工具执行权限问题？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-03-safety-strategy-1" data-toc-skip><span class="sec-num">§ 9.3.1</span>安全架构总览</h4>
+<p>OpenClaw 的安全体系由<strong>三层总闸</strong>（请求入口）和<strong>四层鉴权</strong>（请求处理）构成：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 入口安全["三层总闸（连接入口）"]
+        direction LR
+        G1["连接总闸<br/>message-handler.ts<br/>10s 握手超时"]:::gate
+        G2["带宽总闸<br/>MAX_PAYLOAD_BYTES<br/>单连接负载限制"]:::gate
+        G3["速率总闸<br/>auth-rate-limit.ts<br/>防连接风暴"]:::gate
+    end
+
+    subgraph 处理安全["四层鉴权（请求处理）"]
+        direction LR
+        L1["① 连接层<br/>WebSocket 握手验证<br/>身份初步识别"]:::layer
+        L2["② 方法层<br/>role + scope 检查<br/>方法级授权"]:::layer
+        L3["③ 鉴权层<br/>Token / OAuth 验证<br/>身份确认"]:::layer
+        L4["④ 审批层<br/>approvals.json + exec.mode<br/>工具/命令级审批"]:::layer
+    end
+
+    G1 & G2 & G3 --> L1
+    L1 --> L2 --> L3 --> L4
+
+    classDef gate fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef layer fill:#fef3c7,stroke:#f59e0b,color:#92400e
+</div><figcaption>图 9.2 · 威胁与防护</figcaption></figure>
+<h4 id="sec-13-16-1" data-toc-skip><span class="sec-num">§ 9.3.2</span> 4 层鉴权</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>层级</th><th>检查内容</th><th>通过条件</th><th>失败后果</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>① 连接层</strong></td><td>WebSocket 握手挑战</td><td>10s 内完成握手</td><td>关闭连接</td></tr>
+    <tr><td><strong>② 方法层</strong></td><td>role + scope 匹配</td><td>角色有权限 + 作用域匹配</td><td>返回权限错误</td></tr>
+    <tr><td><strong>③ 鉴权层</strong></td><td>Token / OAuth 身份验证</td><td>身份合法且未过期</td><td>返回认证错误</td></tr>
+    <tr><td><strong>④ 审批层</strong></td><td>工具/命令执行审批</td><td>命中 auto 规则或用户批准</td><td>拒绝执行</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-safety-strategy-2" data-toc-skip><span class="sec-num">§ 9.3.3</span>ACPX Harness 权限</h4>
+<p>ACPX 会话通常是非交互式的（如 CI/CD 环境），不能点 TTY 权限弹窗，因此需要预先配置处理策略。</p>
+<h4 id="sec-13-18-1" data-toc-skip><span class="sec-num">§ 9.3.4</span> 权限模式</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>参数</th><th>值</th><th>含义</th><th>适用场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>permissionMode</code></td><td><code>approve-reads</code> </td><td>只自动批准读取操作</td><td>代码审查、静态分析</td></tr>
+    <tr><td><code>permissionMode</code></td><td><code>approve-all</code></td><td>自动批准写入和 shell 命令</td><td>完全信任的自动化环境</td></tr>
+    <tr><td><code>permissionMode</code></td><td><code>deny-all</code></td><td>拒绝所有权限请求</td><td>高安全环境</td></tr>
+    <tr><td><code>nonInteractivePermissions</code></td><td><code>fail</code> </td><td>遇到需要用户交互时直接失败</td><td>及早发现问题</td></tr>
+    <tr><td><code>nonInteractivePermissions</code></td><td><code>deny</code></td><td>拒绝提示并尽量继续执行</td><td>容忍部分失败</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-13-19-1" data-toc-skip><span class="sec-num">§ 9.3.5</span> 配置示例</h4>
+<pre class="code-block">openclaw config set plugins.entries.acpx.config.permissionMode approve-reads
+openclaw config set plugins.entries.acpx.config.nonInteractivePermissions fail
+openclaw gateway restart</pre>
+<blockquote><p><strong>重要</strong>：ACPX 权限不会放宽 host exec 审批；host exec 审批也不会放宽 ACPX Harness 提示。两者独立检查。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-03-safety-strategy-3" data-toc-skip><span class="sec-num">§ 9.3.6</span>核心安全原则</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>原则</th><th>说明</th><th>建议</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>最小权限</strong></td><td>不知道开关含义时，不要放大权限</td><td>从 <code>auto</code> 或 <code>deny</code> 开始</td></tr>
+    <tr><td><strong>工具隔离</strong></td><td>不熟悉的工具先不要开启大权限</td><td>exec 类命令特别谨慎</td></tr>
+    <tr><td><strong>审批先行</strong></td><td>需要运行命令时，优先配置 <code>approvals.json</code></td><td>不要靠"每次都点允许"</td></tr>
+    <tr><td><strong>网络安全</strong></td><td>远程网关不要暴露在公网裸奔</td><td>使用 TLS + Token 认证 + 反向代理</td></tr>
+    <tr><td><strong>审计追踪</strong></td><td>团队环境要记录谁触发了什么工具</td><td>启用详细日志</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-13-21-1" data-toc-skip><span class="sec-num">§ 9.3.7</span> 危险命令配置</h4>
+<pre class="code-block">{
+  rules: [
+    { pattern: &quot;sudo *&quot;, policy: &quot;deny&quot; },          // 禁止提权
+    { pattern: &quot;rm -rf /&quot;, policy: &quot;deny&quot; },         // 禁止根目录删除
+    { pattern: &quot;chmod 777 *&quot;, policy: &quot;deny&quot; },      // 禁止全局写权限
+    { pattern: &quot;:(){ :\\|:&amp; };:&quot;, policy: &quot;deny&quot; },  // 禁止 fork 炸弹
+    { pattern: &quot;dd if=/dev/zero of=/dev/sda&quot;, policy: &quot;deny&quot; }, // 禁止磁盘覆写
+  ],
+}</pre>
+<h4 id="sec-13-22-1" data-toc-skip><span class="sec-num">§ 9.3.8</span> 审批的安全影响</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>操作</th><th>影响</th><th>建议</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>"总是允许"</strong></td><td>永久添加到运行列表，后续不再询问</td><td>仅对确定安全的命令使用</td></tr>
+    <tr><td><strong>通配符范围</strong></td><td>范围越广，风险越大</td><td>尽量精确匹配，如 <code>npm run build</code> 而非 <code>npm *</code></td></tr>
+    <tr><td><strong>生产环境</strong></td><td>所有命令都走 <code>ask</code> 策略</td><td>不使用 <code>auto</code> 或 <code>full</code></td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-safety-strategy-4" data-toc-skip><span class="sec-num">§ 9.3.9</span>排查工具问题</h4>
+<p>检查两层审批：</p>
+<pre class="code-block"># 查看审批规则
+openclaw approvals get
+
+# 查看最终生效策略（取 OpenClaw 配置和 approvals.json 中更严格的）
+openclaw exec-policy show
+
+# 查看当前权限模式
+openclaw config get tools.exec.mode</pre>
+<h4 id="sec-13-24-1" data-toc-skip><span class="sec-num">§ 9.3.10</span> 排查流程</h4>
+<figure><div class="mermaid">
+flowchart TB
+    PROB["工具执行被拒绝"]:::start
+    --> S1["检查 exec-policy<br/>openclaw exec-policy show"]:::check
+    --> S2{"模式是什么?"}:::check
+    S2 -->|"deny"| FIX1["改为 auto 或 ask"]:::fix
+    S2 -->|"allowlist"| FIX2["确认命令是否在白名单"]:::fix
+    S2 -->|"ask/auto"| FIX3["检查 approvals.json 规则"]:::fix
+
+    classDef start fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef check fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef fix fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 9.3 · 威胁与防护</figcaption></figure>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-tool-system-1">01 - 工具系统架构</a> · <a href="/2026/11/07/openclaw-06-tools-hooks/#deep-02-permission-approval-1">02 - 权限模式与审批</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-websocket-protocol-1">02 - WebSocket 协议层</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a></p></blockquote>
+
+</section>
+<section class="doc-section deep-dive" id="deep-dive-02-deep-10">
+  <section class="doc-section">
+  <h2 id="sec-10"><span class="sec-num">§ 10</span>阅读路径 + FAQ + 总结</h2>
+
+  <p class="section-lede">不同读者关心不同部分——这一节给出 <strong>3 个阅读路径</strong> （入门者 / 评估者 / 架构师），以及常见 7 个 FAQ。</p>
+
+  <h3 class="view-h3" id="sec-10.1"><span class="sec-num">§ 10.1</span>阅读路径<span class="vh-tag">paths</span></h3>
+
+  <div class="path-grid">
+    <div class="path-card pc-curious">
+      <span class="pc-tag">概念派</span>
+      <div class="pc-title">概念速读</div>
+      <div class="pc-time"> 8 分钟</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 1 + 3 三原则</li>
+          <li>§ 4 四层架构</li>
+          <li>§ 5 消息生命周期</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-deep">
+      <span class="pc-tag">实现派</span>
+      <div class="pc-title">读源码派</div>
+      <div class="pc-time"> 15 分钟</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 2 三原则 → 代码映射</li>
+          <li>§ 6 Gateway 7 子模块</li>
+          <li>§ 7 关键接口契约</li>
+          <li>结合 <a href="/2026/11/07/openclaw-10-source-walkthrough/">模块 10 源码</a> § 7-8</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-deploy">
+      <span class="pc-tag">安全派</span>
+      <div class="pc-title">安全派</div>
+      <div class="pc-time"> 10 分钟</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 8 三级信任模型</li>
+          <li>§ 9 威胁场景 + 检查清单</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="view-h3" id="sec-10.2"><span class="sec-num">§ 10.2</span>常见问题<span class="vh-tag">faq</span></h3>
+
+  <ul class="faq-list">
+    <li class="faq-item">
+      <div class="faq-q"> 三原则可以违反吗？</div>
+      <div class="faq-a">可以临时违反（比如调试期），但要在 PR 描述里写明原因。长期违反会破坏"可信网关"的契约，审阅会被拒。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> Gateway 可以多实例部署吗？</div>
+      <div class="faq-a">可以，但需要共享存储后端（PostgreSQL 替代 SQLite）。水平扩展时，每副本独立处理自己的会话。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 为什么要分 L1-L4 层而不是 2-3 层？</div>
+      <div class="faq-a">4 层让每层职责单一，层间接口稳定。3 层会让"沙箱边界"模糊，5 层会增加不必要的跳跃成本。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> Level 1 自身被攻击怎么办？</div>
+      <div class="faq-a">Level 1 是"最后防线"。如果 Gateway 自身被入侵，所有数据都已失守。最佳实践：启用 OS 防火墙 + 只监听 loopback + 定期更新。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 如何参与架构讨论？</div>
+      <div class="faq-a">每周三 14：00 UTC 架构会议（见 <a href="https://github.com/openclaw/openclaw/discussions" target="_blank" rel="noopener">GitHub Discussions</a>）。重要决策会先写 RFC。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 容器沙箱需要 Docker 吗？</div>
+      <div class="faq-a">需要。也可以用 Podman（API 兼容）。无 Docker 时沙箱降级为 <code>process</code>（只隔离进程，不隔离文件系统）。</div>
+    </li>
+  </ul>
+
+  <h3 class="view-h3" id="sec-10.3"><span class="sec-num">§ 10.3</span>一句话总结<span class="vh-tag">summary</span></h3>
+  <div class="callout">
+    <strong>三原则（可信网关 · 不可信执行 · 确定性策略） → 四层（L1-L4） → Gateway 7 子模块 → 三级信任（TRUSTED / SEMI-TRUSTED / UNTRUSTED）。</strong>
+    <br><br>
+    <strong>看完本模块，你能把任意 OpenClaw 行为定位到具体的子目录 + 具体的接口契约。</strong>
+  </div>
+
+  <h3 class="view-h3" id="sec-10.4"><span class="sec-num">§ 10.4</span>相关阅读<span class="vh-tag">related</span></h3>
+  <div class="related-grid">
+    <a class="related-card" href="/2026/11/07/openclaw-01-overview/#sec-2">
+      <span class="rc-eyebrow">01 · 概览</span>
+      <span class="rc-title">三原则速览</span>
+      <span class="rc-desc">回到 <a href="/2026/11/07/openclaw-01-overview/">模块 01</a> § 4 看三原则的详细解读——本模块是它们的"代码对应"。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-03-channels/">
+      <span class="rc-eyebrow">03 · 通道</span>
+      <span class="rc-title">消息通道</span>
+      <span class="rc-desc">L1 接入层的具体实现——15+ 通道适配器 + 协议帧。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-06-tools-hooks/">
+      <span class="rc-eyebrow">06 · 工具</span>
+      <span class="rc-title">工具与钩子</span>
+      <span class="rc-desc">L3 推理层 + 4 档沙箱——"不可信执行"原则的实现细节。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-09-error-handling/">
+      <span class="rc-eyebrow">09 · 异常</span>
+      <span class="rc-title">错误处理与降级</span>
+      <span class="rc-desc">架构级降级——熔断器、fallback chain、优雅降级。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-10-source-walkthrough/">
+      <span class="rc-eyebrow">10 · 源码</span>
+      <span class="rc-title">源码导览</span>
+      <span class="rc-desc">想看真代码？这里有 5 大子项目 + 12 共享库的完整目录树。</span>
+    </a>
+    <a class="related-card" href="https://github.com/openclaw/openclaw/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener">
+      <span class="rc-eyebrow">RFC</span>
+      <span class="rc-title">ARCHITECTURE.md</span>
+      <span class="rc-desc">仓库内的架构 RFC——每次重大架构变更都有 PR 记录。</span>
+    </a>
+  </div>
+
+
+<div class="thinking-note">
+  <p>看完模块 02，你应该能回答：<strong>"一条消息如何在 OpenClaw 中被处理"</strong>。如果还答不上来，回到 § 5 消息生命周期重新看。</p>
+</div>
+</section>
+
+
+</div>
+      <aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">核心架构的三个原则</a><a class="reading-toc-link level-3" href="#sec-2.1">原则一 · 可信的网关 → gateway/ 子模块 trusted</a><a class="reading-toc-link level-3" href="#sec-2.2">原则二 · 不可信的执行 → tools/sandbox/ 子模块 untrusted</a><a class="reading-toc-link level-3" href="#sec-2.3">原则三 · 确定性的策略 → config/ 子模块 deterministic</a><a class="reading-toc-link level-3" href="#sec-2.4">三原则的相互约束 constraints</a><a class="reading-toc-link level-2" href="#sec-3">模块位置</a><a class="reading-toc-link level-2" href="#sec-4">四层架构</a><a class="reading-toc-link level-3" href="#sec-4.1">L1 · 接入层 (Access Layer) L1</a><a class="reading-toc-link level-3" href="#sec-4.2">L2 · 编排层 (Orchestration Layer) L2</a><a class="reading-toc-link level-3" href="#sec-4.3">L3 · 推理层 (Inference Layer) L3</a><a class="reading-toc-link level-3" href="#sec-4.4">L4 · 持久层 (Persistence Layer) L4</a><a class="reading-toc-link level-3" href="#sec-4.5">为什么是 4 层而不是 3 层或 5 层? why-4</a><a class="reading-toc-link level-3" href="#deep-11">分层架构全景</a><a class="reading-toc-link level-3" href="#deep-12">核心概念模型</a><a class="reading-toc-link level-3" href="#deep-22">工具系统架构</a><a class="reading-toc-link level-2" href="#sec-5">消息生命周期</a><a class="reading-toc-link level-3" href="#sec-5.1">每层的职责总结 layers-sum</a><a class="reading-toc-link level-3" href="#deep-18">Agent Loop 完整工作流</a><a class="reading-toc-link level-3" href="#deep-19">队列与并发控制</a><a class="reading-toc-link level-3" href="#deep-20">流式输出与事件机制</a><a class="reading-toc-link level-3" href="#deep-21">超时与生命周期</a><a class="reading-toc-link level-2" href="#sec-6">Gateway 子模块</a><a class="reading-toc-link level-3" href="#sec-6.1">7 大子模块详解 modules</a><a class="reading-toc-link level-3" href="#sec-6.2">入口文件 index.ts entry</a><a class="reading-toc-link level-3" href="#deep-13">核心源码索引</a><a class="reading-toc-link level-3" href="#deep-14">Gateway 定位与职责</a><a class="reading-toc-link level-3" href="#deep-15">配置系统与热重载</a><a class="reading-toc-link level-3" href="#deep-17">CLI 层与命令系统</a><a class="reading-toc-link level-2" href="#sec-7">5 条接口契约</a><a class="reading-toc-link level-3" href="#sec-7.1">Envelope — 标准化消息 envelope</a><a class="reading-toc-link level-3" href="#sec-7.2">ToolCall — 工具调用 tool-call</a><a class="reading-toc-link level-3" href="#sec-7.3">RpcRequest — JSON-RPC 请求 rpc</a><a class="reading-toc-link level-3" href="#sec-7.4">Outbound — 出站消息 outbound</a><a class="reading-toc-link level-3" href="#sec-7.5">Provider — LLM Provider 接口 provider</a><a class="reading-toc-link level-3" href="#sec-7.6">子模块之间怎么通信? comms</a><a class="reading-toc-link level-3" href="#deep-16">WebSocket 协议层</a><a class="reading-toc-link level-2" href="#sec-8">三级信任模型</a><a class="reading-toc-link level-3" href="#sec-8.1">Level 1 · 可信 (TRUSTED) L1</a><a class="reading-toc-link level-3" href="#sec-8.2">Level 2 · 半可信 (SEMI-TRUSTED) L2</a><a class="reading-toc-link level-3" href="#sec-8.3">Level 3 · 不可信 (UNTRUSTED) L3</a><a class="reading-toc-link level-2" href="#sec-9">威胁与防护</a><a class="reading-toc-link level-3" href="#sec-9.1">主要威胁场景 + OpenClaw 应对 threats</a><a class="reading-toc-link level-3" href="#sec-9.2">安全配置检查清单 checklist</a><a class="reading-toc-link level-3" href="#deep-23">安全策略配置</a><a class="reading-toc-link level-2" href="#sec-10">阅读路径 + FAQ + 总结</a><a class="reading-toc-link level-3" href="#sec-10.1">阅读路径 paths</a><a class="reading-toc-link level-3" href="#sec-10.2">常见问题 faq</a><a class="reading-toc-link level-3" href="#sec-10.3">一句话总结 summary</a><a class="reading-toc-link level-3" href="#sec-10.4">相关阅读 related</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-01-overview/"><small>← 上一篇</small><span>OpenClaw 是什么 — 概览与心智模型</span></a></div><div><a href="/2026/11/07/openclaw-03-channels/"><small>下一篇 →</small><span>消息通道与适配器协议</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body>
+</html>

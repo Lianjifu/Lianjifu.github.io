@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 5 章：会话生命周期与状态管理 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 05 · 会话生命周期与状态管理。会话 = AI 助手的&quot;短期记忆&quot;——从用户发消息到 AI 回复，Session Manager 串联所有环节。DM 隔离、上下文工程、压缩策略都在这里。本模块展开 Session 的完整生命周期和存储模型。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 5 章：会话生命周期与状态管理">
+  <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-05-sessions/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="模块 05 · 会话生命周期与状态管理。会话 = AI 助手的&quot;短期记忆&quot;——从用户发消息到 AI 回复，Session Manager 串联所有环节。DM 隔离、上下文工程、压缩策略都在这里。本模块展开 Session 的完整生命周期和存储模型。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="openclaw">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" href="http://lianjifu.cn/2026/11/07/openclaw-05-sessions/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/portal.css?v=2">
+  <link rel="stylesheet" href="/css/article.css?v=6">
+  <link rel="stylesheet" href="/css/openclaw.css?v=3">
+  <script src="/js/portal.js?v=6" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="openclaw"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+    </svg><header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
+      <span class="article-kicker">第 5 章：会话机制</span>
+      <h1 class="post-title" itemprop="name headline">会话生命周期与状态管理</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-calendar"></i></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-folder"></i></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body openclaw-body" itemprop="articleBody">
+
+<p class="post-lede">
+  <strong>会话 = AI 助手的"短期记忆"</strong>——从用户发消息到 AI 回复，Session Manager 串联所有环节。DM 隔离、上下文工程、压缩策略都在这里。本模块展开 Session 的完整生命周期和存储模型。
+</p>
+
+
+<section class="doc-section">
+  <h2 id="sec-1"><span class="sec-num">§ 1</span>一句话定位</h2>
+
+  <div class="intro-callout">
+    <strong>会话 = 一次完整的对话上下文</strong>——它把零散消息组织成有结构、有记忆、有边界、有权限的 LLM 调用单元。本模块拆解：会话怎么活、状态怎么存、Prompt 怎么装、DM 怎么管。
+  </div>
+
+  <div class="fact-grid">
+    <div class="fact"><div class="fact-num">4</div><div class="fact-label">种会话类型<br>主·分支·沙盒·孤立</div></div>
+    <div class="fact"><div class="fact-num">6</div><div class="fact-label">个生命周期状态<br>Created→Archived</div></div>
+    <div class="fact"><div class="fact-num">3</div><div class="fact-label">层存储<br>SQLite·Markdown·Git</div></div>
+    <div class="fact"><div class="fact-num">8</div><div class="fact-label">层 Prompt<br>System→Meta</div></div>
+    <div class="fact"><div class="fact-num">4</div><div class="fact-label">级 DM 策略<br>Open→Closed</div></div>
+    <div class="fact"><div class="fact-num">3</div><div class="fact-label">级 Trust Levels<br>Trusted→Untrusted</div></div>
+  </div>
+</section>
+
+
+
+
+
+<section class="doc-section">
+  <h2 id="sec-2"><span class="sec-num">§ 2</span>会话层的三个原则</h2>
+
+  <div class="principles-preview">
+    <div class="pp-card pp-gateway">
+ 
+      <div class="pp-name">会话 = 上下文的边界</div>
+      <div class="pp-desc">会话是"消息→LLM 调用"的最小单元。4 种类型让你为每种场景选合适的隔离粒度——个人用 main，实验用 sandbox。</div>
+    </div>
+    <div class="pp-card pp-exec">
+ 
+      <div class="pp-name">本地优先 · 三层存储</div>
+      <div class="pp-desc">SQLite 管机器查询，Markdown 管人类记忆，Git 做可选审计——你的状态在你的磁盘上，<code>cp -r ~/.openclaw/</code> 就能迁移。</div>
+    </div>
+    <div class="pp-card pp-policy">
+ 
+      <div class="pp-name">纵深防御 · DM + Workspace + Trust</div>
+      <div class="pp-desc">4 级 DM 策略挡掉陌生人，workspace 隔离不同身份，3 级 trust 决定能力边界——任何一层失守都还有兜底。</div>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-3"><span class="sec-num">§ 3</span>模块位置</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  A["<b>03 通道</b><br/>15+ 消息平台"] --> B["<b>05 会话与状态</b><br/>消息如何路由/存储"]
+  B --> C["<b>04 模型</b><br/>最终送到哪个 LLM"]
+  B --> D["<b>06 工具</b><br/>消息如何触发工具"]
+  B --> E["<b>09 错误处理</b><br/>会话失败如何恢复"]
+
+  style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style B fill:#c026d3,stroke:#7c3aed,color:#fff,stroke-width:2px
+  style C fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style D fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style E fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+</div><figcaption>图 5.1 · 模块 05 是消息路由与状态管理的核心——它把消息组织成有结构的会话单元。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-4"><span class="sec-num">§ 4</span>4 种会话类型</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  M["<b>Main(主会话)</b><br/>持续 · 共享记忆 · 默认"]
+  B["<b> Branch(分支)</b><br/>从主分支 fork · 完成后合并"]
+  S["<b>Sandbox(沙盒)</b><br/>一次性 · 不持久化 · 实验"]
+  I["<b>Isolated(孤立)</b><br/>无上下文 · 每次独立"]
+
+  style M fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style B fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style S fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style I fill:#d1fae5,stroke:#059669,color:#1a1f2b
+</div><figcaption>图 5.2 · 4 种会话类型——颜色对应下文 detail cards。</figcaption></figure>
+
+  <div class="session-card main">
+    <span class="sc-tag">TYPE 1 · 默认</span>
+    <h3 id="sec-4.1"><span class="sec-num">§ 4.1</span> Main（主会话）</h3>
+    <p><strong>是什么</strong>：与某个 peer（用户/群组）的持续对话——共享记忆、长期上下文、跨多次重启。</p>
+    <p><strong>特征</strong>:</p>
+    <ul>
+      <li><strong>持久化</strong>——重启 Gateway 不丢失</li>
+      <li><strong>共享记忆</strong>——跨多个主会话可访问（<code>memory/[peerId].md</code>)</li>
+      <li><strong>统计</strong>——token 累计、消息计数、配额追踪</li>
+      <li><strong>可恢复</strong> — <code>openclaw resume [id]</code></li>
+    </ul>
+    <p><strong>典型场景</strong>：个人助手、家庭群组 bot、工作账号 DM。</p>
+  </div>
+
+  <div class="session-card branch">
+    <span class="sc-tag">TYPE 2 · 派生</span>
+    <h3 id="sec-4.2"><span class="sec-num">§ 4.2</span> Branch（分支）</h3>
+    <p><strong>是什么</strong>：从主会话 fork 的独立子任务——用主会话的上下文，但有自己的运行栈。</p>
+    <p><strong>特征</strong>:</p>
+    <ul>
+      <li><strong>起点共享</strong>——fork 时复制主会话上下文</li>
+      <li><strong>独立运行</strong>——不影响主会话状态</li>
+      <li><strong>完成后合并</strong>——任务结束后，把结果写回主会话（<code>merge-back</code>)</li>
+      <li><strong>安全</strong>——分支里出错不会破坏主会话</li>
+    </ul>
+    <p><strong>典型场景</strong>：并行尝试多个方案、隔离高风险操作、并发处理任务。</p>
+
+    <pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">coder</span>: {
+      <span class="key">session</span>: {
+        <span class="key">type</span>: <span class="str">"branch"</span>,
+        <span class="key">parent</span>: <span class="str">"main"</span>,
+        <span class="key">mergeBack</span>: <span class="val">true</span>,
+        <span class="key">isolation</span>: <span class="str">"full"</span>          <span class="comment">// 完全隔离</span>
+      }
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="session-card sandbox">
+    <span class="sc-tag">TYPE 3 · 一次性</span>
+    <h3 id="sec-4.3"><span class="sec-num">§ 4.3</span> Sandbox（沙盒）</h3>
+    <p><strong>是什么</strong>：一次性实验会话——执行完不保留，适合测试和临时任务。</p>
+    <p><strong>特征</strong>:</p>
+    <ul>
+      <li><strong>不持久化</strong>——关闭后清空</li>
+      <li><strong>无副作用</strong>——工具调用受沙盒限制</li>
+      <li><strong>短寿命</strong>——默认 30 分钟超时</li>
+      <li><strong>独立计费</strong>——不计入主会话配额</li>
+    </ul>
+    <p><strong>典型场景</strong>：新模型测试、prompt A/B、用户验证、隔离可疑操作。</p>
+
+    <pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">experiment</span>: {
+      <span class="key">session</span>: {
+        <span class="key">type</span>: <span class="str">"sandbox"</span>,
+        <span class="key">ttl</span>: <span class="str">"30m"</span>,
+        <span class="key">toolsAllowlist</span>: [<span class="str">"shell.readonly"</span>]    <span class="comment">// 只读工具</span>
+      }
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="session-card isolated">
+    <span class="sc-tag">TYPE 4 · 零状态</span>
+    <h3 id="sec-4.4"><span class="sec-num">§ 4.4</span> Isolated（孤立）</h3>
+    <p><strong>是什么</strong>：完全无状态的调用——每次调用都从零开始，无历史、无记忆、无共享。</p>
+    <p><strong>特征</strong>:</p>
+    <ul>
+      <li><strong>无历史</strong>——不保留任何上下文</li>
+      <li><strong>无记忆</strong>——不读写记忆文件</li>
+      <li><strong>无共享</strong>——即使同一用户也独立</li>
+      <li><strong>最低开销</strong>——适合批量处理</li>
+    </ul>
+    <p><strong>典型场景</strong>：批量分类、批量翻译（每条独立）、一次性查询。</p>
+
+    <pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">classifier</span>: {
+      <span class="key">session</span>: {
+        <span class="key">type</span>: <span class="str">"isolated"</span>,
+        <span class="key">noMemory</span>: <span class="val">true</span>,
+        <span class="key">noSharedContext</span>: <span class="val">true</span>
+      }
+    }
+  }
+}</pre>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-5"><span class="sec-num">§ 5</span>6 个生命周期状态</h2>
+
+  <figure><div class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> Created: 收到首条消息
+  Created --> Active: 激活(进入 LLM 循环)
+  Active --> Idle: 无活动超过 idleTimeout
+  Idle --> Active: 新消息
+  Idle --> Archived: 闲置超过 archiveAfter
+  Active --> Closed: 用户主动 /close
+  Closed --> Archived: 归档(默认 7 天后)
+  Archived --> [*]: 删除
+  Closed --> Active: 重新激活
+</div><figcaption>图 5.3 · 6 个状态——Created / Active / Idle / Closed / Archived / （deleted）。</figcaption></figure>
+
+  <table class="state-table">
+<thead><tr><th>状态</th><th>触发</th><th>持续时间</th><th>下一步</th></tr></thead>
+<tbody>
+<tr><td><strong>Created</strong></td><td>首条消息到达</td><td>~0ms</td><td>立即 → Active</td></tr>
+<tr><td><strong>Active</strong></td><td>进入 LLM 循环</td><td>处理期间</td><td>→ Idle / Closed</td></tr>
+<tr><td><strong>Idle</strong></td><td>无活动 <code>idleTimeout</code>（默认 5m）</td><td>~5 分钟</td><td>→ Active（新消息）/ Archived</td></tr>
+<tr><td><strong>Closed</strong></td><td>用户 <code>/close</code></td><td>任意</td><td>→ Archived（7 天后）</td></tr>
+<tr><td><strong>Archived</strong></td><td>闲置超 <code>archiveAfter</code>（默认 30 天）</td><td>永久</td><td>→ 手动删除 / 清理任务</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-6"><span class="sec-num">§ 6</span>会话 ID 三元组 + 归档</h2>
+
+  <p>每个会话有唯一 ID：<code>[channel]:[account]:[peer]</code></p>
+
+  <ul>
+    <li><strong>channel</strong>——通道 ID（<code>telegram</code>、<code>slack</code>、<code>whatsapp</code>)</li>
+    <li><strong>account</strong>——账号 ID（<code>work</code>、<code>personal</code>)</li>
+    <li><strong>peer</strong>——对话方 ID（<code>user:123456</code>、<code>group:-100123</code>)</li>
+  </ul>
+
+  <p>例如 <code>telegram:work:user:123456</code> = Telegram 工作账号与用户 123456 的会话。</p>
+
+  <h3 class="view-h3" id="sec-6.1"><span class="sec-num">§ 6.1</span>归档与恢复<span class="vh-tag">archival</span></h3>
+<pre class="config">{
+  <span class="key">sessions</span>: {
+    <span class="key">archiveAfter</span>: <span class="str">"30d"</span>,        <span class="comment">// 30 天后归档</span>
+    <span class="key">idleTimeout</span>: <span class="str">"5m"</span>,         <span class="comment">// 5 分钟无活动进入 Idle</span>
+    <span class="key">compressionStrategy</span>: <span class="str">"summary"</span>, <span class="comment">// 归档前摘要压缩</span>
+    <span class="key">retentionPolicy</span>: <span class="str">"keep-summary"</span>  <span class="comment">// 只保留摘要</span>
+  }
+}</pre>
+
+  <p>归档不是删除——它把完整消息日志压缩成摘要，节省空间但保留上下文。恢复时通过 <code>openclaw resume [sessionId]</code>。</p>
+
+  <div class="callout">
+    <strong>摘要压缩</strong>：归档时把 100 条消息压成 200 字摘要 + 关键决策列表。LLM 后续基于摘要继续对话，而不是被 100 条消息淹没。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-7"><span class="sec-num">§ 7</span>目录结构</h2>
+
+<pre class="code-block"><span class="comment">~/.openclaw/</span>
+├── openclaw.json5                   <span class="comment"># 主配置</span>
+├── state/
+│   ├── openclaw.sqlite              <span class="comment"># SQLite 数据库</span>
+│   └── openclaw.sqlite-wal          <span class="comment"># WAL 日志</span>
+├── memory/
+│   ├── user-[peerId].md             <span class="comment"># 长期记忆(每用户)</span>
+│   ├── agent-[agentName].md         <span class="comment"># Agent 偏好</span>
+│   └── shared/                      <span class="comment"># 跨用户记忆</span>
+├── workspace/
+│   └── [account]/                   <span class="comment"># 工作目录(每账号)</span>
+├── channels/
+│   └── [name]/[account]/
+│       └── creds.json               <span class="comment"># 通道凭据(可选加密)</span>
+├── archive/                         <span class="comment"># 归档会话</span>
+└── .git/                            <span class="comment"># 可选 Git 版本层</span>
+</pre>
+
+  <div class="callout">
+    <strong>设计哲学</strong>:<strong>你的状态在你的磁盘上</strong>——没有云依赖，没有 vendor lock-in。<code>cp -r ~/.openclaw/</code> 就能完整备份。
+  </div>
+
+<h3 class="view-h3" id="deep-26"><span class="sec-num">§ 7.1</span>记忆存储层</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>OpenClaw 的三层记忆体系分别是什么？存储层在其中的基础定位是什么？</li>
+  <li>MEMORY.md 和 memory/YYYY-MM-DD.md 的用途、加载时机、作用域有何区别？</li>
+  <li>索引系统索引哪些文件？索引触发的四种时机分别是什么？</li>
+  <li>什么内容适合写入记忆？什么绝对不写？</li>
+  <li>嵌入缓存和 SQLite 向量加速如何提升检索性能？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-01-memory-storage-layer-1" data-toc-skip><span class="sec-num">§ 7.1.1</span>三层记忆体系</h4>
+<p>OpenClaw 将记忆抽象为<strong>三层架构</strong>，存储层是最底层的基础设施：</p>
+<figure><div class="mermaid">
+flowchart TB
+    subgraph Layer1["① 记忆存储层 — 文件系统与索引"]
+        direction LR
+        L1_MD["MEMORY.md<br/>长期记忆"]:::file
+        L1_DAY["memory/YYYY-MM-DD.md<br/>每日日志"]:::file
+        L1_IDX["SQLite 索引<br/>FTS5 + 向量 + 缓存"]:::file
+        L1_TOOL["记忆工具接口<br/>memory_search / memory_get"]:::file
+    end
+
+    subgraph Layer2["② 主动检索层 — 查询注入"]
+        direction LR
+        L2_AM["Active Memory<br/>回复前自动检索"]:::active
+        L2_HY["混合搜索<br/>BM25 + 向量融合"]:::active
+    end
+
+    subgraph Layer3["③ 后台整理层 — 整理提升"]
+        direction LR
+        L3_FLUSH["Auto Memory Flush<br/>压缩前存储提醒"]:::consolidate
+        L3_DREAM["Dreaming<br/>三阶段后台整理"]:::consolidate
+        L3_BACK["后端引擎分流<br/>SQLite / QMD / Honcho"]:::consolidate
+    end
+
+    Layer1 -->|"提供索引数据"| Layer2
+    Layer2 -->|"反馈查询模式"| Layer3
+    Layer3 -->|"写入提升记忆"| Layer1
+
+    classDef file fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef active fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef consolidate fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 9.2 · 目录结构</figcaption></figure>
+<h4 id="sec-23-3-1" data-toc-skip><span class="sec-num">§ 7.1.2</span> 各层职责</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>层级</th><th>名称</th><th>核心载体</th><th>职责</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>①</strong></td><td><strong>记忆存储层</strong></td><td>MEMORY.md / 每日日志 / SQLite 索引</td><td>持久化记忆数据，提供搜索索引，暴露工具接口</td></tr>
+    <tr><td><strong>②</strong></td><td><strong>主动检索层</strong></td><td>Active Memory / 混合搜索</td><td>在回复前自动检索相关记忆注入上下文</td></tr>
+    <tr><td><strong>③</strong></td><td><strong>后台整理层</strong></td><td>Auto Flush / Dreaming / 后端引擎</td><td>在系统空闲时整理、提升记忆质量</td></tr>
+  </tbody>
+</table>
+<blockquote><p><strong>存储层是三层中最基础的一层。</strong> 没有存储层，主动检索无数据可查，后台整理无文件可写。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-01-memory-storage-layer-2" data-toc-skip><span class="sec-num">§ 7.1.3</span>两个记忆文件</h4>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 工作区["~/.openclaw/workspace/"]
+        direction TB
+        F1["MEMORY.md<br/>精选的长期记忆<br/>决策 · 偏好 · 事实"]:::long
+        F2["memory/<br/>   ├── 2026-06-01.md<br/>   ├── 2026-06-02.md<br/>   ├── ...<br/>   └── 2026-06-15.md"]:::daily
+        F3[".dreams/<br/>Dreaming 状态<br/>(仅开启时存在)"]:::dream
+    end
+
+    classDef long fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef daily fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef dream fill:#fce7f3,stroke:#ec4899,color:#9d174d
+</div><figcaption>图 9.3 · 目录结构</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>文件</th><th>用途</th><th>加载时机</th><th>作用域</th><th>写入方式</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong><code>MEMORY.md</code></strong></td><td>精选的长期记忆：决策、偏好、持久性事实</td><td>仅主要私人会话</td><td>不在群组中使用</td><td>主动写入 + Deep 阶段写入</td></tr>
+    <tr><td><strong><code>memory/YYYY-MM-DD.md</code></strong></td><td>每日日志（仅追加）：日常笔记、运行上下文</td><td>会话开始时读取今天 + 昨天</td><td>所有会话</td><td>仅追加，自动按日期分隔</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-5-1" data-toc-skip><span class="sec-num">§ 7.1.4</span> 写入策略</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>写入时机</th><th>写入位置</th><th>内容类型</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Agent 主动决策</td><td><code>MEMORY.md</code></td><td>"这个偏好应该记住"</td></tr>
+    <tr><td>Agent 主动决策</td><td><code>memory/YYYY-MM-DD.md</code></td><td>"今天做的这个决策记一下"</td></tr>
+    <tr><td>Auto Memory Flush</td><td><code>memory/YYYY-MM-DD.md</code></td><td>压缩前持久化提醒</td></tr>
+    <tr><td>Dreaming Deep 阶段</td><td><code>MEMORY.md</code></td><td>从短期提升到长期</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-memory-storage-layer-3" data-toc-skip><span class="sec-num">§ 7.1.5</span>记忆工具接口</h4>
+<p>存储层暴露两个工具供上层使用：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>工具</th><th>功能</th><th>返回内容</th><th>启用条件</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong><code>memory_search</code></strong></td><td>语义搜索，按意思找笔记</td><td>片段文本 + 文件路径 + 行范围 + 相似度分数</td><td><code>memorySearch.enabled = true</code></td></tr>
+    <tr><td><strong><code>memory_get</code></strong></td><td>读取特定文件的完整内容</td><td>文件全文（可按行数限制）</td><td>同上</td></tr>
+  </tbody>
+</table>
+<blockquote><p>两个工具仅在 `memorySearch.enabled = true` 时启用。默认启用。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-01-memory-storage-layer-4" data-toc-skip><span class="sec-num">§ 7.1.6</span>索引管理</h4>
+<h4 id="sec-23-8-1" data-toc-skip><span class="sec-num">§ 7.1.7</span> 索引内容</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>文件类型</th><th>是否索引</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>MEMORY.md</code></td><td>是</td><td>长期记忆文件</td></tr>
+    <tr><td><code>memory/**/*.md</code></td><td>是</td><td>所有记忆目录下的 Markdown</td></tr>
+    <tr><td>工作区其他 <code>.md</code></td><td>否</td><td>仅 <code>extraPaths</code> 中显式指定的</td></tr>
+    <tr><td>符号链接目标</td><td>否</td><td>被忽略</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-9-1" data-toc-skip><span class="sec-num">§ 7.1.8</span> 四种索引触发时机</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>触发时机</th><th>执行方式</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>会话开始</strong></td><td>同步</td><td>Agent 启动时立即执行索引</td></tr>
+    <tr><td><strong>搜索时</strong></td><td>异步</td><td>如有必要，搜索时异步触发</td></tr>
+    <tr><td><strong>间隔计划</strong></td><td>定时</td><td>按配置的 interval 定时执行</td></tr>
+    <tr><td><strong>文件变化</strong></td><td>防抖 1.5s</td><td>文件变更后等待 1.5s 再索引，避免频繁触发</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-10-1" data-toc-skip><span class="sec-num">§ 7.1.9</span> 索引存储</h4>
+<pre class="code-block">~/.openclaw/memory/&lt;agentId&gt;/.sqlite</pre>
+<p>可通过配置自定义：</p>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      memorySearch: {
+        store: { path: &quot;~/.openclaw/memory/{agentId}/.sqlite&quot; },
+      },
+    },
+  },
+}</pre>
+<h4 id="sec-23-11-1" data-toc-skip><span class="sec-num">§ 7.1.10</span> 重新索引触发</h4>
+<p>当以下任一配置变化时，自动重置并重新索引：</p>
+<ul><li>嵌入 provider 变更</li></ul>
+<ul><li>嵌入模型变更</li></ul>
+<ul><li>端点指纹变更</li></ul>
+<ul><li>分块参数变更</li></ul>
+<hr>
+<h4 class="view-h3" id="deep-01-memory-storage-layer-5" data-toc-skip><span class="sec-num">§ 7.1.11</span>嵌入缓存</h4>
+<p>重复嵌入相同的文本会浪费 API 调用和 Token。嵌入缓存确保<strong>未更改的文本不会重新嵌入</strong>：</p>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      memorySearch: {
+        cache: {
+          enabled: true,       // 启用缓存
+          maxEntries: 50000,   // 最大缓存条目
+        },
+      },
+    },
+  },
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>效果</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>减少 API 调用</strong></td><td>未更改文本直接使用缓存向量</td></tr>
+    <tr><td><strong>加速重新索引</strong></td><td>重新索引时跳过已缓存的文本</td></tr>
+    <tr><td><strong>降低 Token 消耗</strong></td><td>避免重复发送相同文本给 embedding provider</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-memory-storage-layer-6" data-toc-skip><span class="sec-num">§ 7.1.12</span>SQLite 向量加速</h4>
+<p>当 sqlite-vec 扩展可用时，嵌入存储在本机 SQLite 虚拟表中，向量距离查询在数据库内执行：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>状态</th><th>查询方式</th><th>性能</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>sqlite-vec 可用</td><td>数据库内虚拟表查询</td><td>最快</td></tr>
+    <tr><td>sqlite-vec 不可用</td><td>进程内余弦相似度计算</td><td>较慢</td></tr>
+  </tbody>
+</table>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      memorySearch: {
+        store: {
+          vector: {
+            enabled: true,
+            extensionPath: &quot;/path/to/sqlite-vec&quot;,
+          },
+        },
+      },
+    },
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-01-memory-storage-layer-7" data-toc-skip><span class="sec-num">§ 7.1.13</span>额外记忆路径</h4>
+<p>可以将工作区外的目录也纳入记忆索引：</p>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      memorySearch: {
+        extraPaths: [&quot;../team-docs&quot;, &quot;/srv/shared-notes/overview.md&quot;],
+      },
+    },
+  },
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>规则</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>路径类型</strong></td><td>绝对路径或相对于工作区</td></tr>
+    <tr><td><strong>目录扫描</strong></td><td>递归扫描 <code>.md</code> 文件</td></tr>
+    <tr><td><strong>符号链接</strong></td><td>被忽略</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-memory-storage-layer-8" data-toc-skip><span class="sec-num">§ 7.1.14</span>适合 vs 不适合</h4>
+<figure><div class="mermaid">
+flowchart TB
+    subgraph 适合["适合写入"]
+        L1["长期偏好<br/>回答先给结论再展开"]
+        L2["项目规则<br/>main 分支不能直接推送"]
+        L3["重要事实<br/>团队使用 Asia/Shanghai 时区"]
+        L4["决策记录<br/>选择 TypeScript 而非 Python"]
+    end
+
+    subgraph 边界["谨慎写入"]
+        G1["半结构化链接<br/>接口文档地址"]
+        G2["临时计划<br/>本周开发目标是..."]
+        G3["个人备注<br/>Alice 喜欢简洁回复"]
+    end
+
+    subgraph 禁止["绝对不写"]
+        B1["密码 / API Key / Token"]
+        B2["一次性验证码"]
+        B3["临时的过期链接"]
+        B4["个人隐私<br/>身份证 / 地址"]
+    end
+
+    style 适合 fill:#d1fae5,stroke:#10b981,color:#065f46
+    style 边界 fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    style 禁止 fill:#fee2e2,stroke:#ef4444,color:#991b1b
+</div><figcaption>图 9.4 · 目录结构</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-01-memory-storage-layer-9" data-toc-skip><span class="sec-num">§ 7.1.15</span>快速检查命令</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>命令</th><th>用途</th><th>属于哪层</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong><code>/status</code></strong></td><td>查看窗口使用率和会话设置</td><td>全局</td></tr>
+    <tr><td><strong><code>/context list</code></strong></td><td>注入的文件 + 大致大小</td><td>存储层</td></tr>
+    <tr><td><strong><code>/memory status</code></strong></td><td>查看记忆系统状态（后端类型、索引数）</td><td>存储层</td></tr>
+    <tr><td><strong><code>/memory search <query></code></strong></td><td>手动搜索记忆</td><td>检索层</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-05-sessions/#deep-02-active-retrieval-1">02 - 主动检索层</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-03-consolidation-backends-1">03 - 后台整理层</a> · <a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-05-workspace-config-1">09 - 工作区配置</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-03-compaction-pruning-1">05 - 压缩与修剪</a></p></blockquote>
+
+
+
+  
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-8"><span class="sec-num">§ 8</span>SQLite · 任务控制</h2>
+
+  <div class="store-card sqlite">
+    <span class="sc-tag">LAYER 1 · 机器查询</span>
+    <h3 id="sec-8.1"><span class="sec-num">§ 8.1</span> SQLite · 机器可读</h3>
+    <p><strong>位置</strong>:<code>state/openclaw.sqlite</code></p>
+    <p><strong>模式</strong>：WAL（Write-Ahead Logging）— 读不阻塞写，适合长会话持续写入。</p>
+    <p><strong>规模</strong>：10-100 MB（取决于活跃会话数）</p>
+
+    <p><strong>主要表</strong>:</p>
+    <table class="schema-table">
+      <thead><tr><th>表</th><th>字段（部分）</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>sessions</td><td>id · channel · account · peer · state · created_at</td><td>会话元数据</td></tr>
+        <tr><td>messages</td><td>id · session_id · role · content · tool_calls · timestamp</td><td>完整消息日志</td></tr>
+        <tr><td>tool_calls</td><td>id · message_id · name · args · result · duration</td><td>工具调用记录</td></tr>
+        <tr><td>turns</td><td>id · session_id · prompt_tokens · completion_tokens · cost</td><td>token / 成本统计</td></tr>
+        <tr><td>events</td><td>id · session_id · type · payload · ts</td><td>事件流（审计）</td></tr>
+        <tr><td>metrics</td><td>key · value · ts</td><td>运行指标</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>为什么用 SQLite</strong>:</p>
+    <ul>
+      <li><strong>零配置</strong>——无需启动服务</li>
+      <li><strong>单文件备份</strong> — <code>cp</code> 就行</li>
+      <li><strong>事务支持</strong>——ACID 保证</li>
+      <li><strong>性能足够</strong>——单进程读写无压力</li>
+      <li><strong>WAL 并发</strong>——读不阻塞写</li>
+    </ul>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-9"><span class="sec-num">§ 9</span>Markdown · 长期记忆</h2>
+
+  <div class="store-card markdown">
+    <span class="sc-tag">LAYER 2 · 人类编辑</span>
+    <h3 id="sec-9.1"><span class="sec-num">§ 9.1</span> Markdown · 人类可读</h3>
+    <p><strong>位置</strong>:<code>memory/</code> 目录</p>
+    <p><strong>格式</strong>：标准 Markdown + YAML frontmatter</p>
+
+<pre class="code-block">---
+peer: "user:123456"
+created: "2026-08-15T10:30:00Z"
+updated: "2026-08-31T14:22:00Z"
+trust: "verified"
+tags: ["preferences", "work"]
+---
+
+<span class="comment"># 用户记忆</span>
+
+## 偏好
+- 工作 bot 用 Sonnet
+- 个人 bot 用本地 qwen2.5
+- 不要 Markdown 加粗,简洁风格
+
+## 重要决策
+- 2026-08-15:决定用 Slack 而非 Teams(更好的 API)
+- 2026-08-20:开启 prompt caching,月省 $40
+
+## 待办
+- [ ] 配置企业微信(周末)
+- [ ] 调研 vLLM 性能(下月)
+</pre>
+
+    <p><strong>三类记忆文件</strong>:</p>
+    <ul>
+      <li><code>user-[peerId].md</code>——单个用户的偏好/历史</li>
+      <li><code>agent-[name].md</code>——Agent 行为偏好</li>
+      <li><code>shared/*.md</code>——跨用户共享知识</li>
+    </ul>
+
+    <p><strong>为什么用 Markdown</strong>:</p>
+    <ul>
+      <li><strong>人类可读</strong>——用户能直接编辑</li>
+      <li><strong>git diff 友好</strong>——变更可审计</li>
+      <li><strong>编辑器友好</strong>——VS Code / Obsidian 直接打开</li>
+      <li><strong>可被 LLM 读</strong>——直接作为 Prompt 上下文</li>
+    </ul>
+  </div>
+
+  <div class="callout">
+    <strong>自动更新</strong>：OpenClaw 在每轮对话结束后，自动把重要信息（偏好、决策、事实）写入 Markdown——用户也可手动编辑。
+  </div>
+
+<h3 class="view-h3" id="deep-27"><span class="sec-num">§ 9.2</span>主动检索层</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>检索层的两种触发机制——被动工具调用和主动预检索——各自的调用时序和适用场景？</li>
+  <li>Active Memory 为什么默认谨慎开启？延迟、费用和安全的权衡是什么？</li>
+  <li>混合搜索（BM25 + 向量）的合并算法如何计算结果权重？</li>
+  <li>Embedding Provider 的自动选择顺序是怎样的？如何配置本地或远程 Provider？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-02-active-retrieval-1" data-toc-skip><span class="sec-num">§ 9.2.1</span>检索层在记忆体系中的位置</h4>
+<p>检索层是三层记忆体系中的<strong>中间层</strong>，承上启下：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 存储层["① 存储层 （下方）"]
+S["MEMORY.md + 每日日志<br/>SQLite 索引（FTS5 + 向量）"]:::store
+    end
+
+    subgraph 检索层["② 检索层 （当前）— 查询与注入"]
+direction TB
+        R1["被动调用<br/>memory_search / memory_get<br/>Agent 或用户显式请求"]:::passive
+        R2["主动预检索<br/>Active Memory<br/>回复前自动派发子任务"]:::active
+        R3["搜索算法<br/>向量余弦相似度 + BM25 FTS5<br/>→ 混合加权"]:::algo
+    end
+
+    subgraph 整理层["③ 整理层 （上方）"]
+C["Auto Flush / Dreaming<br/>三阶段提升 + 后端引擎"]:::consolidate
+    end
+
+    S -->|"读取索引"| R1
+    S -->|"读取索引"| R2
+    R1 -->|"结果"| R3
+    R2 -->|"结果"| R3
+    R3 -->|"相关记忆"| C
+
+    classDef store fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef passive fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef active fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef algo fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef consolidate fill:#f1f5f9,stroke:#64748b,color:#1e293b
+</div><figcaption>图 11.2 · Markdown · 长期记忆</figcaption></figure>
+<h4 id="sec-23-19-1" data-toc-skip><span class="sec-num">§ 9.2.2</span> 被动 vs 主动对比</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>维度</th><th>被动调用（memory_search）</th><th>主动预检索（Active Memory）</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>触发方式</strong></td><td>Agent 或用户显式调用</td><td>每次主回复生成前自动触发</td></tr>
+    <tr><td><strong>时机</strong></td><td>Agent 决定需要记忆时</td><td>每次消息处理，回复之前</td></tr>
+    <tr><td><strong>可见性</strong></td><td>Agent 可控制调用与否</td><td>对 Agent 透明，无法干预</td></tr>
+    <tr><td><strong>延迟影响</strong></td><td>无额外延迟（按需调用）</td><td>每次回复增加约 15s 延迟（可配置）</td></tr>
+    <tr><td><strong>费用影响</strong></td><td>仅 Tool 调用费用</td><td>额外的模型子任务调用</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-active-retrieval-2" data-toc-skip><span class="sec-num">§ 9.2.3</span>被动检索：记忆工具</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>工具</th><th>功能</th><th>返回内容</th><th>启用条件</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong><code>memory_search</code></strong></td><td>语义搜索，按意思找笔记</td><td>片段文本 + 文件路径 + 行范围 + 相似度分数</td><td><code>memorySearch.enabled = true</code></td></tr>
+    <tr><td><strong><code>memory_get</code></strong></td><td>读取特定文件的完整内容</td><td>文件全文（可按行数限制）</td><td>同上</td></tr>
+  </tbody>
+</table>
+<blockquote><p>两个工具仅在 `memorySearch.enabled = true` 时可用。默认启用。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-02-active-retrieval-3" data-toc-skip><span class="sec-num">§ 9.2.4</span>主动预检索：Active Memory</h4>
+<p>普通记忆像一本笔记本，模型要想起来通常得自己决定去翻。Active Memory 更主动：<strong>在主回复生成前，先派一个小的记忆子任务，看看有没有相关记忆值得带进来。</strong></p>
+<h4 id="sec-23-22-1" data-toc-skip><span class="sec-num">§ 9.2.5</span> 调用时序</h4>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant U as 用户消息
+    participant AM as Active Memory
+    participant MEM as 记忆系统
+    participant AG as Agent
+
+    Note over U,AG: 回复前阶段
+    U->>AM: 消息到达
+    AM->>AM: ① 构建记忆查询 queryMode + promptStyle
+    AM->>MEM: ② memory_search（timeoutMs=15s）
+    MEM-->>AM: ③ 返回相关记忆片段
+
+    Note over U,AG: 回复阶段
+    AM->>AG: ④ 记忆注入上下文
+    AG->>AG: ⑤ 开始回复（已携带记忆线索）
+</div><figcaption>图 11.3 · Markdown · 长期记忆</figcaption></figure>
+<h4 id="sec-23-23-1" data-toc-skip><span class="sec-num">§ 9.2.6</span> 适合场景</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>场景</th><th>说明</th><th>效果</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>长期偏好</strong></td><td>Agent 记得你的风格偏好</td><td>回复更贴合个人习惯</td></tr>
+    <tr><td><strong>长期聊天</strong></td><td>经常和同一个 Agent 聊天</td><td>对话连续性更好</td></tr>
+    <tr><td><strong>主动关联</strong></td><td>不想每次都手动说"去查记忆"</td><td>自动关联相关信息</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-24-1" data-toc-skip><span class="sec-num">§ 9.2.7</span> 为什么默认谨慎</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>影响</th><th>说明</th><th>缓解措施</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>增加延迟</strong></td><td>回复前多跑一步记忆子任务</td><td>设置 <code>timeoutMs</code>（默认 15s），超时跳过</td></tr>
+    <tr><td><strong>增加费用</strong></td><td>额外的模型调用</td><td>限定 <code>allowedChatTypes</code> 和 <code>agents</code> 白名单</td></tr>
+    <tr><td><strong>权限控制</strong></td><td>需要控制哪些 Agent 可启用</td><td><code>agents: ["main"]</code> 白名单</td></tr>
+    <tr><td><strong>群聊风险</strong></td><td>避免把 A 的记忆用到 B 的回复</td><td><code>allowedChatTypes: ["direct"]</code> 禁止群聊</td></tr>
+  </tbody>
+</table>
+<blockquote><p><strong>新手建议</strong>：先只在私聊、主 Agent 上启用。确认影响不大后可逐步扩大范围。</p></blockquote>
+<h4 id="sec-23-25-1" data-toc-skip><span class="sec-num">§ 9.2.8</span> 配置</h4>
+<pre class="code-block">{
+  plugins: {
+    entries: {
+      &quot;active-memory&quot;: {
+        enabled: true,
+        config: {
+          enabled: true,              // 总开关
+          agents: [&quot;main&quot;],           // 生效的 Agent 白名单
+          allowedChatTypes: [&quot;direct&quot;], // direct | group | thread
+          queryMode: &quot;recent&quot;,        // recent | semantic
+          promptStyle: &quot;balanced&quot;,    // concise | balanced | detailed
+          timeoutMs: 15000,           // 超时后跳过记忆继续回复
+        },
+      },
+    },
+  },
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>参数</th><th>可选值</th><th>默认值</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>queryMode</code></td><td><code>recent</code> / <code>semantic</code></td><td><code>recent</code></td><td><code>recent</code>： 最近记忆优先； <code>semantic</code>： 语义相关性优先</td></tr>
+    <tr><td><code>promptStyle</code></td><td><code>concise</code> / <code>balanced</code> / <code>detailed</code></td><td><code>balanced</code></td><td>记忆注入提示词的详细程度</td></tr>
+    <tr><td><code>timeoutMs</code></td><td>毫秒</td><td>15000</td><td>记忆查询超时，超时后跳过记忆直接回复</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-26-1" data-toc-skip><span class="sec-num">§ 9.2.9</span> 会话内开关</h4>
+<pre class="code-block"># 查看状态
+/active-memory status
+
+# 当前会话开关
+/active-memory on           # 启用
+/active-memory off          # 关闭
+
+# 全局开关
+/active-memory on --global   # 全局启用
+/active-memory off --global  # 全局关闭</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-active-retrieval-4" data-toc-skip><span class="sec-num">§ 9.2.10</span>混合搜索（BM25 + 向量）</h4>
+<h4 id="sec-23-28-1" data-toc-skip><span class="sec-num">§ 9.2.11</span> 为什么需要混合搜索</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>搜索类型</th><th>优势</th><th>劣势</th><th>Token 要求</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>向量搜索</strong> </td><td>语义匹配（"Mac Studio" → "gateway host"）</td><td>精确 Token 匹配弱</td><td>需要嵌入模型</td></tr>
+    <tr><td><strong>BM25 搜索</strong> </td><td>精确 Token（ID、环境变量、代码符号）</td><td>改述能力弱</td><td>无需嵌入模型</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-29-1" data-toc-skip><span class="sec-num">§ 9.2.12</span> 合并算法</h4>
+<figure><div class="mermaid">
+flowchart LR
+    S1["① 向量搜索<br/>取 top-N × candidateMultiplier<br/>按余弦相似度降序"]:::vec
+    S2["② BM25 搜索<br/>取 top-N × candidateMultiplier<br/>按 FTS5 排名"]:::bm
+    S3["③ BM25 rank → score<br/>textScore = 1 / (1 + max(0, rank))"]:::calc
+    S4["④ 加权合并<br/>finalScore = vectorWeight × vectorScore<br/>+ textWeight × textScore"]:::calc
+    S5["⑤ 按 finalScore 降序<br/>取 top-N 返回"]:::result
+
+    S1 --> S3 --> S4
+    S2 --> S3
+    S4 --> S5
+
+    classDef vec fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef bm fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef calc fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef result fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 11.4 · Markdown · 长期记忆</figcaption></figure>
+<h4 id="sec-23-30-1" data-toc-skip><span class="sec-num">§ 9.2.13</span> 配置</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      memorySearch: {
+        query: {
+          hybrid: {
+            enabled: true,            // 启用混合搜索
+            vectorWeight: 0.7,        // 向量权重（0~1）
+            textWeight: 0.3,          // BM25 权重（0~1）
+            candidateMultiplier: 4,   // 候选集倍数
+          },
+        },
+      },
+    },
+  },
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>参数</th><th>说明</th><th>默认值</th><th>效果</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>vectorWeight</code></td><td>向量分数权重</td><td>0.7</td><td>越高 → 语义匹配越重要</td></tr>
+    <tr><td><code>textWeight</code></td><td>BM25 分数权重</td><td>0.3</td><td>越高 → 关键词匹配越重要</td></tr>
+    <tr><td><code>candidateMultiplier</code></td><td>候选集倍数</td><td>4</td><td>越高 → 召回越全，但计算越多</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-active-retrieval-5" data-toc-skip><span class="sec-num">§ 9.2.14</span>Embedding Provider</h4>
+<figure><div class="mermaid">
+flowchart TB
+    START["memorySearch 启用"]:::start
+    --> C1{"local.modelPath 存在?"}:::check
+    C1 -->|是| LOCAL["local<br/>GGUF 本地模型<br/>隐私优先"]:::ok
+    C1 -->|否| C2{"OpenAI Key<br/>可解析?"}:::check
+    C2 -->|是| OAI["openai<br/>text-embedding-3-small<br/>默认远程"]:::ok
+    C2 -->|否| C3{"Gemini Key<br/>可解析?"}:::check
+    C3 -->|是| GEM["gemini<br/>gemini-embedding-001<br/>原生支持"]:::ok
+    C3 -->|否| C4{"Voyage Key<br/>可解析?"}:::check
+    C4 -->|是| VOY["voyage<br/>voyage-2"]:::ok
+    C4 -->|否| DISABLE["禁用 memory search<br/>无可用 Provider"]:::no
+
+    classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef check fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef ok fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef no fill:#fee2e2,stroke:#ef4444,color:#991b1b
+</div><figcaption>图 11.5 · Markdown · 长期记忆</figcaption></figure>
+<h4 id="sec-23-32-1" data-toc-skip><span class="sec-num">§ 9.2.15</span> Provider 一览</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>Provider</th><th>模型</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>OpenAI</strong></td><td><code>text-embedding-3-small</code>, <code>text-embedding-3-large</code></td><td>默认远程</td></tr>
+    <tr><td><strong>Gemini</strong></td><td><code>gemini-embedding-001</code></td><td>原生支持</td></tr>
+    <tr><td><strong>Voyage</strong></td><td>voyage 系列</td><td>可用</td></tr>
+    <tr><td><strong>Mistral</strong></td><td>Mistral 嵌入</td><td>可用</td></tr>
+    <tr><td><strong>Ollama</strong></td><td>本地 Ollama</td><td>本地部署</td></tr>
+    <tr><td><strong>Local</strong></td><td>GGUF 模型（hf： URI）</td><td>完全离线</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-33-1" data-toc-skip><span class="sec-num">§ 9.2.16</span> 配置示例</h4>
+<p><strong>OpenAI（默认）</strong>：</p>
+<pre class="code-block">{
+  agents: { defaults: { memorySearch: { provider: &quot;openai&quot;, model: &quot;text-embedding-3-small&quot; } } },
+}</pre>
+<p><strong>Gemini（原生）</strong>：</p>
+<pre class="code-block">{
+  agents: { defaults: { memorySearch: { provider: &quot;gemini&quot;, model: &quot;gemini-embedding-001&quot;, remote: { apiKey: &quot;YOUR_KEY&quot; } } } },
+}</pre>
+<p><strong>本地模式（隐私优先）</strong>：</p>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      memorySearch: {
+        provider: &quot;local&quot;,
+        local: {
+          modelPath: &quot;hf:ggml-org/.../embeddinggemma-300m-qat-Q8_0.gguf&quot;,
+          modelCacheDir: &quot;~/.openclaw/model-cache&quot;,
+        },
+      },
+    },
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-active-retrieval-6" data-toc-skip><span class="sec-num">§ 9.2.17</span>Auto Memory Flush——检索层与整理层的衔接</h4>
+<p>当上下文窗口接近上限、即将触发压缩时，检索层会执行一次<strong>静默记忆刷新</strong>，这是检索层与整理层的衔接点：</p>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant CE as 上下文引擎
+    participant AG as Agent
+    participant MEM as 记忆文件
+
+    Note over CE,MEM: 上下文窗口接近上限
+    CE->>AG: 触发静默刷新
+    AG->>MEM: 写入 memory/YYYY-MM-DD.md
+    MEM-->>AG: 写入完成
+    AG-->>CE: NO_REPLY（对用户透明）
+    Note over CE,MEM: 继续压缩 → 进入整理层
+</div><figcaption>图 11.6 · Markdown · 长期记忆</figcaption></figure>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      compaction: {
+        reserveTokensFloor: 20000,
+        memoryFlush: {
+          enabled: true,
+          softThresholdTokens: 4000,
+          prompt: &quot;Write any lasting notes to memory/YYYY-MM-DD.md; reply with NO_REPLY if nothing to store.&quot;,
+        },
+      },
+    },
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-active-retrieval-7" data-toc-skip><span class="sec-num">§ 9.2.18</span>会话记忆搜索（实验性）</h4>
+<p>还可以索引历史会话记录并通过 `memory_search` 搜索：</p>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      memorySearch: {
+        experimental: { sessionMemory: true },
+        sources: [&quot;memory&quot;, &quot;sessions&quot;],
+      },
+    },
+  },
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>deltaBytes</code></td><td>100000</td><td>~100 KB 触发索引</td></tr>
+    <tr><td><code>deltaMessages</code></td><td>50</td><td>JSONL 行数阈值</td></tr>
+  </tbody>
+</table>
+<blockquote><p>会话索引是选择加入的，按智能体隔离。需要先显式启用。</p></blockquote>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-05-sessions/#deep-01-memory-storage-layer-1">01 - 记忆存储层</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-03-consolidation-backends-1">03 - 后台整理层</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-03-compaction-pruning-1">05 - 压缩与修剪</a> · <a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-05-workspace-config-1">09 - 工作区配置</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-28"><span class="sec-num">§ 9.3</span>后台整理层</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>整理层的两种整理机制——Auto Memory Flush 和 Dreaming——在触发时机和写入目标上有什么区别？</li>
+  <li>Dreaming 的三阶段（Light/REM/Deep）各自做什么？长期记忆最终由哪个阶段写入？</li>
+  <li>三种记忆后端（内置 SQLite / QMD / Honcho）的定位、安装要求和适用场景？</li>
+  <li>"为什么搜不到记忆"的 6 种常见原因和排查步骤？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-03-consolidation-backends-1" data-toc-skip><span class="sec-num">§ 9.3.1</span>整理层在记忆体系中的位置</h4>
+<p>整理层是三层记忆体系的<strong>最上层</strong>，负责在后台整理、提升记忆质量：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 检索层["② 检索层 （下方）"]
+R["memory_search / Active Memory<br/>混合搜索 → 返回结果"]:::retrieval
+    end
+
+    subgraph 整理层["③ 整理层 （当前）— 整理与提升"]
+direction TB
+        E1["Auto Memory Flush<br/>压缩前触发<br/>写入 memory/YYYY-MM-DD.md"]:::flush
+        E2["Dreaming<br/>空闲时运行<br/>Light → REM → Deep"]:::dream
+    end
+
+    subgraph 后端["后端引擎 — 存储底座"]
+direction TB
+        B1["内置 SQLite<br/>默认零配置"]:::sqlite
+        B2["QMD <br/>本地搜索增强"]:::qmd
+        B3["Honcho <br/>外部服务管理"]:::honcho
+    end
+
+    R -->|"写入提示"| E1
+    R -->|"查询模式反馈"| E2
+    E1 -->|"持久化"| B1 & B2 & B3
+    E2 -->|"提升到长期"| B1 & B2 & B3
+
+    classDef retrieval fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef flush fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef dream fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef sqlite fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef qmd fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef honcho fill:#f1f5f9,stroke:#64748b,color:#1e293b
+</div><figcaption>图 11.7 · Markdown · 长期记忆</figcaption></figure>
+<h4 id="sec-23-38-1" data-toc-skip><span class="sec-num">§ 9.3.2</span> 两种整理机制对比</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>维度</th><th>Auto Memory Flush </th><th>Dreaming </th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>触发时机</strong></td><td>上下文窗口接近上限时</td><td>系统空闲时后台运行</td></tr>
+    <tr><td><strong>频率</strong></td><td>每次压缩周期前</td><td>持续运行，分阶段递进</td></tr>
+    <tr><td><strong>写入目标</strong></td><td><code>memory/YYYY-MM-DD.md</code></td><td><code>MEMORY.md</code>（仅 Deep 阶段）</td></tr>
+    <tr><td><strong>对用户可见</strong></td><td>完全透明</td><td>静默运行</td></tr>
+    <tr><td><strong>复杂度</strong></td><td>默认启用</td><td>默认关闭，进阶功能</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-consolidation-backends-2" data-toc-skip><span class="sec-num">§ 9.3.3</span>Auto Memory Flush（压缩前刷新）</h4>
+<p>当上下文窗口接近上限时，OpenClaw 在执行压缩<strong>之前</strong>触发一次静默智能体轮次，提醒模型将重要信息写入持久记忆：</p>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant CE as 上下文引擎
+    participant AG as Agent
+    participant MEM as memory/YYYY-MM-DD.md
+
+    Note over CE,MEM: 距离上限不足 reserveTokensFloor + softThresholdTokens
+    CE->>AG: 触发静默记忆刷新
+    AG->>MEM: 写入持久笔记
+    MEM-->>AG: 写入完成
+    AG-->>CE: NO_REPLY（对用户透明）
+    Note over CE,MEM: 继续执行压缩
+</div><figcaption>图 11.8 · Markdown · 长期记忆</figcaption></figure>
+<h4 id="sec-23-40-1" data-toc-skip><span class="sec-num">§ 9.3.4</span> 触发条件</h4>
+<pre class="code-block">触发阈值 = contextWindow - reserveTokensFloor - softThresholdTokens
+当已用 Token 超过此阈值 → 执行刷新</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>reserveTokensFloor</code></td><td>20000</td><td>压缩后保留 Token 下限</td></tr>
+    <tr><td><code>softThresholdTokens</code></td><td>4000</td><td>距离上限还有多少 Token 时触发刷新</td></tr>
+    <tr><td><code>enabled</code></td><td>true</td><td>是否启用自动刷新</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-41-1" data-toc-skip><span class="sec-num">§ 9.3.5</span> 配置</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      compaction: {
+        reserveTokensFloor: 20000,
+        memoryFlush: {
+          enabled: true,
+          softThresholdTokens: 4000,
+          prompt: &quot;Write any lasting notes to memory/YYYY-MM-DD.md; reply with NO_REPLY if nothing to store.&quot;,
+        },
+      },
+    },
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-03-consolidation-backends-3" data-toc-skip><span class="sec-num">§ 9.3.6</span>Dreaming（后台记忆整理）</h4>
+<p>Dreaming 是 OpenClaw 的<strong>后台记忆整理系统</strong>，会在系统空闲时运行，把短期信号慢慢整理，将真正重要的内容提升到长期记忆。</p>
+<blockquote><p>默认关闭，属于进阶功能。先理解记忆搜索和主动记忆后，再考虑开启。</p></blockquote>
+<h4 id="sec-23-43-1" data-toc-skip><span class="sec-num">§ 9.3.7</span> 三阶段逐步递进</h4>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph Light["Light 阶段"]
+direction LR
+        L1["扫描近期文件变化"]:::light
+        L2["归纳总结当前状态"]:::light
+        L3["写入 .dreams/ 工作区"]:::light
+        L4["不写 MEMORY.md"]:::light
+    end
+
+    subgraph REM["REM 阶段"]
+direction LR
+        R1["跨文件关联分析"]:::rem
+        R2["识别反复出现的主题"]:::rem
+        R3["抽取核心模式"]:::rem
+        R4["不写 MEMORY.md"]:::rem
+    end
+
+    subgraph Deep["Deep 阶段"]
+direction LR
+        D1["按 4 项因素评分"]:::deep
+        D2["排序 + 权重计算"]:::deep
+        D3["提升到长期记忆"]:::deep
+        D4["写入 MEMORY.md"]:::deep
+    end
+
+    Light -->|"基础整理完成"| REM -->|"主题抽取完成"| Deep
+    Deep -->|"空闲后<br/>再次循环"| Light
+
+    classDef light fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef rem fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef deep fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 11.9 · Markdown · 长期记忆</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>阶段</th><th>类比</th><th>做什么</th><th>频率</th><th>输出</th><th>写 MEMORY.md？</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Light</strong> </td><td>先收拾桌面</td><td>扫描变更、归纳当前状态</td><td>高</td><td><code>.dreams/</code> 工作区</td><td>否</td></tr>
+    <tr><td><strong>REM</strong> </td><td>再看出规律</td><td>关联分析、识别反复出现的想法</td><td>中</td><td><code>.dreams/</code> 主题</td><td>否</td></tr>
+    <tr><td><strong>Deep</strong> </td><td>纸条入文件夹</td><td>评分排序、提升到长期</td><td>低</td><td><strong><code>MEMORY.md</code></strong></td><td>是</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-44-1" data-toc-skip><span class="sec-num">§ 9.3.8</span> 提升决策因素</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>因素</th><th>权重影响</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>分数</strong></td><td>高</td><td>记忆自身的质量评分（相关性、完整性）</td></tr>
+    <tr><td><strong>出现次数</strong></td><td>高</td><td>同一主题反复出现 → 越重要</td></tr>
+    <tr><td><strong>查询多样性</strong></td><td>中</td><td>被多种不同方式查询到 → 越相关</td></tr>
+    <tr><td><strong>时间因素</strong></td><td>低</td><td>新近出现的记忆短期权重更高</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-45-1" data-toc-skip><span class="sec-num">§ 9.3.9</span> 输出文件</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>输出</th><th>用途</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>memory/.dreams/</code></td><td>机器状态、阶段信号、锁、检查点</td></tr>
+    <tr><td><code>DREAMS.md</code></td><td>给人看的梦境日记</td></tr>
+    <tr><td><code>MEMORY.md</code></td><td>真正长期记忆，仅由 Deep 阶段写入</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-consolidation-backends-4" data-toc-skip><span class="sec-num">§ 9.3.10</span>三种后端引擎</h4>
+<h4 id="sec-23-47-1" data-toc-skip><span class="sec-num">§ 9.3.11</span> 全面对比</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>维度</th><th>内置 SQLite </th><th>QMD </th><th>Honcho </th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>定位</strong></td><td>零配置默认引擎</td><td>本地搜索增强</td><td>外部服务管理</td></tr>
+    <tr><td><strong>安装</strong></td><td>无需额外步骤</td><td>Bun + QMD CLI</td><td>独立服务部署</td></tr>
+    <tr><td><strong>搜索方式</strong></td><td>BM25 + 向量（sqlite-vec）</td><td>BM25 + 向量 + rerank</td><td>依赖服务实现</td></tr>
+    <tr><td><strong>独有能力</strong></td><td>—</td><td>query expansion， extra paths， 会话索引</td><td>多环境共享、复杂权限</td></tr>
+    <tr><td><strong>模型要求</strong></td><td>可选本地或远程 embedding</td><td>本地 GGUF 模型</td><td>依赖服务配置</td></tr>
+    <tr><td><strong>维护成本</strong></td><td>零维护</td><td>需关注版本更新</td><td>需运维服务</td></tr>
+    <tr><td><strong>适用场景</strong></td><td>单机 / 小团队</td><td>本地资料增强</td><td>企业级多环境</td></tr>
+    <tr><td><strong>推荐时机</strong></td><td><strong>新手首选</strong></td><td>需要搜索增强时升级</td><td>已有基础设施时</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-48-1" data-toc-skip><span class="sec-num">§ 9.3.12</span> 内置 SQLite——默认推荐</h4>
+<p><strong>不需要额外部署数据库</strong>：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 技术栈["SQLite 记忆引擎"]
+direction LR
+        T1["SQLite<br/>本地数据库"]:::tech
+        T2["FTS5<br/>全文搜索"]:::tech
+        T3["sqlite-vec<br/>向量搜索（可选）"]:::tech
+        T4["嵌入缓存<br/>避免重复 API"]:::tech
+    end
+
+    classDef tech fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 11.10 · Markdown · 长期记忆</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>组件</th><th>说明</th><th>是否需要安装</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>SQLite</strong></td><td>本地数据库文件</td><td>内置支持</td></tr>
+    <tr><td><strong>FTS5</strong></td><td>全文搜索，关键词匹配</td><td>SQLite 自带</td></tr>
+    <tr><td><strong>sqlite-vec</strong></td><td>向量搜索扩展</td><td>可选，有则加速</td></tr>
+    <tr><td><strong>嵌入缓存</strong></td><td>避免重复嵌入相同文本</td><td>默认启用</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-49-1" data-toc-skip><span class="sec-num">§ 9.3.13</span> QMD 后端——本地搜索增强</h4>
+<p>QMD = 结合了 BM25 + 向量 + 重排序的本地优先搜索辅助程序。</p>
+<blockquote><p>类比：内置 SQLite 是随身小本子，QMD 是带目录的资料柜。</p></blockquote>
+<pre class="code-block">{
+  memory: {
+    backend: &quot;qmd&quot;,             // 切换到 QMD
+    citations: &quot;auto&quot;,
+    qmd: {
+      includeDefaultMemory: true,
+      update: {
+        interval: &quot;5m&quot;,          // 索引更新间隔
+        debounceMs: 15000,
+        onBoot: true,
+        embedInterval: &quot;5m&quot;,
+      },
+      limits: {
+        maxResults: 6,           // 最大返回数
+        maxSnippetChars: 700,
+        maxInjectedChars: 4000,
+        timeoutMs: 4000,         // 搜索超时
+      },
+      paths: [
+        { name: &quot;docs&quot;, path: &quot;~/notes&quot;, pattern: &quot;**/*.md&quot; },
+      ],
+    },
+  },
+}</pre>
+<p><strong>前提条件</strong>：</p>
+<ul><li>`memory.backend = "qmd"` 选择启用</li></ul>
+<ul><li>安装 QMD CLI：`bun install -g https：//github.com/tobi/qmd`</li></ul>
+<ul><li>需要 Bun + SQLite（macOS： `brew install sqlite`）</li></ul>
+<ul><li>首次使用时从 HuggingFace 自动下载 GGUF 模型</li></ul>
+<h4 id="sec-23-50-1" data-toc-skip><span class="sec-num">§ 9.3.14</span> Honcho 后端——外部服务</h4>
+<p>外部记忆服务路线，适合已有 Honcho 基础设施的场景。</p>
+<table class="info-table">
+  <thead>
+    <tr><th>适合</th><th>不适合</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>已有 Honcho 基础设施</td><td>新手第一次安装</td></tr>
+    <tr><td>多个环境共享记忆后端</td><td>单机家庭网关</td></tr>
+    <tr><td>记忆作为独立服务管理</td><td>只是想记住几条偏好</td></tr>
+    <tr><td>复杂查询和权限需求</td><td>简单使用场景</td></tr>
+  </tbody>
+</table>
+<blockquote><p><strong>迁移提醒</strong>：从 Hermes 或其他系统迁移时，外部记忆配置应先归档、再手动审查，不要盲目自动启用。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-03-consolidation-backends-5" data-toc-skip><span class="sec-num">§ 9.3.15</span>后端选择路径</h4>
+<figure><div class="mermaid">
+flowchart LR
+    Q["你的场景是？"]:::start
+
+    Q --> S1["个人 / 单机 / 小团队"]:::opt
+    Q --> S2["本地资料多<br/>需要搜索增强"]:::opt
+    Q --> S3["多环境共享<br/>已有外部服务"]:::opt
+
+    S1 --> R1["内置 SQLite<br/>• 零配置开箱即用<br/>• BM25 + 向量<br/>• 新手推荐"]:::result
+    S2 --> R2["QMD<br/>• BM25 + 向量 + rerank<br/>• 多路径索引<br/>• 查询自动扩展"]:::result
+    S3 --> R3["Honcho<br/>• 独立部署服务<br/>• 多环境共享<br/>• 复杂权限支持"]:::result
+
+    classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef opt fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef result fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 11.11 · Markdown · 长期记忆</figcaption></figure>
+<h4 id="sec-23-52-1" data-toc-skip><span class="sec-num">§ 9.3.16</span> 推荐升级路径</h4>
+<pre class="code-block">新手 → 内置 SQLite（零配置入手）
+        ↓
+需要更好搜索 → 启用混合搜索（BM25 + 向量）
+        ↓
+本地资料增多 → 升级到 QMD（rerank + 多路径）
+        ↓
+企业级需求 → Honcho（多环境共享 + 复杂权限）</pre>
+<hr>
+<h4 class="view-h3" id="deep-03-consolidation-backends-6" data-toc-skip><span class="sec-num">§ 9.3.17</span>为什么有时搜不到？</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>原因</th><th>排查步骤</th><th>所属层</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>信息根本没保存</strong></td><td>检查 <code>MEMORY.md</code> 或 <code>memory/</code> 目录是否存在该内容</td><td>存储层</td></tr>
+    <tr><td><strong>关键词太模糊</strong></td><td>尝试更具体的词，BM25 对精确匹配更敏感</td><td>检索层</td></tr>
+    <tr><td><strong>provider 没配置</strong></td><td>检查 embedding provider 是否能被自动解析</td><td>检索层</td></tr>
+    <tr><td><strong>索引未完成</strong></td><td>首次使用需要建索引，尤其是首次启用 memory search</td><td>存储层</td></tr>
+    <tr><td><strong>阈值太高</strong></td><td>降低相似度阈值或增大 <code>candidateMultiplier</code></td><td>检索层</td></tr>
+    <tr><td><strong>需要重新索引</strong></td><td>更换 provider 后自动触发，确认索引已完成</td><td>存储层</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-05-sessions/#deep-01-memory-storage-layer-1">01 - 记忆存储层</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-02-active-retrieval-1">02 - 主动检索层</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-03-compaction-pruning-1">05 - 压缩与修剪</a> · <a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-01-plugin-system-1">09 - 插件系统</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a></p></blockquote>
+
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-10"><span class="sec-num">§ 10</span>Git（可选）· 版本层</h2>
+
+  <div class="store-card git">
+    <span class="sc-tag">LAYER 3 · 可选版本</span>
+    <h3 id="sec-10.1"><span class="sec-num">§ 10.1</span> Git · 版本化（可选）</h3>
+    <p><strong>启用</strong>:<code>cd ~/.openclaw && git init && git add . && git commit -m "init"</code></p>
+    <p><strong>版本化对象</strong>:</p>
+    <ul>
+      <li><code>memory/</code>——长期记忆的每次修改</li>
+      <li><code>openclaw.json5</code>——配置变更</li>
+      <li><code>state/openclaw.sqlite</code>——数据库快照（可选）</li>
+      <li><code>channels/*/creds.json</code>——凭据（单独加密）</li>
+      <li><code>archive/</code>——归档（太大）</li>
+    </ul>
+
+    <pre class="config">{
+  <span class="key">storage</span>: {
+    <span class="key">git</span>: {
+      <span class="key">enabled</span>: <span class="val">true</span>,
+      <span class="key">autoCommitOn</span>: [<span class="str">"memory.update"</span>, <span class="str">"config.change"</span>],
+      <span class="key">exclude</span>: [<span class="str">"**/creds.json"</span>, <span class="str">"archive/**"</span>]
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="callout">
+    <strong>为什么可选</strong>：不是所有用户都需要 Git 复杂度。本地文件 + SQLite 已经提供基础持久化；Git 是"高级审计/回滚"用。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-11"><span class="sec-num">§ 11</span>归档机制 + 备份恢复</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  A["活跃会话<br/>完整消息"] -->|idleTimeout| B["Idle"]
+  B -->|archiveAfter| C["归档<br/>摘要压缩"]
+  C -->|retentionPeriod| D["清理<br/>(可选)"]
+  D -->|永久删除| E["[*]"]
+
+  style A fill:#c026d3,stroke:#7c3aed,color:#fff
+  style B fill:#d97706,stroke:#92400e,color:#fff
+  style C fill:#2563eb,stroke:#1e3a8a,color:#fff
+  style D fill:#dc2626,stroke:#991b1b,color:#fff
+  style E fill:#6b7280,stroke:#374151,color:#fff
+</div><figcaption>图 5.4 · 归档流程——闲置超期 → 摘要压缩 → 可选清理。</figcaption></figure>
+
+  <p>归档前，OpenClaw 用 LLM 把完整消息日志压缩成摘要：</p>
+
+  <pre class="code-block"><span class="comment"># 会话归档:telegram:work:user:123456 (2026-08-25)</span>
+
+## 摘要
+用户在 8 月 25 日讨论了 OpenClaw 部署:
+- 选择本地 Ollama + 云 Sonnet 双模型策略
+- 决定开启 prompt caching(月省 $40)
+- 配置 Slack 作为主工作通道
+
+## 关键决策
+- 放弃 WeChat(封号风险)
+- 用 Telegram(国内快)
+- 周末配企业微信
+
+## 未完成
+- [ ] 测试 vLLM 在 4090 上的性能
+- [ ] 配置 backup script
+</pre>
+
+  <h3 class="view-h3" id="sec-11.1"><span class="sec-num">§ 11.1</span>备份与恢复<span class="vh-tag">backup</span></h3>
+
+<pre class="code-block"><span class="comment"># 备份</span>
+tar czf openclaw-backup-$(date +%Y%m%d).tar.gz ~/.openclaw/
+
+<span class="comment"># 恢复到新机器</span>
+scp openclaw-backup-*.tar.gz user@new-host:~/
+ssh user@new-host 'tar xzf openclaw-backup-*.tar.gz -C /'
+
+<span class="comment"># 启动 Gateway(自动加载所有状态)</span>
+openclaw start</pre>
+
+  <div class="callout">
+    <strong>增量备份</strong>：用 <code>openclaw backup --incremental</code> 只备份最近变更——适合 cron 定时任务。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-12"><span class="sec-num">§ 12</span>多账号隔离</h2>
+
+  <p>不同账号的存储完全隔离：</p>
+
+  <pre class="code-block"><span class="comment">~/.openclaw/</span>
+├── workspace/
+│   ├── work/                  <span class="comment"># 工作账号</span>
+│   │   ├── projects/          <span class="comment"># 工作文件</span>
+│   │   └── context.md         <span class="comment"># 工作记忆</span>
+│   └── personal/              <span class="comment"># 个人账号</span>
+│       ├── blog/              <span class="comment"># 个人项目</span>
+│       └── context.md         <span class="comment"># 个人记忆</span>
+├── memory/
+│   ├── user-telegram-work-123456.md    <span class="comment"># 工作用户</span>
+│   └── user-telegram-personal-789.md   <span class="comment"># 个人用户</span>
+</pre>
+
+  <p>每个账号有独立的 workspace 目录、独立的记忆——互不污染。</p>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-13"><span class="sec-num">§ 13</span>8 层 Prompt 栈</h2>
+
+  <p>每次 LLM 调用不是"用户消息 → LLM"这么简单。OpenClaw 会在前面叠加 7 层上下文——系统、工具、记忆、历史、Skill、用户、附件。</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  L1["<b>Layer 1</b><br/>System Prompt<br/>角色 · 行为准则"]
+  L2["<b>Layer 2</b><br/>Tools Schema<br/>可用工具描述"]
+  L3["<b>Layer 3</b><br/>Memory<br/>长期记忆(摘要)"]
+  L4["<b>Layer 4</b><br/>History<br/>会话历史"]
+  L5["<b>Layer 5</b><br/>Skill Context<br/>已激活 Skill 的额外指令"]
+  L6["<b>Layer 6</b><br/>User Input<br/>用户当前消息"]
+  L7["<b>Layer 7</b><br/>Attachments<br/>附件描述"]
+  L8["<b>Layer 8</b><br/>Meta<br/>运行时元数据(token 计数等)"]
+
+  L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7 --> L8
+
+  style L1 fill:#7c3aed,stroke:#5b21b6,color:#fff
+  style L2 fill:#2563eb,stroke:#1e3a8a,color:#fff
+  style L3 fill:#c026d3,stroke:#7c3aed,color:#fff
+  style L4 fill:#d97706,stroke:#92400e,color:#fff
+  style L5 fill:#059669,stroke:#065f46,color:#fff
+  style L6 fill:#dc2626,stroke:#991b1b,color:#fff
+  style L7 fill:#f59e0b,stroke:#92400e,color:#fff
+  style L8 fill:#6b7280,stroke:#374151,color:#fff
+</div><figcaption>图 5.5 · 8 层 Prompt 自下而上组装——越靠下越固定，越靠上越动态。</figcaption></figure>
+
+  <h3 class="view-h3" id="sec-13.1"><span class="sec-num">§ 13.1</span>Token 分配（200k 上下文）<span class="vh-tag">tokens</span></h3>
+  <div class="token-bar">
+    <div class="tb-seg" style="width:5%;background:#7c3aed;">System</div>
+    <div class="tb-seg" style="width:12%;background:#2563eb;">Tools</div>
+    <div class="tb-seg" style="width:10%;background:#c026d3;">Memory</div>
+    <div class="tb-seg" style="width:35%;background:#d97706;">History</div>
+    <div class="tb-seg" style="width:8%;background:#059669;">Skill</div>
+    <div class="tb-seg" style="width:20%;background:#dc2626;">User</div>
+    <div class="tb-seg" style="width:5%;background:#f59e0b;">Attach</div>
+    <div class="tb-seg" style="width:5%;background:#6b7280;">Meta</div>
+  </div>
+
+  <div class="callout">
+    <strong>History 占比最大</strong>：对话越长，历史越多——OpenClaw 自动摘要压缩，保持 Layer 4 在合理大小。
+  </div>
+
+<h3 class="view-h3" id="deep-23"><span class="sec-num">§ 13.2</span>上下文窗口管理</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>上下文窗口是什么？哪些内容会占用上下文 Token？</li>
+  <li>上下文和记忆的核心区别是什么？</li>
+  <li>系统提示词由哪些部分组成？工作区文件如何注入？</li>
+  <li>如何通过诊断命令检查上下文使用情况？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-01-context-window-1" data-toc-skip><span class="sec-num">§ 13.2.1</span>什么是上下文</h4>
+<p>"上下文"（Context）是 OpenClaw 在一次运行中发送给模型的所有内容。它受模型的上下文窗口（Token 限制）约束。</p>
+<pre class="code-block">上下文窗口
+┌─────────────────────────────────────────────────────┐
+│                 上下文（Context）                      │
+│  ┌──────────────┐  ┌──────────────┐                │
+│  │  系统提示词   │  │   对话历史   │                │
+│  │  规则/工具   │  │  你+助手消息  │                │
+│  └──────────────┘  └──────────────┘                │
+│  ┌──────────────┐  ┌──────────────┐                │
+│  │ 工具调用/结果  │  │ 附件/转录    │                │
+│  │ 命令输出/图像  │  │ 图像/音频/文件 │                │
+│  └──────────────┘  └──────────────┘                │
+│  ┌──────────────────────────────────┐              │
+│  │      压缩摘要 + 修剪产物          │              │
+│  └──────────────────────────────────┘              │
+├─────────────────────────────────────────────────────┤
+│  ~~~~ 上下文窗口上限 (如 32K / 100K / 200K) ~~~~    │
+└─────────────────────────────────────────────────────┘</pre>
+<h4 id="sec-22-3-1" data-toc-skip><span class="sec-num">§ 13.2.2</span> 上下文 ≠ 记忆</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>维度</th><th>上下文（Context）</th><th>记忆（Memory）</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>位置</strong></td><td>当前模型窗口内</td><td>磁盘上的 Markdown 文件</td></tr>
+    <tr><td><strong>持久性</strong></td><td>临时，每次运行重新构建</td><td>持久，跨会话保留</td></tr>
+    <tr><td><strong>速度</strong></td><td>即时读写</td><td>需要 I/O 操作</td></tr>
+    <tr><td><strong>成本</strong></td><td>占用 Token</td><td>不消耗 Token（检索时除外）</td></tr>
+    <tr><td><strong>类比</strong></td><td>桌面上摊开的材料</td><td>文件柜里的资料</td></tr>
+  </tbody>
+</table>
+<blockquote><p><strong>核心原则</strong>：只在聊天里说过、但没有写进文件的内容，将来可能会忘。记忆需要主动写入磁盘。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-01-context-window-2" data-toc-skip><span class="sec-num">§ 13.2.3</span>上下文组成</h4>
+<h4 id="sec-22-5-1" data-toc-skip><span class="sec-num">§ 13.2.4</span> 什么计入上下文窗口</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>组成部分</th><th>说明</th><th>影响</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>系统提示词</strong></td><td>规则、工具列表、技能列表、时间/运行时、工作区文件</td><td>每次运行固定开销</td></tr>
+    <tr><td><strong>对话历史</strong></td><td>用户消息 + 助手回复</td><td>随时间线性增长</td></tr>
+    <tr><td><strong>工具调用/结果</strong></td><td>命令输出、文件读取、图像/音频 base64</td><td>大型工具结果可能很大</td></tr>
+    <tr><td><strong>附件/转录</strong></td><td>图像、音频、文件的内容</td><td>图像 token 消耗高</td></tr>
+    <tr><td><strong>压缩摘要</strong></td><td>旧对话被摘要化后的内容</td><td>替代原始对话，节省空间</td></tr>
+    <tr><td><strong>Provider 包装器</strong></td><td>隐藏的系统头、格式包装</td><td>不可见，但计入 token</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-22-6-1" data-toc-skip><span class="sec-num">§ 13.2.5</span> 会话、压缩和修剪的持久化关系</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>机制</th><th>持久化位置</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>普通历史</strong></td><td><code>.jsonl</code> 会话记录</td><td>直到被压缩/修剪处理</td></tr>
+    <tr><td><strong>压缩</strong></td><td><code>.jsonl</code> 记录中</td><td>摘要化旧对话，保留最近消息完整</td></tr>
+    <tr><td><strong>修剪</strong></td><td>内存中</td><td>移除旧工具结果，不重写 <code>.jsonl</code></td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-context-window-3" data-toc-skip><span class="sec-num">§ 13.2.6</span>系统提示词组成</h4>
+<p>OpenClaw 每次运行时重新构建系统提示词，包括：</p>
+<figure><div class="mermaid">
+flowchart LR
+    P1["OpenClaw<br/>基础提示词<br/>规则 + 工具列表"]:::part
+    P2["技能提示词<br/>技能名称 + 描述<br/>(指令按需加载)"]:::part
+    P3["引导上下文<br/>工作区文件注入<br/>AGENTS.md / SOUL.md"]:::part
+    P4["运行覆盖项<br/>模型/时间/运行时<br/>元数据"]:::part
+
+    P1 & P2 & P3 & P4 --> FINAL["最终系统提示词"]:::final
+
+    classDef part fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef final fill:#fef3c7,stroke:#f59e0b,color:#92400e
+</div><figcaption>图 15.3 · 8 层 Prompt 栈</figcaption></figure>
+<h4 id="sec-22-8-1" data-toc-skip><span class="sec-num">§ 13.2.7</span> 注入的工作区文件</h4>
+<p>默认注入以下文件（如存在）：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>文件</th><th>说明</th><th>加载策略</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>AGENTS.md</strong></td><td>智能体操作指令、记忆使用规则</td><td>全量注入</td></tr>
+    <tr><td><strong>SOUL.md</strong></td><td>人设/语调/边界</td><td>全量注入</td></tr>
+    <tr><td><strong>TOOLS.md</strong></td><td>工具使用备注</td><td>全量注入</td></tr>
+    <tr><td><strong>IDENTITY.md</strong></td><td>名称/风格/表情符号</td><td>全量注入</td></tr>
+    <tr><td><strong>USER.md</strong></td><td>用户信息</td><td>全量注入</td></tr>
+    <tr><td><strong>HEARTBEAT.md</strong></td><td>心跳清单</td><td>全量注入</td></tr>
+    <tr><td><strong>BOOTSTRAP.md</strong></td><td>首次运行仪式</td><td>仅首次运行</td></tr>
+  </tbody>
+</table>
+<blockquote><p>大型文件使用 `bootstrapMaxChars`（默认 20000 字符）截断，总引导注入使用 `bootstrapTotalMaxChars`（默认 24000 字符）上限控制。</p></blockquote>
+<h4 id="sec-22-9-1" data-toc-skip><span class="sec-num">§ 13.2.8</span> 技能：注入的 vs 按需加载</h4>
+<ul><li>系统提示词包含紧凑的<strong>技能列表</strong>（名称 + 描述 + 位置）</li></ul>
+<ul><li>技能指令默认<strong>不包含</strong>在系统提示词中</li></ul>
+<ul><li>模型仅在需要时通过 `read` 工具读取技能的 `SKILL.md`</li></ul>
+<h4 id="sec-22-10-1" data-toc-skip><span class="sec-num">§ 13.2.9</span> 工具的两种成本</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>成本类型</th><th>说明</th><th>Token 占比</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>工具列表文本</strong></td><td>系统提示词中对工具的简短描述</td><td>小</td></tr>
+    <tr><td><strong>工具 schema（JSON）</strong></td><td>发送给模型用于调用的完整函数定义</td><td>大（可能数千 Token）</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-context-window-4" data-toc-skip><span class="sec-num">§ 13.2.10</span>/context list 示例输出</h4>
+<p>通过 `/context list` 可以查看当前上下文的详细构成：</p>
+<pre class="code-block">Context breakdown
+Workspace: &lt;workspaceDir&gt;
+Bootstrap max/file: 20,000 chars
+Sandbox: mode=non-main sandboxed=false
+System prompt (run): 38,412 chars (~9,603 tok)
+
+Injected workspace files:
+- AGENTS.md:     OK       | raw 1,742 chars  | injected 1,742 chars
+- SOUL.md:       OK       | raw 912 chars    | injected 912 chars
+- TOOLS.md:      TRUNCATED | raw 54,210 chars | injected 20,962 chars
+- IDENTITY.md:   OK       | raw 211 chars    | injected 211 chars
+- USER.md:       OK       | raw 388 chars    | injected 388 chars
+- HEARTBEAT.md:  MISSING  | raw 0            | injected 0
+
+Skills list: 2,184 chars (~546 tok) (12 skills)
+Tool list: 1,032 chars (~258 tok)
+Tool schemas: 31,988 chars (~7,997 tok)
+
+Session tokens (cached): 14,250 total / ctx=32,000</pre>
+<hr>
+<h4 class="view-h3" id="deep-01-context-window-5" data-toc-skip><span class="sec-num">§ 13.2.11</span>快速检查命令</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>命令</th><th>说明</th><th>用途</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong><code>/status</code></strong></td><td>查看窗口使用率和会话设置</td><td>快速概览</td></tr>
+    <tr><td><strong><code>/context list</code></strong></td><td>注入的文件 + 大致大小</td><td>查看哪些文件占用了上下文</td></tr>
+    <tr><td><strong><code>/context detail</code></strong></td><td>详细分解：按文件/工具/schema/技能</td><td>精确分析 Token 分布</td></tr>
+    <tr><td><strong><code>/usage tokens</code></strong></td><td>每次回复的用量信息</td><td>监控每次调用的成本</td></tr>
+    <tr><td><strong><code>/compact [说明]</code></strong></td><td>压缩旧历史记录释放空间</td><td>主动管理上下文</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-05-sessions/#deep-02-context-engine-1">02 - 上下文引擎</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-03-compaction-pruning-1">03 - 压缩与修剪</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-01-memory-storage-layer-1">06 - 记忆存储层</a> · <a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-05-workspace-config-1">09 - 工作区配置</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-24"><span class="sec-num">§ 13.3</span>上下文引擎</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>上下文引擎的四个阶段分别做什么？在 Agent 执行周期的哪个时机调用？</li>
+  <li>默认引擎（legacy）和插件引擎有什么区别？</li>
+  <li>什么时候需要关注或定制上下文引擎？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-02-context-engine-1" data-toc-skip><span class="sec-num">§ 13.3.1</span>核心问题</h4>
+<blockquote><p><strong>模型这次回复前，应该看到哪些内容？</strong></p></blockquote>
+<p>上下文引擎负责从各个来源收集、整理、组合出模型在这次运行中需要的所有材料——聊天历史、系统提示词、记忆、工具说明、压缩摘要等。</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 输入源["材料来源"]
+        direction LR
+        H["聊天历史<br/>.jsonl"]:::src
+        S["系统提示词<br/>运行时构建"]:::src
+        M["记忆<br/>MEMORY.md"]:::src
+        T["工具说明<br/>schema"]:::src
+        C["压缩摘要<br/>旧对话"]:::src
+    end
+
+    subgraph 引擎["上下文引擎"]
+        EN["context-engine<br/>(legacy / 插件)"]:::engine
+    end
+
+    subgraph 输出["最终上下文"]
+        CTX["模型输入包<br/>组装完毕的上下文"]:::output
+    end
+
+    H & S & M & T & C --> EN --> CTX
+
+    classDef src fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef engine fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef output fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 15.4 · 8 层 Prompt 栈</figcaption></figure>
+<h4 id="sec-22-15-1" data-toc-skip><span class="sec-num">§ 13.3.2</span> 可以把它想成...</h4>
+<blockquote><p>开会前的秘书：把历史记录、重点摘要、相关材料都整理成一份会议包。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-02-context-engine-2" data-toc-skip><span class="sec-num">§ 13.3.3</span>四个阶段</h4>
+<p>上下文引擎在 Agent 执行的时序中以四个阶段介入：</p>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant MSG as 消息到达
+    participant CE as Context Engine
+    participant M as Model
+    participant ST as 存储
+
+    Note over MSG,ST: 阶段 ①：Ingest
+    MSG->>CE: 新消息
+    CE->>ST: 记录到 .jsonl
+
+    Note over MSG,ST: 阶段 ②：Assemble
+    M->>CE: 模型请求上下文
+    CE->>CE: 收集历史 + 系统提示 + 记忆 + 工具
+    CE-->>M: 组装好的上下文包
+
+    Note over MSG,ST: 阶段 ③：Compact（按需）
+    M->>CE: 上下文窗口接近上限
+    CE->>CE: 压缩旧对话为摘要
+    CE-->>M: 带摘要的新上下文
+
+    Note over MSG,ST: 阶段 ④：After Turn
+    M->>CE: 回复完成
+    CE->>ST: 保存状态 / 更新索引
+</div><figcaption>图 15.5 · 8 层 Prompt 栈</figcaption></figure>
+<h4 id="sec-22-17-1" data-toc-skip><span class="sec-num">§ 13.3.4</span> 各阶段详解</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>阶段</th><th>时机</th><th>人话解释</th><th>核心操作</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>① Ingest</strong></td><td>新消息到达时</td><td>先记录下来</td><td>写入 <code>.jsonl</code>、更新 Token 计数</td></tr>
+    <tr><td><strong>② Assemble</strong></td><td>模型运行前</td><td>把该看的内容整理好</td><td>收集历史、注入系统提示、加载记忆、组装工具 schema</td></tr>
+    <tr><td><strong>③ Compact</strong></td><td>上下文窗口接近上限时</td><td>把旧内容压缩成摘要</td><td>摘要化旧对话 → <code>waitForCompactionRetry</code></td></tr>
+    <tr><td><strong>④ After Turn</strong></td><td>回复完成后</td><td>保存状态或更新索引</td><td>持久化对话记录、更新记忆索引</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-context-engine-3" data-toc-skip><span class="sec-num">§ 13.3.5</span>默认引擎（legacy）</h4>
+<p>OpenClaw 默认使用内置的 `legacy` 引擎，已经能处理大多数场景：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>能力</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>保存新消息</strong></td><td>自动将新消息写入 <code>.jsonl</code> 记录</td></tr>
+    <tr><td><strong>组装模型输入</strong></td><td>收集系统提示 + 对话历史 + 工具定义</td></tr>
+    <tr><td><strong>自动压缩</strong></td><td>上下文窗口接近上限时自动触发</td></tr>
+    <tr><td><strong>保留最近消息</strong></td><td>压缩时保留最近 N 条消息完整</td></tr>
+    <tr><td><strong>手动压缩</strong></td><td>支持 <code>/compact</code> 手动触发</td></tr>
+    <tr><td><strong>静默记忆刷新</strong></td><td>压缩前可触发记忆写入提醒</td></tr>
+  </tbody>
+</table>
+<blockquote><p><strong>新手通常不需要改它。</strong> 已经有能力处理绝大多数场景。</p></blockquote>
+<h4 id="sec-22-19-1" data-toc-skip><span class="sec-num">§ 13.3.6</span> 默认引擎的工作效果</h4>
+<pre class="code-block">/status 输出示例：
+Session tokens (cached): 14,250 total / ctx=32,000
+Compactions: 3
+
+→ 默认引擎自动管理上下文，无需手动干预</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-context-engine-4" data-toc-skip><span class="sec-num">§ 13.3.7</span>插件引擎</h4>
+<p>当默认引擎不满足需求时，可以安装自定义上下文引擎插件：</p>
+<pre class="code-block">openclaw plugins install &lt;context-engine-plugin&gt;</pre>
+<h4 id="sec-22-21-1" data-toc-skip><span class="sec-num">§ 13.3.8</span> 配置</h4>
+<pre class="code-block">{
+  plugins: {
+    slots: {
+      contextEngine: &quot;my-engine&quot;,   // 使用自定义引擎替换 legacy
+    },
+  },
+}</pre>
+<h4 id="sec-22-22-1" data-toc-skip><span class="sec-num">§ 13.3.9</span> 重启生效</h4>
+<pre class="code-block">openclaw gateway restart</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-context-engine-5" data-toc-skip><span class="sec-num">§ 13.3.10</span>什么时候该关注它</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>场景</th><th>说明</th><th>推荐动作</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>模型经常忘事</strong></td><td>对话长了之后表现下降</td><td>调优压缩策略或考虑插件引擎</td></tr>
+    <tr><td><strong>调试记忆和压缩</strong></td><td>需要理解上下文管理细节</td><td>使用 <code>/context list</code> 和 <code>/context detail</code></td></tr>
+    <tr><td><strong>子智能体上下文继承</strong></td><td>希望子智能体继承父会话上下文</td><td>研究上下文引擎的 scope 机制</td></tr>
+    <tr><td><strong>开发上下文插件</strong></td><td>想要完全自定义上下文策略</td><td>使用插件引擎接口</td></tr>
+    <tr><td><strong>长文档场景</strong></td><td>需要长期稳定的资料引用</td><td>调大 <code>bootstrapMaxChars</code> 或定制引擎</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-05-sessions/#deep-01-context-window-1">01 - 上下文窗口管理</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-03-compaction-pruning-1">03 - 压缩与修剪</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-01-memory-storage-layer-1">06 - 记忆存储层</a> · <a href="/2026/11/07/openclaw-10-source-walkthrough/#deep-01-plugin-system-1">09 - 插件系统</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-25"><span class="sec-num">§ 13.4</span>压缩与修剪</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>压缩（Compaction）和修剪（Pruning）在操作、持久化、时机上有什么区别？</li>
+  <li>自动压缩如何触发？手动压缩如何使用？</li>
+  <li>软修剪和硬清除分别如何处理工具结果？</li>
+  <li>如何配置压缩和修剪参数以适应不同场景？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-03-compaction-pruning-1" data-toc-skip><span class="sec-num">§ 13.4.1</span>压缩 vs 修剪——总览</h4>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 问题["上下文窗口接近上限"]
+        direction TB
+        ISSUE["Token 占用过高"]:::issue
+    end
+
+    subgraph 解决方案["两种机制"]
+        direction TB
+        COMP["压缩 Compaction<br/>摘要化旧对话"]:::comp
+        PRUN["修剪 Pruning<br/>删除旧工具结果"]:::prun
+    end
+
+    subgraph 效果
+        direction TB
+        E1["保留语义信息<br/>持久化到 JSONL"]:::effect
+        E2["减少 Token 占用<br/>仅内存中生效"]:::effect
+    end
+
+    ISSUE --> COMP
+    ISSUE --> PRUN
+    COMP --> E1
+    PRUN --> E2
+
+    classDef issue fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef comp fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef prun fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef effect fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 15.6 · 8 层 Prompt 栈</figcaption></figure>
+<h4 id="sec-22-26-1" data-toc-skip><span class="sec-num">§ 13.4.2</span> 核心区别</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>特性</th><th>压缩（Compaction）</th><th>修剪（Pruning）</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>操作</strong></td><td>摘要化旧对话内容</td><td>仅删除旧的工具结果</td></tr>
+    <tr><td><strong>持久化</strong></td><td>持久化到 JSONL</td><td>仅在内存中</td></tr>
+    <tr><td><strong>时机</strong></td><td>按需触发（自动或手动）</td><td>每次 LLM 调用前</td></tr>
+    <tr><td><strong>范围</strong></td><td>整个对话历史</td><td>仅工具结果</td></tr>
+    <tr><td><strong>效果</strong></td><td>保留语义，节省长期空间</td><td>减少每次调用的 Token</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-compaction-pruning-2" data-toc-skip><span class="sec-num">§ 13.4.3</span>压缩（Compaction）</h4>
+<h4 id="sec-22-28-1" data-toc-skip><span class="sec-num">§ 13.4.4</span> 工作原理</h4>
+<pre class="code-block">较旧对话 → 摘要化为紧凑条目
+最近消息 → 保持完整
+存储位置 → 会话历史的 JSONL 文件
+后续请求使用 → 压缩摘要 + 压缩点之后的最近消息</pre>
+<h4 id="sec-22-29-1" data-toc-skip><span class="sec-num">§ 13.4.5</span> 自动压缩流程</h4>
+<figure><div class="mermaid">
+sequenceDiagram
+    participant M as Model
+    participant CE as Context Engine
+    participant MEM as 记忆系统
+    participant J as JSONL
+
+    Note over M,J: 上下文窗口接近上限
+    M->>CE: Token 接近上限信号
+    CE->>MEM: ① 静默记忆刷新（可选）
+    MEM-->>CE: 记忆写入完成
+    CE->>CE: ② 摘要化旧对话
+    CE->>J: ③ 持久化到 JSONL
+    CE->>CE: ④ 重试原始请求（如需要）
+</div><figcaption>图 15.7 · 8 层 Prompt 栈</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>阶段</th><th>说明</th><th>触发方式</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>静默记忆刷新</strong></td><td>压缩前提醒模型将持久信息写入磁盘</td><td><code>memoryFlush.enabled = true</code></td></tr>
+    <tr><td><strong>摘要化</strong></td><td>将旧对话压缩为紧凑摘要</td><td>自动</td></tr>
+    <tr><td><strong>持久化</strong></td><td>摘要和保留的最近消息写入 JSONL</td><td>自动</td></tr>
+    <tr><td><strong>重试</strong></td><td>压缩后自动重试原始请求</td><td>自动</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-22-30-1" data-toc-skip><span class="sec-num">§ 13.4.6</span> 手动压缩</h4>
+<pre class="code-block">/compact Focus on decisions and open questions</pre>
+<p>手动压缩可以指定压缩焦点，让 Agent 在摘要时关注特定内容（如决策、待定问题）。</p>
+<hr>
+<h4 class="view-h3" id="deep-03-compaction-pruning-3" data-toc-skip><span class="sec-num">§ 13.4.7</span>压缩配置</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      compaction: {
+        reserveTokensFloor: 20000,     // 保留 Token 下限
+        memoryFlush: {
+          enabled: true,                // 压缩前触发记忆刷新
+          softThresholdTokens: 4000,    // 触发的 Token 余量
+          systemPrompt: &quot;Session nearing compaction. Store durable memories now.&quot;,
+          prompt: &quot;Write any lasting notes to memory/YYYY-MM-DD.md; reply with NO_REPLY if nothing to store.&quot;,
+        },
+      },
+    },
+  },
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>reserveTokensFloor</code></td><td>20000</td><td>压缩后保留的 Token 数下限</td></tr>
+    <tr><td><code>memoryFlush.enabled</code></td><td>true</td><td>压缩前是否触发静默记忆刷新</td></tr>
+    <tr><td><code>memoryFlush.softThresholdTokens</code></td><td>4000</td><td>距离上限还有多少 Token 时触发刷新</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-compaction-pruning-4" data-toc-skip><span class="sec-num">§ 13.4.8</span>修剪（Session Pruning）</h4>
+<p>修剪在每次 LLM 调用前从<strong>内存上下文</strong>中删除旧的工具结果，但<strong>不会重写磁盘上的 JSONL 历史</strong>。</p>
+<h4 id="sec-22-33-1" data-toc-skip><span class="sec-num">§ 13.4.9</span> 什么是可修剪的</h4>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 消息类型
+        direction LR
+        T["toolResult 消息"]:::tool
+        U["用户消息"]:::keep
+        A["助手消息"]:::keep
+        I["含图像的结果"]:::keep
+    end
+
+    T -->|"可修剪"| PRUNE["修剪逻辑"]:::prune
+    U -->|"永不"| KEEP["保持"]:::keep
+    A -->|"永不"| KEEP
+    I -->|"永不"| KEEP
+
+    classDef tool fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef keep fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef prune fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 15.8 · 8 层 Prompt 栈</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>内容</th><th>是否可修剪</th><th>理由</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>toolResult 消息</strong></td><td>是</td><td>大型命令输出可以精简</td></tr>
+    <tr><td><strong>用户消息</strong></td><td>否</td><td>用户输入必须保留</td></tr>
+    <tr><td><strong>助手消息</strong></td><td>否</td><td>助手的回复必须保留</td></tr>
+    <tr><td><strong>含图像块的结果</strong></td><td>否</td><td>图像上下文不应截断</td></tr>
+    <tr><td><strong>最后 keepLastAssistants 个助手消息</strong></td><td>否</td><td>保护最近的交互</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-22-34-1" data-toc-skip><span class="sec-num">§ 13.4.10</span> 软修剪 vs 硬清除</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>类型</th><th>行为</th><th>效果</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>软修剪</strong> </td><td>保留头尾，插入 <code>...</code>，附加原始大小注释</td><td>保留部分上下文线索</td></tr>
+    <tr><td><strong>硬清除</strong></td><td>用 placeholder 替换整个工具结果</td><td>最大程度释放 Token</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-22-35-1" data-toc-skip><span class="sec-num">§ 13.4.11</span> 修剪配置</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      contextPruning: {
+        mode: &quot;cache-ttl&quot;,            // 修剪模式
+        ttl: &quot;5m&quot;,                    // 缓存 TTL
+        keepLastAssistants: 3,        // 保留倒数 N 个助手消息
+        softTrimRatio: 0.3,           // 软修剪触发比例
+        hardClearRatio: 0.5,          // 硬清除触发比例
+        minPrunableToolChars: 50000,  // 最小可修剪字符数
+        softTrim: {
+          maxChars: 4000,
+          headChars: 1500,
+          tailChars: 1500,
+        },
+        hardClear: {
+          enabled: true,
+          placeholder: &quot;[Old tool result content cleared]&quot;,
+        },
+        tools: {
+          allow: [&quot;exec&quot;, &quot;read&quot;],
+          deny: [&quot;*image*&quot;],
+        },
+      },
+    },
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-03-compaction-pruning-5" data-toc-skip><span class="sec-num">§ 13.4.12</span>决策指南</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>场景</th><th>推荐操作</th><th>理由</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>上下文臃肿，模型忘事</strong></td><td><code>/compact</code></td><td>压缩摘要化旧内容，保留语义</td></tr>
+    <tr><td><strong>大型工具输出过多</strong></td><td>修剪（自动触发）</td><td>自动清理旧的工具结果</td></tr>
+    <tr><td><strong>需要全新开始</strong></td><td><code>/new</code> 或 <code>/reset</code></td><td>创建全新的会话 ID</td></tr>
+    <tr><td><strong>只想释放一点空间</strong></td><td><code>/compact</code> + 修剪</td><td>两者结合效果最佳</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-05-sessions/#deep-01-context-window-1">01 - 上下文窗口管理</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-02-context-engine-1">02 - 上下文引擎</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-01-memory-storage-layer-1">06 - 记忆存储层</a> · <a href="/2026/11/07/openclaw-05-sessions/#deep-02-active-retrieval-1">06 - 主动检索层</a></p></blockquote>
+
+</section>
+
+
+<section class="doc-section deep-dive" id="deep-dive-05-deep-23">
+  
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-14"><span class="sec-num">§ 14</span>8 层详解</h2>
+
+  <div class="layer-card l1">
+    <span class="lc-num">LAYER 1 · ~1-2k tokens</span>
+    <h3 id="sec-14.1"><span class="sec-num">§ 14.1</span> System Prompt · 角色与行为</h3>
+    <p><strong>职责</strong>：定义 Agent 的角色、行为准则、输出风格、安全边界。</p>
+    <p><strong>来源</strong>:</p>
+    <ul>
+      <li><code>agents.[name].systemPrompt</code>（用户配置）</li>
+      <li>OpenClaw 内置安全声明（"不绕过原则 1/2/3"）</li>
+    </ul>
+<pre class="code-block"><span class="comment"># Example System Prompt</span>
+
+你是 OpenClaw 助手,工作在工作账号(work_bot)。
+行为准则:
+- 优先使用 OpenClaw 工具,不要绕过 Gateway
+- 不要泄露 API Key、Token 等敏感信息
+- 输出简洁,不使用 Markdown 加粗
+- 当不确定时,询问而非假设
+
+可用工具: read_file, write_file, shell, web_search
+
+当前时间: 2026-09-05 14:30
+工作目录: /home/me/projects</pre>
+  </div>
+
+  <div class="layer-card l2">
+    <span class="lc-num">LAYER 2 · ~3-5k tokens</span>
+    <h3 id="sec-14.2"><span class="sec-num">§ 14.2</span> Tools Schema · 可用工具</h3>
+    <p><strong>职责</strong>：告诉 LLM 当前可用工具及其参数 schema。</p>
+    <p><strong>特点</strong>:</p>
+    <ul>
+      <li>JSON Schema 格式</li>
+      <li>根据 <code>tools.bash.allow</code> 等配置动态过滤</li>
+      <li>工具描述里包含<strong>风险提示</strong>（"删除文件不可恢复"）</li>
+    </ul>
+<pre class="code-block"><span class="comment">// Example tool definition</span>
+{
+  "name": "bash",
+  "description": "执行 shell 命令。高风险工具,执行前用户已审批。",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "command": { "type": "string", "description": "要执行的命令" },
+      "timeout": { "type": "number", "description": "超时(秒),默认 30" }
+    },
+    "required": ["command"]
+  }
+}</pre>
+  </div>
+
+  <div class="layer-card l3">
+    <span class="lc-num">LAYER 3 · ~1-3k tokens</span>
+    <h3 id="sec-14.3"><span class="sec-num">§ 14.3</span> Memory · 长期记忆</h3>
+    <p><strong>职责</strong>：把 Markdown 记忆文件压缩进 Prompt——用户偏好、关键决策、上下文。</p>
+    <p><strong>来源</strong>:</p>
+    <ul>
+      <li><code>memory/user-[peerId].md</code></li>
+      <li><code>memory/agent-[name].md</code></li>
+      <li><code>memory/shared/*.md</code></li>
+    </ul>
+    <p><strong>压缩策略</strong>:</p>
+    <ul>
+      <li>记忆太长时，只取<strong>最近 + 最高优先级</strong>条目</li>
+      <li>可标注 token 限制：<code>memory.tokenLimit = 2000</code></li>
+    </ul>
+  </div>
+
+  <div class="layer-card l4">
+    <span class="lc-num">LAYER 4 · ~10-30k tokens（动态）</span>
+    <h3 id="sec-14.4"><span class="sec-num">§ 14.4</span> History · 对话历史</h3>
+    <p><strong>职责</strong>：用户与 Agent 之前的所有轮次。</p>
+    <p><strong>管理策略</strong>:</p>
+    <ul>
+      <li><strong>滚动窗口</strong>——只保留最近 N 轮</li>
+      <li><strong>摘要压缩</strong>——超出时把早期消息压成摘要</li>
+      <li><strong>工具结果截断</strong>——长输出截前 N 行</li>
+    </ul>
+<pre class="config">{
+  <span class="key">history</span>: {
+    <span class="key">maxTurns</span>: <span class="val">50</span>,                  <span class="comment">// 最多保留 50 轮</span>
+    <span class="key">compressionThreshold</span>: <span class="val">30</span>,     <span class="comment">// 超过 30 轮触发摘要</span>
+    <span class="key">summaryMaxTokens</span>: <span class="val">500</span>,
+    <span class="key">truncateToolResults</span>: <span class="val">2000</span>     <span class="comment">// 工具输出超过 2000 字符截断</span>
+  }
+}</pre>
+  </div>
+
+  <div class="layer-card l5">
+    <span class="lc-num">LAYER 5 · ~1-2k tokens</span>
+    <h3 id="sec-14.5"><span class="sec-num">§ 14.5</span> Skill Context · 技能上下文</h3>
+    <p><strong>职责</strong>：当前激活的 Skill 注入的额外指令（如 code-review skill 注入评审标准）。</p>
+    <p><strong>来源</strong>:<code>extensions/skills/*/instructions.md</code></p>
+    <p><strong>示例</strong>:<code>code-review</code> Skill 激活后注入：</p>
+<pre class="code-block"><span class="comment"># Code Review Mode</span>
+
+评审代码时遵循:
+1. 检查类型安全
+2. 检查错误处理
+3. 检查资源泄露
+4. 输出使用 numbered list 给出问题严重度</pre>
+  </div>
+
+  <div class="layer-card l6">
+    <span class="lc-num">LAYER 6 · 动态</span>
+    <h3 id="sec-14.6"><span class="sec-num">§ 14.6</span> User Input · 当前用户消息</h3>
+    <p><strong>职责</strong>：当前用户发送的文本 + 角色信息。</p>
+    <p><strong>格式</strong>:</p>
+<pre class="code-block"><span class="comment">// Human message</span>
+{
+  "role": "user",
+  "content": "帮我 review 一下 main.ts",
+  "metadata": {
+    "channel": "telegram",
+    "account": "work",
+    "peer": "user:123456",
+    "timestamp": 1756712400000
+  }
+}</pre>
+  </div>
+
+  <div class="layer-card l7">
+    <span class="lc-num">LAYER 7 · 动态</span>
+    <h3 id="sec-14.7"><span class="sec-num">§ 14.7</span> Attachments · 附件</h3>
+    <p><strong>职责</strong>：用户附带的多媒体（图片、文件、音频）。</p>
+    <p><strong>处理</strong>:</p>
+    <ul>
+      <li><strong>图片</strong>——Anthropic / OpenAI 支持直接传入</li>
+      <li><strong>文件</strong>——提取文本/结构化描述</li>
+      <li><strong>音频</strong>——调 Whisper 转文字</li>
+      <li><strong>视频</strong>——Gemini 直接处理</li>
+    </ul>
+  </div>
+
+  <div class="layer-card l8">
+    <span class="lc-num">LAYER 8 · &lt;100 tokens</span>
+    <h3 id="sec-14.8"><span class="sec-num">§ 14.8</span> Meta · 运行时元数据</h3>
+    <p><strong>职责</strong>：给 LLM 提供运行时上下文——当前 token 使用、模型信息、安全提示。</p>
+<pre class="code-block"><span class="comment">[META]</span>
+model: claude-sonnet-4
+context_used: 34521 / 200000 tokens (17%)
+current_time: 2026-09-05 14:30:00 UTC+8
+workspace: /home/me/projects
+trust_level: verified
+untrusted_data_in_context: yes  <span class="comment"># 提醒 LLM</span></pre>
+  </div>
+
+  <div class="callout">
+    <strong>untrusted_data_in_context</strong>：当附件或工具结果包含外部数据时，Layer 8 标记这个事实——提醒 LLM "上下文有不可信数据，要警惕提示注入"。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-15"><span class="sec-num">§ 15</span>Prompt 组装顺序</h2>
+
+  <figure><div class="mermaid">
+sequenceDiagram
+  participant R as Runtime
+  participant M as Memory Store
+  participant H as History Store
+  participant T as Tool Registry
+  participant LLM
+
+  R->>M: 读取 user-[peer].md
+  R->>H: 读取最近 N 轮
+  R->>T: 获取工具列表
+  R->>R: 组装 8 层
+  R->>LLM: 完整 Prompt(messages)
+  LLM-->>R: 响应(content + tool_calls)
+  R->>H: 写入新消息
+</div><figcaption>图 5.6 · Prompt 组装流程——并行读取，顺序组装。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-16"><span class="sec-num">§ 16</span>4 级 DM 策略</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  A["<b> Open</b><br/>任何人都能聊<br/>(高风险)"]
+  B["<b>Pairing</b><br/>配对码机制(推荐)"]
+  C["<b>Allowlist</b><br/>白名单用户"]
+  D["<b>Closed</b><br/>仅自己(关闭 DM)"]
+
+  A -->|默认拒绝| B
+  B -->|更严| C
+  C -->|最严| D
+
+  style A fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+  style B fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style C fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style D fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+</div><figcaption>图 5.7 · 4 级 DM 策略——Open → Pairing → Allowlist → Closed，严格度递增。</figcaption></figure>
+
+  <div class="policy-card open">
+    <span class="pc-tag">POLICY 1 · 高风险</span>
+    <h3 id="sec-16.1"><span class="sec-num">§ 16.1</span> Open · 任何人都能聊</h3>
+    <p><strong>适用</strong>：公开 demo bot、社区客服 bot、低敏感查询。</p>
+    <p><strong>风险</strong>:</p>
+    <ul>
+      <li>任何人都能触发工具调用（消耗 API 配额）</li>
+      <li>提示注入攻击面</li>
+      <li>容易被人恶意消耗你的 LLM 配额</li>
+    </ul>
+
+    <pre class="config">{
+  <span class="key">channels</span>: {
+    <span class="key">telegram</span>: {
+      <span class="key">accounts</span>: {
+        <span class="key">demo</span>: {
+          <span class="key">dmPolicy</span>: <span class="str">"open"</span>          <span class="comment">// 公开(仅 demo 用)</span>
+        }
+      }
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="callout warn">
+    <strong>生产环境慎用</strong>：Open 策略下，任何人都能触发工具——一旦配错工具白名单，可能执行高危操作。
+  </div>
+
+  <div class="policy-card pairing">
+    <span class="pc-tag">POLICY 2 · 推荐</span>
+    <h3 id="sec-16.2"><span class="sec-num">§ 16.2</span> Pairing · 配对码机制</h3>
+    <p><strong>机制</strong>：首次接触时返回配对码，管理员在 Web UI 批准后才真正解锁。</p>
+
+    <figure><div class="mermaid">
+sequenceDiagram
+  participant U as 用户
+  participant C as 通道
+  participant G as Gateway
+  participant A as 管理员
+
+  U->>C: 发送消息
+  C->>G: Envelope
+  G->>G: 检测未配对
+  G->>C: 返回 6 位配对码
+  C->>U: 显示 "配对码: ABC123"
+  U->>A: 私信管理员
+  A->>G: 批准 ABC123
+  G->>G: 标记 user.id = verified
+  G->>C: 解锁
+  C->>U: "欢迎! "
+  Note over U,G: 后续消息正常处理
+</div><figcaption>图 5.8 · 配对流程——用户首次接触 → 配对码 → 管理员人工批准。</figcaption></figure>
+
+    <pre class="config">{
+  <span class="key">channels</span>: {
+    <span class="key">whatsapp</span>: {
+      <span class="key">accounts</span>: {
+        <span class="key">personal</span>: {
+          <span class="key">dmPolicy</span>: <span class="str">"pairing"</span>,
+          <span class="key">pairing</span>: {
+            <span class="key">codeLength</span>: <span class="val">6</span>,
+            <span class="key">codeExpiry</span>: <span class="str">"10m"</span>,
+            <span class="key">requireAdminApproval</span>: <span class="val">true</span>
+          }
+        }
+      }
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="callout">
+    <strong>推荐生产配置</strong>：Pairing 是大多数个人 Bot 的最佳平衡——公开可见，但只有经过批准的用户能真正使用。
+  </div>
+
+  <div class="policy-card allowlist">
+    <span class="pc-tag">POLICY 3 · 最严</span>
+    <h3 id="sec-16.3"><span class="sec-num">§ 16.3</span> Allowlist · 白名单</h3>
+    <p><strong>机制</strong>：只有预定义用户列表能跟 Bot 说话——其他人直接被拒。</p>
+
+    <pre class="config">{
+  <span class="key">channels</span>: {
+    <span class="key">slack</span>: {
+      <span class="key">accounts</span>: {
+        <span class="key">work</span>: {
+          <span class="key">dmPolicy</span>: <span class="str">"allowlist"</span>,
+          <span class="key">dmAllowlist</span>: [
+            <span class="str">"U07ABCDEF"</span>,                <span class="comment">// Slack User ID</span>
+            <span class="str">"U07GHIJKL"</span>
+          ]
+        }
+      }
+    }
+  }
+}</pre>
+
+    <p><strong>适用</strong>：企业环境、家庭少量成员、严格工作团队。</p>
+  </div>
+
+  <div class="policy-card closed">
+    <span class="pc-tag">POLICY 4 · 不接受 DM</span>
+    <h3 id="sec-16.4"><span class="sec-num">§ 16.4</span> Closed · 仅自己</h3>
+    <p><strong>机制</strong>：完全关闭 DM 功能，Bot 只在群组/频道里回应。</p>
+
+    <pre class="config">{
+  <span class="key">channels</span>: {
+    <span class="key">telegram</span>: {
+      <span class="key">accounts</span>: {
+        <span class="key">team</span>: {
+          <span class="key">dmPolicy</span>: <span class="str">"closed"</span>,       <span class="comment">// 不接受 DM</span>
+          <span class="key">groupPolicy</span>: <span class="str">"open"</span>          <span class="comment">// 但群组开放</span>
+        }
+      }
+    }
+  }
+}</pre>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-17"><span class="sec-num">§ 17</span>Workspace 隔离</h2>
+
+  <p>不同账号/场景使用不同 workspace——文件、记忆、配置完全隔离：</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  G[Gateway]
+
+  G --> W1["workspace/work/<br/>配置: Sonnet<br/>路径: /home/me/work"]
+  G --> W2["workspace/personal/<br/>配置: 本地 qwen<br/>路径: /home/me/personal"]
+  G --> W3["workspace/family/<br/>配置: Haiku(便宜)<br/>路径: /home/me/family"]
+
+  style G fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style W1 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style W2 fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style W3 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+</div><figcaption>图 5.9 · Workspace 隔离——一个 Gateway 服务多个身份。</figcaption></figure>
+
+  <table class="iso-table">
+<thead><tr><th>维度</th><th>隔离？</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>文件</td><td>完全隔离</td><td>不同 workspace 路径，互不干扰</td></tr>
+<tr><td>记忆（Markdown）</td><td>完全隔离</td><td>每个账号独立的 memory 文件</td></tr>
+<tr><td>SQLite 表</td><td>完全隔离</td><td>通过 session ID 区分</td></tr>
+<tr><td>配置</td><td>共享</td><td>同一 openclaw.json5</td></tr>
+<tr><td>凭据</td><td>隔离</td><td>每账号独立 creds.json</td></tr>
+<tr><td>进程</td><td>共享</td><td>同一 Gateway 进程</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-18"><span class="sec-num">§ 18</span>Group 策略 + 跨账号上下文</h2>
+
+  <h3 class="view-h3" id="sec-18.1"><span class="sec-num">§ 18.1</span>Group 策略<span class="vh-tag">group</span></h3>
+  <p>群组消息有额外策略：</p>
+
+  <pre class="config">{
+  <span class="key">groupPolicy</span>: <span class="str">"mention-only"</span>,       <span class="comment">// 只响应 @提及</span>
+  <span class="key">groupPolicy</span>: <span class="str">"open"</span>,                <span class="comment">// 响应所有消息(谨慎)</span>
+  <span class="key">groupPolicy</span>: <span class="str">"allowlist"</span>,           <span class="comment">// 仅响应白名单用户</span>
+  <span class="key">groupPolicy</span>: <span class="str">"closed"</span>               <span class="comment">// 群组里不响应</span>
+}</pre>
+
+  <div class="callout">
+    <strong>推荐配置</strong>：群组默认 <code>"mention-only"</code>——避免 Bot 在群里 spam（被人讨厌）。需要响应时才 @它。
+  </div>
+
+  <h3 class="view-h3" id="sec-18.2"><span class="sec-num">§ 18.2</span>跨账号上下文<span class="vh-tag">cross-account</span></h3>
+  <p><strong>默认行为</strong>：同一用户在不同账号的上下文完全隔离——工作 bot 看不到个人 bot 的对话。</p>
+  <p><strong>例外</strong>：通过 <code>memory/shared/*.md</code> 可以显式共享特定记忆。</p>
+
+  <pre class="config">{
+  <span class="key">memory</span>: {
+    <span class="key">shared</span>: {
+      <span class="key">enabled</span>: <span class="val">true</span>,
+      <span class="key">path</span>: <span class="str">"~/.openclaw/memory/shared/"</span>,
+      <span class="key">accessibleBy</span>: [<span class="str">"work"</span>, <span class="str">"personal"</span>]    <span class="comment">// 这两个账号可读</span>
+    }
+  }
+}</pre>
+
+  <div class="callout warn">
+    <strong>慎用跨账号共享</strong>：工作 bot 不应该看到个人 bot 的私密对话——显式列出允许访问的账号，而不是默认开放。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-19"><span class="sec-num">§ 19</span>Trust Levels</h2>
+
+  <p>OpenClaw 把所有用户分成 3 级信任度：</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  T1["<b>TRUSTED</b><br/>管理员 · 已配对<br/>完全信任 · 无限制"]
+  T2["<b>SEMI-TRUSTED</b><br/>已配对非管理员<br/>可调工具 · 受策略约束"]
+  T3["<b> UNTRUSTED</b><br/>未配对 · 陌生人<br/>仅查询 · 不调工具"]
+
+  T1 -->|降级| T2
+  T2 -->|降级| T3
+
+  style T1 fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style T2 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style T3 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+</div><figcaption>图 5.10 · 3 级信任度——高信任给高权限，低信任给最低权限。</figcaption></figure>
+
+  <table class="iso-table">
+<thead><tr><th>级别</th><th>谁能到达</th><th>能力</th><th>工具</th></tr></thead>
+<tbody>
+<tr><td>TRUSTED</td><td>管理员</td><td>完全</td><td>所有</td></tr>
+<tr><td>SEMI-TRUSTED</td><td>已配对用户</td><td>受限</td><td>非高危</td></tr>
+<tr><td>UNTRUSTED</td><td>陌生人</td><td>只读</td><td>仅查询</td></tr>
+</tbody>
+</table>
+</section>
+<section class="doc-section deep-dive" id="deep-dive-05-deep-22">
+  <section class="doc-section">
+  <h2 id="sec-20"><span class="sec-num">§ 20</span>阅读路径 + FAQ + 总结</h2>
+
+  <h3 class="view-h3" id="sec-20.1"><span class="sec-num">§ 20.1</span>阅读路径<span class="vh-tag">paths</span></h3>
+  <p>本页约 24 分钟读完。如果你只关心一部分，挑适合的读法：</p>
+
+  <div class="path-grid">
+    <div class="path-card pc-curious">
+      <span class="pc-tag">架构派</span>
+      <div class="pc-title">通读者</div>
+      <div class="pc-time"> 24 分钟 · 全章</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 1-2 定位 + 三原则</li>
+          <li>§ 4-6 4 种会话类型 + 生命周期</li>
+          <li>§ 7-12 持久化 + 备份 + 隔离</li>
+          <li>§ 13-15 8 层 Prompt 详解</li>
+          <li>§ 16-19 DM 策略 + Workspace + Trust</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-quick">
+      <span class="pc-tag">实用派</span>
+      <div class="pc-title">接入者</div>
+      <div class="pc-time"> 8 分钟 · 选段</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 4 4 种会话类型——选一种</li>
+          <li>§ 7 目录结构——知道状态在哪</li>
+          <li>§ 16 4 级 DM 策略——选 pairing</li>
+          <li>遇到问题 → 跳回 § 5 / § 11 / § 17</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-deep">
+      <span class="pc-tag">调优派</span>
+      <div class="pc-title">性能调优者</div>
+      <div class="pc-time"> 10 分钟</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 5 6 个状态——调 idle/archive 时间</li>
+          <li>§ 11 归档摘要策略</li>
+          <li>§ 13-14 Token 分配 + 8 层</li>
+          <li>跳 <a href="/2026/11/07/openclaw-08-performance/">模块 08 性能</a> 继续</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="view-h3" id="sec-20.2"><span class="sec-num">§ 20.2</span>常见问题<span class="vh-tag">faq</span></h3>
+
+  <ul class="faq-list">
+    <li class="faq-item">
+      <div class="faq-q"> 一个会话能跨多个通道吗？</div>
+      <div class="faq-a">默认不能。会话 = channel + account + peer 三元组。但有 <code>crossChannel</code> 模式可以桥接（谨慎）。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 状态丢了能恢复吗？</div>
+      <div class="faq-a">能。<code>openclaw resume [sessionId]</code> 可恢复 SQLite 中的归档会话。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 如何清空某个用户的上下文？</div>
+      <div class="faq-a"><code>openclaw session clear [sessionId]</code>——但通常更建议用 <code>archive</code>（保留日志）。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 记忆会自动更新吗？</div>
+      <div class="faq-a">会。OpenClaw 每轮对话后自动写重要信息（偏好、决策、事实）到 <code>memory/user-[peerId].md</code>。用户也可手动编辑。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 8 层 Prompt 中能关掉某一层吗？</div>
+      <div class="faq-a">可以。Layer 5（Skill）默认空、Layer 7（Attachments）只在有附件时填充。但 Layer 1/2/4 不可关闭——它们是 LLM 调用的基础。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> DM 策略选哪个最安全？</div>
+      <div class="faq-a">生产推荐 <code>pairing</code>（配对码）— 公开可见但只批准信任用户；最严用 <code>allowlist</code> 显式列出允许用户。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 备份需要停止服务吗？</div>
+      <div class="faq-a">不需要。<code>tar</code> 复制整个 <code>~/.openclaw/</code> 即可——SQLite 的 WAL 模式保证一致性。增量备份用 <code>openclaw backup --incremental</code>。</div>
+    </li>
+  </ul>
+
+  <h3 class="view-h3" id="sec-20.3"><span class="sec-num">§ 20.3</span>一句话总结<span class="vh-tag">summary</span></h3>
+  <div class="callout">
+    <strong>4 种会话类型 × 3 层存储 × 8 层 Prompt × 4 级 DM 策略 × 3 级 Trust——5 维组合让你在 任何场景下都能精准控制"谁能跟你说话、能看到什么、能做什么"。</strong>
+    <br><br>
+    你的状态在你的磁盘上——这是 OpenClaw 最重要的承诺之一。
+  </div>
+
+  <h3 class="view-h3" id="sec-20.4"><span class="sec-num">§ 20.4</span>相关阅读<span class="vh-tag">related</span></h3>
+  <div class="related-grid">
+    <a class="related-card" href="/2026/11/07/openclaw-03-channels/">
+      <span class="rc-eyebrow">03 · 通道</span>
+      <span class="rc-title">消息通道</span>
+      <span class="rc-desc">消息如何从外部平台进入 Gateway——模块 05 接收 Envelope 后开始处理。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-04-models-runtimes/">
+      <span class="rc-eyebrow">04 · 模型</span>
+      <span class="rc-title">模型与运行时</span>
+      <span class="rc-desc">4 级模型选择如何与会话路由结合——配对用户可用 Sonnet，陌生人只能本地 qwen。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-06-tools-hooks/">
+      <span class="rc-eyebrow">06 · 工具</span>
+      <span class="rc-title">工具与钩子</span>
+      <span class="rc-desc">Layer 2 的 Tools Schema 怎么生成的？Hook 如何拦截消息入站和工具调用。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-02-architecture/#sec-8">
+      <span class="rc-eyebrow">02.4 · 架构</span>
+      <span class="rc-title">信任边界</span>
+      <span class="rc-desc">3 级信任度模型来自哪？Level 1/2/3 信任边界 + Trust Levels = 纵深防御。</span>
+    </a>
+    <a class="related-card" href="https://docs.openclaw.ai/sessions" target="_blank" rel="noopener">
+      <span class="rc-eyebrow">官方文档</span>
+      <span class="rc-title">Sessions Reference</span>
+      <span class="rc-desc">会话 ID 格式、压缩策略、归档选项的最新参考——由 OpenClaw 团队维护。</span>
+    </a>
+    <a class="related-card" href="https://github.com/openclaw/openclaw/tree/main/src/sessions" target="_blank" rel="noopener">
+      <span class="rc-eyebrow">源码</span>
+      <span class="rc-title">src/sessions/</span>
+      <span class="rc-desc">会话生命周期、状态机、归档算法的真实实现。</span>
+    </a>
+  </div>
+</section>
+
+
+</div>
+      <aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">会话层的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">模块位置</a><a class="reading-toc-link level-2" href="#sec-4">4 种会话类型</a><a class="reading-toc-link level-3" href="#sec-4.1">Main(主会话)</a><a class="reading-toc-link level-3" href="#sec-4.2">Branch(分支)</a><a class="reading-toc-link level-3" href="#sec-4.3">Sandbox(沙盒)</a><a class="reading-toc-link level-3" href="#sec-4.4">Isolated(孤立)</a><a class="reading-toc-link level-2" href="#sec-5">6 个生命周期状态</a><a class="reading-toc-link level-2" href="#sec-6">会话 ID 三元组 + 归档</a><a class="reading-toc-link level-3" href="#sec-6.1">归档与恢复 archival</a><a class="reading-toc-link level-2" href="#sec-7">目录结构</a><a class="reading-toc-link level-3" href="#deep-26">记忆存储层</a><a class="reading-toc-link level-2" href="#sec-8">SQLite · 任务控制</a><a class="reading-toc-link level-3" href="#sec-8.1">SQLite · 机器可读</a><a class="reading-toc-link level-2" href="#sec-9">Markdown · 长期记忆</a><a class="reading-toc-link level-3" href="#sec-9.1">Markdown · 人类可读</a><a class="reading-toc-link level-3" href="#deep-27">主动检索层</a><a class="reading-toc-link level-3" href="#deep-28">后台整理层</a><a class="reading-toc-link level-2" href="#sec-10">Git(可选)· 版本层</a><a class="reading-toc-link level-3" href="#sec-10.1">Git · 版本化(可选)</a><a class="reading-toc-link level-2" href="#sec-11">归档机制 + 备份恢复</a><a class="reading-toc-link level-3" href="#sec-11.1">备份与恢复 backup</a><a class="reading-toc-link level-2" href="#sec-12">多账号隔离</a><a class="reading-toc-link level-2" href="#sec-13">8 层 Prompt 栈</a><a class="reading-toc-link level-3" href="#sec-13.1">Token 分配(200k 上下文) tokens</a><a class="reading-toc-link level-3" href="#deep-23">上下文窗口管理</a><a class="reading-toc-link level-3" href="#deep-24">上下文引擎</a><a class="reading-toc-link level-3" href="#deep-25">压缩与修剪</a><a class="reading-toc-link level-2" href="#sec-14">8 层详解</a><a class="reading-toc-link level-3" href="#sec-14.1">System Prompt · 角色与行为</a><a class="reading-toc-link level-3" href="#sec-14.2">Tools Schema · 可用工具</a><a class="reading-toc-link level-3" href="#sec-14.3">Memory · 长期记忆</a><a class="reading-toc-link level-3" href="#sec-14.4">History · 对话历史</a><a class="reading-toc-link level-3" href="#sec-14.5">Skill Context · 技能上下文</a><a class="reading-toc-link level-3" href="#sec-14.6">User Input · 当前用户消息</a><a class="reading-toc-link level-3" href="#sec-14.7">Attachments · 附件</a><a class="reading-toc-link level-3" href="#sec-14.8">Meta · 运行时元数据</a><a class="reading-toc-link level-2" href="#sec-15">Prompt 组装顺序</a><a class="reading-toc-link level-2" href="#sec-16">4 级 DM 策略</a><a class="reading-toc-link level-3" href="#sec-16.1">Open · 任何人都能聊</a><a class="reading-toc-link level-3" href="#sec-16.2">Pairing · 配对码机制</a><a class="reading-toc-link level-3" href="#sec-16.3">Allowlist · 白名单</a><a class="reading-toc-link level-3" href="#sec-16.4">Closed · 仅自己</a><a class="reading-toc-link level-2" href="#sec-17">Workspace 隔离</a><a class="reading-toc-link level-2" href="#sec-18">Group 策略 + 跨账号上下文</a><a class="reading-toc-link level-3" href="#sec-18.1">Group 策略 group</a><a class="reading-toc-link level-3" href="#sec-18.2">跨账号上下文 cross-account</a><a class="reading-toc-link level-2" href="#sec-19">Trust Levels</a><a class="reading-toc-link level-2" href="#sec-20">阅读路径 + FAQ + 总结</a><a class="reading-toc-link level-3" href="#sec-20.1">阅读路径 paths</a><a class="reading-toc-link level-3" href="#sec-20.2">常见问题 faq</a><a class="reading-toc-link level-3" href="#sec-20.3">一句话总结 summary</a><a class="reading-toc-link level-3" href="#sec-20.4">相关阅读 related</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-04-models-runtimes/"><small>← 上一篇</small><span>LLM Provider 与 Runtime 适配</span></a></div><div><a href="/2026/11/07/openclaw-06-tools-hooks/"><small>下一篇 →</small><span>工具执行与钩子拦截</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body>
+</html>

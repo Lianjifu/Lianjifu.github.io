@@ -17,7 +17,7 @@ async (page) => {
   check(await page.locator('[role=dialog]').count() === 0, 'Search shortcut does not open a dialog');
   await page.locator('.blog-disclosure summary').click();
   check(await page.locator('.blog-disclosure').getAttribute('open') !== null, 'Blog menu opens');
-  check(await page.locator('.blog-panel-grid a').count() === 4, 'Blog menu contains four real series');
+  check(await page.locator('.blog-panel-grid a').count() === 5, 'Blog menu contains five real series');
   await page.keyboard.press('Escape');
   check(await page.locator('.blog-disclosure').getAttribute('open') === null, 'Escape closes blog menu');
   check(await page.locator('summary').evaluate(el => el === document.activeElement), 'Escape restores summary focus');

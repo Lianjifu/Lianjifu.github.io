@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 6 章：工具执行与钩子拦截 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 06 · 工具执行与钩子拦截。不可信执行原则的落地——工具调用是 LLM 与现实世界交互的桥梁，也是最大的攻击面。4 档沙箱 + 8+ 钩子拦截点构成 OpenClaw 的&quot;执行免疫系统&quot;。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 6 章：工具执行与钩子拦截">
+  <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-06-tools-hooks/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="模块 06 · 工具执行与钩子拦截。不可信执行原则的落地——工具调用是 LLM 与现实世界交互的桥梁，也是最大的攻击面。4 档沙箱 + 8+ 钩子拦截点构成 OpenClaw 的&quot;执行免疫系统&quot;。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="openclaw">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" href="http://lianjifu.cn/2026/11/07/openclaw-06-tools-hooks/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/portal.css?v=2">
+  <link rel="stylesheet" href="/css/article.css?v=6">
+  <link rel="stylesheet" href="/css/openclaw.css?v=3">
+  <script src="/js/portal.js?v=6" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="openclaw"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+    </svg><header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
+      <span class="article-kicker">第 6 章：工具机制</span>
+      <h1 class="post-title" itemprop="name headline">工具执行与钩子拦截</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-calendar"></i></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-folder"></i></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body openclaw-body" itemprop="articleBody">
+
+<p class="post-lede">
+  <strong>不可信执行原则的落地</strong>——工具调用是 LLM 与现实世界交互的桥梁，也是最大的攻击面。4 档沙箱 + 8+ 钩子拦截点构成 OpenClaw 的"执行免疫系统"。
+</p>
+
+
+<section class="doc-section">
+  <h2 id="sec-1"><span class="sec-num">§ 1</span>一句话定位</h2>
+
+  <div class="intro-callout">
+    <strong>工具是 LLM 与外部世界的桥梁，钩子是 Gateway 在不可信侧（Agent 执行）与可信侧（策略）之间建立受控接口。</strong>本模块拆解：工具怎么执行、钩子怎么拦截、8 个关键路径决策在哪。
+  </div>
+
+  <div class="fact-grid">
+    <div class="fact"><div class="fact-num">3</div><div class="fact-label">类工具来源<br>Built-in·Plugin·MCP</div></div>
+    <div class="fact"><div class="fact-num">4</div><div class="fact-label">级沙箱<br>none→vm</div></div>
+    <div class="fact"><div class="fact-num">5</div><div class="fact-label">类超时<br>文件·网络·Shell…</div></div>
+    <div class="fact"><div class="fact-num">10+</div><div class="fact-label">个钩子点<br>Agent·Tool·Command</div></div>
+    <div class="fact"><div class="fact-num">2</div><div class="fact-label">个核心钩子<br>before/after_tool_call</div></div>
+    <div class="fact"><div class="fact-num">8</div><div class="fact-label">个核心决策<br>贯穿全模块</div></div>
+  </div>
+</section>
+
+
+
+
+
+<section class="doc-section">
+  <h2 id="sec-2"><span class="sec-num">§ 2</span>工具层的三个原则</h2>
+
+  <div class="principles-preview">
+    <div class="pp-card pp-gateway">
+ 
+      <div class="pp-name">沙箱 = 不可信侧的安全护栏</div>
+      <div class="pp-desc">LLM 生成的工具调用天然不可信——提示注入、幻觉参数、链式放大。沙箱用 4 级隔离把"最坏情况的影响范围"圈在边界内。</div>
+    </div>
+    <div class="pp-card pp-exec">
+ 
+      <div class="pp-name">钩子 = 唯一可扩展的信任边界</div>
+      <div class="pp-desc">不修改核心代码就能加策略、加审计、加改写、加阻断——<code>before_tool_call</code> 决定"能不能"，<code>after_tool_call</code> 决定"结果怎么处理"。</div>
+    </div>
+    <div class="pp-card pp-policy">
+ 
+      <div class="pp-name">8 个决策 = 关键路径速查</div>
+      <div class="pp-desc">每个 Agent 决策路径都对应一个明确配置点——会话隔离、运行时选择、队列模式、工具钩子、压缩、流式、Prompt 分层、超时取消。</div>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-3"><span class="sec-num">§ 3</span>模块位置</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  A["<b>05 会话</b><br>Prompt 组装"] --> B["<b>06 工具</b><br>工具执行 + 钩子"]
+  B --> C["<b>03 通道</b><br>结果如何回传"]
+  B --> D["<b>02 架构</b><br>沙箱隔离机制"]
+  B --> E["<b>09 错误处理</b><br>工具失败如何恢复"]
+
+  style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style B fill:#059669,stroke:#047857,color:#fff,stroke-width:2px
+  style C fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style D fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style E fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+</div><figcaption>图 6.1 · 模块 06 是 LLM 与外部世界的边界——工具执行 + 钩子策略 = 安全与能力的交汇点。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-4"><span class="sec-num">§ 4</span>工具执行流程</h2>
+
+  <figure><div class="mermaid">
+sequenceDiagram
+  participant LLM as 模型
+  participant Agent as Agent 循环
+  participant BH as before_tool_call 钩子
+  participant Pol as 策略引擎
+  participant SB as 沙箱
+  participant Tool as 工具实现
+  participant AH as after_tool_call 钩子
+
+  LLM->>Agent: tool_use block
+  Agent->>BH: 拦截工具调用
+  BH->>Pol: 检查权限 (trust + 工具白名单)
+  Pol-->>BH: allow / deny
+  BH-->>Agent: 通过或阻断
+
+  alt 允许执行
+    Agent->>SB: sandbox.create(level)
+    SB->>Tool: execute(params, ctx)
+    Tool-->>SB: 结果
+    SB-->>AH: 拦截结果
+    AH->>AH: 脱敏 / 审计
+    AH-->>Agent: 最终结果
+    Agent->>LLM: 携带 tool_result 继续
+  else 拒绝
+    Agent->>LLM: "Permission denied" 错误
+    LLM->>LLM: 选择其他工具或重新规划
+  end
+</div><figcaption>图 6.2 · 工具执行流程——钩子拦截 → 策略检查 → 沙箱执行 → 结果审计 → 返回 LLM。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-5"><span class="sec-num">§ 5</span>3 类工具来源</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  T["<b>工具注册表</b><br/>(registry)"]
+  B["<b> Built-in 内置</b><br/>核心自带"]
+  P["<b>Plugin 插件</b><br/>50+ 官方 + 社区"]
+  M["<b>MCP 协议</b><br/>外部服务"]
+
+  T --> B
+  T --> P
+  T --> M
+
+  style T fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style B fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style P fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+  style M fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+</div><figcaption>图 6.3 · 3 类工具来源——内置 / 插件 / MCP，通过统一注册表暴露给 LLM。</figcaption></figure>
+
+  <div class="tool-card builtin">
+    <span class="tc-tag">类型 1 · 核心内置</span>
+    <h3 id="sec-5.1"><span class="sec-num">§ 5.1</span> Built-in · 内置工具</h3>
+    <p><strong>是什么</strong>：OpenClaw 核心自带、无需额外安装的工具——所有部署默认可用。</p>
+    <p><strong>特点</strong>：稳定、高性能、沙箱级别固定。</p>
+
+    <table class="info-table">
+      <thead><tr><th>工具</th><th>用途</th><th>沙箱</th></tr></thead>
+      <tbody>
+        <tr><td><code>read</code></td><td>读取文件（限制路径）</td><td>process</td></tr>
+        <tr><td><code>write</code></td><td>写入文件</td><td>process</td></tr>
+        <tr><td><code>edit</code></td><td>编辑文件（精准 patch）</td><td>process</td></tr>
+        <tr><td><code>exec</code></td><td>Shell 命令执行</td><td>container</td></tr>
+        <tr><td><code>web_fetch</code></td><td>抓取网页</td><td>none + 网络策略</td></tr>
+        <tr><td><code>web_search</code></td><td>网络搜索</td><td>none + 网络策略</td></tr>
+        <tr><td><code>image</code></td><td>图像理解</td><td>process</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tool-card plugin">
+    <span class="tc-tag">类型 2 · 50+ 插件</span>
+    <h3 id="sec-5.2"><span class="sec-num">§ 5.2</span> Plugin · 插件工具</h3>
+    <p><strong>是什么</strong>：由插件提供的工具——官方插件 + 社区插件，通过 OpenClaw Plugin 系统加载。</p>
+    <p><strong>典型插件工具</strong>:</p>
+    <ul>
+      <li><code>calendar.list_events</code>——日历查询</li>
+      <li><code>github.create_issue</code>——GitHub Issue 创建</li>
+      <li><code>notion.search</code>——Notion 搜索</li>
+      <li><code>1password.get</code>——1Password 凭据读取</li>
+      <li><code>peekaboo.screenshot</code>——屏幕截图</li>
+      <li><code>slack.post_message</code>——Slack 发消息</li>
+    </ul>
+
+    <div class="callout">
+      <strong>配置示例</strong>：插件工具需要在 <code>openclaw.json5</code> 里显式启用，并配置凭据。
+    </div>
+  </div>
+
+  <div class="tool-card mcp">
+    <span class="tc-tag">类型 3 · MCP 桥接</span>
+    <h3 id="sec-5.3"><span class="sec-num">§ 5.3</span> MCP · 外部工具</h3>
+    <p><strong>是什么</strong>：通过 Model Context Protocol 暴露的外部工具——由 <code>mcporter</code> 桥接进 OpenClaw。</p>
+    <p><strong>特点</strong>:</p>
+    <ul>
+      <li><strong>跨进程</strong>——MCP 服务独立运行</li>
+      <li><strong>生态丰富</strong>——Anthropic 官方推动，生态快速扩张</li>
+      <li><strong>声明式</strong>——工具描述由 MCP 服务自动提供</li>
+    </ul>
+
+    <pre class="config">{
+  <span class="key">mcp</span>: {
+    <span class="key">servers</span>: {
+      <span class="key">filesystem</span>: {
+        <span class="key">command</span>: <span class="str">"npx"</span>,
+        <span class="key">args</span>: [<span class="str">"-y"</span>, <span class="str">"@modelcontextprotocol/server-filesystem"</span>, <span class="str">"/home/me"</span>]
+      },
+      <span class="key">github</span>: {
+        <span class="key">command</span>: <span class="str">"mcp-server-github"</span>,
+        <span class="key">env</span>: { <span class="key">GITHUB_TOKEN</span>: <span class="str">"${GITHUB_TOKEN}"</span> }
+      }
+    }
+  }
+}</pre>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-6"><span class="sec-num">§ 6</span>沙箱机制</h2>
+
+  <h3 class="view-h3" id="sec-6.1"><span class="sec-num">§ 6.1</span>为什么需要沙箱？<span class="vh-tag">why</span></h3>
+  <p>LLM 驱动的工具调用有三个根本风险：</p>
+  <ul>
+    <li><strong>提示注入</strong>——用户消息或工具结果含恶意指令，诱导工具执行危险操作</li>
+    <li><strong>幻觉参数</strong>——模型生成错误的参数（<code>rm -rf /</code> 而不是 <code>rm -rf ./build</code>)</li>
+    <li><strong>链式放大</strong>——一个工具调用触发不可控的连锁反应</li>
+  </ul>
+  <p>沙箱的限制"最坏情况的影响范围"——即使出了事，也只损失沙箱内的内容。</p>
+
+  <h3 class="view-h3" id="sec-6.2"><span class="sec-num">§ 6.2</span>4 级沙箱<span class="vh-tag">levels</span></h3>
+  <div class="sandbox-grid">
+    <div class="sandbox-tier t1">
+ 
+      <div class="st-name">none</div>
+      <div class="st-desc">无隔离——完全可信工具（自研、纯函数）</div>
+    </div>
+    <div class="sandbox-tier t2">
+ 
+      <div class="st-name">process</div>
+      <div class="st-desc">独立进程——默认级别，大多数工具</div>
+    </div>
+    <div class="sandbox-tier t3">
+ 
+      <div class="st-name">container</div>
+      <div class="st-desc">容器隔离——高危工具（shell、文件写）</div>
+    </div>
+    <div class="sandbox-tier t4">
+ 
+      <div class="st-name">vm</div>
+      <div class="st-desc">虚拟机隔离——极高危场景（网络下载执行）</div>
+    </div>
+  </div>
+
+  <table class="info-table">
+    <thead><tr><th>级别</th><th>隔离方式</th><th>启动开销</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td><strong>none</strong></td><td>无</td><td>~0ms</td><td>read · web_search</td></tr>
+      <tr><td><strong>process</strong></td><td>独立 Node 进程</td><td>~50ms</td><td>image · web_fetch</td></tr>
+      <tr><td><strong>container</strong></td><td>Docker / bubblewrap</td><td>~500ms</td><td>exec · write</td></tr>
+      <tr><td><strong>vm</strong></td><td>Firecracker / QEMU</td><td>~3s</td><td>外部代码执行</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <strong>exec 工具必须 ≥ container</strong>：Shell 执行是最高风险的工具——即使是 trusted 用户，也建议至少 container 级别，防止命令注入、文件误删。
+  </div>
+
+<h3 class="view-h3" id="deep-19"><span class="sec-num">§ 6.3</span>权限模式与审批</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>Host Exec 的五种权限模式（deny/allowlist/ask/auto/full）分别怎样工作？</li>
+  <li>执行审批的完整流程是怎样的？Safe Bins、审批规则、权限模式如何协同？</li>
+  <li>运行列表（Run List）和限制参数（argPattern）如何实现精细化控制？</li>
+  <li>OpenClaw 内置的安全 Binaries 包含哪些类别的命令？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-02-permission-approval-1" data-toc-skip><span class="sec-num">§ 6.3.1</span>权限模式</h4>
+<p>权限模式决定 Agent 在运行主机命令、写文件或向后端请求更高权限时，需要经过什么审批。</p>
+<h4 id="sec-18-3-1" data-toc-skip><span class="sec-num">§ 6.3.2</span> 五种模式</h4>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 模式决策树["根据安全性逐步放宽"]
+        direction TB
+        D1["deny<br/>完全禁止"]:::deny
+        D2["allowlist<br/>仅白名单"]:::restrict
+        D3["ask<br/>逐个询问"]:::restrict
+        D4["auto<br/>自动审查"]:::auto
+        D5["full<br/>完全放行"]:::full
+    end
+
+    D1 --> D2 --> D3 --> D4 --> D5
+
+    classDef deny fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef restrict fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef auto fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef full fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 8.2 · 沙箱机制</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>模式</th><th>行为</th><th>安全等级</th><th>适合场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>deny</strong></td><td>完全禁止 host exec</td><td>最高</td><td>不允许任何主机命令</td></tr>
+    <tr><td><strong>allowlist</strong></td><td>只运行 allowlist 中的命令</td><td>高</td><td>命令集合明确且固定</td></tr>
+    <tr><td><strong>ask</strong></td><td>allowlist 直接运行，其他弹框询问</td><td>中</td><td>每个新命令都要人工确认</td></tr>
+    <tr><td><strong>auto</strong> </td><td>allowlist 直接运行，其他自动审查</td><td>中</td><td>编码会话，实用且受控的访问</td></tr>
+    <tr><td><strong>full</strong></td><td>不提示，直接运行</td><td>低</td><td>完全可信的主机和会话</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-18-4-1" data-toc-skip><span class="sec-num">§ 6.3.3</span> 推荐默认值</h4>
+<pre class="code-block">openclaw config set tools.exec.mode auto
+openclaw approvals get
+openclaw gateway restart
+openclaw exec-policy show</pre>
+<blockquote><p>建议从 `auto` 开始：先放行 allowlist 中确定安全的命令；没命中的走自动审查，必要时回退到人工审批。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-02-permission-approval-2" data-toc-skip><span class="sec-num">§ 6.3.4</span>执行审批流程</h4>
+<p>一次完整的命令执行审批经过以下步骤：</p>
+<figure><div class="mermaid">
+flowchart TB
+    REQ["Agent 请求执行命令"]:::start
+
+    --> CHECK{"在 Safe Bins<br/>白名单中?"}:::check
+    CHECK -->|"是"| SAFE["直接放行<br/>(安全内置命令)"]:::safe
+
+    CHECK -->|"否"| RULES{"匹配审批规则?<br/>approvals.json"}:::check
+    RULES -->|"auto"| AUTO["自动执行"]:::auto
+    RULES -->|"ask"| ASK["显示确认框<br/>等待用户确认"]:::ask
+    RULES -->|"deny"| DENY["拒绝执行<br/>通知 Agent 调方案"]:::deny
+
+    RULES -->|"未命中规则"| MODE{"exec.mode<br/>全局模式?"}:::check
+    MODE -->|"auto"| AUTO
+    MODE -->|"ask"| ASK
+    MODE -->|"deny/allowlist"| DENY
+    MODE -->|"full"| FULL["直接执行"]:::safe
+
+    classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef check fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef safe fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef auto fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef ask fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef deny fill:#fee2e2,stroke:#ef4444,color:#991b1b
+</div><figcaption>图 8.3 · 沙箱机制</figcaption></figure>
+<h4 id="sec-18-6-1" data-toc-skip><span class="sec-num">§ 6.3.5</span> 审批规则存储</h4>
+<pre class="code-block">~/.openclaw/approvals.json</pre>
+<blockquote><p>主机命令最终会取 OpenClaw 配置和本机 `approvals.json` 中<strong>更严格</strong>的结果。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-02-permission-approval-3" data-toc-skip><span class="sec-num">§ 6.3.6</span>规则配置</h4>
+<h4 id="sec-18-8-1" data-toc-skip><span class="sec-num">§ 6.3.7</span> 策略类型</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>策略</th><th>说明</th><th>执行方式</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>auto</strong></td><td>命令自动执行，无需确认</td><td>静默放行</td></tr>
+    <tr><td><strong>ask</strong></td><td>每次执行前弹出确认框，由你决定</td><td>等待用户交互</td></tr>
+    <tr><td><strong>deny</strong></td><td>命令直接拒绝，Agent 收到通知并调整方案</td><td>返回拒绝</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-18-9-1" data-toc-skip><span class="sec-num">§ 6.3.8</span> 规则示例</h4>
+<pre class="code-block">{
+  rules: [
+    { pattern: &quot;git *&quot;, policy: &quot;auto&quot; },
+    { pattern: &quot;npm install *&quot;, policy: &quot;ask&quot; },
+    { pattern: &quot;rm -rf *&quot;, policy: &quot;deny&quot; },
+    { pattern: &quot;sudo *&quot;, policy: &quot;deny&quot; },
+  ],
+}</pre>
+<h4 id="sec-18-10-1" data-toc-skip><span class="sec-num">§ 6.3.9</span> 运行列表（Run List）</h4>
+<p>运行列表是预批准的命令模式集合，匹配的命令自动执行：</p>
+<pre class="code-block">{
+  runList: [
+    &quot;git add *&quot;,
+    &quot;git commit *&quot;,
+    &quot;npm run build&quot;,
+    &quot;npm run test&quot;,
+  ],
+}</pre>
+<h4 id="sec-18-11-1" data-toc-skip><span class="sec-num">§ 6.3.10</span> 限制参数：argPattern</h4>
+<p>允许命令但限制参数范围：</p>
+<pre class="code-block">{
+  version: 1,
+  agents: {
+    main: {
+      allowlist: [
+        { pattern: &quot;python3&quot;, argPattern: &quot;^safe\\.py$&quot; },
+        { pattern: &quot;cat&quot;, argPattern: &quot;^/workspace/.*\\.(md\|txt)$&quot; },
+      ],
+    },
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-permission-approval-4" data-toc-skip><span class="sec-num">§ 6.3.11</span>安全 Binaries（Safe Bins）</h4>
+<p>OpenClaw 内置的安全命令白名单，这些命令<strong>自动放行</strong>，无需审批：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>类别</th><th>命令</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>文件查看</strong> </td><td><code>ls</code>, <code>cat</code>, <code>head</code>, <code>tail</code>, <code>grep</code>, <code>find</code>, <code>wc</code>, <code>sort</code>, <code>uniq</code></td><td>读取文件内容</td></tr>
+    <tr><td><strong>版本控制</strong> </td><td><code>git status</code>, <code>git log</code>, <code>git diff</code>, <code>git branch</code></td><td>只读 git 操作</td></tr>
+    <tr><td><strong>系统信息</strong> </td><td><code>pwd</code>, <code>whoami</code>, <code>date</code>, <code>echo</code>, <code>env</code>, <code>which</code></td><td>环境查询</td></tr>
+    <tr><td><strong>包管理</strong> </td><td><code>npm list</code>, <code>pip list</code>, <code>pip show</code></td><td>只读包查询</td></tr>
+  </tbody>
+</table>
+<blockquote><p>不在白名单中的命令会进入审批流程（取决于 `approvals.json` 和 `exec.mode` 配置）。</p></blockquote>
+<hr>
+<h4 class="view-h3" id="deep-02-permission-approval-5" data-toc-skip><span class="sec-num">§ 6.3.12</span>快速参考</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>命令</th><th>用途</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>openclaw config set tools.exec.mode auto</code></td><td>启用自动审批模式</td></tr>
+    <tr><td><code>openclaw approvals list</code></td><td>查看审批规则</td></tr>
+    <tr><td><code>openclaw approvals add "npm run *" --policy auto</code></td><td>添加自动批准规则</td></tr>
+    <tr><td><code>openclaw exec-policy show</code></td><td>查看最终生效策略</td></tr>
+    <tr><td><code>openclaw control</code></td><td>打开管理界面</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-02-architecture/#deep-01-tool-system-1">01 - 工具系统架构</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-safety-strategy-1">03 - 安全策略配置</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a></p></blockquote>
+
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-7"><span class="sec-num">§ 7</span>执行器实现</h2>
+
+  <pre class="code-block"><span class="comment">// 工具执行器伪代码</span>
+<span class="fn">async function</span> executeTool(name, params, ctx) {
+  <span class="comment">// 1. 解析工具</span>
+  <span class="fn">const</span> tool = registry.get(name);
+  <span class="fn">if</span> (!tool) <span class="fn">return</span> { error: <span class="str">`Unknown tool: ${name}`</span> };
+
+  <span class="comment">// 2. 钩子拦截(before)</span>
+  <span class="fn">const</span> beforeResult = <span class="fn">await</span> runHook(<span class="str">"before_tool_call"</span>, {
+    tool, params, session: ctx.session
+  });
+  <span class="fn">if</span> (!beforeResult.allow) {
+    <span class="fn">return</span> { error: beforeResult.reason || <span class="str">"Permission denied"</span> };
+  }
+  params = beforeResult.params || params;  <span class="comment">// 可改写参数</span>
+
+  <span class="comment">// 3. 沙箱创建与执行</span>
+  <span class="fn">const</span> sandbox = sandboxFactory.create(tool.sandboxLevel);
+  <span class="fn">let</span> result;
+  <span class="fn">try</span> {
+    result = <span class="fn">await</span> sandbox.run(
+      () =&gt; tool.execute(params, ctx),
+      {
+        timeoutMs:  tool.timeoutMs || <span class="num">30000</span>,
+        memoryMb:   tool.memoryMb  || <span class="num">512</span>,
+        netPolicy:  tool.networkPolicy
+      }
+    );
+  } <span class="fn">catch</span> (err) {
+    <span class="fn">return</span> { error: err.message, timeout: err.code === <span class="str">"ETIMEOUT"</span> };
+  }
+
+  <span class="comment">// 4. 结果钩子(after)</span>
+  <span class="fn">const</span> afterResult = <span class="fn">await</span> runHook(<span class="str">"after_tool_call"</span>, {
+    tool, params, result
+  });
+  <span class="fn">return</span> afterResult.result || result;
+}</pre>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-8"><span class="sec-num">§ 8</span>超时控制</h2>
+
+  <p>每个工具有自己的默认超时，防止失控占用资源：</p>
+
+  <table class="info-table">
+    <thead><tr><th>工具类型</th><th>默认超时</th><th>可配置</th></tr></thead>
+    <tbody>
+      <tr><td>文件操作（<code>read</code>、<code>write</code>)</td><td><strong>5s</strong></td><td>是</td></tr>
+      <tr><td>网络请求（<code>web_fetch</code>)</td><td><strong>30s</strong></td><td>是</td></tr>
+      <tr><td>Shell 命令（<code>exec</code>)</td><td><strong>60s</strong></td><td>是</td></tr>
+      <tr><td>长时间任务（自定义）</td><td><strong>5min</strong></td><td>是</td></tr>
+      <tr><td>图像理解（<code>image</code>)</td><td><strong>30s</strong></td><td>否</td></tr>
+    </tbody>
+  </table>
+
+  <pre class="config">{
+  <span class="key">tools</span>: {
+    <span class="key">exec</span>: {
+      <span class="key">timeoutMs</span>: <span class="val">60000</span>,              <span class="comment">// 60s</span>
+      <span class="key">memoryMb</span>: <span class="val">512</span>,                <span class="comment">// 512MB</span>
+      <span class="key">networkPolicy</span>: <span class="str">"deny-all"</span>     <span class="comment">// 禁止网络</span>
+    },
+    <span class="key">web_fetch</span>: {
+      <span class="key">timeoutMs</span>: <span class="val">30000</span>,
+      <span class="key">domainAllowlist</span>: [<span class="str">"docs.example.com"</span>, <span class="str">"*.wikipedia.org"</span>]
+    }
+  }
+}</pre>
+
+  <div class="callout">
+    <strong>超时后</strong>：工具被 kill，返回 <code>{ error: "Timeout exceeded", timeout: true }</code> 给 LLM——LLM 可重试或选择其他工具。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-9"><span class="sec-num">§ 9</span>并发 · 结果限制 · 重试</h2>
+
+  <h3 class="view-h3" id="sec-9.1"><span class="sec-num">§ 9.1</span>并发控制<span class="vh-tag">parallel</span></h3>
+  <p>OpenClaw 默认 <strong>串行</strong> 执行工具调用——避免竞态与依赖问题：</p>
+
+  <ul>
+    <li><strong>同一会话内串行</strong>——保证状态一致性</li>
+    <li><strong>不同会话可并行</strong>——Gateway 调度多个 Runtime</li>
+    <li><strong>显式并行</strong>——工具声明 <code>parallel: true</code> 才并发</li>
+  </ul>
+
+  <pre class="config">{
+  <span class="key">tools</span>: {
+    <span class="key">web_fetch</span>: {
+      <span class="key">parallel</span>: <span class="val">true</span>,      <span class="comment">// 多个 web_fetch 可并发</span>
+      <span class="key">maxConcurrency</span>: <span class="val">5</span>   <span class="comment">// 最多 5 个并发</span>
+    },
+    <span class="key">exec</span>: {
+      <span class="key">parallel</span>: <span class="val">false</span>       <span class="comment">// shell 必须串行</span>
+    }
+  }
+}</pre>
+
+  <h3 class="view-h3" id="sec-9.2"><span class="sec-num">§ 9.2</span>结果大小限制<span class="vh-tag">limits</span></h3>
+  <p>为防止 LLM 上下文爆炸，工具结果有大小限制：</p>
+
+  <table class="info-table">
+    <thead><tr><th>类型</th><th>限制</th><th>超出处理</th></tr></thead>
+    <tbody>
+      <tr><td>文本</td><td>最大 100KB</td><td>截断 + <code>[truncated: ...]</code></td></tr>
+      <tr><td>JSON</td><td>最大 100K tokens</td><td>截断字段 + 摘要</td></tr>
+      <tr><td>图像</td><td>最大 5MB / 张</td><td>缩略图 + 路径</td></tr>
+      <tr><td>媒体（视频/音频）</td><td>不内联</td><td>仅返回路径</td></tr>
+      <tr><td>二进制</td><td>不内联</td><td>Base64 仅小文件</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>设计哲学</strong>：工具结果给 LLM 是"上下文"，不是"原始数据"——超大的结果应该写到文件，只让 LLM 看路径。
+  </div>
+
+  <h3 class="view-h3" id="sec-9.3"><span class="sec-num">§ 9.3</span>重试与降级<span class="vh-tag">retries</span></h3>
+  <p>工具失败时的默认行为：</p>
+
+  <ul>
+    <li><strong>网络错误</strong>——自动重试 2 次（指数退避）</li>
+    <li><strong>超时</strong>——不重试，直接返回错误</li>
+    <li><strong>权限拒绝</strong>——不重试，让 LLM 换工具</li>
+    <li><strong>沙箱崩溃</strong>——重试 1 次（可能是偶然）</li>
+  </ul>
+
+  <pre class="config">{
+  <span class="key">tools</span>: {
+    <span class="key">web_fetch</span>: {
+      <span class="key">retry</span>: {
+        <span class="key">maxAttempts</span>: <span class="val">3</span>,
+        <span class="key">backoffMs</span>: <span class="val">1000</span>,
+        <span class="key">retryOn</span>: [<span class="str">"ETIMEDOUT"</span>, <span class="str">"ECONNRESET"</span>]
+      }
+    }
+  }
+}</pre>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-10"><span class="sec-num">§ 10</span>3 大类钩子</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  A["<b> 钩子</b><br/>10+ 个拦截点"]
+  B["<b>Agent 生命周期</b><br/>模型 / Prompt / Reply"]
+  C["<b>Tool 工具调用</b><br/>before / after"]
+  D["<b>Command 内部命令</b><br/>/new /reset /stop"]
+
+  A --> B
+  A --> C
+  A --> D
+
+  style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style B fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style C fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style D fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+</div><figcaption>图 6.4 · 钩子分类——Agent 钩子改模型决策，Tool 钩子拦截工具调用，Command 钩子扩展用户命令。</figcaption></figure>
+
+  <div class="hook-cat agent">
+    <span class="hc-tag">类别 1 · AGENT</span>
+    <h3 id="sec-10.1"><span class="sec-num">§ 10.1</span> Agent 生命周期钩子</h3>
+    <p>Agent 循环各阶段的拦截点——改模型、改 Prompt、改消息列表。</p>
+
+    <table class="hook-table">
+      <thead><tr><th>钩子</th><th>时机</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>before_model_resolve</td><td>模型解析前</td><td>覆盖 provider/model 选择</td></tr>
+        <tr><td>before_prompt_build</td><td>提示词构建前</td><td>注入额外上下文</td></tr>
+        <tr><td>before_agent_reply</td><td>内联动作后，LLM 调用前</td><td>修改 LLM 输入</td></tr>
+        <tr><td>agent_end</td><td>完成后</td><td>处理最终消息列表</td></tr>
+        <tr><td>session_start</td><td>会话开始</td><td>初始化会话状态</td></tr>
+        <tr><td>session_end</td><td>会话结束</td><td>清理会话资源</td></tr>
+        <tr><td>gateway_start</td><td>Gateway 启动</td><td>启动时初始化</td></tr>
+        <tr><td>gateway_stop</td><td>Gateway 停止</td><td>清理资源</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="hook-cat tool">
+    <span class="hc-tag">类别 2 · TOOL · 最重要</span>
+    <h3 id="sec-10.2"><span class="sec-num">§ 10.2</span> Tool · 工具调用钩子</h3>
+    <p>工具执行前后——这是 OpenClaw <strong>安全模型的核心</strong>：审计、改写、阻断。</p>
+
+    <table class="hook-table">
+      <thead><tr><th>钩子</th><th>时机</th><th>典型用途</th></tr></thead>
+      <tbody>
+        <tr><td>before_tool_call</td><td>工具调用前</td><td><strong>权限检查 · 参数改写 · 阻断</strong></td></tr>
+        <tr><td>after_tool_call</td><td>工具调用后</td><td><strong>脱敏 · 审计 · 缓存</strong></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <strong>最重要的两个钩子</strong>:<code>before_tool_call</code> 决定"能不能调"，<code>after_tool_call</code> 决定"结果怎么处理"。所有安全策略都从这两个钩子落地。
+    </div>
+  </div>
+
+  <div class="hook-cat cmd">
+    <span class="hc-tag">类别 3 · COMMAND</span>
+    <h3 id="sec-10.3"><span class="sec-num">§ 10.3</span> Command · 内部命令钩子</h3>
+    <p>用户通过 <code>/xxx</code> 触发的命令——拦截后可以扩展行为。</p>
+
+    <table class="hook-table">
+      <thead><tr><th>钩子</th><th>触发</th></tr></thead>
+      <tbody>
+        <tr><td>agent:bootstrap</td><td>构建 bootstrap 文件时</td></tr>
+        <tr><td>command:new</td><td>/new 命令触发时</td></tr>
+        <tr><td>command:reset</td><td>/reset 命令触发时</td></tr>
+        <tr><td>command:stop</td><td>/stop 命令触发时</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-11"><span class="sec-num">§ 11</span>钩子注册</h2>
+
+  <p>钩子在插件中通过 <code>api.on()</code> 注册：</p>
+
+  <pre class="code-block"><span class="comment">// plugin.ts — 一个完整的安全审计插件</span>
+<span class="export">export default</span> {
+  id: <span class="str">"audit-plugin"</span>,
+  type: <span class="str">"tool"</span>,
+  <span class="fn">register</span>(api) {
+
+    <span class="comment">// 前置钩子:审计 + 阻断 + 改写</span>
+    api.on(<span class="str">"before_tool_call"</span>, <span class="fn">async</span> (ctx) =&gt; {
+      <span class="fn">const</span> { tool, params, session } = ctx;
+
+      <span class="comment">// 1. 审计日志</span>
+      logger.info(<span class="str">"tool_call"</span>, {
+        tool: tool.name, params, user: session.peer, trust: session.trustLevel
+      });
+
+      <span class="comment">// 2. 阻断 — 非管理员不能调 shell</span>
+      <span class="fn">if</span> (tool.name === <span class="str">"exec"</span> &amp;&amp; session.trustLevel !== <span class="str">"TRUSTED"</span>) {
+        <span class="fn">return</span> { allow: <span class="val">false</span>, reason: <span class="str">"Admin only"</span> };
+      }
+
+      <span class="comment">// 3. 改写参数 — 强制时区</span>
+      <span class="fn">if</span> (tool.name === <span class="str">"calendar.list_events"</span>) {
+        <span class="fn">return</span> {
+          allow: <span class="val">true</span>,
+          params: { ...params, tz: session.userTimezone || <span class="str">"Asia/Shanghai"</span> }
+        };
+      }
+
+      <span class="fn">return</span> { allow: <span class="val">true</span> };
+    });
+
+    <span class="comment">// 后置钩子:脱敏 API Key</span>
+    api.on(<span class="str">"after_tool_call"</span>, <span class="fn">async</span> (ctx) =&gt; {
+      <span class="fn">const</span> { result } = ctx;
+      <span class="fn">if</span> (<span class="fn">typeof</span> result === <span class="str">"string"</span> &amp;&amp; result.includes(<span class="str">"sk-"</span>)) {
+        <span class="fn">return</span> { result: result.replace(/sk-[a-zA-Z0-9]+/g, <span class="str">"sk-***"</span>) };
+      }
+      <span class="fn">return</span> { result };
+    });
+
+    <span class="comment">// Agent 钩子:自动写入审计摘要</span>
+    api.on(<span class="str">"agent_end"</span>, <span class="fn">async</span> (ctx) =&gt; {
+      <span class="fn">await</span> auditLog.write({
+        sessionId: ctx.sessionId,
+        messages: ctx.messages.length,
+        tokens: ctx.metrics.totalTokens,
+        duration: ctx.metrics.duration
+      });
+    });
+  }
+};</pre>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-12"><span class="sec-num">§ 12</span>返回值约定 + 钩子链</h2>
+
+  <h3 class="view-h3" id="sec-12.1"><span class="sec-num">§ 12.1</span>返回值约定<span class="vh-tag">return</span></h3>
+  <p>每个钩子有约定的返回值——不返回值或返回 <code>undefined</code> 等于"放行"。</p>
+
+  <table class="hook-table">
+    <thead><tr><th>钩子</th><th>返回值</th></tr></thead>
+    <tbody>
+      <tr><td>before_tool_call</td><td><code>{ allow: bool, reason?, params? }</code></td></tr>
+      <tr><td>after_tool_call</td><td><code>{ result }</code></td></tr>
+      <tr><td>before_model_resolve</td><td><code>{ provider?, model? }</code></td></tr>
+      <tr><td>before_prompt_build</td><td><code>{ context? }</code></td></tr>
+      <tr><td>before_agent_reply</td><td><code>{ messages? }</code></td></tr>
+      <tr><td>agent_end</td><td><code>{ messages? }</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <strong>阻断语义</strong>：只有 <code>before_*</code> 钩子能返回 <code>{ allow: false }</code>。<code>after_*</code> 钩子只是"数据加工"，不能改变"是否执行"的决定。
+  </div>
+
+  <h3 class="view-h3" id="sec-12.2"><span class="sec-num">§ 12.2</span>钩子链执行<span class="vh-tag">chain</span></h3>
+  <p>多个钩子按注册顺序链式执行——任何一个返回 <code>allow: false</code>，后续钩子和工具执行都被跳过：</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  LLM["LLM 请求<br/>tool_use block"] --> H1
+  H1["<b>钩子 1</b><br/>用户插件<br/>allow/transform"] --> H2
+  H2["<b>钩子 2</b><br/>团队插件<br/>allow/transform"] --> H3
+  H3["<b>钩子 3</b><br/>系统策略<br/>allow/transform"] --> EXEC{"全部<br/>allow?"}
+  EXEC -->|否| DENY["返回<br/>Permission denied"]
+  EXEC -->|是| TOOL["<b>工具执行</b><br/>沙箱内运行"]
+  TOOL --> H3b["<b>钩子 3</b><br/>sanitize"]
+  H3b --> H2b["<b>钩子 2</b><br/>sanitize"]
+  H2b --> H1b["<b>钩子 1</b><br/>sanitize"]
+  H1b --> RES["最终结果<br/>返回 LLM"]
+
+  style LLM fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style H1 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style H2 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style H3 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style EXEC fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style DENY fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+  style TOOL fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style H3b fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style H2b fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style H1b fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style RES fill:#d1fae5,stroke:#059669,color:#1a1f2b
+</div><figcaption>图 6.5 · 钩子链——前置钩子 1→2→3 顺序执行，后置钩子 3→2→1 反向执行（LIFO）。</figcaption></figure>
+
+  <div class="callout">
+    <strong>LIFO 后置</strong>：前置钩子按 1→2→3 顺序执行（注册顺序），后置钩子按 3→2→1 反向执行——这样后置钩子的处理顺序与前置钩子的拦截顺序"配对"。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-13"><span class="sec-num">§ 13</span>调试技巧 · 钩子 vs 中间件</h2>
+
+  <h3 class="view-h3" id="sec-13.1"><span class="sec-num">§ 13.1</span>调试技巧<span class="vh-tag">debug</span></h3>
+  <p>OpenClaw 提供 CLI 调试钩子：</p>
+
+  <pre class="code-block"><span class="comment"># 列出所有已注册钩子</span>
+openclaw hooks list
+
+<span class="comment"># 查看特定钩子的调用历史</span>
+openclaw hooks log --name before_tool_call --limit 50
+
+<span class="comment"># 临时禁用某个钩子</span>
+openclaw hooks disable my-plugin:before_tool_call
+
+<span class="comment"># 启用</span>
+openclaw hooks enable my-plugin:before_tool_call
+
+<span class="comment"># 实时跟踪钩子调用</span>
+openclaw hooks trace --name after_tool_call --follow</pre>
+
+  <h3 class="view-h3" id="sec-13.2"><span class="sec-num">§ 13.2</span>钩子 vs 中间件<span class="vh-tag">middleware</span></h3>
+  <table class="hook-table">
+    <thead><tr><th>差异</th><th>钩子</th><th>中间件</th></tr></thead>
+    <tbody>
+      <tr><td>时机</td><td>离散事件点</td><td>请求/响应链</td></tr>
+      <tr><td>粒度</td><td>粗（几个关键时刻）</td><td>细（每个调用）</td></tr>
+      <tr><td>上下文</td><td>任务级（整个会话）</td><td>请求级（单次请求）</td></tr>
+      <tr><td>适合</td><td>业务逻辑扩展</td><td>通用拦截</td></tr>
+      <tr><td>OpenClaw 用</td><td>钩子</td><td>不提供</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>设计选择</strong>：OpenClaw 选钩子而非中间件——因为 LLM 调用是"任务级"，不是"请求级"。钩子让你能在"完整任务"的视角下决策。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-14"><span class="sec-num">§ 14</span>8 个核心决策</h2>
+
+  <p>如果只能记住一节 OpenClaw 文档，就是这一节。8 个决策是理解整个系统的"关键节点"。</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  D1["<b>#1 会话隔离</b><br/>session.dmScope"]
+  D2["<b>#2 运行时选择</b><br/>模型级 → Provider 级"]
+  D3["<b>#3 队列模式</b><br/>queue.mode"]
+  D4["<b>#4 工具钩子</b><br/>before / after_tool_call"]
+  D5["<b>#5 压缩触发</b><br/>compaction.threshold"]
+  D6["<b>#6 流式策略</b><br/>block / preview"]
+  D7["<b>#7 Prompt 分层</b><br/>8 层结构"]
+  D8["<b>#8 超时取消</b><br/>AbortSignal"]
+
+  style D1 fill:#dbeafe,stroke:#2563eb,color:#1a1f2b
+  style D2 fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+  style D3 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style D4 fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style D5 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style D6 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+  style D7 fill:#cffafe,stroke:#0891b2,color:#1a1f2b
+  style D8 fill:#f3f4f6,stroke:#6b7280,color:#1a1f2b
+</div><figcaption>图 6.6 · 8 个决策——按执行时序排列：1→2→3（进入）→4→5→6→7（循环）→8（超时）。</figcaption></figure>
+
+  <div class="decision-card d1">
+    <span class="dc-num">DECISION 1 · 阶段 2 网关路由</span>
+    <h3 id="sec-14.1"><span class="sec-num">§ 14.1</span> 1⃣ 会话隔离策略</h3>
+    <p><strong>配置位置</strong>:<code>session.dmScope</code></p>
+    <p><strong>影响阶段</strong>：阶段 2（网关路由）——消息如何归类到哪个会话</p>
+
+    <table class="info-table">
+      <thead><tr><th>值</th><th>行为</th></tr></thead>
+      <tbody>
+        <tr><td><code>main</code></td><td>所有 DM 共享主会话</td></tr>
+        <tr><td><code>per-peer</code></td><td>按发送者隔离</td></tr>
+        <tr><td><code>per-channel-peer</code></td><td>按通道+发送者隔离</td></tr>
+        <tr><td><code>per-account-channel-peer</code></td><td>按账户+通道+发送者隔离</td></tr>
+      </tbody>
+    </table>
+
+    <pre class="config">{
+  <span class="key">session</span>: {
+    <span class="key">dmScope</span>: <span class="str">"per-account-channel-peer"</span>  <span class="comment">// 最严格隔离</span>
+  }
+}</pre>
+  </div>
+
+  <div class="decision-card d2">
+    <span class="dc-num">DECISION 2 · 阶段 3 Agent 循环启动</span>
+    <h3 id="sec-14.2"><span class="sec-num">§ 14.2</span> 2⃣ 运行时选择</h3>
+    <p><strong>配置位置</strong>：模型级 → Provider 级 → <code>auto</code> → fallback（4 级回退）</p>
+    <p><strong>影响阶段</strong>：阶段 3（Agent 循环启动）——用哪个模型</p>
+
+    <pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">research</span>: {
+      <span class="key">model</span>: <span class="str">"anthropic/claude-sonnet-4"</span>     <span class="comment">// Level 1(最高优先级)</span>
+    },
+    <span class="key">auto</span>: {
+      <span class="key">strategy</span>: <span class="str">"cost-quality-balanced"</span>     <span class="comment">// 自动选模型</span>
+    }
+  },
+  <span class="key">fallback</span>: {
+    <span class="key">chain</span>: [<span class="str">"anthropic/claude-sonnet-4"</span>, <span class="str">"openai/gpt-4o"</span>, <span class="str">"ollama/llama3.1-70b"</span>]
+  }
+}</pre>
+  </div>
+
+  <div class="decision-card d3">
+    <span class="dc-num">DECISION 3 · 阶段 2/3 路由与启动</span>
+    <h3 id="sec-14.3"><span class="sec-num">§ 14.3</span> 3⃣ 队列模式</h3>
+    <p><strong>配置位置</strong>:<code>queue.mode</code></p>
+    <p><strong>影响阶段</strong>：阶段 2 网关路由 / 阶段 3 循环启动——新消息到达时怎么处理</p>
+
+    <table class="info-table">
+      <thead><tr><th>模式</th><th>行为</th><th>风险</th></tr></thead>
+      <tbody>
+        <tr><td><code>steer</code> <strong>（默认）</strong></td><td>注入到当前运行时</td><td>可能干扰当前思考</td></tr>
+        <tr><td><code>followup</code></td><td>排队等待当前完成</td><td>延迟感知</td></tr>
+        <tr><td><code>collect</code></td><td>合并多条消息</td><td>用户连续发时合并</td></tr>
+        <tr><td><code>interrupt</code></td><td>中止当前，运行新消息</td><td>浪费 token</td></tr>
+      </tbody>
+    </table>
+
+    <pre class="config">{
+  <span class="key">queue</span>: {
+    <span class="key">mode</span>: <span class="str">"steer"</span>,                       <span class="comment">// 默认</span>
+    <span class="key">collectWindowMs</span>: <span class="val">1500</span>           <span class="comment">// collect 模式窗口</span>
+  }
+}</pre>
+  </div>
+
+  <div class="decision-card d4">
+    <span class="dc-num">DECISION 4 · 阶段 6 工具执行 · 核心安全门</span>
+    <h3 id="sec-14.4"><span class="sec-num">§ 14.4</span> 4⃣ 工具钩子</h3>
+    <p><strong>配置位置</strong>：插件注册 <code>before_tool_call</code> / <code>after_tool_call</code></p>
+    <p><strong>影响阶段</strong>：阶段 6（工具执行）——安全策略的落地点</p>
+
+    <p><strong>核心规则</strong>:</p>
+    <ul>
+      <li>任何一个钩子返回 <code>{ allow: false }</code>，后续钩子和工具执行都被跳过</li>
+      <li>钩子链按注册顺序执行（前置），反向执行（后置 LIFO）</li>
+      <li>钩子是 OpenClaw 安全模型的核心——所有信任边界都在这里实现</li>
+    </ul>
+
+    <pre class="config">{
+  <span class="key">plugins</span>: [
+    {
+      <span class="key">id</span>: <span class="str">"security"</span>,
+      <span class="key">hooks</span>: {
+        <span class="key">before_tool_call</span>: <span class="str">"./hooks/audit.ts"</span>,
+        <span class="key">after_tool_call</span>:  <span class="str">"./hooks/sanitize.ts"</span>
+      }
+    }
+  ]
+}</pre>
+  </div>
+
+  <div class="decision-card d5">
+    <span class="dc-num">DECISION 5 · 阶段 7 流式输出与持久化</span>
+    <h3 id="sec-14.5"><span class="sec-num">§ 14.5</span> 5⃣ 压缩触发</h3>
+    <p><strong>配置位置</strong>:<code>compaction.threshold</code></p>
+    <p><strong>影响阶段</strong>：阶段 7——控制上下文大小</p>
+
+    <ul>
+      <li>超过 N 轮后自动调用 <code>compactTranscript</code></li>
+      <li>把较早回合摘要归档</li>
+      <li>让活跃上下文保持在窗口限制内</li>
+    </ul>
+
+    <pre class="config">{
+  <span class="key">compaction</span>: {
+    <span class="key">threshold</span>: <span class="val">50</span>,             <span class="comment">// 50 轮后触发压缩</span>
+    <span class="key">summaryMaxTokens</span>: <span class="val">500</span>,
+    <span class="key">keepRecent</span>: <span class="val">10</span>             <span class="comment">// 保留最近 10 轮完整</span>
+  }
+}</pre>
+  </div>
+
+  <div class="decision-card d6">
+    <span class="dc-num">DECISION 6 · 阶段 7→8 流式输出</span>
+    <h3 id="sec-14.6"><span class="sec-num">§ 14.6</span> 6⃣ 流式策略</h3>
+    <p><strong>配置位置</strong>：通道插件 <code>streaming</code> 选项</p>
+    <p><strong>影响阶段</strong>：阶段 7 → 阶段 8（通道回复）——如何把 LLM 输出展示给用户</p>
+
+    <table class="info-table">
+      <thead><tr><th>模式</th><th>行为</th><th>适用</th></tr></thead>
+      <tbody>
+        <tr><td><code>block</code></td><td>最终块流式发送</td><td>大多数通道</td></tr>
+        <tr><td><code>preview</code></td><td>持续更新可编辑草稿</td><td>Telegram（用户体验更好）</td></tr>
+        <tr><td><code>off</code></td><td>等待完整响应再发送</td><td>短消息</td></tr>
+      </tbody>
+    </table>
+
+    <pre class="config">{
+  <span class="key">channels</span>: {
+    <span class="key">telegram</span>: {
+      <span class="key">accounts</span>: {
+        <span class="key">work</span>: {
+          <span class="key">streaming</span>: <span class="str">"preview"</span>      <span class="comment">// Telegram 推荐 preview</span>
+        }
+      }
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="decision-card d7">
+    <span class="dc-num">DECISION 7 · 阶段 4 提示词组装</span>
+    <h3 id="sec-14.7"><span class="sec-num">§ 14.7</span> 7⃣ 提示词分层</h3>
+    <p><strong>配置位置</strong>:<code>agents.defaults.systemPrompt</code> + <code>bootstrap files</code></p>
+    <p><strong>影响阶段</strong>：阶段 4——Prompt 怎么组装</p>
+
+    <p><strong>8 层叠加</strong>:</p>
+    <ol>
+      <li><code>basePrompt</code>——基础角色</li>
+      <li><code>skills snapshot</code>——技能上下文</li>
+      <li><code>bootstrap files</code>——启动文件</li>
+      <li><code>memory context</code>——长期记忆</li>
+      <li><code>history</code>——对话历史</li>
+      <li><code>session context</code>——会话上下文</li>
+      <li><code>per-run overrides</code>——本次运行覆盖</li>
+      <li><code>user input</code>——用户消息</li>
+    </ol>
+
+    <pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">defaults</span>: {
+      <span class="key">systemPrompt</span>: <span class="str">"./prompts/base.md"</span>,
+      <span class="key">bootstrapFiles</span>: [<span class="str">"./bootstrap.md"</span>, <span class="str">"./safety.md"</span>]
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="decision-card d8">
+    <span class="dc-num">DECISION 8 · 贯穿所有阶段</span>
+    <h3 id="sec-14.8"><span class="sec-num">§ 14.8</span> 8⃣ 超时与取消</h3>
+    <p><strong>配置位置</strong>:<code>agents.defaults.timeout</code></p>
+    <p><strong>影响阶段</strong>：贯穿所有阶段——防止失控</p>
+
+    <table class="info-table">
+      <thead><tr><th>类型</th><th>默认</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td><code>agent.wait</code></td><td>30s</td><td>用户消息后等待 LLM 启动</td></tr>
+        <tr><td>Agent 运行时</td><td>48h</td><td>整个任务最长</td></tr>
+        <tr><td>模型空闲（云端）</td><td>120s</td><td>流式 token 间隔</td></tr>
+        <tr><td>模型空闲（本地）</td><td>300s</td><td>本地模型更宽容</td></tr>
+        <tr><td>工具执行</td><td>5-300s</td><td>每个工具的 deadline</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>AbortSignal</strong>：在任意阶段中断，下游事件不被吞</p>
+
+    <pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">defaults</span>: {
+      <span class="key">timeout</span>: {
+        <span class="key">agentMs</span>: <span class="val">172800000</span>,       <span class="comment">// 48h</span>
+        <span class="key">idleMs</span>: <span class="val">120000</span>,            <span class="comment">// 2min(云端)</span>
+        <span class="key">toolMs</span>: <span class="val">60000</span>              <span class="comment">// 1min(默认工具)</span>
+      }
+    }
+  }
+}</pre>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-15"><span class="sec-num">§ 15</span>决策速查表 + 设计哲学</h2>
+
+  <h3 class="view-h3" id="sec-15.1"><span class="sec-num">§ 15.1</span>8 决策速查<span class="vh-tag">summary-table</span></h3>
+  <table class="decision-table">
+    <thead><tr><th>#</th><th>决策</th><th>影响阶段</th><th>配置位置</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>会话隔离</td><td>阶段 2</td><td><code>session.dmScope</code></td></tr>
+      <tr><td>2</td><td>运行时选择</td><td>阶段 3</td><td><code>agents.[name].model</code></td></tr>
+      <tr><td>3</td><td>队列模式</td><td>阶段 2-3</td><td><code>queue.mode</code></td></tr>
+      <tr><td>4</td><td>工具钩子</td><td>阶段 6</td><td>插件钩子</td></tr>
+      <tr><td>5</td><td>压缩触发</td><td>阶段 7</td><td><code>compaction.threshold</code></td></tr>
+      <tr><td>6</td><td>流式策略</td><td>阶段 7-8</td><td>通道插件 <code>streaming</code></td></tr>
+      <tr><td>7</td><td>提示词分层</td><td>阶段 4</td><td><code>agents.defaults.systemPrompt</code></td></tr>
+      <tr><td>8</td><td>超时取消</td><td>全部</td><td><code>agents.defaults.timeout</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="view-h3" id="sec-15.2"><span class="sec-num">§ 15.2</span>4 个设计哲学<span class="vh-tag">philosophy</span></h3>
+  <p>OpenClaw 的所有设计决策都遵循以下 4 个原则：</p>
+
+  <figure><div class="mermaid">
+flowchart LR
+  P1["<b>声明式</b><br/>优于命令式"]
+  P2["<b>可恢复</b><br/>优于防御性"]
+  P3["<b>可观测</b><br/>优于静默"]
+  P4["<b>可扩展</b><br/>优于完整"]
+
+  P1 --> P2 --> P3 --> P4
+
+  style P1 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style P2 fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style P3 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style P4 fill:#ede9fe,stroke:#7c3aed,color:#1a1f2b
+</div><figcaption>图 6.7 · 4 个设计哲学——决策的元规则。</figcaption></figure>
+
+  <table class="info-table">
+    <thead><tr><th>原则</th><th>含义</th><th>实例</th></tr></thead>
+    <tbody>
+      <tr><td><strong>声明式</strong></td><td>策略在 config 中声明，不在代码中硬编码</td><td>DM 策略、超时、压缩阈值</td></tr>
+      <tr><td><strong>可恢复</strong></td><td>大部分错误有降级路径，而非直接失败</td><td>fallback chain、自动重试</td></tr>
+      <tr><td><strong>可观测</strong></td><td>所有关键事件都推送，便于调试</td><td>events 表、metrics、hooks log</td></tr>
+      <tr><td><strong>可扩展</strong></td><td>通过插件扩展，而非堆叠配置</td><td>50+ 插件、钩子机制</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>这 4 条不是空话</strong>：每个核心决策都能对应到至少一条——比如会话隔离 = 声明式；fallback = 可恢复；hook log = 可观测；插件机制 = 可扩展。
+  </div>
+</section>
+<section class="doc-section deep-dive" id="deep-dive-06-deep-18">
+  <section class="doc-section">
+  <h2 id="sec-16"><span class="sec-num">§ 16</span>阅读路径 + FAQ + 总结</h2>
+
+  <h3 class="view-h3" id="sec-16.1"><span class="sec-num">§ 16.1</span>阅读路径<span class="vh-tag">paths</span></h3>
+  <p>本页约 18 分钟读完。如果你只关心一部分，挑适合的读法：</p>
+
+  <div class="path-grid">
+    <div class="path-card pc-curious">
+      <span class="pc-tag">架构派</span>
+      <div class="pc-title">通读者</div>
+      <div class="pc-time"> 18 分钟 · 全章</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 1-3 定位 + 三原则</li>
+          <li>§ 4-9 工具执行 + 沙箱 + 超时 + 并发</li>
+          <li>§ 10-13 钩子分类 + 注册 + 链</li>
+          <li>§ 14-15 8 个决策 + 4 个哲学</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-quick">
+      <span class="pc-tag">实用派</span>
+      <div class="pc-title">应用开发者</div>
+      <div class="pc-time"> 7 分钟 · 选段</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 5 3 类工具来源</li>
+          <li>§ 6 沙箱机制 + § 8 超时</li>
+          <li>§ 14 决策 4——钩子用法</li>
+          <li>遇到问题 → 跳回 § 7 / § 13</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-deep">
+      <span class="pc-tag">插件派</span>
+      <div class="pc-title">插件开发者</div>
+      <div class="pc-time"> 10 分钟</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 10 3 大类钩子 + § 11 注册</li>
+          <li>§ 12 返回值约定 + 链式执行</li>
+          <li>§ 13 调试技巧</li>
+          <li>跳 <a href="/2026/11/07/openclaw-10-source-walkthrough/">模块 10 源码</a> 看插件框架</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="view-h3" id="sec-16.2"><span class="sec-num">§ 16.2</span>常见问题<span class="vh-tag">faq</span></h3>
+
+  <ul class="faq-list">
+    <li class="faq-item">
+      <div class="faq-q"> 工具调用失败会怎样？</div>
+      <div class="faq-a">默认返回错误给 LLM，LLM 可重试或换工具。超时（默认 30s）会自动 kill。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 如何限制某个用户不能调 shell？</div>
+      <div class="faq-a">在 <code>before_tool_call</code> 钩子里检查 <code>session.trustLevel</code>，非管理员返回 <code>{ allow: false }</code>。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 钩子和中间件有什么区别？</div>
+      <div class="faq-a">钩子是离散事件点（粗粒度、任务级）；中间件是请求/响应链（细粒度、请求级）。OpenClaw 用钩子。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 插件能阻止工具调用吗？</div>
+      <div class="faq-a">能。任何一个钩子返回 <code>{ allow: false }</code>，后续钩子和工具执行都被跳过。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> exec 必须用 container 沙箱吗？</div>
+      <div class="faq-a">强烈建议 ≥ container（默认 OpenClaw 也这么配）。即使 trusted 用户，Shell 仍是高风险工具，container 隔离防止命令注入、文件误删。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 并行执行安全吗？</div>
+      <div class="faq-a">默认串行（同会话内）。需要并行必须显式声明 <code>parallel: true</code> + <code>maxConcurrency</code>。exec 永远串行。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 钩子性能开销大吗？</div>
+      <div class="faq-a">每个钩子目标 &lt；5ms。审计类钩子可以异步批写日志，几乎不阻塞主流程。详见 <code>openclaw hooks trace</code> 实时监控。</div>
+    </li>
+  </ul>
+
+  <h3 class="view-h3" id="sec-16.3"><span class="sec-num">§ 16.3</span>一句话总结<span class="vh-tag">summary</span></h3>
+  <div class="callout">
+    <strong>工具 = 3 类来源 × 4 级沙箱 × 5 类超时 × 显式并发——钩子 = 唯一可扩展的信任边界——8 个决策 = 关键路径速查。</strong>
+    <br><br>
+    安全默认：exec → container、并行默认关闭、超时必设、结果必截断；钩子默认审计、不阻断。
+  </div>
+
+  <h3 class="view-h3" id="sec-16.4"><span class="sec-num">§ 16.4</span>相关阅读<span class="vh-tag">related</span></h3>
+  <div class="related-grid">
+    <a class="related-card" href="/2026/11/07/openclaw-05-sessions/">
+      <span class="rc-eyebrow">05 · 会话</span>
+      <span class="rc-title">会话与状态</span>
+      <span class="rc-desc">Layer 2 的 Tools Schema 怎么生成的？8 层 Prompt 与工具调用的关系。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-02-architecture/#sec-8">
+      <span class="rc-eyebrow">02.4 · 架构</span>
+      <span class="rc-title">信任边界</span>
+      <span class="rc-desc">3 级信任度模型与钩子拦截的关系——工具钩子就是信任边界的实现机制。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-07-end-to-end/">
+      <span class="rc-eyebrow">07 · 端到端</span>
+      <span class="rc-title">端到端流程</span>
+      <span class="rc-desc">消息从进入到回复的完整时序——工具钩子在哪一步拦截、审计、脱敏。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-10-source-walkthrough/">
+      <span class="rc-eyebrow">10 · 源码</span>
+      <span class="rc-title">源码导览</span>
+      <span class="rc-desc">src/tools/、src/hooks/、src/sandbox/——工具与钩子实现的源码位置。</span>
+    </a>
+    <a class="related-card" href="https://docs.openclaw.ai/plugins" target="_blank" rel="noopener">
+      <span class="rc-eyebrow">官方文档</span>
+      <span class="rc-title">Plugin Development</span>
+      <span class="rc-desc">插件开发完整指南——api.on（） 的所有签名、返回约定、调试技巧。</span>
+    </a>
+    <a class="related-card" href="https://github.com/openclaw/openclaw/tree/main/src/tools" target="_blank" rel="noopener">
+      <span class="rc-eyebrow">源码</span>
+      <span class="rc-title">src/tools/ 目录</span>
+      <span class="rc-desc">50+ 内置工具 + 沙箱实现——看看 <code>exec</code>、<code>read</code>、<code>web_fetch</code> 的真实代码。</span>
+    </a>
+  </div>
+</section>
+
+
+</div>
+      <aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">工具层的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">模块位置</a><a class="reading-toc-link level-2" href="#sec-4">工具执行流程</a><a class="reading-toc-link level-2" href="#sec-5">3 类工具来源</a><a class="reading-toc-link level-3" href="#sec-5.1">Built-in · 内置工具</a><a class="reading-toc-link level-3" href="#sec-5.2">Plugin · 插件工具</a><a class="reading-toc-link level-3" href="#sec-5.3">MCP · 外部工具</a><a class="reading-toc-link level-2" href="#sec-6">沙箱机制</a><a class="reading-toc-link level-3" href="#sec-6.1">为什么需要沙箱? why</a><a class="reading-toc-link level-3" href="#sec-6.2">4 级沙箱 levels</a><a class="reading-toc-link level-3" href="#deep-19">权限模式与审批</a><a class="reading-toc-link level-2" href="#sec-7">执行器实现</a><a class="reading-toc-link level-2" href="#sec-8">超时控制</a><a class="reading-toc-link level-2" href="#sec-9">并发 · 结果限制 · 重试</a><a class="reading-toc-link level-3" href="#sec-9.1">并发控制 parallel</a><a class="reading-toc-link level-3" href="#sec-9.2">结果大小限制 limits</a><a class="reading-toc-link level-3" href="#sec-9.3">重试与降级 retries</a><a class="reading-toc-link level-2" href="#sec-10">3 大类钩子</a><a class="reading-toc-link level-3" href="#sec-10.1">Agent 生命周期钩子</a><a class="reading-toc-link level-3" href="#sec-10.2">Tool · 工具调用钩子</a><a class="reading-toc-link level-3" href="#sec-10.3">Command · 内部命令钩子</a><a class="reading-toc-link level-2" href="#sec-11">钩子注册</a><a class="reading-toc-link level-2" href="#sec-12">返回值约定 + 钩子链</a><a class="reading-toc-link level-3" href="#sec-12.1">返回值约定 return</a><a class="reading-toc-link level-3" href="#sec-12.2">钩子链执行 chain</a><a class="reading-toc-link level-2" href="#sec-13">调试技巧 · 钩子 vs 中间件</a><a class="reading-toc-link level-3" href="#sec-13.1">调试技巧 debug</a><a class="reading-toc-link level-3" href="#sec-13.2">钩子 vs 中间件 middleware</a><a class="reading-toc-link level-2" href="#sec-14">8 个核心决策</a><a class="reading-toc-link level-3" href="#sec-14.1">1⃣ 会话隔离策略</a><a class="reading-toc-link level-3" href="#sec-14.2">2⃣ 运行时选择</a><a class="reading-toc-link level-3" href="#sec-14.3">3⃣ 队列模式</a><a class="reading-toc-link level-3" href="#sec-14.4">4⃣ 工具钩子</a><a class="reading-toc-link level-3" href="#sec-14.5">5⃣ 压缩触发</a><a class="reading-toc-link level-3" href="#sec-14.6">6⃣ 流式策略</a><a class="reading-toc-link level-3" href="#sec-14.7">7⃣ 提示词分层</a><a class="reading-toc-link level-3" href="#sec-14.8">8⃣ 超时与取消</a><a class="reading-toc-link level-2" href="#sec-15">决策速查表 + 设计哲学</a><a class="reading-toc-link level-3" href="#sec-15.1">8 决策速查 summary-table</a><a class="reading-toc-link level-3" href="#sec-15.2">4 个设计哲学 philosophy</a><a class="reading-toc-link level-2" href="#sec-16">阅读路径 + FAQ + 总结</a><a class="reading-toc-link level-3" href="#sec-16.1">阅读路径 paths</a><a class="reading-toc-link level-3" href="#sec-16.2">常见问题 faq</a><a class="reading-toc-link level-3" href="#sec-16.3">一句话总结 summary</a><a class="reading-toc-link level-3" href="#sec-16.4">相关阅读 related</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-05-sessions/"><small>← 上一篇</small><span>会话生命周期与状态管理</span></a></div><div><a href="/2026/11/07/openclaw-07-end-to-end/"><small>下一篇 →</small><span>端到端消息流程</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body>
+</html>

@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 4 章：LLM Provider 与 Runtime 适配 | OpenClaw 源码笔记</title>
+  <meta name="description" content="模块 04 · LLM Provider 与 Runtime 适配。30+ LLM + 5 种 Runtime = 单一 LLM 抽象层——OpenClaw 把&quot;模型训练&quot;留给 OpenAI/Anthropic，自己做&quot;协调层&quot;。Provider 是 LLM 适配，Runtime 是 Agent 调度。本模块拆解两层的抽象、选型、故障转移。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 4 章：LLM Provider 与 Runtime 适配">
+  <meta property="og:url" content="http://lianjifu.cn/2026/11/07/openclaw-04-models-runtimes/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="模块 04 · LLM Provider 与 Runtime 适配。30+ LLM + 5 种 Runtime = 单一 LLM 抽象层——OpenClaw 把&quot;模型训练&quot;留给 OpenAI/Anthropic，自己做&quot;协调层&quot;。Provider 是 LLM 适配，Runtime 是 Agent 调度。本模块拆解两层的抽象、选型、故障转移。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-07T10:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="openclaw">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" href="http://lianjifu.cn/2026/11/07/openclaw-04-models-runtimes/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/portal.css?v=2">
+  <link rel="stylesheet" href="/css/article.css?v=6">
+  <link rel="stylesheet" href="/css/openclaw.css?v=3">
+  <script src="/js/portal.js?v=6" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="openclaw"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+    </svg><header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/openclaw/">OpenClaw 源码笔记</a></div>
+      <span class="article-kicker">第 4 章：模型抽象</span>
+      <h1 class="post-title" itemprop="name headline">LLM Provider 与 Runtime 适配</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-calendar"></i></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-07T10:00:00+08:00">2026-11-07</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><i class="far fa-folder"></i></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/openclaw/" itemprop="url" rel="index"><span itemprop="name">OpenClaw 源码笔记</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body openclaw-body" itemprop="articleBody">
+
+<p class="post-lede">
+  <strong>30+ LLM + 5 种 Runtime = 单一 LLM 抽象层</strong>——OpenClaw 把"模型训练"留给 OpenAI/Anthropic，自己做"协调层"。Provider 是 LLM 适配，Runtime 是 Agent 调度。本模块拆解两层的抽象、选型、故障转移。
+</p>
+
+
+<section class="doc-section">
+  <h2 id="sec-1"><span class="sec-num">§ 1</span>一句话定位</h2>
+
+  <div class="intro-callout">
+    <strong>Provider/Model 是身份，Runtime/Harness 是执行方式。</strong>OpenClaw 让你把这两件事<strong>独立配置、组合使用</strong>——同一模型可换不同 Runtime，同一 Runtime 可换不同模型，所有组合都能在 <code>openclaw.json5</code> 里声明。
+  </div>
+
+  <div class="fact-grid">
+    <div class="fact"><div class="fact-num">4</div><div class="fact-label">层抽象<br>Provider·Model·Runtime·Harness</div></div>
+    <div class="fact"><div class="fact-num">5</div><div class="fact-label">种 Runtime<br>Single-shot·Loop·Streaming·Parallel·Hybrid</div></div>
+    <div class="fact"><div class="fact-num">4</div><div class="fact-label">级模型选择<br>Agent→Channel→Workspace→Defaults</div></div>
+    <div class="fact"><div class="fact-num">30+</div><div class="fact-label">内置 Provider<br>云·本地·企业·聚合</div></div>
+    <div class="fact"><div class="fact-num">200+</div><div class="fact-label">模型 ID<br>Claude·GPT·Gemini·Qwen…</div></div>
+    <div class="fact"><div class="fact-num">5</div><div class="fact-label">种 Harness<br>openclaw·codex·copilot·claude-cli·acp</div></div>
+  </div>
+</section>
+
+
+
+
+
+<section class="doc-section">
+  <h2 id="sec-2"><span class="sec-num">§ 2</span>推理层的三个原则</h2>
+
+  <div class="principles-preview">
+    <div class="pp-card pp-gateway">
+ 
+      <div class="pp-name">正交解耦——四层独立配置</div>
+      <div class="pp-desc">Provider / Model / Runtime / Harness 每一层都是独立配置项，任意组合都允许——不被任何单一厂商绑定。</div>
+    </div>
+    <div class="pp-card pp-exec">
+ 
+      <div class="pp-name">5 种 Runtime——调用模式独立于模型</div>
+      <div class="pp-desc">同一模型可换不同 Runtime 调——Single-shot / Loop / Streaming / Parallel / Hybrid 适用不同场景。</div>
+    </div>
+    <div class="pp-card pp-policy">
+ 
+      <div class="pp-name">4 级选择 + Fallback——声明式优先</div>
+      <div class="pp-desc">Agent → Channel → Workspace → Defaults 4 级查找，失败自动 fallback 到下一个候选，无需代码硬编码。</div>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-3"><span class="sec-num">§ 3</span>模块位置</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  A["<b>02 架构</b><br>三层四层原则"] --> B["<b>04 模型与运行时</b><br>L3 推理层细节"]
+  B --> C["<b>05 会话</b><br>如何被路由"]
+  B --> D["<b>06 工具</b><br>工具如何注入 Runtime"]
+  B --> E["<b>08 性能</b><br>Runtime 性能对比"]
+
+  style A fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style B fill:#c026d3,stroke:#7c3aed,color:#fff,stroke-width:2px
+  style C fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style D fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style E fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+</div><figcaption>图 4.8 · 模块 04 是 L3 推理层的具体实现——它定义了"模型如何被调用"。</figcaption></figure>
+</section><section class="doc-section">
+  <h2 id="sec-4"><span class="sec-num">§ 4</span>四层抽象栈</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  H["<b> Harness</b><br/>执行 Runtime 的后端进程<br/>openclaw · codex · copilot · claude-cli · acp"]
+
+  R["<b>Runtime</b><br/>如何调度 LLM 调用循环<br/>Single-shot · Loop · Streaming · Parallel · Hybrid"]
+
+  M["<b> Model</b><br/>具体模型 ID<br/>claude-sonnet-4 · gpt-4o · qwen2.5-72b"]
+
+  P["<b> Provider</b><br/>提供 API 的厂商<br/>Anthropic · OpenAI · Ollama · Bedrock · DeepSeek"]
+
+  P --> M
+  M --> R
+  R --> H
+
+  style P fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style M fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style R fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style H fill:#d1fae5,stroke:#059669,color:#1a1f2b
+</div><figcaption>图 4.1 · 四层抽象——每层都是独立的可配置项，可以在 JSON5 里独立选择。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-5"><span class="sec-num">§ 5</span>四层详解</h2>
+
+  <div class="abs-card provider">
+    <span class="ac-tag">LAYER 1 · 提供者</span>
+    <h3 id="sec-5.1"><span class="sec-num">§ 5.1</span> Provider（提供者）</h3>
+    <p><strong>是什么</strong>：提供 LLM API 的厂商——Anthropic、OpenAI、Ollama、DeepSeek 等。</p>
+    <p><strong>关心什么</strong>：API 协议、鉴权方式、配额限制、价格、地区限制。</p>
+    <p><strong>不关心什么</strong>：具体哪个模型（那是 Model 层）。</p>
+    <p><strong>代码位置</strong>:<code>src/providers/[name]/</code>（每个 Provider 一个目录，如 <code>anthropic/</code>、<code>openai/</code>、<code>ollama/</code>)</p>
+  </div>
+
+  <div class="callout">
+    <strong>类比</strong>：Provider 像"快递公司"——UPS / FedEx / DHL。他们是送货的，但送什么包裹是另一回事。
+  </div>
+
+  <div class="abs-card model">
+    <span class="ac-tag">LAYER 2 · 模型</span>
+    <h3 id="sec-5.2"><span class="sec-num">§ 5.2</span> Model（模型）</h3>
+    <p><strong>是什么</strong>：具体的模型 ID——<code>claude-sonnet-4</code>、<code>gpt-4o</code>、<code>qwen2.5-72b</code>。</p>
+    <p><strong>关心什么</strong>：上下文窗口、最大输出、价格、能力评测、是否支持工具调用。</p>
+    <p><strong>不关心什么</strong>：由谁提供（那是 Provider）。</p>
+    <p><strong>代码位置</strong>:<code>src/providers/[name]/models.ts</code>（每个 Provider 目录下的模型清单）</p>
+  </div>
+
+  <div class="callout">
+    <strong>同 Provider 多 Model</strong>：Anthropic Provider 提供 <code>claude-opus-4</code> / <code>claude-sonnet-4</code> / <code>claude-haiku-4</code>。OpenClaw 把它们都列在 Anthropic Provider 下，但每个都有独立的 context window、价格、benchmark 分数。
+  </div>
+
+  <div class="abs-card runtime">
+    <span class="ac-tag">LAYER 3 · 运行时</span>
+    <h3 id="sec-5.3"><span class="sec-num">§ 5.3</span> Runtime（运行时）</h3>
+    <p><strong>是什么</strong>：调用 LLM 的执行模式——一次就够还是多轮循环？流式还是批量？</p>
+    <p><strong>5 种 Runtime</strong>:</p>
+    <ul>
+      <li><strong>Single-shot</strong>——一次 LLM 调用就返回结果（翻译、摘要）</li>
+      <li><strong>Loop</strong>——多轮 ReAct 循环（Agent 默认）</li>
+      <li><strong>Streaming</strong>——边生成边返回（长文本）</li>
+      <li><strong>Parallel</strong>——多任务并发（批量）</li>
+      <li><strong>Hybrid</strong>——并行 + 流式组合（复杂任务，v2026.9.2 新增）</li>
+    </ul>
+    <p><strong>代码位置</strong>:<code>src/runtimes/[type].ts</code></p>
+  </div>
+
+  <div class="callout">
+    <strong>Runtime 与 Model 正交</strong>：同一个模型（比如 <code>claude-sonnet-4</code>）可以用 Single-shot 调一次，也可用 Loop 跑 Agent。Runtime 是<strong>调用模式</strong>，不是模型特性。
+  </div>
+
+  <div class="abs-card harness">
+    <span class="ac-tag">LAYER 4 · 执行后端</span>
+    <h3 id="sec-5.4"><span class="sec-num">§ 5.4</span> Harness（执行后端）</h3>
+    <p><strong>是什么</strong>：真正执行 Runtime 循环的进程——OpenClaw 自带一个，但也支持第三方 Harness。</p>
+    <p><strong>5 种 Harness</strong>(v2026.9.2):</p>
+    <ul>
+      <li><strong>openclaw</strong>——自带，实现完整 Hooks / Policy / 工具白名单</li>
+      <li><strong>codex</strong>——OpenAI 的官方 CLI（轻量，无完整 OpenClaw 治理）</li>
+      <li><strong>copilot</strong>——GitHub Copilot CLI（IDE 集成友好）</li>
+      <li><strong>claude-cli</strong>——Anthropic 官方 CLI（类似 codex）</li>
+      <li><strong>acp</strong>——Agent Communication Protocol（标准化协议，可桥接其他系统）</li>
+    </ul>
+    <p><strong>代码位置</strong>:<code>src/harness/[name].ts</code></p>
+  </div>
+
+  <div class="callout">
+    <strong>为什么需要 Harness 层</strong>：有些场景你只想要一个简单的 LLM 调用器（比如 <code>codex</code>），不需要 OpenClaw 的全部治理能力。Harness 层让你按场景切换"执行后端"。
+  </div>
+
+<h3 class="view-h3" id="deep-24"><span class="sec-num">§ 5.5</span>Provider 适配层</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>Provider 适配层在架构中的定位是什么？Agent 调用和底层 Provider 如何解耦？</li>
+  <li>OpenClaw 支持哪些 Provider？各自的认证方式和特点是什么？</li>
+  <li>模型选择流程考虑哪些因素？primary + fallbacks 的配置模式如何工作？</li>
+  <li>Provider 适配层的三层架构（调用层 → 适配层 → 实现层）如何协同？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-01-provider-adapters-1" data-toc-skip><span class="sec-num">§ 5.5.1</span>Provider 层概述</h4>
+<p>AI Provider 层是 Gateway 的<strong>模型中枢</strong>，负责对接各种 LLM 提供商，提供统一的模型调用接口。</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 执行层["Agent 执行层"]
+        AR["Agent Runner<br/>runEmbeddedPiAgent"]:::agent
+    end
+
+    subgraph 适配层["Provider 适配层<br/>— 统一接口"]
+        AD["Provider Adapter<br/>模型路由 + 认证管理<br/>+ 统一响应格式"]:::adapter
+    end
+
+    subgraph 提供商["具体 Provider 实现"]
+        AN["Anthropic<br/>Claude 系列"]:::prov
+        OA["OpenAI<br/>GPT 系列"]:::prov
+        OL["Ollama<br/>本地模型"]:::prov
+        GG["Google<br/>Gemini"]:::prov
+        AW["AWS<br/>Bedrock"]:::prov
+        QW["Qwen<br/>通义千问"]:::prov
+    end
+
+    AR --> AD
+    AD --> AN & OA & OL & GG & AW & QW
+
+    classDef agent fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef adapter fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef prov fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+</div><figcaption>图 6.2 · 四层详解</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-01-provider-adapters-2" data-toc-skip><span class="sec-num">§ 5.5.2</span>支持 Provider 一览</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>Provider</th><th>认证方式</th><th>模型示例</th><th>特点</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Anthropic</strong> </td><td>API Key</td><td>Claude Sonnet 4.5 / Opus 4.6</td><td>原生最优支持，工具调用、思维链</td></tr>
+    <tr><td><strong>OpenAI</strong></td><td>API Key</td><td>GPT-5.2 / GPT-4o / o3</td><td>广泛兼容，生态最丰富</td></tr>
+    <tr><td><strong>Ollama</strong></td><td>本地 HTTP</td><td>Llama 3 / Qwen / Mistral</td><td>完全私有，无 API 费用</td></tr>
+    <tr><td><strong>Google Gemini</strong></td><td>API Key</td><td>Gemini 2.0 Flash / Pro</td><td>多模态原生支持</td></tr>
+    <tr><td><strong>AWS Bedrock</strong></td><td>IAM</td><td>Claude 3 / Llama 3</td><td>企业级云服务</td></tr>
+    <tr><td><strong>GitHub Copilot</strong></td><td>OAuth</td><td>GPT-4o / Claude</td><td>企业授权场景</td></tr>
+    <tr><td><strong>Qwen（通义）</strong></td><td>Portal OAuth</td><td>Qwen Max / Qwen Turbo</td><td>中文优化</td></tr>
+    <tr><td><strong>Moonshot（Kimi）</strong></td><td>API Key</td><td>kimi-latest</td><td>长上下文（128K+）</td></tr>
+    <tr><td><strong>Together / HF</strong></td><td>API Key</td><td>开源模型池</td><td>开源模型托管</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-provider-adapters-3" data-toc-skip><span class="sec-num">§ 5.5.3</span>适配架构</h4>
+<p>Provider 适配层采用<strong>三层架构</strong>，上层（调用层）无需关心底层使用哪个 Provider：</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 调用层["调用层 — Agent 视角"]
+        direction TB
+        C1["Agent Call<br/>model.generate(params)<br/>不知道底层是哪个 Provider"]:::callout
+    end
+
+    subgraph 适配层["适配层 — 路由与适配"]
+        direction TB
+        A1["Provider Adapter<br/>统一调用接口"]:::adapter
+        A2["Model Config<br/>模型路由表<br/>provider/model 映射"]:::adapter
+        A3["Auth Manager<br/>认证信息管理<br/>API Key / OAuth 轮换"]:::adapter
+    end
+
+    subgraph 实现层["实现层 — 具体 Provider"]
+        direction TB
+        I1["Anthropic Adapter<br/>src/providers/anthropic.ts"]:::impl
+        I2["OpenAI Adapter<br/>src/providers/openai.ts"]:::impl
+        I3["Ollama Adapter<br/>src/providers/ollama.ts"]:::impl
+        I4["Others<br/>Gemini / Bedrock / ..."]:::impl
+    end
+
+    C1 --> A1
+    A1 --> A2 --> A3
+    A2 --> I1 & I2 & I3 & I4
+
+    classDef callout fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef adapter fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef impl fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+</div><figcaption>图 6.3 · 四层详解</figcaption></figure>
+<h4 id="sec-23-5-1" data-toc-skip><span class="sec-num">§ 5.5.4</span> 模型命名规范</h4>
+<p>OpenClaw 使用 `provider/model` 格式唯一标识一个模型：</p>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      model: {
+        primary: &quot;anthropic/claude-sonnet-4-5&quot;,   // 主模型
+        fallbacks: [&quot;openai/gpt-5.2&quot;],             // 回退模型
+      },
+    },
+  },
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>命名示例</th><th>对应的 Provider</th><th>模型</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>anthropic/claude-sonnet-4-5</code></td><td>Anthropic</td><td>Claude Sonnet 4.5</td></tr>
+    <tr><td><code>openai/gpt-5.2</code></td><td>OpenAI</td><td>GPT 5.2</td></tr>
+    <tr><td><code>ollama/llama3</code></td><td>Ollama</td><td>Llama 3（本地）</td></tr>
+    <tr><td><code>gemini/gemini-2.0-flash</code></td><td>Google</td><td>Gemini 2.0 Flash</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-provider-adapters-4" data-toc-skip><span class="sec-num">§ 5.5.5</span>模型选择流程</h4>
+<p>当 Agent 发起模型调用时，按以下流程选择模型：</p>
+<figure><div class="mermaid">
+flowchart TB
+    REQ["Agent 请求"]:::start
+    --> FACTORS{"选择因素"}:::factors
+    FACTORS --> F1["模型能力<br/>工具调用 / 视觉 / 语音"]:::factor
+    FACTORS --> F2["上下文窗口<br/>Token 上限"]:::factor
+    FACTORS --> F3["成本考虑<br/>API 费用 / 预算"]:::factor
+    FACTORS --> F4["可用性<br/>服务状态"]:::factor
+
+    F1 & F2 & F3 & F4 --> PRIMARY["选择主模型<br/>primary"]:::result
+    PRIMARY --> FB["配置回退列表<br/>fallbacks"]:::result
+
+    classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef factors fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef factor fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef result fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 6.4 · 四层详解</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>选择因素</th><th>说明</th><th>影响</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>模型能力</strong></td><td>是否需要工具调用、视觉识别、语音处理</td><td>决定可选模型范围</td></tr>
+    <tr><td><strong>上下文窗口</strong></td><td>模型支持的最大 Token 数（4K / 8K / 32K / 100K / 200K）</td><td>决定能处理多长的对话</td></tr>
+    <tr><td><strong>成本考虑</strong></td><td>API 调用费用，不同模型价格差异大</td><td>影响日常运行成本</td></tr>
+    <tr><td><strong>可用性</strong></td><td>模型服务是否在线、有无速率限制</td><td>影响可靠性</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-01-provider-adapters-5" data-toc-skip><span class="sec-num">§ 5.5.6</span>模型配置示例</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      model: {
+        primary: &quot;anthropic/claude-sonnet-4-5&quot;,
+        fallbacks: [&quot;openai/gpt-5.2&quot;],
+      },
+      // 模型别名（可选）
+      models: {
+        &quot;anthropic/claude-sonnet-4-5&quot;: { alias: &quot;Sonnet&quot; },
+        &quot;openai/gpt-5.2&quot;: { alias: &quot;GPT&quot; },
+      },
+    },
+  },
+}</pre>
+<h4 id="sec-23-8-1" data-toc-skip><span class="sec-num">§ 5.5.7</span> CLI 快速查看</h4>
+<pre class="code-block"># 列出可用模型
+openclaw models list
+
+# 查看当前配置
+openclaw config get agents.defaults.model</pre>
+<hr>
+<h4 class="view-h3" id="deep-01-provider-adapters-6" data-toc-skip><span class="sec-num">§ 5.5.8</span>关键源码文件</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>文件</th><th>作用</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>src/providers/</code></td><td>各 Provider 适配实现</td></tr>
+    <tr><td><code>src/providers/anthropic.ts</code></td><td>Anthropic（Claude）的适配实现</td></tr>
+    <tr><td><code>src/providers/openai.ts</code></td><td>OpenAI（GPT）的适配实现</td></tr>
+    <tr><td><code>src/providers/ollama.ts</code></td><td>Ollama 本地模型的适配实现</td></tr>
+    <tr><td><code>src/agents/model-fallback.ts</code></td><td>模型回退逻辑（主模型失败 → fallback）</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-04-models-runtimes/#deep-02-model-failover-1">02 - 模型故障转移</a> · <a href="/2026/11/07/openclaw-04-models-runtimes/#deep-03-auth-cooldown-1">03 - 认证管理</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-01-agent-loop-workflow-1">03 - 执行引擎</a></p></blockquote>
+
+
+
+  
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-6"><span class="sec-num">§ 6</span>四层如何组合？</h2>
+
+  <p>四层是正交的——任意组合都可以。</p>
+
+  <pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">research</span>: {
+      <span class="key">model</span>: {
+        <span class="key">provider</span>: <span class="str">"anthropic"</span>,
+        <span class="key">id</span>: <span class="str">"claude-sonnet-4"</span>
+      },
+      <span class="key">runtime</span>: {
+        <span class="key">type</span>: <span class="str">"hybrid"</span>,       <span class="comment">// 并行 + 流式</span>
+        <span class="key">parallelism</span>: <span class="val">4</span>,
+        <span class="key">stream</span>: <span class="val">true</span>
+      },
+      <span class="key">harness</span>: <span class="str">"openclaw"</span>     <span class="comment">// 完整治理</span>
+    },
+    <span class="key">quick_translate</span>: {
+      <span class="key">model</span>: {
+        <span class="key">provider</span>: <span class="str">"ollama"</span>,
+        <span class="key">id</span>: <span class="str">"qwen2.5-7b"</span>
+      },
+      <span class="key">runtime</span>: {
+        <span class="key">type</span>: <span class="str">"single-shot"</span>   <span class="comment">// 一次性</span>
+      },
+      <span class="key">harness</span>: <span class="str">"codex"</span>          <span class="comment">// 轻量后端</span>
+    }
+  }
+}</pre>
+
+  <div class="callout">
+    <strong>同一 Provider + Model 可用不同 Harness</strong>:<code>research</code> 用 <code>openclaw</code>（完整治理）；<code>quick_translate</code> 用 <code>codex</code>（轻量）。模型一样（都 Anthropic），但执行后端不同。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-7"><span class="sec-num">§ 7</span>四层对照</h2>
+
+  <table class="compare-table">
+<thead><tr><th>层</th><th>回答的问题</th><th>粒度</th><th>变更频率</th></tr></thead>
+<tbody>
+<tr><td><strong>Provider</strong></td><td>谁提供 API？</td><td>公司 / 产品线</td><td>低（新增少）</td></tr>
+<tr><td><strong>Model</strong></td><td>哪个具体模型？</td><td>模型 ID</td><td>中（每月都有新）</td></tr>
+<tr><td><strong>Runtime</strong></td><td>怎么调？调用模式？</td><td>5 种类型</td><td>低（5 种已稳定）</td></tr>
+<tr><td><strong>Harness</strong></td><td>谁执行？</td><td>后端进程</td><td>低（5 种已稳定）</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-8"><span class="sec-num">§ 8</span>完整 4 层配置示例</h2>
+
+  <pre class="config">{
+  <span class="key">providers</span>: {                                    <span class="comment">// L1 · Provider</span>
+    <span class="key">anthropic</span>: {
+      <span class="key">apiKey</span>: <span class="str">"${ANTHROPIC_API_KEY}"</span>,
+      <span class="key">baseUrl</span>: <span class="str">"https://api.anthropic.com"</span>
+    },
+    <span class="key">ollama</span>: {
+      <span class="key">baseUrl</span>: <span class="str">"http://localhost:11434"</span>          <span class="comment">// 本地模型</span>
+    }
+  },
+
+  <span class="key">runtimes</span>: {                                       <span class="comment">// L3 · Runtime</span>
+    <span class="key">default</span>: { <span class="key">type</span>: <span class="str">"loop"</span>, <span class="key">maxIterations</span>: <span class="val">10</span> },
+    <span class="key">fast</span>:    { <span class="key">type</span>: <span class="str">"single-shot"</span> }
+  },
+
+  <span class="key">harness</span>: <span class="str">"openclaw"</span>,                            <span class="comment">// L4 · Harness(全局默认)</span>
+
+  <span class="key">agents</span>: {
+    <span class="key">default</span>: {
+      <span class="key">model</span>: <span class="str">"anthropic/claude-sonnet-4"</span>,          <span class="comment">// L2 · Model</span>
+      <span class="key">runtime</span>: <span class="str">"default"</span>,
+      <span class="key">harness</span>: <span class="str">"openclaw"</span>
+    },
+    <span class="key">fast</span>: {
+      <span class="key">model</span>: <span class="str">"ollama/qwen2.5-7b"</span>,                   <span class="comment">// 用本地小模型</span>
+      <span class="key">runtime</span>: <span class="str">"fast"</span>
+    }
+  }
+}</pre>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-9"><span class="sec-num">§ 9</span>5 种 Runtime 一览</h2>
+
+  <div class="runtime-grid">
+    <div class="runtime-chip">Single-shot<small>一次调用就够</small></div>
+    <div class="runtime-chip">Loop<small>多轮 ReAct</small></div>
+    <div class="runtime-chip">Streaming<small>边生成边返回</small></div>
+    <div class="runtime-chip">Parallel<small>多任务并发</small></div>
+    <div class="runtime-chip">Hybrid<small>并行 + 流式</small></div>
+  </div>
+
+  <table class="compare-table">
+<thead><tr><th>Runtime</th><th>调用次数</th><th>工具调用</th><th>流式</th><th>典型用例</th></tr></thead>
+<tbody>
+<tr><td><strong>Single-shot</strong></td><td>1</td><td>不支持</td><td>可选</td><td>翻译 · 摘要 · 简单问答</td></tr>
+<tr><td><strong>Loop</strong></td><td>1..N</td><td>支持</td><td>可选</td><td>ReAct Agent（经典场景）</td></tr>
+<tr><td><strong>Streaming</strong></td><td>1</td><td>不支持</td><td>支持</td><td>长文本生成 · UX 优先</td></tr>
+<tr><td><strong>Parallel</strong></td><td>N 并发</td><td>不支持</td><td>不支持</td><td>批量处理 · 探索式任务</td></tr>
+<tr><td><strong>Hybrid</strong></td><td>N 并发 + 流式</td><td>支持</td><td>支持</td><td>复杂多步 · 评审 · 对比（v2026.9.2 新增）</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-10"><span class="sec-num">§ 10</span>5 种 Runtime 详解</h2>
+
+  <div class="rt-card ss">
+    <span class="rt-tag">RUNTIME 1 · 最简单</span>
+    <h3 id="sec-10.1"><span class="sec-num">§ 10.1</span> Single-shot（一次性）</h3>
+    <p>一次 LLM 调用就返回结果——没有循环、没有工具调用。</p>
+
+    <div class="rt-section">
+      <strong>适用场景</strong>
+      <ul>
+        <li><strong>翻译</strong>——输入一段文本，返回翻译</li>
+        <li><strong>摘要</strong>——输入长文，返回摘要</li>
+        <li><strong>分类</strong>——输入文本，返回分类标签</li>
+        <li><strong>简单问答</strong>——不需要外部信息</li>
+      </ul>
+    </div>
+
+    <div class="rt-section">
+      <strong>性能特征</strong>
+      <div>延迟：<div class="perf-bar"><div class="pb-fill low" style="width:15%;"></div></div>~0.5-3s（单次 LLM 往返）</div>
+      <div>Token 开销：<div class="perf-bar"><div class="pb-fill low" style="width:10%;"></div></div>最小（无循环）</div>
+      <div>错误率：<div class="perf-bar"><div class="pb-fill low" style="width:5%;"></div></div>极低（简单调用）</div>
+    </div>
+
+    <div class="rt-section">
+      <strong>配置示例</strong>
+<pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">translator</span>: {
+      <span class="key">runtime</span>: {
+        <span class="key">type</span>: <span class="str">"single-shot"</span>,
+        <span class="key">stream</span>: <span class="val">false</span>          <span class="comment">// 一次性返回</span>
+      }
+    }
+  }
+}</pre>
+    </div>
+  </div>
+
+  <div class="rt-card loop">
+    <span class="rt-tag">RUNTIME 2 · 默认</span>
+    <h3 id="sec-10.2"><span class="sec-num">§ 10.2</span> Loop（ReAct 循环）</h3>
+    <p>多轮循环——LLM 思考 → 调用工具 → 观察结果 → 再思考 → 直到完成。这是 Agent 的默认模式。</p>
+
+    <div class="rt-section">
+      <strong>适用场景</strong>
+      <ul>
+        <li><strong>工具调用密集的 Agent</strong>——文件操作、API 调用、数据库查询</li>
+        <li><strong>需要外部信息</strong>——RAG 检索、搜索</li>
+        <li><strong>多步推理</strong>——需要分步思考</li>
+        <li><strong>经典 ReAct</strong> — Thought → Action → Observation</li>
+      </ul>
+    </div>
+
+    <figure><div class="mermaid">
+flowchart LR
+  L["LLM<br/>推理"] -->|tool_call| T["Tool Runner<br/>执行工具"]
+  T -->|tool_result| L
+  L -->|达到 max 步数| DONE["结束 + 返回"]
+  L -->|任务完成| DONE
+
+  style L fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style T fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style DONE fill:#d1fae5,stroke:#059669,color:#1a1f2b
+</div><figcaption>图 4.2 · Loop Runtime 执行流——LLM 循环至多轮，直到完成或达上限。</figcaption></figure>
+
+    <div class="rt-section">
+      <strong>性能特征</strong>
+      <div>延迟：<div class="perf-bar"><div class="pb-fill mid" style="width:60%;"></div></div>~5-60s（取决于轮数）</div>
+      <div>Token 开销：<div class="perf-bar"><div class="pb-fill high" style="width:80%;"></div></div>高（每轮都增加）</div>
+      <div>错误率：<div class="perf-bar"><div class="pb-fill mid" style="width:35%;"></div></div>中（错误累积）</div>
+    </div>
+
+    <div class="rt-section">
+      <strong>配置示例</strong>
+<pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">coder</span>: {
+      <span class="key">runtime</span>: {
+        <span class="key">type</span>: <span class="str">"loop"</span>,
+        <span class="key">maxIterations</span>: <span class="val">15</span>,         <span class="comment">// 最多 15 轮</span>
+        <span class="key">stream</span>: <span class="val">true</span>,                <span class="comment">// 流式返回中间结果</span>
+        <span class="key">stopOnToolError</span>: <span class="val">false</span>       <span class="comment">// 工具失败继续</span>
+      }
+    }
+  }
+}</pre>
+    </div>
+  </div>
+
+  <div class="rt-card stream">
+    <span class="rt-tag">RUNTIME 3 · UX 优先</span>
+    <h3 id="sec-10.3"><span class="sec-num">§ 10.3</span> Streaming（流式生成）</h3>
+    <p>单次调用，但边生成边返回——用户能看到文本逐字出现，无需等完整响应。</p>
+
+    <div class="rt-section">
+      <strong>适用场景</strong>
+      <ul>
+        <li><strong>长文本生成</strong>——报告、文章、文档</li>
+        <li><strong>UX 优先</strong>——用户希望快速看到响应</li>
+        <li><strong>聊天响应</strong>——让对话感觉更自然</li>
+        <li><strong>代码补全</strong>——逐字符出现的体验</li>
+      </ul>
+    </div>
+
+    <div class="rt-section">
+      <strong>性能特征</strong>
+      <div>首 token 延迟（TTFT）：<div class="perf-bar"><div class="pb-fill low" style="width:8%;"></div></div>~200-800ms</div>
+      <div>总延迟：<div class="perf-bar"><div class="pb-fill mid" style="width:50%;"></div></div>等同于非流式</div>
+      <div>UX 感受：<div class="perf-bar"><div class="pb-fill high" style="width:90%;"></div></div>极佳（立即看到内容）</div>
+    </div>
+
+    <div class="rt-section">
+      <strong>配置示例</strong>
+<pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">writer</span>: {
+      <span class="key">runtime</span>: {
+        <span class="key">type</span>: <span class="str">"streaming"</span>,
+        <span class="key">chunkSize</span>: <span class="val">50</span>,              <span class="comment">// 每 50 字符推一次</span>
+        <span class="key">firstChunkTimeout</span>: <span class="str">"5s"</span>      <span class="comment">// 首块超时</span>
+      }
+    }
+  }
+}</pre>
+    </div>
+  </div>
+
+  <div class="rt-card parallel">
+    <span class="rt-tag">RUNTIME 4 · 批量并发</span>
+    <h3 id="sec-10.4"><span class="sec-num">§ 10.4</span> Parallel（并行执行）</h3>
+    <p>多个独立任务并发执行——每个任务是一个独立 LLM 调用，最终聚合成一个结果。</p>
+
+    <div class="rt-section">
+      <strong>适用场景</strong>
+      <ul>
+        <li><strong>批量处理</strong>——100 封邮件分类、1000 条评论分析</li>
+        <li><strong>探索式任务</strong>——让 4 个不同视角同时回答</li>
+        <li><strong>投票/汇总</strong>——多次调用 + 共识</li>
+        <li><strong>独立子任务</strong>——没有依赖关系的并行</li>
+      </ul>
+    </div>
+
+    <figure><div class="mermaid">
+flowchart LR
+  IN["输入"] --> F["Fan-out<br/>分发"]
+  F --> P1["任务 1"]
+  F --> P2["任务 2"]
+  F --> P3["任务 3"]
+  F --> P4["任务 4"]
+  P1 --> AGG["聚合器"]
+  P2 --> AGG
+  P3 --> AGG
+  P4 --> AGG
+  AGG --> OUT["最终结果"]
+
+  style F fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style AGG fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style OUT fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+</div><figcaption>图 4.3 · Parallel Runtime——输入分片，并发执行，聚合结果。</figcaption></figure>
+
+    <div class="rt-section">
+      <strong>性能特征</strong>
+      <div>吞吐量：<div class="perf-bar"><div class="pb-fill high" style="width:85%;"></div></div>极高（N 倍加速）</div>
+      <div>Token 开销：<div class="perf-bar"><div class="pb-fill high" style="width:90%;"></div></div>N × 单次</div>
+      <div>成本：<div class="perf-bar"><div class="pb-fill high" style="width:85%;"></div></div>高（并发 = 多计费）</div>
+    </div>
+
+    <div class="rt-section">
+      <strong>配置示例</strong>
+<pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">classifier</span>: {
+      <span class="key">runtime</span>: {
+        <span class="key">type</span>: <span class="str">"parallel"</span>,
+        <span class="key">parallelism</span>: <span class="val">8</span>,            <span class="comment">// 8 个并发</span>
+        <span class="key">aggregation</span>: <span class="str">"vote"</span>,        <span class="comment">// 投票聚合</span>
+        <span class="key">consensusThreshold</span>: <span class="val">0.6</span>   <span class="comment">// 60% 共识</span>
+      }
+    }
+  }
+}</pre>
+    </div>
+  </div>
+
+  <div class="rt-card hybrid">
+    <span class="rt-tag">RUNTIME 5 · v2026.9.2 新增</span>
+    <h3 id="sec-10.5"><span class="sec-num">§ 10.5</span> Hybrid（并行 + 流式）</h3>
+    <p>Parallel + Streaming + Loop 的组合——并行多个子任务，每个子任务可流式返回，主任务协调它们。</p>
+
+    <div class="rt-section">
+      <strong>适用场景</strong>
+      <ul>
+        <li><strong>代码评审</strong>——并行检查正确性、安全性、性能，边发现边报告</li>
+        <li><strong>文档对比</strong>——并行分析多个版本，流式输出差异</li>
+        <li><strong>多角度研究</strong>——并行探索多个角度，流式汇总</li>
+        <li><strong>复杂多步任务</strong>——既要并行又要协调</li>
+      </ul>
+    </div>
+
+    <figure><div class="mermaid">
+flowchart LR
+  MAIN["主 Agent<br/>Loop"] -->|派发| S1["子任务 A<br/>streaming"]
+  MAIN -->|派发| S2["子任务 B<br/>streaming"]
+  MAIN -->|派发| S3["子任务 C<br/>streaming"]
+  S1 -->|stream| MAIN
+  S2 -->|stream| MAIN
+  S3 -->|stream| MAIN
+  MAIN -->|继续推理| MAIN
+
+  style MAIN fill:#7c3aed,stroke:#5b21b6,color:#fff
+  style S1 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style S2 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style S3 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+</div><figcaption>图 4.4 · Hybrid Runtime——主 Agent 协调并行子任务，各子任务流式返回。</figcaption></figure>
+
+    <div class="rt-section">
+      <strong>性能特征</strong>
+      <div>复杂度：<div class="perf-bar"><div class="pb-fill high" style="width:90%;"></div></div>高（需协调）</div>
+      <div>适用性：<div class="perf-bar"><div class="pb-fill high" style="width:85%;"></div></div>复杂任务最佳</div>
+      <div>调试难度：<div class="perf-bar"><div class="pb-fill high" style="width:80%;"></div></div>较高（并发 + 流式）</div>
+    </div>
+
+    <div class="rt-section">
+      <strong>配置示例</strong>
+<pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">code_reviewer</span>: {
+      <span class="key">runtime</span>: {
+        <span class="key">type</span>: <span class="str">"hybrid"</span>,
+        <span class="key">parallelism</span>: <span class="val">4</span>,                <span class="comment">// 4 个评审维度并行</span>
+        <span class="key">stream</span>: <span class="val">true</span>,                    <span class="comment">// 流式报告发现</span>
+        <span class="key">maxIterations</span>: <span class="val">20</span>,            <span class="comment">// 主循环上限</span>
+        <span class="key">subTaskTimeout</span>: <span class="str">"60s"</span>
+      }
+    }
+  }
+}</pre>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-11"><span class="sec-num">§ 11</span>Runtime 选择决策树</h2>
+
+  <figure><div class="mermaid">
+flowchart LR
+  Q{"需要工具调用?"}
+  Q -->|否| Q2{"需要长文本<br/>实时反馈?"}
+  Q2 -->|是| SS["Streaming"]
+  Q2 -->|否| Q3{"多个独立任务?"}
+  Q3 -->|是| P["Parallel"]
+  Q3 -->|否| SS2["Single-shot"]
+  Q -->|是| Q4{"复杂多步<br/>+ 并行子任务?"}
+  Q4 -->|是| H["Hybrid"]
+  Q4 -->|否| L["Loop"]
+
+  style SS fill:#d97706,stroke:#92400e,color:#fff
+  style SS2 fill:#2563eb,stroke:#1e3a8a,color:#fff
+  style P fill:#059669,stroke:#065f46,color:#fff
+  style H fill:#7c3aed,stroke:#5b21b6,color:#fff
+  style L fill:#c026d3,stroke:#7c3aed,color:#fff
+</div><figcaption>图 4.5 · Runtime 选择决策树——从"是否需要工具调用"开始，逐步定位。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-12"><span class="sec-num">§ 12</span>4 级选择流程</h2>
+
+  <p>当用户问"用哪个模型"时，OpenClaw 有 4 层查找机制——越往后越通用，越靠前越精确。</p>
+
+  <figure><div class="mermaid">
+flowchart TB
+  L1["<b>Level 1 · Agent 级</b><br/>agents.[name].model<br/>(最精确)"]
+  L2["<b>Level 2 · Channel 级</b><br/>channels.[name].accounts.[acc].model"]
+  L3["<b>Level 3 · Workspace 级</b><br/>workspace.model"]
+  L4["<b>Level 4 · 全局默认</b><br/>defaults.model"]
+
+  L1 -->|未配置| L2
+  L2 -->|未配置| L3
+  L3 -->|未配置| L4
+
+  L1 -->|最终模型| OUT["调用 LLM"]
+  L2 -->|最终模型| OUT
+  L3 -->|最终模型| OUT
+  L4 -->|最终模型| OUT
+
+  style L1 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style L2 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style L3 fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+  style L4 fill:#fee2e2,stroke:#dc2626,color:#1a1f2b
+  style OUT fill:#d1fae5,stroke:#059669,color:#1a1f2b
+</div><figcaption>图 4.6 · 4 级选择流程——从上到下，优先级递减。每一级找不到就跳到下一级。</figcaption></figure>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-13"><span class="sec-num">§ 13</span>4 级详解</h2>
+
+  <div class="level-card l1">
+    <span class="lc-tag">LEVEL 1 · 最高优先级</span>
+    <h3 id="sec-13.1"><span class="sec-num">§ 13.1</span> Agent 级配置</h3>
+    <p><strong>适用</strong>：某个 Agent 必须用某个模型。</p>
+    <p><strong>配置位置</strong>:<code>openclaw.json5</code> → <code>agents.[name].model</code></p>
+
+<pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">research</span>: {
+      <span class="key">model</span>: <span class="str">"anthropic/claude-sonnet-4"</span>    <span class="comment">// 固定 Sonnet</span>
+    },
+    <span class="key">translator</span>: {
+      <span class="key">model</span>: <span class="str">"ollama/qwen2.5-7b"</span>          <span class="comment">// 固定本地小模型</span>
+    }
+  }
+}</pre>
+
+    <p>这是<strong>最高优先级</strong>——只要 Agent 级配了模型，后续的 Level 2/3/4 都被忽略。</p>
+  </div>
+
+  <div class="callout">
+    <strong>何时用</strong>：Agent 性质决定了模型选择——比如 <code>research</code> 用 Sonnet（质量优先），<code>translator</code> 用本地 qwen2.5-7b（成本优先）。
+  </div>
+
+  <div class="level-card l2">
+    <span class="lc-tag">LEVEL 2 · 通道覆盖</span>
+    <h3 id="sec-13.2"><span class="sec-num">§ 13.2</span> Channel（账号）级配置</h3>
+    <p><strong>适用</strong>：某个通道/账号的所有消息都用特定模型。</p>
+    <p><strong>配置位置</strong>:<code>channels.[name].accounts.[acc].model</code></p>
+
+<pre class="config">{
+  <span class="key">channels</span>: {
+    <span class="key">telegram</span>: {
+      <span class="key">accounts</span>: {
+        <span class="key">work</span>: {
+          <span class="key">model</span>: <span class="str">"anthropic/claude-sonnet-4"</span>   <span class="comment">// 工作 bot 用 Sonnet</span>
+        },
+        <span class="key">personal</span>: {
+          <span class="key">model</span>: <span class="str">"ollama/qwen2.5-7b"</span>          <span class="comment">// 个人 bot 用本地小模型</span>
+        }
+      }
+    }
+  }
+}</pre>
+
+    <p><strong>回退触发</strong>：Agent 级未配置 → 使用 Channel 级。</p>
+  </div>
+
+  <div class="callout">
+    <strong>何时用</strong>：不同身份用不同模型——工作 bot 必须高质量，个人 bot 优先成本。
+  </div>
+
+  <div class="level-card l3">
+    <span class="lc-tag">LEVEL 3 · 工作区</span>
+    <h3 id="sec-13.3"><span class="sec-num">§ 13.3</span> Workspace 级配置</h3>
+    <p><strong>适用</strong>：某个工作目录的所有 Agent 都用同一模型。</p>
+    <p><strong>配置位置</strong>：工作目录的 <code>.openclaw/config.json5</code></p>
+
+<pre class="config">{
+  <span class="comment">// /home/me/projects/secrets/.openclaw/config.json5</span>
+  <span class="key">model</span>: <span class="str">"anthropic/claude-opus-4"</span>      <span class="comment">// 敏感项目强制用 Opus</span>
+}</pre>
+
+    <p>Workspace 配置会<strong>覆盖</strong>用户根目录的默认，但被 Agent 级 / Channel 级覆盖。</p>
+  </div>
+
+  <div class="callout">
+    <strong>何时用</strong>：项目级别的策略——比如金融项目强制用 Opus（质量优先），个人项目用 Sonnet（成本优先）。
+  </div>
+
+  <div class="level-card l4">
+    <span class="lc-tag">LEVEL 4 · 兜底默认</span>
+    <h3 id="sec-13.4"><span class="sec-num">§ 13.4</span> 全局默认</h3>
+    <p><strong>适用</strong>：其他所有级别都没配置。</p>
+    <p><strong>配置位置</strong>:<code>openclaw.json5</code> → <code>defaults.model</code></p>
+
+<pre class="config">{
+  <span class="key">defaults</span>: {
+    <span class="key">model</span>: <span class="str">"anthropic/claude-sonnet-4"</span>     <span class="comment">// 兜底</span>
+  }
+}</pre>
+
+    <p>如果没有配置 <code>defaults.model</code>，OpenClaw 会<strong>报错并拒绝启动</strong>（fail-closed）。</p>
+  </div>
+
+  <div class="callout warn">
+    <strong>必须配置 defaults</strong>：OpenClaw 强制要求至少有一个 fallback——防止 Agent 误用随机模型。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-14"><span class="sec-num">§ 14</span>auto 模式 · 让 OpenClaw 选</h2>
+
+  <p>除了手动指定，你可以让 OpenClaw <strong>自动选择</strong>最适合的模型：</p>
+
+  <pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">smart_router</span>: {
+      <span class="key">model</span>: <span class="str">"auto"</span>           <span class="comment">// OpenClaw 自动选</span>
+    }
+  },
+
+  <span class="key">modelSelection</span>: {
+    <span class="key">mode</span>: <span class="str">"auto"</span>,
+    <span class="key">strategy</span>: <span class="str">"cost-quality-balanced"</span>,
+    <span class="key">candidates</span>: [
+      <span class="str">"anthropic/claude-sonnet-4"</span>,
+      <span class="str">"openai/gpt-4o"</span>,
+      <span class="str">"ollama/qwen2.5-72b"</span>          <span class="comment">// 本地兜底</span>
+    ],
+    <span class="key">preferLocal</span>: <span class="val">true</span>           <span class="comment">// 优先用本地模型</span>
+  }
+}</pre>
+
+  <p>auto 模式下，OpenClaw 根据<strong>任务复杂度、用户偏好、配额限制</strong>动态选择。</p>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-15"><span class="sec-num">§ 15</span>Fallback · 模型故障切换</h2>
+
+  <p>如果首选模型调用失败（限流、断网、错误），OpenClaw 自动切换到下一个候选：</p>
+
+  <figure><div class="mermaid">
+flowchart TB
+  T["任务"] --> M1["M1<br/>claude-sonnet-4"]
+  M1 -->|失败| M2["M2<br/>gpt-4o"]
+  M2 -->|失败| M3["M3<br/>qwen2.5-72b<br/>(本地)"]
+  M3 -->|成功| OK["返回结果"]
+  M1 -->|成功| OK
+  M2 -->|成功| OK
+
+  style M1 fill:#eef2ff,stroke:#2563eb,color:#1a1f2b
+  style M2 fill:#fce7f3,stroke:#c026d3,color:#1a1f2b
+  style M3 fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style OK fill:#d1fae5,stroke:#059669,color:#1a1f2b
+  style T fill:#fef3c7,stroke:#d97706,color:#1a1f2b
+</div><figcaption>图 4.7 · Fallback 链路——第一个模型失败自动尝试下一个，直到成功或全部失败。</figcaption></figure>
+
+  <pre class="config">{
+  <span class="key">agents</span>: {
+    <span class="key">resilient</span>: {
+      <span class="key">model</span>: {
+        <span class="key">primary</span>: <span class="str">"anthropic/claude-sonnet-4"</span>,
+        <span class="key">fallback</span>: [
+          <span class="str">"openai/gpt-4o"</span>,
+          <span class="str">"ollama/qwen2.5-72b"</span>          <span class="comment">// 最后兜底:本地模型</span>
+        ],
+        <span class="key">retryPolicy</span>: {
+          <span class="key">maxRetries</span>: <span class="val">2</span>,
+          <span class="key">retryDelay</span>: <span class="str">"1s"</span>,
+          <span class="key">retryOn</span>: [<span class="str">"rate_limit"</span>, <span class="str">"timeout"</span>, <span class="str">"network_error"</span>]
+        }
+      }
+    }
+  }
+}</pre>
+
+  <div class="callout">
+    <strong>本地模型作为最终兜底</strong>：把 <code>ollama/qwen2.5-72b</code> 放在 fallback 链尾，确保云服务完全不可用时仍能工作。
+  </div>
+
+<h3 class="view-h3" id="deep-25"><span class="sec-num">§ 15.1</span>模型故障转移</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>模型故障转移的两阶段处理分别做什么？失败后如何逐级降级？</li>
+  <li>Profile 轮换的优先顺序是什么？冷却（Cooldown）的指数退避如何工作？</li>
+  <li>账单禁用（Billing Disable）的退避策略和普通冷却有什么不同？</li>
+  <li>Fallback 模型切换的适用场景和不适用场景分别是什么？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-02-model-failover-1" data-toc-skip><span class="sec-num">§ 15.1.1</span>两阶段故障处理</h4>
+<p>模型故障转移是 OpenClaw 的<strong>韧性保障</strong>，确保单模型失败不会导致整个系统不可用。</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 阶段一["阶段一：主模型 Profile 轮换"]
+        direction LR
+        REQ["Agent 请求"]:::start
+        P1["Profile 1<br/>anthropic:default"]:::profile
+        P1A["Profile 2<br/>anthropic:backup"]:::profile
+        P1B["Profile 3<br/>anthropic:secondary"]:::profile
+    end
+
+    subgraph 阶段二["阶段二：Fallback 模型切换"]
+        direction LR
+        FB1["Fallback 1<br/>openai/gpt-5.2"]:::fallback
+        FB2["Fallback 2<br/>gemini/gemini-2.0"]:::fallback
+        FAIL["All failed<br/>返回错误"]:::fail
+    end
+
+    REQ --> P1
+    P1 -->|"认证/限流失败"| P1A
+    P1A -->|"认证/限流失败"| P1B
+    P1B -->|"全部 Profile 失败"| FB1
+    FB1 -->|"失败"| FB2
+    FB2 -->|"失败"| FAIL
+
+    classDef start fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef profile fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef fallback fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef fail fill:#fee2e2,stroke:#ef4444,color:#991b1b
+</div><figcaption>图 16.3 · Fallback · 模型故障切换</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>阶段</th><th>处理内容</th><th>失败处理</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>阶段一</strong></td><td>主模型内的 Profile 轮换（如多个 API Key）</td><td>Profile 1 → Profile 2 → Profile 3</td></tr>
+    <tr><td><strong>阶段二</strong></td><td>跨模型 Fallback 切换</td><td>fallback 1 → fallback 2 → 所有失败</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-model-failover-2" data-toc-skip><span class="sec-num">§ 15.1.2</span>Profile 轮换顺序</h4>
+<p>当主模型配置了多个认证 Profile 时，按以下优先级轮换：</p>
+<figure><div class="mermaid">
+flowchart LR
+    O1["① 显式配置<br/>auth.order[provider]<br/>最高优先级"]:::order
+    O2["② 已配置 profiles<br/>按提供商过滤"]:::order
+    O3["③ 已存储 profiles<br/>auth-profiles.json"]:::order
+
+    O1 -->|"优先"| O2 -->|"其次"| O3
+
+    classDef order fill:#fef3c7,stroke:#f59e0b,color:#92400e
+</div><figcaption>图 16.4 · Fallback · 模型故障切换</figcaption></figure>
+<h4 id="sec-23-13-1" data-toc-skip><span class="sec-num">§ 15.1.3</span> 凭证类型</h4>
+<pre class="code-block">// API Key 类型
+{ type: &quot;api_key&quot;, provider: &quot;anthropic&quot;, key: &quot;sk-ant-...&quot; }
+
+// OAuth 类型
+{ type: &quot;oauth&quot;, provider: &quot;google-antigravity&quot;, access: &quot;...&quot;, refresh: &quot;...&quot;, expires: 123, email: &quot;user@gmail.com&quot; }</pre>
+<h4 id="sec-23-14-1" data-toc-skip><span class="sec-num">§ 15.1.4</span> Profile ID 格式</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>类型</th><th>格式</th><th>示例</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>默认</strong></td><td><code>provider:default</code></td><td><code>anthropic:default</code></td></tr>
+    <tr><td><strong>OAuth</strong></td><td><code>provider:{email}</code></td><td><code>google-antigravity:user@gmail.com</code></td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-model-failover-3" data-toc-skip><span class="sec-num">§ 15.1.5</span>冷却机制（Cooldown）</h4>
+<p>当 Profile 由于认证/速率限制错误失败时，OpenClaw 将其标记为<strong>冷却</strong>并移到下一个 Profile：</p>
+<figure><div class="mermaid">
+flowchart LR
+    C1["1 分钟"]:::cool
+    --> C2["5 分钟"]:::cool
+    --> C3["25 分钟"]:::cool
+    --> C4["1 小时（上限）"]:::cool_max
+
+    classDef cool fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef cool_max fill:#fee2e2,stroke:#ef4444,color:#991b1b
+</div><figcaption>图 16.5 · Fallback · 模型故障切换</figcaption></figure>
+<h4 id="sec-23-16-1" data-toc-skip><span class="sec-num">§ 15.1.6</span> 冷却状态存储</h4>
+<pre class="code-block">{
+  usageStats: {
+    &quot;anthropic:default&quot;: {
+      lastUsed: 1736160000000,
+      cooldownUntil: 1736160600000,  // 冷却到期时间
+      errorCount: 2,                  // 连续错误次数
+    },
+  },
+}</pre>
+<hr>
+<h4 class="view-h3" id="deep-02-model-failover-4" data-toc-skip><span class="sec-num">§ 15.1.7</span>账单禁用（Billing Disable）</h4>
+<p>当遇到 "insufficient credits" 等账单/额度失败时，使用<strong>更长退避</strong>，不适用短冷却：</p>
+<figure><div class="mermaid">
+flowchart LR
+    B1["起点：5 小时"]:::bill
+    --> B2["每次失败翻倍<br/>10h → 20h"]:::bill
+    --> B3["上限：24 小时"]:::bill_max
+    --> B4["24 小时未失败<br/>计数器重置"]:::bill_reset
+
+    classDef bill fill:#fce7f3,stroke:#ec4899,color:#9d174d
+    classDef bill_max fill:#fee2e2,stroke:#ef4444,color:#991b1b
+    classDef bill_reset fill:#d1fae5,stroke:#10b981,color:#065f46
+</div><figcaption>图 16.6 · Fallback · 模型故障切换</figcaption></figure>
+<table class="info-table">
+  <thead>
+    <tr><th>字段</th><th>默认值</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>账单退避起点</td><td>5 小时</td></tr>
+    <tr><td>翻倍</td><td>每次账单失败翻倍</td></tr>
+    <tr><td>上限</td><td>24 小时</td></tr>
+    <tr><td>计数器重置</td><td>24 小时未失败</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-02-model-failover-5" data-toc-skip><span class="sec-num">§ 15.1.8</span>模型回退（Model Fallback）</h4>
+<p>如果提供商的所有 Profile 都失败，OpenClaw 移到 `agents.defaults.model.fallbacks` 中的下一个模型。</p>
+<table class="info-table">
+  <thead>
+    <tr><th>适用场景</th><th>不适用场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>认证失败（所有 Profile 均失败）</td><td>非认证类错误</td></tr>
+    <tr><td>速率限制（所有 Profile 均触发）</td><td></td></tr>
+    <tr><td>耗尽 Profile 轮换后的超时</td><td></td></tr>
+  </tbody>
+</table>
+<blockquote><p>当运行以模型覆盖（钩子或 CLI）启动时，回退在尝试所有 fallback 后，最终回退到 `agents.defaults.model.primary`。</p></blockquote>
+<h4 id="sec-23-19-1" data-toc-skip><span class="sec-num">§ 15.1.9</span> 配置</h4>
+<pre class="code-block">{
+  agents: {
+    defaults: {
+      model: {
+        primary: &quot;anthropic/claude-sonnet-4-5&quot;,   // 主模型
+        fallbacks: [&quot;openai/gpt-5.2&quot;],              // 回退列表
+      },
+    },
+  },
+}</pre>
+<h4 id="sec-23-20-1" data-toc-skip><span class="sec-num">§ 15.1.10</span> 完整配置示例</h4>
+<pre class="code-block">{
+  auth: {
+    profiles: { &quot;...&quot;: &quot;...&quot; },
+    order: { anthropic: [&quot;anthropic:default&quot;] },
+    cooldowns: {
+      billingBackoffHours: 5,
+      billingMaxHours: 24,
+      failureWindowHours: 24,
+    },
+  },
+  agents: {
+    defaults: {
+      model: {
+        primary: &quot;anthropic/claude-sonnet-4-5&quot;,
+        fallbacks: [&quot;openai/gpt-5.2&quot;],
+      },
+    },
+  },
+}</pre>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-04-models-runtimes/#deep-01-provider-adapters-1">01 - Provider 适配层</a> · <a href="/2026/11/07/openclaw-04-models-runtimes/#deep-03-auth-cooldown-1">03 - 认证管理</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a></p></blockquote>
+
+
+
+  
+<h3 class="view-h3" id="deep-26"><span class="sec-num">§ 15.2</span>认证管理</h3>
+<div class="intro-callout">
+<strong>学习要点</strong>
+<ul>
+  <li>OpenClaw 的认证凭证存在哪里？支持哪两种凭证类型？</li>
+  <li>Profile 轮换的优先级顺序是怎样的？</li>
+  <li>如何通过环境变量注入 API Key？配置热重载如何影响认证变更？</li>
+</ul>
+</div>
+<hr>
+<h4 class="view-h3" id="deep-03-auth-cooldown-1" data-toc-skip><span class="sec-num">§ 15.2.1</span>认证体系</h4>
+<p>OpenClaw 的认证管理负责所有 Provider 的 API Key、OAuth Token 等凭证的存储、轮换和故障恢复。</p>
+<figure><div class="mermaid">
+flowchart LR
+    subgraph 配置来源["认证信息来源"]
+        direction TB
+        S1["openclaw.json<br/>auth.profiles 配置"]:::cfg
+        S2["环境变量<br/>${API_KEY} 替换"]:::env
+        S3["auth-profiles.json<br/>运行时状态存储"]:::file
+    end
+
+    subgraph 认证管理["Auth Manager"]
+        direction LR
+        M1["Profile 解析"]:::mgr
+        M2["凭证校验"]:::mgr
+        M3["轮换调度"]:::mgr
+    end
+
+    subgraph Provider["Provider 调用"]
+        P1["API Key 注入"]:::prov
+        P2["OAuth Token 刷新"]:::prov
+    end
+
+    S1 & S2 --> M1
+    S3 --> M1
+    M1 --> M2 --> M3
+    M3 --> P1 & P2
+
+    classDef cfg fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef env fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef file fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef mgr fill:#d1fae5,stroke:#10b981,color:#065f46
+    classDef prov fill:#fce7f3,stroke:#ec4899,color:#9d174d
+</div><figcaption>图 16.7 · Fallback · 模型故障切换</figcaption></figure>
+<hr>
+<h4 class="view-h3" id="deep-03-auth-cooldown-2" data-toc-skip><span class="sec-num">§ 15.2.2</span>凭证存储</h4>
+<h4 id="sec-23-24-1" data-toc-skip><span class="sec-num">§ 15.2.3</span> 存储路径</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>类型</th><th>路径</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>主配置</strong></td><td><code>~/.openclaw/openclaw.json</code></td><td><code>auth.profiles</code> 和 <code>auth.order</code> 配置（不含密钥明文）</td></tr>
+    <tr><td><strong>凭据文件</strong></td><td><code>~/.openclaw/agents/{agentId}/agent/auth-profiles.json</code></td><td>实际凭证存储，含密钥</td></tr>
+    <tr><td><strong>旧版兼容</strong></td><td><code>~/.openclaw/agent/auth-profiles.json</code></td><td>旧版本使用的路径</td></tr>
+  </tbody>
+</table>
+<h4 id="sec-23-25-1" data-toc-skip><span class="sec-num">§ 15.2.4</span> 凭证类型</h4>
+<pre class="code-block">// API Key 类型
+{
+  type: &quot;api_key&quot;,
+  provider: &quot;anthropic&quot;,
+  key: &quot;sk-ant-...&quot;,
+}
+
+// OAuth 类型
+{
+  type: &quot;oauth&quot;,
+  provider: &quot;google-antigravity&quot;,
+  access: &quot;ya29...&quot;,
+  refresh: &quot;1//...&quot;,
+  expires: 1736160000000,
+  email: &quot;user@gmail.com&quot;,
+}</pre>
+<table class="info-table">
+  <thead>
+    <tr><th>类型</th><th>适用 Provider</th><th>自动刷新</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>api_key</strong></td><td>Anthropic, OpenAI, Ollama, Gemini</td><td>需手动更新</td></tr>
+    <tr><td><strong>oauth</strong></td><td>GitHub Copilot, Google, Azure</td><td>自动刷新 Token</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-auth-cooldown-3" data-toc-skip><span class="sec-num">§ 15.2.5</span>Profile 轮换顺序</h4>
+<p>当 Provider 配置了多个认证 Profile 时，按以下优先级依次尝试：</p>
+<figure><div class="mermaid">
+flowchart LR
+    O1["① auth.order[provider]<br/>显式指定轮换顺序<br/>最高优先级"]:::pri
+    O2["② 已配置 profiles<br/>按提供商过滤"]:::mid
+    O3["③ 已存储 profiles<br/>auth-profiles.json 文件"]:::low
+
+    O1 --> O2 --> O3
+
+    classDef pri fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef mid fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    classDef low fill:#f1f5f9,stroke:#64748b,color:#1e293b
+</div><figcaption>图 16.8 · Fallback · 模型故障切换</figcaption></figure>
+<h4 id="sec-23-27-1" data-toc-skip><span class="sec-num">§ 15.2.6</span> Profile ID 格式</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>类型</th><th>格式</th><th>示例</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>默认</strong></td><td><code>{provider}:default</code></td><td><code>anthropic:default</code></td></tr>
+    <tr><td><strong>OAuth</strong></td><td><code>{provider}:{email}</code></td><td><code>google-antigravity:user@gmail.com</code></td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-auth-cooldown-4" data-toc-skip><span class="sec-num">§ 15.2.7</span>环境变量注入</h4>
+<p>推荐将敏感凭证通过环境变量注入，避免明文存储在配置文件中：</p>
+<pre class="code-block">{
+  models: {
+    providers: {
+      anthropic: { apiKey: &quot;${ANTHROPIC_API_KEY}&quot; },
+      openai: { apiKey: &quot;${OPENAI_API_KEY}&quot; },
+    },
+  },
+}</pre>
+<pre class="code-block"># .env 文件（自动加载）
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-proj-...
+GEMINI_API_KEY=AIza...</pre>
+<h4 id="sec-23-29-1" data-toc-skip><span class="sec-num">§ 15.2.8</span> 替换规则</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>语法</th><th>行为</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>${VAR}</code></td><td>替换为环境变量值，未设置时报错</td></tr>
+    <tr><td><code>${VAR:-default}</code></td><td>未设置时使用默认值</td></tr>
+    <tr><td><code>$${VAR}</code></td><td>转义为字面量 <code>$VAR</code></td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-auth-cooldown-5" data-toc-skip><span class="sec-num">§ 15.2.9</span>认证与配置热重载</h4>
+<p>认证配置变更通过 Gateway 的热重载机制动态生效：</p>
+<table class="info-table">
+  <thead>
+    <tr><th>变更类型</th><th>是否热生效</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>新增 API Key</td><td>是</td><td>新 Profile 立即可用</td></tr>
+    <tr><td>修改 auth.order</td><td>是</td><td>轮换顺序即时调整</td></tr>
+    <tr><td>OAuth Token 自动刷新</td><td>是</td><td>后台静默更新</td></tr>
+    <tr><td>新增 Provider</td><td>需要重启</td><td>Provider 适配器需重新加载</td></tr>
+  </tbody>
+</table>
+<hr>
+<h4 class="view-h3" id="deep-03-auth-cooldown-6" data-toc-skip><span class="sec-num">§ 15.2.10</span>关键源码文件</h4>
+<table class="info-table">
+  <thead>
+    <tr><th>文件</th><th>作用</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>src/gateway/auth.ts</code></td><td>连接认证 Token 验证</td></tr>
+    <tr><td><code>src/gateway/auth-rate-limit.ts</code></td><td>认证速率限制</td></tr>
+    <tr><td><code>src/gateway/auth-mode-policy.ts</code></td><td>鉴权策略决议</td></tr>
+    <tr><td><code>src/gateway/auth-surface-resolution.ts</code></td><td>鉴权作用域解析</td></tr>
+    <tr><td><code>src/agents/model-fallback.ts</code></td><td>认证失败后的回退逻辑</td></tr>
+  </tbody>
+</table>
+<hr>
+<blockquote><p><strong>相关模块</strong>：<a href="/2026/11/07/openclaw-04-models-runtimes/#deep-01-provider-adapters-1">01 - Provider 适配层</a> · <a href="/2026/11/07/openclaw-04-models-runtimes/#deep-02-model-failover-1">02 - 模型故障转移</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-02-config-system-1">02 - 配置系统与热重载</a> · <a href="/2026/11/07/openclaw-02-architecture/#deep-03-websocket-protocol-1">02 - WebSocket 协议层</a></p></blockquote>
+
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-16"><span class="sec-num">§ 16</span>优先级总结</h2>
+
+  <table class="prio-table">
+<thead><tr><th>级别</th><th>优先级</th><th>配置位置</th><th>回退到</th></tr></thead>
+<tbody>
+<tr><td>Agent</td><td>1（最高）</td><td><code>agents.[name].model</code></td><td>Level 2</td></tr>
+<tr><td>Channel</td><td>2</td><td><code>channels.[name].accounts.[acc].model</code></td><td>Level 3</td></tr>
+<tr><td>Workspace</td><td>3</td><td><code>.openclaw/config.json5</code> in workspace</td><td>Level 4</td></tr>
+<tr><td>Defaults</td><td>4（最低）</td><td><code>defaults.model</code></td><td>—（必须配置）</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-17"><span class="sec-num">§ 17</span>调试 · 如何看当前生效的模型？</h2>
+
+  <p>运行时调用 <code>openclaw doctor</code> 或 <code>openclaw inspect agent [name]</code>，会显示该 Agent 当前生效的模型来源：</p>
+
+<pre class="code-block"><code>$ openclaw inspect agent research
+
+Agent: research
+  Model: anthropic/claude-sonnet-4
+  Source: agents.research.model          ← Level 1 配置
+  Runtime: loop
+  Harness: openclaw
+</code></pre>
+</section>
+
+
+
+<section class="doc-section">
+  <h2 id="sec-18"><span class="sec-num">§ 18</span>30+ Provider 总览矩阵</h2>
+
+  <p>OpenClaw 内置 30+ LLM Provider——云服务、本地推理、企业网关、聚合、自定义。接入前查这张表。</p>
+
+  <table class="provider-matrix">
+<thead><tr><th>Provider</th><th>类型</th><th>代表模型</th><th>工具</th><th>流式</th><th>特殊</th></tr></thead>
+<tbody>
+<tr><td><strong>anthropic</strong></td><td>云</td><td>claude-opus-4 · claude-sonnet-4 · claude-haiku-4</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>prompt caching · 200k</td></tr>
+<tr><td><strong>openai</strong></td><td>云</td><td>gpt-4o · gpt-4-turbo · o1 · o3-mini</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>structured outputs · 128k</td></tr>
+<tr><td><strong>google</strong></td><td>云</td><td>gemini-2.0-pro · gemini-1.5-flash</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>2M context · 视频理解</td></tr>
+<tr><td><strong>deepseek</strong></td><td>云</td><td>deepseek-chat · deepseek-coder · deepseek-r1</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>极低成本 · 中文优化</td></tr>
+<tr><td><strong>alibaba</strong></td><td>云</td><td>qwen-max · qwen-plus · qwen-turbo</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>中文最强 · 国内快</td></tr>
+<tr><td><strong>moonshot</strong></td><td>云</td><td>kimi-k2-0711-preview</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>长上下文（128k+）</td></tr>
+<tr><td><strong>zhipu</strong></td><td>云</td><td>glm-4-plus · glm-4-flash</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>国内快 · 工具调用</td></tr>
+<tr><td><strong>baidu</strong></td><td>云</td><td>ernie-4.0 · ernie-3.5</td><td><span class="tag partial">~</span></td><td><span class="tag ok"></span></td><td>中文强</td></tr>
+<tr><td><strong>tencent</strong></td><td>云</td><td>hunyuan-pro · hunyuan-standard</td><td><span class="tag partial">~</span></td><td><span class="tag ok"></span></td><td>中文</td></tr>
+<tr><td><strong>iflytek</strong></td><td>云</td><td>spark-v3.5 · spark-pro</td><td><span class="tag no"></span></td><td><span class="tag ok"></span></td><td>语音转写</td></tr>
+<tr><td><strong>ollama</strong></td><td>本地</td><td>qwen2.5 · llama3.3 · mistral · codellama</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>本地运行 · 隐私优先</td></tr>
+<tr><td><strong>llamacpp</strong></td><td>本地</td><td>（任何 GGUF 模型）</td><td><span class="tag partial">~</span></td><td><span class="tag ok"></span></td><td>GGUF 直接推理</td></tr>
+<tr><td><strong>vllm</strong></td><td>本地</td><td>（任何 HF 模型）</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>高性能推理</td></tr>
+<tr><td><strong>bedrock</strong></td><td>企业</td><td>所有 AWS 上的模型</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>VPC · 合规</td></tr>
+<tr><td><strong>azure-openai</strong></td><td>企业</td><td>gpt-4o · gpt-4（企业版）</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>SLA · 区域</td></tr>
+<tr><td><strong>vertex</strong></td><td>企业</td><td>gemini-2.0-pro · palm2</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>GCP 集成</td></tr>
+<tr><td><strong>openrouter</strong></td><td>聚合</td><td>所有主流模型（单 API）</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>聚合 100+ 模型</td></tr>
+<tr><td><strong>litellm</strong></td><td>聚合</td><td>（本地代理）</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>统一 API 协议</td></tr>
+<tr><td><strong>custom</strong></td><td>自定义</td><td>（OpenAI 兼容协议）</td><td><span class="tag ok"></span></td><td><span class="tag ok"></span></td><td>任何 OpenAI 兼容 API</td></tr>
+</tbody>
+</table>
+
+  <div class="callout">
+    <strong>自定义 Provider</strong>：如果你的 LLM API 兼容 OpenAI 协议（很多都兼容），用 <code>custom</code> Provider + <code>baseUrl</code> 即可接入，无需写新代码。
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-19"><span class="sec-num">§ 19</span>云 / 本地 / 企业——三大类 Provider</h2>
+
+  <h3 class="view-h3" id="sec-19.1"><span class="sec-num">§ 19.1</span>云服务——主力 + 主流 + 中文优化<span class="vh-tag">cloud</span></h3>
+
+  <div class="provider-card cloud">
+    <span class="pc-tag">CLOUD · 主力</span>
+    <h3 id="sec-19.2"><span class="sec-num">§ 19.2</span> Anthropic</h3>
+    <p><strong>代表模型</strong>:<code>claude-opus-4</code> · <code>claude-sonnet-4</code> · <code>claude-haiku-4</code></p>
+    <p><strong>特色</strong>：200k 上下文 · prompt caching · 工具调用一流 · Computer Use（beta）</p>
+
+    <pre class="config">{
+  <span class="key">providers</span>: {
+    <span class="key">anthropic</span>: {
+      <span class="key">apiKey</span>: <span class="str">"${ANTHROPIC_API_KEY}"</span>,
+      <span class="key">baseUrl</span>: <span class="str">"https://api.anthropic.com"</span>,
+      <span class="key">defaultModel</span>: <span class="str">"claude-sonnet-4"</span>,
+      <span class="key">promptCaching</span>: <span class="val">true</span>          <span class="comment">// 开启缓存</span>
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="provider-card cloud">
+    <span class="pc-tag">CLOUD · 主流</span>
+    <h3 id="sec-19.3"><span class="sec-num">§ 19.3</span> OpenAI</h3>
+    <p><strong>代表模型</strong>:<code>gpt-4o</code> · <code>gpt-4-turbo</code> · <code>o1</code> · <code>o3-mini</code></p>
+    <p><strong>特色</strong>：structured outputs · 视觉理解 · 工具调用</p>
+
+    <pre class="config">{
+  <span class="key">providers</span>: {
+    <span class="key">openai</span>: {
+      <span class="key">apiKey</span>: <span class="str">"${OPENAI_API_KEY}"</span>,
+      <span class="key">organization</span>: <span class="str">"${OPENAI_ORG_ID}"</span>,
+      <span class="key">baseUrl</span>: <span class="str">"https://api.openai.com/v1"</span>
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="provider-card cloud">
+    <span class="pc-tag">CLOUD · 中文优化</span>
+    <h3 id="sec-19.4"><span class="sec-num">§ 19.4</span> DeepSeek</h3>
+    <p><strong>代表模型</strong>:<code>deepseek-chat</code> · <code>deepseek-coder</code> · <code>deepseek-r1</code></p>
+    <p><strong>特色</strong>：极低成本 · 中文优化 · 推理模型强</p>
+
+    <pre class="config">{
+  <span class="key">providers</span>: {
+    <span class="key">deepseek</span>: {
+      <span class="key">apiKey</span>: <span class="str">"${DEEPSEEK_API_KEY}"</span>,
+      <span class="key">baseUrl</span>: <span class="str">"https://api.deepseek.com/v1"</span>
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="provider-card cloud">
+    <span class="pc-tag">CLOUD · 国内中文</span>
+    <h3 id="sec-19.5"><span class="sec-num">§ 19.5</span> Alibaba（通义千问）</h3>
+    <p><strong>代表模型</strong>:<code>qwen-max</code> · <code>qwen-plus</code> · <code>qwen-turbo</code></p>
+    <p><strong>特色</strong>：中文最强 · 国内访问快 · DashScope API</p>
+
+    <pre class="config">{
+  <span class="key">providers</span>: {
+    <span class="key">alibaba</span>: {
+      <span class="key">apiKey</span>: <span class="str">"${DASHSCOPE_API_KEY}"</span>,
+      <span class="key">baseUrl</span>: <span class="str">"https://dashscope.aliyuncs.com/compatible-mode/v1"</span>
+    }
+  }
+}</pre>
+  </div>
+
+  <h3 class="view-h3" id="sec-19.6"><span class="sec-num">§ 19.6</span>本地推理——隐私优先 + 高性能<span class="vh-tag">local</span></h3>
+
+  <div class="provider-card local">
+    <span class="pc-tag">LOCAL · 隐私优先</span>
+    <h3 id="sec-19.7"><span class="sec-num">§ 19.7</span> Ollama</h3>
+    <p><strong>代表模型</strong>:<code>qwen2.5-72b</code> · <code>llama3.3-70b</code> · <code>mistral-large</code> · <code>codellama</code></p>
+    <p><strong>特色</strong>：本地运行 · 完全离线 · 无 API 费用</p>
+
+    <pre class="config">{
+  <span class="key">providers</span>: {
+    <span class="key">ollama</span>: {
+      <span class="key">baseUrl</span>: <span class="str">"http://localhost:11434"</span>,
+      <span class="key">defaultModel</span>: <span class="str">"qwen2.5-72b"</span>,
+      <span class="key">keepAlive</span>: <span class="str">"30m"</span>                    <span class="comment">// 模型驻留 30 分钟</span>
+    }
+  }
+}</pre>
+
+    <p><strong>部署</strong>:<a href="https://ollama.com" target="_blank">ollama.com</a> 下载 → <code>ollama pull qwen2.5-72b</code> → 启动 OpenClaw 即可。</p>
+  </div>
+
+  <div class="provider-card local">
+    <span class="pc-tag">LOCAL · 高性能</span>
+    <h3 id="sec-19.8"><span class="sec-num">§ 19.8</span> vLLM</h3>
+    <p><strong>特色</strong>：高性能推理服务 · PagedAttention · 适合并发</p>
+
+    <pre class="config">{
+  <span class="key">providers</span>: {
+    <span class="key">vllm</span>: {
+      <span class="key">baseUrl</span>: <span class="str">"http://localhost:8000/v1"</span>,     <span class="comment">// OpenAI 兼容</span>
+      <span class="key">defaultModel</span>: <span class="str">"meta-llama/Llama-3.3-70B-Instruct"</span>
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="callout">
+    <strong>本地模型作为 fallback</strong>：把 Ollama 放在 fallback 链尾，云服务完全不可用时仍能工作——是最稳健的离线兜底。
+  </div>
+
+  <h3 class="view-h3" id="sec-19.9"><span class="sec-num">§ 19.9</span>企业网关——合规 + SLA<span class="vh-tag">enterprise</span></h3>
+
+  <div class="provider-card bedrock">
+    <span class="pc-tag">ENTERPRISE · 合规</span>
+    <h3 id="sec-19.10"><span class="sec-num">§ 19.10</span> AWS Bedrock</h3>
+    <p><strong>代表模型</strong>：Claude（Anthropic）、Llama（Meta）、Titan（Amazon）、Mistral——都在 AWS 上</p>
+    <p><strong>特色</strong>：VPC 私有部署 · 合规（SOC2、HIPAA） · 区域隔离</p>
+
+    <pre class="config">{
+  <span class="key">providers</span>: {
+    <span class="key">bedrock</span>: {
+      <span class="key">region</span>: <span class="str">"us-east-1"</span>,
+      <span class="key">credentials</span>: {
+        <span class="key">accessKeyId</span>: <span class="str">"${AWS_ACCESS_KEY_ID}"</span>,
+        <span class="key">secretAccessKey</span>: <span class="str">"${AWS_SECRET_ACCESS_KEY}"</span>
+      },
+      <span class="key">defaultModel</span>: <span class="str">"anthropic.claude-sonnet-4-v1:0"</span>
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="provider-card bedrock">
+    <span class="pc-tag">ENTERPRISE · SLA</span>
+    <h3 id="sec-19.11"><span class="sec-num">§ 19.11</span> Azure OpenAI</h3>
+    <p><strong>代表模型</strong>：OpenAI 全系列 · 部署在 Azure 上</p>
+    <p><strong>特色</strong>：SLA · 区域 · 企业合规</p>
+
+    <pre class="config">{
+  <span class="key">providers</span>: {
+    <span class="key">azure-openai</span>: {
+      <span class="key">apiKey</span>: <span class="str">"${AZURE_OPENAI_KEY}"</span>,
+      <span class="key">endpoint</span>: <span class="str">"https://your-resource.openai.azure.com"</span>,
+      <span class="key">deploymentName</span>: <span class="str">"gpt-4o-prod"</span>,     <span class="comment">// 部署名</span>
+      <span class="key">apiVersion</span>: <span class="str">"2025-04-01-preview"</span>
+    }
+  }
+}</pre>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2 id="sec-20"><span class="sec-num">§ 20</span>自定义 · 任何 OpenAI 兼容 API</h2>
+
+  <p>几乎所有 LLM 都提供 OpenAI 兼容 API（改 baseUrl 即可）。OpenClaw 用 <code>custom</code> Provider 一键接入：</p>
+
+  <pre class="config">{
+  <span class="key">providers</span>: {
+    <span class="key">my-llm</span>: {                                    <span class="comment">// 任意名字</span>
+      <span class="key">type</span>: <span class="str">"custom"</span>,
+      <span class="key">protocol</span>: <span class="str">"openai-compatible"</span>,
+      <span class="key">baseUrl</span>: <span class="str">"https://api.example-llm.com/v1"</span>,
+      <span class="key">apiKey</span>: <span class="str">"${MY_LLM_API_KEY}"</span>,
+      <span class="key">defaultModel</span>: <span class="str">"my-llm-large"</span>
+    }
+  }
+}</pre>
+
+  <div class="callout">
+    <strong>协议兼容列表</strong>:<code>openai-compatible</code>（绝大多数）、<code>anthropic-compatible</code>（部分）、<code>custom-http</code>（完全自定义，需要写 JSON Schema 转换）。
+  </div>
+
+  <h3 class="view-h3" id="sec-20.1"><span class="sec-num">§ 20.1</span>怎么选 Provider？<span class="vh-tag">chooser</span></h3>
+
+  <figure><div class="mermaid">
+flowchart LR
+  Q{"主要顾虑?"}
+  Q -->|质量第一| A["Anthropic<br/>claude-sonnet-4"]
+  Q -->|成本第一| B["DeepSeek<br/>deepseek-chat"]
+  Q -->|中文| C["阿里通义<br/>qwen-max"]
+  Q -->|隐私 / 离线| D["Ollama<br/>qwen2.5-72b"]
+  Q -->|企业合规| E["AWS Bedrock"]
+  Q -->|多模型聚合| F["OpenRouter"]
+
+  style A fill:#c026d3,stroke:#7c3aed,color:#fff
+  style B fill:#2563eb,stroke:#1e3a8a,color:#fff
+  style C fill:#d97706,stroke:#92400e,color:#fff
+  style D fill:#059669,stroke:#065f46,color:#fff
+  style E fill:#7c3aed,stroke:#5b21b6,color:#fff
+  style F fill:#dc2626,stroke:#991b1b,color:#fff
+</div><figcaption>图 4.9 · Provider 选择决策树——按"主要顾虑"分流。</figcaption></figure>
+</section>
+<section class="doc-section deep-dive" id="deep-dive-04-deep-23">
+  <section class="doc-section">
+  <h2 id="sec-21"><span class="sec-num">§ 21</span>阅读路径 + FAQ + 总结</h2>
+
+  <h3 class="view-h3" id="sec-21.1"><span class="sec-num">§ 21.1</span>阅读路径<span class="vh-tag">paths</span></h3>
+  <p>本页约 22 分钟读完。如果你只关心一部分，挑适合的读法：</p>
+
+  <div class="path-grid">
+    <div class="path-card pc-curious">
+      <span class="pc-tag">架构派</span>
+      <div class="pc-title">通读者</div>
+      <div class="pc-time"> 22 分钟 · 全章</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 1-2 了解定位与三原则</li>
+          <li>§ 4-8 四层抽象 + 配置示例</li>
+          <li>§ 9-11 5 种 Runtime 详解</li>
+          <li>§ 12-17 4 级选择 + Fallback</li>
+          <li>§ 3-20 Provider 清单 + 选择</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-quick">
+      <span class="pc-tag">实用派</span>
+      <div class="pc-title">接入者</div>
+      <div class="pc-time"> 7 分钟 · 选段</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 5 四层详解——知道每层做什么</li>
+          <li>§ 8 完整 4 层配置——复制</li>
+          <li>§ 18 Provider 矩阵——选 Provider</li>
+          <li>遇到问题 → 跳回 § 12-17</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="path-card pc-deep">
+      <span class="pc-tag">调优派</span>
+      <div class="pc-title">性能调优者</div>
+      <div class="pc-time"> 10 分钟</div>
+      <div class="pc-steps">
+        <ol>
+          <li>§ 9-11 5 种 Runtime 性能特征</li>
+          <li>§ 11 决策树——选合适 Runtime</li>
+          <li>§ 14-15 auto + Fallback</li>
+          <li>跳 <a href="/2026/11/07/openclaw-08-performance/">模块 08 性能</a> 继续</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="view-h3" id="sec-21.2"><span class="sec-num">§ 21.2</span>常见问题<span class="vh-tag">faq</span></h3>
+
+  <ul class="faq-list">
+    <li class="faq-item">
+      <div class="faq-q"> Provider 和 Runtime 可以独立选吗？</div>
+      <div class="faq-a">可以。<code>model: { provider: "anthropic", id: "claude-sonnet-4" }</code> 选模型，<code>runtime: { type: "loop" }</code> 选 Runtime。它们完全独立。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 什么是 Harness？</div>
+      <div class="faq-a">Harness 是"执行 Runtime 的后端"。OpenClaw 自带的叫 <code>openclaw</code>，但你也可以用 <code>codex</code>（OpenAI）、<code>claude-cli</code>（Anthropic CLI）等作为 Harness。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> Hybrid Runtime 什么时候用？</div>
+      <div class="faq-a">v2026.9.2 新增。适合"需要并行探索多个方案、最终汇总"的场景——比如代码评审、文档对比。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 一个 Agent 能同时用多个 Model 吗？</div>
+      <div class="faq-a">能。在 <code>agents.[name].selection</code> 里可配置每种场景用不同模型。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 必须配 defaults.model 吗？</div>
+      <div class="faq-a">必须。OpenClaw 强制要求至少一个 fallback（默认 defaults），否则启动失败。这是 fail-closed 设计——防止 Agent 误用随机模型。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> 怎么确保 fallback 一定生效？</div>
+      <div class="faq-a">fallback 链尾放本地模型（如 <code>ollama/qwen2.5-72b</code>）。即使云服务全挂，本地模型仍能工作，只是质量可能下降。</div>
+    </li>
+
+    <li class="faq-item">
+      <div class="faq-q"> OpenClaw 支持私有 LLM 部署吗？</div>
+      <div class="faq-a">支持。任何 OpenAI 兼容 API 都能用 <code>custom</code> Provider 接入——包括 vLLM、Ollama、TGI、私有部署的模型。</div>
+    </li>
+  </ul>
+
+  <h3 class="view-h3" id="sec-21.3"><span class="sec-num">§ 21.3</span>一句话总结<span class="vh-tag">summary</span></h3>
+  <div class="callout">
+    <strong>Provider/Model 是身份，Runtime/Harness 是执行方式——30+ Provider × 5 Runtime × 5 Harness 的全组合，加上 4 级选择 + Fallback 链路，让你不被任何单一厂商绑死。</strong>
+    <br><br>
+    至少配 <code>defaults.model</code> 和至少 1 个 fallback；生产推荐云服务主用 + Ollama fallback。
+  </div>
+
+  <h3 class="view-h3" id="sec-21.4"><span class="sec-num">§ 21.4</span>相关阅读<span class="vh-tag">related</span></h3>
+  <div class="related-grid">
+    <a class="related-card" href="/2026/11/07/openclaw-02-architecture/#sec-4">
+      <span class="rc-eyebrow">02.2 · 架构</span>
+      <span class="rc-title">四层架构</span>
+      <span class="rc-desc">L1 接入 / L2 协议 / L3 推理 / L4 资源——模块 04 占据 L3 推理层的具体实现。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-05-sessions/">
+      <span class="rc-eyebrow">05 · 会话</span>
+      <span class="rc-title">会话与状态</span>
+      <span class="rc-desc">模型选择如何与会话路由结合？Channel 级 model 如何影响消息分发？</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-06-tools-hooks/">
+      <span class="rc-eyebrow">06 · 工具</span>
+      <span class="rc-title">工具与钩子</span>
+      <span class="rc-desc">Runtime 是如何调用工具的？Loop Runtime 与工具调用链的关系。</span>
+    </a>
+    <a class="related-card" href="/2026/11/07/openclaw-08-performance/">
+      <span class="rc-eyebrow">08 · 性能</span>
+      <span class="rc-title">性能与延迟</span>
+      <span class="rc-desc">5 种 Runtime 的实测延迟对比；Streaming 与 Parallel 的端到端优化策略。</span>
+    </a>
+    <a class="related-card" href="https://docs.openclaw.ai/models" target="_blank" rel="noopener">
+      <span class="rc-eyebrow">官方文档</span>
+      <span class="rc-title">Models Reference</span>
+      <span class="rc-desc">30+ Provider 的最新配置项、限制、推荐部署模式——由 OpenClaw 团队维护。</span>
+    </a>
+    <a class="related-card" href="https://github.com/openclaw/openclaw/tree/main/src/providers" target="_blank" rel="noopener">
+      <span class="rc-eyebrow">源码</span>
+      <span class="rc-title">src/providers/ 目录</span>
+      <span class="rc-desc">30+ Provider 插件的真实源码，每个 <code>src/providers/[name]/</code> 是一个独立实现。</span>
+    </a>
+  </div>
+</section>
+
+
+</div>
+      <aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#sec-1">一句话定位</a><a class="reading-toc-link level-2" href="#sec-2">推理层的三个原则</a><a class="reading-toc-link level-2" href="#sec-3">模块位置</a><a class="reading-toc-link level-2" href="#sec-4">四层抽象栈</a><a class="reading-toc-link level-2" href="#sec-5">四层详解</a><a class="reading-toc-link level-3" href="#sec-5.1">Provider(提供者)</a><a class="reading-toc-link level-3" href="#sec-5.2">Model(模型)</a><a class="reading-toc-link level-3" href="#sec-5.3">Runtime(运行时)</a><a class="reading-toc-link level-3" href="#sec-5.4">Harness(执行后端)</a><a class="reading-toc-link level-3" href="#deep-24">Provider 适配层</a><a class="reading-toc-link level-2" href="#sec-6">四层如何组合?</a><a class="reading-toc-link level-2" href="#sec-7">四层对照</a><a class="reading-toc-link level-2" href="#sec-8">完整 4 层配置示例</a><a class="reading-toc-link level-2" href="#sec-9">5 种 Runtime 一览</a><a class="reading-toc-link level-2" href="#sec-10">5 种 Runtime 详解</a><a class="reading-toc-link level-3" href="#sec-10.1">Single-shot(一次性)</a><a class="reading-toc-link level-3" href="#sec-10.2">Loop(ReAct 循环)</a><a class="reading-toc-link level-3" href="#sec-10.3">Streaming(流式生成)</a><a class="reading-toc-link level-3" href="#sec-10.4">Parallel(并行执行)</a><a class="reading-toc-link level-3" href="#sec-10.5">Hybrid(并行 + 流式)</a><a class="reading-toc-link level-2" href="#sec-11">Runtime 选择决策树</a><a class="reading-toc-link level-2" href="#sec-12">4 级选择流程</a><a class="reading-toc-link level-2" href="#sec-13">4 级详解</a><a class="reading-toc-link level-3" href="#sec-13.1">Agent 级配置</a><a class="reading-toc-link level-3" href="#sec-13.2">Channel(账号)级配置</a><a class="reading-toc-link level-3" href="#sec-13.3">Workspace 级配置</a><a class="reading-toc-link level-3" href="#sec-13.4">全局默认</a><a class="reading-toc-link level-2" href="#sec-14">auto 模式 · 让 OpenClaw 选</a><a class="reading-toc-link level-2" href="#sec-15">Fallback · 模型故障切换</a><a class="reading-toc-link level-3" href="#deep-25">模型故障转移</a><a class="reading-toc-link level-3" href="#deep-26">认证管理</a><a class="reading-toc-link level-2" href="#sec-16">优先级总结</a><a class="reading-toc-link level-2" href="#sec-17">调试 · 如何看当前生效的模型?</a><a class="reading-toc-link level-2" href="#sec-18">30+ Provider 总览矩阵</a><a class="reading-toc-link level-2" href="#sec-19">云 / 本地 / 企业 — 三大类 Provider</a><a class="reading-toc-link level-3" href="#sec-19.1">云服务 — 主力 + 主流 + 中文优化 cloud</a><a class="reading-toc-link level-3" href="#sec-19.2">Anthropic</a><a class="reading-toc-link level-3" href="#sec-19.3">OpenAI</a><a class="reading-toc-link level-3" href="#sec-19.4">DeepSeek</a><a class="reading-toc-link level-3" href="#sec-19.5">Alibaba(通义千问)</a><a class="reading-toc-link level-3" href="#sec-19.6">本地推理 — 隐私优先 + 高性能 local</a><a class="reading-toc-link level-3" href="#sec-19.7">Ollama</a><a class="reading-toc-link level-3" href="#sec-19.8">vLLM</a><a class="reading-toc-link level-3" href="#sec-19.9">企业网关 — 合规 + SLA enterprise</a><a class="reading-toc-link level-3" href="#sec-19.10">AWS Bedrock</a><a class="reading-toc-link level-3" href="#sec-19.11">Azure OpenAI</a><a class="reading-toc-link level-2" href="#sec-20">自定义 · 任何 OpenAI 兼容 API</a><a class="reading-toc-link level-3" href="#sec-20.1">怎么选 Provider? chooser</a><a class="reading-toc-link level-2" href="#sec-21">阅读路径 + FAQ + 总结</a><a class="reading-toc-link level-3" href="#sec-21.1">阅读路径 paths</a><a class="reading-toc-link level-3" href="#sec-21.2">常见问题 faq</a><a class="reading-toc-link level-3" href="#sec-21.3">一句话总结 summary</a><a class="reading-toc-link level-3" href="#sec-21.4">相关阅读 related</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/07/openclaw-03-channels/"><small>← 上一篇</small><span>消息通道与适配器协议</span></a></div><div><a href="/2026/11/07/openclaw-05-sessions/"><small>下一篇 →</small><span>会话生命周期与状态管理</span></a></div><a class="article-series-return" href="/categories/openclaw/">返回OpenClaw 源码笔记 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body>
+</html>

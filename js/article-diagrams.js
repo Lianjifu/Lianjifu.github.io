@@ -126,6 +126,7 @@
             try {
               await mermaid.run({ nodes: [div] });
               if (!div.querySelector('svg')) throw new Error('no SVG output');
+              if (naturalWidth) sizeToViewBox(div);
             } catch (error) {
               console.error('Mermaid diagram skipped:', error);
               div.classList.remove('mermaid-loading');
@@ -148,6 +149,73 @@
 
   function escapeDiagramSource(source) {
     return source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Mermaid writes width="100%" plus a max-width, so a wide diagram is scaled
+  // down until its labels are illegible. Draw the source-note diagrams at their
+  // natural width, shrink them only while the labels stay readable, and let the
+  // container scroll for the rest.
+  var naturalWidth = document.body.getAttribute('data-series') === 'openclaw';
+  var MIN_SCALE = 0.68;
+
+  function sizeToViewBox(div) {
+    var svg = div.querySelector('svg');
+    if (!svg) return;
+    var box = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(parseFloat);
+    if (box.length !== 4 || !(box[2] > 0) || !(box[3] > 0)) return;
+    svg.removeAttribute('width');
+    svg.removeAttribute('height');
+    svg.style.setProperty('max-width', 'none', 'important');
+    svg.style.setProperty('min-width', '0', 'important');
+    svg.style.setProperty('width', box[2] + 'px', 'important');
+
+    var cs = getComputedStyle(div);
+    var inner = (div.clientWidth || 0) -
+                (parseFloat(cs.paddingLeft) || 0) -
+                (parseFloat(cs.paddingRight) || 0);
+    var wide = inner > 0 && box[2] > inner && inner / box[2] < MIN_SCALE;
+    if (wide) {
+      svg.style.setProperty('width', box[2] + 'px', 'important');
+      svg.style.setProperty('margin-left', '0', 'important');
+      svg.style.setProperty('margin-right', '0', 'important');
+    } else if (inner > 0 && box[2] > inner) {
+      svg.style.setProperty('width', inner + 'px', 'important');
+      svg.style.setProperty('margin-left', '0', 'important');
+      svg.style.setProperty('margin-right', '0', 'important');
+    } else {
+      svg.style.setProperty('margin-left', 'auto', 'important');
+      svg.style.setProperty('margin-right', 'auto', 'important');
+    }
+    toggleScrollHint(div, wide);
+  }
+
+  function toggleScrollHint(div, show) {
+    var holder = div.closest('figure') || div.parentNode;
+    if (!holder) return;
+    var hint = holder.querySelector('.diagram-scroll-hint');
+    if (!show) {
+      if (hint) hint.remove();
+      return;
+    }
+    if (hint) return;
+    hint = document.createElement('p');
+    hint.className = 'diagram-scroll-hint';
+    hint.textContent = '← 可横向滚动查看完整图 →';
+    var caption = holder.querySelector('figcaption');
+    if (caption) holder.insertBefore(hint, caption);
+    else holder.insertBefore(hint, div.nextSibling);
+  }
+
+  // The fit depends on the column width, so recompute it when the window
+  // changes size.
+  if (naturalWidth) {
+    var resizeTimer = null;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function() {
+        document.querySelectorAll('.mermaid').forEach(sizeToViewBox);
+      }, 150);
+    });
   }
 
   function wrapZoomable(div) {

@@ -52,7 +52,7 @@
 
 
 
-<link rel="stylesheet" href="/css/portal.css?v=1"><link rel="stylesheet" href="/css/article.css?v=6"><script src="/js/portal.js?v=6" defer></script><script src="/js/article-reader.js?v=2" defer></script></head><body id="top" class="page-post personal-article" data-series="claude-code"><svg
+<link rel="stylesheet" href="/css/portal.css?v=2"><link rel="stylesheet" href="/css/article.css?v=6"><script src="/js/portal.js?v=6" defer></script><script src="/js/article-reader.js?v=2" defer></script></head><body id="top" class="page-post personal-article" data-series="claude-code"><svg
       class="icon-definitions"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
@@ -115,6 +115,13 @@
                     ><small>Agent 源码与运行机制</small></span
                   ></a
                 >
+                <a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
                 <a href="/categories/observable-security/"
                   ><span class="series-dot amber"></span
                   ><span
@@ -148,7 +155,7 @@
           >
         </nav>
       </div>
-    </header><main id="main"><article class="post-block" itemscope itemtype="https://schema.org/Article"><header class="post-header"><div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/claude-code/">Claude Code 源码分析</a></div>
+    </header><main id="main"><article class="post-block" itemscope itemtype="https://schema.org/Article"><header class="post-header"><div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/claude-code/">Claude Code 源码笔记</a></div>
         <span class="article-kicker">第 18 章：</span><h1 class="post-title" itemprop="name headline">会话管理与压缩</h1>
 
         <div class="post-meta">
@@ -385,7 +392,7 @@ flowchart TD
     <div class="chapter-nav">
       <a href="/2026/05/21/claude-code-17-state-management/" class="chapter-prev">← 第 17 章：状态管理</a>
       <a href="/2026/05/21/claude-code-19-ink-react/" class="chapter-next">第 19 章：React + Ink 终端 UI →</a>
-    </div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#会话持久化-transcript-机制">18.1 会话持久化 —— Transcript 机制</a><a class="reading-toc-link level-3" href="#jsonl-日志格式">18.1.1 JSONL 日志格式</a><a class="reading-toc-link level-3" href="#会话链重建">18.1.2 会话链重建</a><a class="reading-toc-link level-3" href="#思考笔记">思考笔记</a><a class="reading-toc-link level-2" href="#自动压缩-token-触发的历史裁剪">18.2 自动压缩 —— Token 触发的历史裁剪</a><a class="reading-toc-link level-3" href="#阈值计算">18.2.1 阈值计算</a><a class="reading-toc-link level-3" href="#压缩决策流程">18.2.2 压缩决策流程</a><a class="reading-toc-link level-3" href="#断路器模式">18.2.3 断路器模式</a><a class="reading-toc-link level-3" href="#压缩执行">18.2.4 压缩执行</a><a class="reading-toc-link level-3" href="#思考笔记-2">思考笔记</a><a class="reading-toc-link level-2" href="#snip-压缩-history_snip-特性">18.3 Snip 压缩 —— HISTORY_SNIP 特性</a><a class="reading-toc-link level-3" href="#microcompact-机制">18.3.1 MicroCompact 机制</a><a class="reading-toc-link level-3" href="#时间维度的压缩策略">18.3.2 时间维度的压缩策略</a><a class="reading-toc-link level-3" href="#缓存微压缩">18.3.3 缓存微压缩</a><a class="reading-toc-link level-3" href="#思考笔记-3">思考笔记</a><a class="reading-toc-link level-2" href="#压缩边界-compact_boundary-标记">18.4 压缩边界 —— compact_boundary 标记</a><a class="reading-toc-link level-3" href="#compactboundary-消息">18.4.1 CompactBoundary 消息</a><a class="reading-toc-link level-3" href="#消息分组-api-轮次边界">18.4.2 消息分组 —— API 轮次边界</a><a class="reading-toc-link level-3" href="#压缩摘要生成">18.4.3 压缩摘要生成</a><a class="reading-toc-link level-3" href="#ptl-重试机制">18.4.4 PTL 重试机制</a><a class="reading-toc-link level-3" href="#思考笔记-4">思考笔记</a><a class="reading-toc-link level-2" href="#会话恢复-resume-实现">18.5 会话恢复 —— –resume 实现</a><a class="reading-toc-link level-3" href="#恢复入口">18.5.1 恢复入口</a><a class="reading-toc-link level-3" href="#反序列化与中断检测">18.5.2 反序列化与中断检测</a><a class="reading-toc-link level-3" href="#终端工具结果检测">18.5.3 终端工具结果检测</a><a class="reading-toc-link level-3" href="#技能状态恢复">18.5.4 技能状态恢复</a><a class="reading-toc-link level-3" href="#session-memory-压缩">18.5.5 Session Memory 压缩</a><a class="reading-toc-link level-3" href="#思考笔记-5">思考笔记</a><a class="reading-toc-link level-2" href="#压缩后的上下文重建">18.6 压缩后的上下文重建</a><a class="reading-toc-link level-3" href="#post-compact-消息构建">18.6.1 Post-Compact 消息构建</a><a class="reading-toc-link level-3" href="#摘要格式化">18.6.2 摘要格式化</a><a class="reading-toc-link level-3" href="#思考笔记-6">思考笔记</a><a class="reading-toc-link level-2" href="#本章小结">本章小结</a></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/05/21/claude-code-17-state-management/"><small>← 上一篇</small><span>第 17 章：状态管理</span></a></div><div><a href="/2026/05/21/claude-code-19-ink-react/"><small>下一篇 →</small><span>第 19 章：React + Ink 终端 UI</span></a></div><a class="article-series-return" href="/categories/claude-code/">返回Claude Code 源码分析 ↗</a></nav></article></main><footer class="portal-footer">
+    </div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#会话持久化-transcript-机制">18.1 会话持久化 —— Transcript 机制</a><a class="reading-toc-link level-3" href="#jsonl-日志格式">18.1.1 JSONL 日志格式</a><a class="reading-toc-link level-3" href="#会话链重建">18.1.2 会话链重建</a><a class="reading-toc-link level-3" href="#思考笔记">思考笔记</a><a class="reading-toc-link level-2" href="#自动压缩-token-触发的历史裁剪">18.2 自动压缩 —— Token 触发的历史裁剪</a><a class="reading-toc-link level-3" href="#阈值计算">18.2.1 阈值计算</a><a class="reading-toc-link level-3" href="#压缩决策流程">18.2.2 压缩决策流程</a><a class="reading-toc-link level-3" href="#断路器模式">18.2.3 断路器模式</a><a class="reading-toc-link level-3" href="#压缩执行">18.2.4 压缩执行</a><a class="reading-toc-link level-3" href="#思考笔记-2">思考笔记</a><a class="reading-toc-link level-2" href="#snip-压缩-history_snip-特性">18.3 Snip 压缩 —— HISTORY_SNIP 特性</a><a class="reading-toc-link level-3" href="#microcompact-机制">18.3.1 MicroCompact 机制</a><a class="reading-toc-link level-3" href="#时间维度的压缩策略">18.3.2 时间维度的压缩策略</a><a class="reading-toc-link level-3" href="#缓存微压缩">18.3.3 缓存微压缩</a><a class="reading-toc-link level-3" href="#思考笔记-3">思考笔记</a><a class="reading-toc-link level-2" href="#压缩边界-compact_boundary-标记">18.4 压缩边界 —— compact_boundary 标记</a><a class="reading-toc-link level-3" href="#compactboundary-消息">18.4.1 CompactBoundary 消息</a><a class="reading-toc-link level-3" href="#消息分组-api-轮次边界">18.4.2 消息分组 —— API 轮次边界</a><a class="reading-toc-link level-3" href="#压缩摘要生成">18.4.3 压缩摘要生成</a><a class="reading-toc-link level-3" href="#ptl-重试机制">18.4.4 PTL 重试机制</a><a class="reading-toc-link level-3" href="#思考笔记-4">思考笔记</a><a class="reading-toc-link level-2" href="#会话恢复-resume-实现">18.5 会话恢复 —— –resume 实现</a><a class="reading-toc-link level-3" href="#恢复入口">18.5.1 恢复入口</a><a class="reading-toc-link level-3" href="#反序列化与中断检测">18.5.2 反序列化与中断检测</a><a class="reading-toc-link level-3" href="#终端工具结果检测">18.5.3 终端工具结果检测</a><a class="reading-toc-link level-3" href="#技能状态恢复">18.5.4 技能状态恢复</a><a class="reading-toc-link level-3" href="#session-memory-压缩">18.5.5 Session Memory 压缩</a><a class="reading-toc-link level-3" href="#思考笔记-5">思考笔记</a><a class="reading-toc-link level-2" href="#压缩后的上下文重建">18.6 压缩后的上下文重建</a><a class="reading-toc-link level-3" href="#post-compact-消息构建">18.6.1 Post-Compact 消息构建</a><a class="reading-toc-link level-3" href="#摘要格式化">18.6.2 摘要格式化</a><a class="reading-toc-link level-3" href="#思考笔记-6">思考笔记</a><a class="reading-toc-link level-2" href="#本章小结">本章小结</a></nav></details></aside></div><nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/05/21/claude-code-17-state-management/"><small>← 上一篇</small><span>第 17 章：状态管理</span></a></div><div><a href="/2026/05/21/claude-code-19-ink-react/"><small>下一篇 →</small><span>第 19 章：React + Ink 终端 UI</span></a></div><a class="article-series-return" href="/categories/claude-code/">返回Claude Code 源码笔记 ↗</a></nav></article></main><footer class="portal-footer">
       <div class="content-width">
         <div class="footer-main">
           <div>
@@ -415,4 +422,4 @@ flowchart TD
           </div>
         </div>
       </div>
-    </footer><script src="/js/article-diagrams.js?v=3" defer></script></body></html>
+    </footer><script src="/js/article-diagrams.js?v=6" defer></script></body></html>

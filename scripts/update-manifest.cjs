@@ -16,11 +16,11 @@ const crypto = require('crypto');
 
 const ROOT = path.resolve(__dirname, '..');
 const MANIFEST = path.join(ROOT, 'docs/article-manifest.json');
-const EXPECTED = 91;
+const EXPECTED = 101;
 
 /** The post-body element: from its opening tag to the close before the TOC aside. */
 function measureBody(source) {
-  const begin = source.indexOf('<div class="post-body"');
+  const begin = source.indexOf('<div class="post-body');
   if (begin < 0) throw new Error('post-body not found');
   const aside = source.indexOf('<aside class="article-toc-aside">', begin);
   if (aside < 0) throw new Error('TOC aside not found');

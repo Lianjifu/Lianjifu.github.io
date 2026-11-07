@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#080c18" />
+    <meta name="description" content="OpenClaw v2026.9.2 源码解读：十个模块，从网关心智模型到端到端消息流、性能基线与异常降级。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="OpenClaw 源码笔记 · JiFu Lian" />
+    <meta property="og:description" content="沿着源码，理解 OpenClaw 如何运行。" />
+    <meta property="og:url" content="https://www.lianjifu.cn/categories/openclaw/" />
+    <meta property="og:image" content="https://www.lianjifu.cn/uploads/avatar.png" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="canonical" href="https://www.lianjifu.cn/categories/openclaw/" />
+    <link rel="icon" type="image/svg+xml" href="/images/jifu-mark.svg" />
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon-next.png" />
+    <link rel="alternate" type="application/atom+xml" title="JiFu Lian 的博客" href="/atom.xml" />
+    <link rel="stylesheet" href="/css/portal.css?v=2" />
+    <script src="/js/portal.js?v=4" defer></script>
+    <link rel="stylesheet" href="/css/code-series.css?v=1" />
+    <script src="/js/code-series.js?v=1" defer></script>
+    <title>OpenClaw 源码笔记 · JiFu Lian</title>
+    <link rel="stylesheet" href="/css/agent-series.css?v=1" />
+  </head>
+  <body class="personal-series" id="top">
+    <a class="skip-link" href="#main">跳到主要内容</a>
+    <svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+    </svg>
+    <header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+    <main id="main">
+      <section class="hero agent-hero code-hero" aria-labelledby="openclaw-title">
+        <div class="agent-orbits" aria-hidden="true">
+          <i></i><i></i><i></i><span>CODE / 10</span>
+        </div>
+        <div class="content-width agent-hero-content">
+          <p class="hero-eyebrow"><span></span>OPENCLAW · 源码笔记</p>
+          <h1 id="openclaw-title">
+            读一遍源码，<br /><span>看清一次委托如何落地。</span>
+          </h1>
+          <p class="agent-intro">
+            OpenClaw v2026.9.2 源码解读。十个模块按阅读顺序排开：先建立心智模型，再拆四根支柱，最后把链路串成一次端到端流程，看清代价、失败与源码位置。
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="/2026/11/07/openclaw-01-overview/">从概览开始 <span aria-hidden="true">↗</span></a>
+            <a class="button button-text" href="#chapters">查看模块目录 <span aria-hidden="true">↓</span></a>
+          </div>
+          <p class="agent-count">
+            10 <span>个模块</span><b>·</b>155 <span>张图示</span><b>·</b>约 24 <span>万字</span>
+          </p>
+        </div>
+      </section>
+      <div class="code-layout content-width" id="chapters">
+        <aside class="code-sidebar">
+          <p class="eyebrow">READING MAP</p>
+          <p class="code-nav-title">模块导航</p>
+          <nav aria-label="模块导航">
+            <a class="chapter-link" href="#chapter-1"><span>01</span>建立心智模型<small>02</small></a>
+            <a class="chapter-link" href="#chapter-2"><span>02</span>运行机制<small>04</small></a>
+            <a class="chapter-link" href="#chapter-3"><span>03</span>上线之后<small>04</small></a>
+          </nav>
+          <a class="code-return" href="/archives/">返回博客目录 ↗</a>
+        </aside>
+        <details class="code-picker">
+          <summary>
+            选择篇章 · <span id="current-chapter">建立心智模型</span
+            ><span aria-hidden="true">⌄</span>
+          </summary>
+          <nav aria-label="移动章节导航">
+            <a class="chapter-link" href="#chapter-1"><span>01</span>建立心智模型<small>02</small></a>
+            <a class="chapter-link" href="#chapter-2"><span>02</span>运行机制<small>04</small></a>
+            <a class="chapter-link" href="#chapter-3"><span>03</span>上线之后<small>04</small></a>
+          </nav>
+        </details>
+        <div class="code-chapters">
+          <section class="code-chapter" id="chapter-1" aria-labelledby="chapter-title-chapter-1">
+            <header class="code-chapter-head">
+              <p class="eyebrow">PART / 01</p>
+              <div>
+                <h2 id="chapter-title-chapter-1">建立心智模型</h2>
+                <span>02 篇</span>
+              </div>
+              <p>先说清楚 OpenClaw 是什么、凭什么这么设计，再进代码。</p>
+            </header>
+            <ol class="code-entries">
+              <li>
+                <a href="/2026/11/07/openclaw-01-overview/"><span class="code-entry-number">01</span><span>OpenClaw 是什么：概览与心智模型</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+              <li>
+                <a href="/2026/11/07/openclaw-02-architecture/"><span class="code-entry-number">02</span><span>核心架构与三原则落地</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+            </ol>
+          </section>
+          <section class="code-chapter" id="chapter-2" aria-labelledby="chapter-title-chapter-2">
+            <header class="code-chapter-head">
+              <p class="eyebrow">PART / 02</p>
+              <div>
+                <h2 id="chapter-title-chapter-2">运行机制</h2>
+                <span>04 篇</span>
+              </div>
+              <p>通道、模型、会话、工具四根支柱各自怎么工作。</p>
+            </header>
+            <ol class="code-entries">
+              <li>
+                <a href="/2026/11/07/openclaw-03-channels/"><span class="code-entry-number">03</span><span>消息通道与适配器协议</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+              <li>
+                <a href="/2026/11/07/openclaw-04-models-runtimes/"><span class="code-entry-number">04</span><span>LLM Provider 与 Runtime 适配</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+              <li>
+                <a href="/2026/11/07/openclaw-05-sessions/"><span class="code-entry-number">05</span><span>会话生命周期与状态管理</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+              <li>
+                <a href="/2026/11/07/openclaw-06-tools-hooks/"><span class="code-entry-number">06</span><span>工具执行与钩子拦截</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+            </ol>
+          </section>
+          <section class="code-chapter" id="chapter-3" aria-labelledby="chapter-title-chapter-3">
+            <header class="code-chapter-head">
+              <p class="eyebrow">PART / 03</p>
+              <div>
+                <h2 id="chapter-title-chapter-3">上线之后</h2>
+                <span>04 篇</span>
+              </div>
+              <p>把链路串起来，再看代价、失败与回到源码的位置。</p>
+            </header>
+            <ol class="code-entries">
+              <li>
+                <a href="/2026/11/07/openclaw-07-end-to-end/"><span class="code-entry-number">07</span><span>端到端消息流程</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+              <li>
+                <a href="/2026/11/07/openclaw-08-performance/"><span class="code-entry-number">08</span><span>性能基线与延迟分析</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+              <li>
+                <a href="/2026/11/07/openclaw-09-error-handling/"><span class="code-entry-number">09</span><span>错误处理与降级策略</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+              <li>
+                <a href="/2026/11/07/openclaw-10-source-walkthrough/"><span class="code-entry-number">10</span><span>源码导览与目录树</span><span class="code-entry-arrow" aria-hidden="true">↗</span></a>
+              </li>
+            </ol>
+          </section>
+        </div>
+      </div>
+      <section class="agent-related content-width" aria-labelledby="related-title">
+        <div class="agent-section-heading">
+          <div>
+            <p class="eyebrow">KEEP EXPLORING</p>
+            <h2 id="related-title">探索其他专题</h2>
+          </div>
+          <a href="/archives/">返回博客目录 ↗</a>
+        </div>
+        <div class="agent-related-grid">
+          <a href="/categories/ai-agent/"
+            ><small>从个人交付到场景落地</small>
+            <h3>AI 编程工程实践 <span aria-hidden="true">↗</span></h3></a
+          ><a href="/categories/claude-code/"
+            ><small>沿着源码理解 Agent 如何运行</small>
+            <h3>Claude Code 源码笔记 <span aria-hidden="true">↗</span></h3></a
+          ><a href="/categories/observable-security/"
+            ><small>感知、研判与响应</small>
+            <h3>安全运营可观测性 <span aria-hidden="true">↗</span></h3></a
+          ><a href="/categories/observable-ops/"
+            ><small>诊断与自动化执行</small>
+            <h3>系统运维可观测性 <span aria-hidden="true">↗</span></h3></a
+          >
+        </div>
+      </section>
+    </main>
+    <footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
