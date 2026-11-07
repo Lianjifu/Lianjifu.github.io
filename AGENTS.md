@@ -31,7 +31,7 @@ python3 -m http.server 4000 --bind 127.0.0.1
 
 - 保留用户已有改动，严格限定在当前需求范围内。
 - 修改 CSS/JS 后同步更新 HTML 中的 `?v=` 版本参数，避免缓存旧资源。
-- 修改文章正文前先阅读 `docs/article-pages.md`；正文基准变更后更新 `docs/article-manifest.json`，并重新审阅专题、归档、搜索索引和订阅文件。
+- 修改文章正文前先阅读 `docs/article-pages.md`；正文基准变更后用 `node scripts/update-manifest.cjs --write` 更新 `docs/article-manifest.json`，并重新审阅专题、归档、搜索索引和订阅文件。
 - 重新生成 Hexo 输出可能覆盖这里的页面定制。生成前在源仓库同步模板，或在独立副本中验证后再应用。
 - 不在代码、日志或文档中写入密钥、令牌或个人敏感信息。
 
@@ -41,6 +41,7 @@ python3 -m http.server 4000 --bind 127.0.0.1
 
 ```bash
 node scripts/verify-articles.cjs
+node scripts/update-manifest.cjs
 node --check js/portal.js
 node --check js/article-reader.js
 node --check js/article-diagrams.js

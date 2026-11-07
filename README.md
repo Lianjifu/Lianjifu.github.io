@@ -119,7 +119,7 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 ├── uploads/                      # 头像等上传资源
 ├── lib/                          # Three.js、Mermaid 等第三方资源
 ├── docs/                         # 页面维护文档、系列约束和文章清单
-├── scripts/                      # 迁移、正文校验和浏览器检查脚本
+├── scripts/                      # 迁移、正文基准重算、校验和浏览器检查脚本
 ├── search.xml                    # 旧搜索页面使用的搜索索引
 ├── atom.xml                      # Atom 订阅文件
 ├── CNAME                         # GitHub Pages 自定义域名

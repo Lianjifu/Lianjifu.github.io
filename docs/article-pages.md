@@ -4,7 +4,7 @@
 
 站点 Logo 与 favicon 统一使用 `images/jifu-mark.svg` 的六边形 JL 标记，避免继续显示 NexT 默认 N 图标。
 
-`docs/article-manifest.json` 记录专题顺序、URL、正文长度和 SHA-256。`node scripts/verify-articles.cjs` 核对正文是否改变。合法修改正文后需重新审核并更新对应基准。
+`docs/article-manifest.json` 记录专题顺序、URL、正文长度和 SHA-256。`node scripts/verify-articles.cjs` 核对正文是否改变。合法修改正文后需重新审核并更新对应基准：`node scripts/update-manifest.cjs` 先打印将要变更的条目，确认后加 `--write` 重写清单。基准只覆盖 `post-body` 正文元素，不含目录、翻页等外壳，改外壳不会让它失效。
 
 迁移前运行 `node scripts/migrate-articles.cjs` 预检查；`--write` 写入并在系统临时目录保存备份。脚本检测到新版外壳时退出，防止重复迁移。重新生成 Hexo 页面后应在独立副本验证再应用。
 
