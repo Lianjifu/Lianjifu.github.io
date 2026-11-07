@@ -14,7 +14,7 @@
 [![部署](https://img.shields.io/badge/部署-GitHub%20Pages-111827?style=flat-square)](https://github.com/Lianjifu/Lianjifu.github.io)
 [![静态站点](https://img.shields.io/badge/类型-Static%20Site-10b981?style=flat-square)](#-技术实现)
 
-[项目介绍](#-项目介绍) · [内容专题](#-内容专题) · [页面能力](#-页面能力) · [技术实现](#-技术实现) · [仓库结构](#-仓库结构) · [文档索引](#-文档索引)
+[项目介绍](#-项目介绍) · [我的项目](#-我的项目) · [内容专题](#-内容专题) · [页面能力](#-页面能力) · [技术实现](#-技术实现) · [仓库结构](#-仓库结构) · [文档索引](#-文档索引)
 
 </div>
 
@@ -34,6 +34,21 @@
 | 验证 | 区分设计建议、代码实现、页面检查和外部运行结果 |
 
 > 这个仓库面向网站访问者和维护者。它是**可部署的静态输出**，不是 Hexo 源仓库，也不是应用服务代码仓库。
+
+## ✦ 我的项目
+
+公开仓库里的四个项目，每个都在回答一个具体问题：
+
+| 项目 | 回答的问题 | 主要技术 |
+| --- | --- | --- |
+| [智能系统运维 · 可观测平台](https://github.com/Lianjifu/intelligent-operations-observability-platform) | 故障感知、诊断与决策如何闭环 | Vue · AIOps · 可观测性 |
+| [企智搭 · 数字伙伴平台](https://github.com/Lianjifu/QiZhiDaPartnerPlatform) | 企业如何获得 7×24 小时的陪伴式协作 | Go · React |
+| [企智搭 · 智能体平台](https://github.com/Lianjifu/QiZhiDaAgentPlatform) | 中小企业如何搭建并运营自己的智能体 | Python · FastAPI · React |
+| [企智搭 · 代码平台](https://github.com/Lianjifu/QiZhiDaCodePlatform) | Agent 如何在代码工作区里真的动手，并对每次动手负责 | Python · FastAPI · React |
+
+代码平台覆盖代码生成、评审、部署全流程：改代码自动放行，跑命令与联网要人批，破坏性操作永远要人批，每一次能力调用都留痕可查；失败会变成复盘，改进落进记忆 / 技能 / 提示词三层。
+
+> 项目的能力与更新状态以各仓库的 README 为准；博客文章负责记录设计取舍与验证过程。
 
 ## ✦ 内容专题
 
