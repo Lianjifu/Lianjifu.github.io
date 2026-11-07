@@ -2,7 +2,7 @@
 
 ## 项目概览
 
-这是部署到 [lianjifu.cn](https://lianjifu.cn) 的个人技术博客静态输出仓库。站点由 Hexo 生成，当前页面包含 91 篇文章、4 个专题：AI Agent 工程（5）、Claude Code 源码分析（28）、智能安全运营可观测性（31）、智能系统运维可观测性（27）。
+这是部署到 [lianjifu.cn](https://lianjifu.cn) 的个人技术博客静态输出仓库。站点由 Hexo 生成，当前页面包含 91 篇文章、4 个专题：AI 编程工程实践（5）、Claude Code 源码分析（28）、智能安全运营可观测性（31）、智能系统运维可观测性（27）。
 
 本仓库不包含 Hexo 源文和构建配置，不要在这里运行生成命令或引入应用依赖。Markdown、模板和 `_config.yml` 位于独立的 Hexo 源仓库；这里的 HTML、CSS、JavaScript 与资源是可部署产物，并包含已同步的页面定制。
 
@@ -75,4 +75,4 @@ npx --yes --package @playwright/cli playwright-cli -s=blog-check run-code --file
 - `README.md`：站点说明、结构和完整维护流程。
 - `docs/homepage.md`：首页资源边界与动效降级。
 - `docs/article-pages.md`：文章页迁移、正文校验和导航规则。
-- `docs/ai-agent-series.md`：AI Agent 五篇系列的顺序与写作约束。
+- `docs/ai-agent-series.md`：AI 编程工程实践五篇系列的顺序与写作约束。

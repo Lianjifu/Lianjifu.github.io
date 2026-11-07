@@ -70,9 +70,11 @@ npx --yes --package @playwright/cli playwright-cli -s=blog-home run-code --filen
 
 主目录 `/archives/` 使用共享导航与页脚，配合 `css/reading-index.css` 和 `js/reading-index.js`。保留全部 91 篇文章链接及 `series-engineering`、`series-agent`、`series-security`、`series-ops` 锚点。桌面使用顶部专题导航与分组双列，移动端使用原生 details 专题选择及单列目录。年度与月份归档未改动。页面不加载搜索或 Three.js。
 
+AI 编程工程实践段（`#series-engineering`）单列全宽，改用目录表格式：序号、阶段动词、标题、摘要、箭头五列栅格，描述独占一列，避免标题到箭头之间出现大段空白。段内只保留一个 "AI 编程工程实践" 标题，卡片头改为「五层能力路径」，能力链与动词链取自 `docs/ai-agent-series.md` 的正式表述（用好 → 吃透 → 做成 → 建成 → 跑通）。移动端保留阶段动词，摘要折到标题下方。`archive-item--rich` 与 `archive-layer` 仅用于该段的 5 行，其余三个专题的列表样式不变。
+
 验证了目录与实际文章文件集合一致、320–1920px 无横向溢出、移动专题跳转与高亮、菜单关闭以及首页 46 项回归检查。注意浏览器可能保留旧 HTML 缓存，首次预览可使用 `/archives/?v=reading-2`。
 
-## AI Agent 专题页
+## AI 编程工程实践专题页
 
 Claude Code 专题 `/categories/claude-code/` 复用同一星空首屏与公共导航，专用布局与交互为 `css/code-series.css`、`js/code-series.js`。保留 26 篇正文及 2 篇附录；桌面左侧章节导航停靠，移动端使用原生折叠目录。验证了全部文章链接与顺序、320–1920px 布局、章节定位与高亮、移动菜单、无 JavaScript 阅读及相关页面导航。
 

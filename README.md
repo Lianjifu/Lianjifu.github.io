@@ -4,7 +4,7 @@
 
 # JiFu Lian · 个人技术博客
 
-**一个记录 AI Agent、Claude Code 与智能系统工程实践的静态博客。**
+**一个记录 AI 编程、Claude Code 与智能系统工程实践的静态博客。**
 
 从问题出发，写清原理、实现路径和验证方法。
 
@@ -41,7 +41,7 @@
 
 | 专题 | 篇数 | 主要内容 | 在线入口 |
 | --- | ---: | --- | --- |
-| AI Agent 工程 | 5 | AI 编程、Agent 原理、Agent 产品、数字员工与 AI 办公工作台 | [五阶段阅读路径](https://lianjifu.cn/categories/ai-agent/) |
+| AI 编程工程实践 | 5 | AI 编程、Agent 原理、Agent 产品、数字员工与 AI 办公工作台 | [五阶段阅读路径](https://lianjifu.cn/categories/ai-agent/) |
 | Claude Code 源码分析 | 28 | 启动、类型系统、工具、MCP、Agent 运行时、权限与工程实践 | [章节目录](https://lianjifu.cn/categories/claude-code/) |
 | 智能安全运营可观测性 | 31 | 安全感知、事件研判、攻击溯源、影响评估与 SOC 运营 | [安全运营专题](https://lianjifu.cn/categories/observable-security/) |
 | 智能系统运维可观测性 | 27 | 拓扑感知、故障诊断、根因分析、决策、自动执行与 SRE Agent | [系统运维专题](https://lianjifu.cn/categories/observable-ops/) |
@@ -112,7 +112,7 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 │   ├── 05/21/                    # Claude Code 源码分析
 │   ├── 06/10/                    # 智能安全运营可观测性
 │   ├── 06/13/                    # 智能系统运维可观测性
-│   └── 08/                       # AI Agent 工程
+│   └── 08/                       # AI 编程工程实践
 ├── css/                          # 公共、专题和文章样式
 ├── js/                           # 导航、动效、目录和图示脚本
 ├── images/                       # Logo、静态背景和文章配图
@@ -142,7 +142,7 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 | --- | --- |
 | [docs/homepage.md](./docs/homepage.md) | 首页资源边界、动效降级和页面检查 |
 | [docs/article-pages.md](./docs/article-pages.md) | 文章页迁移、正文基准、目录和专题导航 |
-| [docs/ai-agent-series.md](./docs/ai-agent-series.md) | AI Agent 五篇系列的顺序、定位和写作约束 |
+| [docs/ai-agent-series.md](./docs/ai-agent-series.md) | AI 编程工程实践五篇系列的顺序、定位和写作约束 |
 | [docs/article-manifest.json](./docs/article-manifest.json) | 文章文件、正文长度和 SHA-256 基准 |
 | [lib/three/README.md](./lib/three/README.md) | 本地 Three.js 来源和许可证 |
 
