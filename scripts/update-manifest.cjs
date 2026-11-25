@@ -16,7 +16,7 @@ const crypto = require('crypto');
 
 const ROOT = path.resolve(__dirname, '..');
 const MANIFEST = path.join(ROOT, 'docs/article-manifest.json');
-const EXPECTED = 101;
+const EXPECTED = 103;
 
 /** The post-body element: from its opening tag to the close before the TOC aside. */
 function measureBody(source) {

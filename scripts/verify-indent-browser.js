@@ -4,7 +4,7 @@ async(page)=>{
  /* 各专题正文首行缩进的例外段落：展示性元素不参与缩进。
     note-meta 是全站统一的文末修订说明标记；claude-code / observable-security /
     observable-ops 三个专题除它之外没有例外段落。 */
- const EXCLUDE={ 'ai-agent':['section-summary'], 'openclaw':['oc-lead','oc-metric','oc-callout-lead'] };
+ const EXCLUDE={ 'ai-agent':['section-summary'], 'openclaw':['oc-lead','oc-metric','oc-callout-lead'], 'agent-design':['oc-lead','oc-metric','oc-callout-lead'] };
  for(const row of rows){
   await page.goto(base+row.url,{waitUntil:'domcontentloaded'});await page.setViewportSize({width:1440,height:900});
   const r=await page.evaluate((exclude)=>{

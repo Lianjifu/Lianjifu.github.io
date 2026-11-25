@@ -1,6 +1,6 @@
 # 文章页维护
 
-101 篇文章采用首页公共导航及页脚，正文使用 `css/article.css`；OpenClaw 十篇另加 `css/openclaw.css`，加载顺序在 `article.css` 之后。文章目录为静态 HTML，`js/article-reader.js` 增强高亮、移动展开、焦点和代码复制。图示及引导表折叠由 `js/article-diagrams.js` 保留原实现。文章页不再加载 NexT 启动脚本、旧侧栏或搜索。
+103 篇文章采用首页公共导航及页脚，正文使用 `css/article.css`；OpenClaw 十篇另加 `css/openclaw.css`，AI Agent 系统设计两篇另加 `css/agent-design.css`，加载顺序在 `article.css` 之后。文章目录为静态 HTML，`js/article-reader.js` 增强高亮、移动展开、焦点和代码复制。图示及引导表折叠由 `js/article-diagrams.js` 保留原实现。文章页不再加载 NexT 启动脚本、旧侧栏或搜索。
 
 站点 Logo 与 favicon 统一使用 `images/jifu-mark.svg` 的六边形 JL 标记，避免继续显示 NexT 默认 N 图标。
 
@@ -20,13 +20,14 @@
 
 ## 正文排版口径
 
-全站正文首行统一空两字符（`text-indent: 2em`）。规则只作用于 `.post-body` 的直接子段落：引用块、列表项、思考笔记等嵌套段落不参与缩进。五个专题的写法不同，但口径一致：
+全站正文首行统一空两字符（`text-indent: 2em`）。规则只作用于 `.post-body` 的直接子段落：引用块、列表项、思考笔记等嵌套段落不参与缩进。六个专题的写法不同，但口径一致：
 
 - Claude Code 源码笔记、智能安全运营可观测性、智能系统运维可观测性：由 `css/article.css` 按 `data-series` 统一覆盖。
 - AI 编程工程实践五篇：在页面内联样式里定义，01–03 用 `.post-body > p`，04、05 用 `.post-body .content-block > p`。
 - OpenClaw 十篇：在 `css/openclaw.css` 里定义。
+- AI Agent 系统设计两篇：在 `css/agent-design.css` 里定义。
 
-展示性段落用类名排除，不参与缩进：文末的修订说明统一标记为 `note-meta`，AI 编程工程实践的分节摘要为 `section-summary`，OpenClaw 的导语、指标行、提示面板首行分别是 `oc-lead`、`oc-metric`、`oc-callout-lead`。
+展示性段落用类名排除，不参与缩进：文末的修订说明统一标记为 `note-meta`，AI 编程工程实践的分节摘要为 `section-summary`，OpenClaw 与 AI Agent 系统设计的导语、指标行、提示面板首行分别是 `oc-lead`、`oc-metric`、`oc-callout-lead`。
 
 改动 `css/article.css` 后要同步升文章页里的 `?v=` 参数；改正文 HTML 要重跑 `node scripts/update-manifest.cjs --write`。
 

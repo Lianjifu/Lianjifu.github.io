@@ -1,0 +1,2351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 1 章：问数 Agent：问数 Agent——从模糊提问到可信结论 | AI Agent 系统设计</title>
+  <meta name="description" content="问数 Agent 把自然语言问题转成可信 SQL，再转成可解释的数据结论。本章拆开语义层、Schema 裁剪、SQL 校验与权限重写、结果集下推四道防线，给出日 50 万问题的容量与成本估算。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 1 章：问数 Agent：问数 Agent——从模糊提问到可信结论">
+  <meta property="og:url" content="https://www.lianjifu.cn/2026/11/26/agent-design-01-text2sql/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="问数 Agent 把自然语言问题转成可信 SQL，再转成可解释的数据结论。本章拆开语义层、Schema 裁剪、SQL 校验与权限重写、结果集下推四道防线，给出日 50 万问题的容量与成本估算。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-26T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-26T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="agent-design">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" content="https://www.lianjifu.cn/2026/11/26/agent-design-01-text2sql/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="/css/2026.css?v=2">
+  <link rel="stylesheet" href="/css/portal.css?v=13">
+  <link rel="stylesheet" href="/css/article.css?v=8">
+  <link rel="stylesheet" href="/css/agent-design.css?v=1">
+  <script src="/js/portal.js?v=7" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="agent-design"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+        <path d="M8 3v4M16 3v4M3.5 10.5h17" />
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24">
+        <path
+          d="M3.5 6.6a2 2 0 0 1 2-2h3.3a2 2 0 0 1 1.5.7l1.3 1.7h6.9a2 2 0 0 1 2 2v8.4a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"
+        />
+      </symbol>
+    </svg>
+<header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/agent-design/"
+                  ><span class="series-dot slate"></span
+                  ><span
+                    ><strong>AI Agent 系统设计</strong
+                    ><small>十类 Agent 的系统设计</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/agent-design/">AI Agent 系统设计</a></div>
+      <span class="article-kicker">第 1 章：问数 Agent</span>
+      <h1 class="post-title" itemprop="name headline">问数 Agent——从模糊提问到可信结论</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-26T10:00:00+08:00">2026-11-26</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/agent-design/" itemprop="url" rel="index"><span itemprop="name">AI Agent 系统设计</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body agent-design-body" itemprop="articleBody">
+<p class="oc-lead">
+  问数 Agent（ChatBI / Text-to-SQL）把自然语言问题转成可信 SQL，再转成可解释的数据结论。难点不在「生成 SQL」，而在语义歧义、Schema 过大、结果集过大、权限越界与结论解读。本章围绕语义层与指标治理、Schema 裁剪、SQL 校验与权限重写、结果集下推、沙箱与资源护栏、归因与可信表达展开。
+</p>
+
+<table class="guide-card collapsed">
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr class="guide-card-header">
+      <td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>AI 会写 SQL，但「写出来」和「敢拿去用」之间隔着一整套信任机制</li>
+          <li>自然语言到 SQL 的转换只解决了问题的一小半——剩下的全是「这个答案能不能信」</li>
+          <li>口径不一致、越权读取、结果集被截断，这三类错误都不会报错，却会变成一个看起来合理的数字</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>把「自然语言」翻译成「数据库语义」</li>
+          <li>歧义、Schema 规模、结果集规模、权限边界，四道坎依次挡在可信答案之前</li>
+          <li>每一道坎的解法都不是「让模型更聪明」，而是把约束固化到模型之外</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>语义层与指标治理是整个系统的坐标系</li>
+          <li>指标的标准表达式、版本与作用域，决定了所有答案能否互认</li>
+          <li>下游的 Schema 裁剪、SQL 校验、缓存指纹、审计记录全部挂在它上面</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>结果集是本章最贵的量</li>
+          <li>一次查询可能回传几十万行，明细直返可达 21.6 亿 token</li>
+          <li>统计下推与样本分离既是成本优化，也是结论完整性的保证</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+<div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p><strong>本章回答</strong>：自然语言取数怎样变成一个可追溯、可核验、可解释的数字</p>
+  <p><strong>核心机制</strong>：语义层固化口径 → Schema 分层裁剪 → SQL 生成与 AST 校验 → 权限重写 → 沙箱执行 → 结果集下推 → 分级解读</p>
+  <p><strong>关键数字</strong>：日问题 50 万 · 峰值 29 QPS · 数仓 5000 张表 · 明细单次 120 万行 · 结果集占输入 token 63%</p>
+  <p><strong>读完能做什么</strong>：设计一条问数链路，并说清每一道防线该落在执行层的哪一环</p>
+</div>
+
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>自然语言取数怎样变成一个可追溯、可核验、可解释的数字</td></tr>
+    <tr><td>核心机制</td><td>语义层固化口径 → Schema 分层裁剪 → SQL 生成与 AST 校验 → 权限重写 → 沙箱执行 → 结果集下推 → 分级解读</td></tr>
+    <tr><td>关键数字</td><td>日问题 50 万 · 峰值 29 QPS · 数仓 5000 张表 · 明细单次 120 万行 · 结果集占输入 token 63%</td></tr>
+    <tr><td>读完能做什么</td><td>设计一条问数链路，并说清每一道防线该落在执行层的哪一环</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 问数 Agent 是什么</div>
+    <div>它是什么、给谁用、边界在哪，以及哪些决策做错了要停机迁移。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 核心矛盾</div>
+    <div>自然语言的模糊与数据库语义的精确之间，隔着六条必须坚持的原则。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 理论与方法论</div>
+    <div>从七项前置锚点一路推到容量与成本：口径、Schema、SQL、结果集四层怎么治。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · 工程落地与护栏</div>
+    <div>把方法论变成链路上的一环一环：哪些必须 fail-closed，哪些可以降级。</div>
+  </div>
+  <div class="oc-card">
+    <div>第五段 · 端到端案例</div>
+    <div>一个「为什么净营收下降 12%」的问题，走完整条链路。</div>
+  </div>
+  <div class="oc-card">
+    <div>第六段 · 演进与误区</div>
+    <div>六级演进路线、六个指标层，以及十七条最贵的误区。</div>
+  </div>
+  <div class="oc-card">
+    <div>总结</div>
+    <div>把这一章压成一页纸：结论、边界、下一章。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">1.1 问数 Agent 是什么</h2><div class="oc-part-lead"><strong>第一段 · 问数 Agent 是什么</strong>这一段回答：问数 Agent 究竟是什么、给谁用、边界划在哪里，以及哪些决策一旦做错就要停机迁移。</div>
+
+<h3 id="sec-1.1">1.1.1 定义与能力层次</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>问数 Agent 不是「一个更聪明的 SQL 生成器」，而是一条从提问到可信答案的受控流水线。它接收自然语言问题，完成意图澄清、指标映射、Schema 裁剪、SQL 生成与校验、沙箱执行、结果校验、图表路由与结论表达。三个能力层次从取数到归因，难度与链路长度同步上升。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>定义句里最关键的四个字是「受控流水线」——它意味着系统的价值不在生成能力，而在拦截能力。如果读完只记住了「NL2SQL」，理解还差一层：真正难的不是把话变成 SQL，而是把每种错误拦在答案之前。</p>
+</div>
+
+<p><strong>定义</strong>：问数 AI Agent 是面向数据分析场景的智能体系统。它接收自然语言问题，完成意图澄清、指标映射、Schema 裁剪、SQL 生成与校验、沙箱执行、结果校验、图表路由与结论表达，最终给出<strong>可追溯、可核验、可解释</strong>的数据答案。</p>
+<p>它不是「一个更聪明的 SQL 生成器」，而是一条<strong>从提问到可信答案的受控流水线</strong>：每一步都可能出错，系统的价值在于<strong>把每种错误拦在答案之前</strong>，而不是指望模型一次就对。</p>
+<p><strong>三个能力层次</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">回答的问题</th><th scope="col">典型输出</th><th scope="col">难度</th><th scope="col">本章覆盖</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>L1 取数</td><td>是多少</td><td>明细 / 聚合结果、图表</td><td>中</td><td>全链路</td></tr>
+      <tr><td>L2 分析</td><td>怎么变</td><td>同比环比、趋势、分组对比</td><td>较高</td><td>&lt;a href="#sec-3.7.3"&gt;归因分析&lt;/a&gt;</td></tr>
+      <tr><td>L3 归因 / 建议</td><td>为什么、怎么办</td><td>贡献度拆解、原因假设、下一步</td><td>高</td><td>&lt;a href="#sec-3.7.3"&gt;归因分析&lt;/a&gt;、&lt;a href="#sec-5.1.1"&gt;净营收环比下降归因&lt;/a&gt;</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-1.2">1.1.2 用户、场景与与传统 BI 的关系</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>业务分析师、运营、管理层、数据团队是四类主要用户，风险各不相同。与传统 BI 不是替代关系而是分工关系：固定报表负责高频、已知、口径已定的需求，问数 Agent 负责长尾、探索、口径待定的部分。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一节最该带走的是那句分工：凡是能固化成报表的需求，就不该留在问数链路里——报表是零成本、零幻觉、零越权的。很多团队把本该做报表的问题都丢给 Agent，等于把一个本可零风险解决的问题做成了高风险问题。</p>
+</div>
+
+<p><strong>典型用户与场景</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">用户</th><th scope="col">场景</th><th scope="col">关注点</th><th scope="col">主要风险</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>业务分析师</td><td>自助取数、探索</td><td>灵活、口径可控</td><td>口径漂移、结果被截断</td></tr>
+      <tr><td>运营</td><td>活动效果、渠道对比</td><td>时效、可视化</td><td>指标口径不一致</td></tr>
+      <tr><td>管理层</td><td>日报周报、异常归因</td><td>结论、可信度</td><td>把相关当因果</td></tr>
+      <tr><td>数据团队</td><td>取数需求分流</td><td>减少重复取数</td><td>明细导出打爆数仓</td></tr>
+  </tbody>
+</table>
+<p><strong>与传统 BI 的区别</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">传统 BI</th><th scope="col">问数 Agent</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>交互</td><td>拖拽、固定报表</td><td>自然语言</td></tr>
+      <tr><td>口径</td><td>人工配置在报表里</td><td>语义层 + 自动映射</td></tr>
+      <tr><td>覆盖</td><td>预设问题</td><td>长尾问题</td></tr>
+      <tr><td>风险</td><td>较低</td><td>幻觉、越权、资源耗尽</td></tr>
+      <tr><td>评估</td><td>报表准确性</td><td>执行准确率 + 采纳率 + 分歧率 + 安全</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>两者不是替代关系，而是分工关系</strong>：固定报表负责「高频、已知、口径已定」，问数 Agent 负责「长尾、探索、口径待定」。<strong>凡是能固化成报表的需求，就不该留在问数链路里</strong>——报表是零成本、零幻觉、零越权的。</p>
+</blockquote>
+
+<h3 id="sec-1.3">1.1.3 边界、指标与不可逆决策</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>范围内是问题理解、口径、Schema、SQL、权限、图表六件事，范围外是埋点、数仓建模、身份认证等基础能力。核心指标分正确、体验、安全、成本、质量五类。另有七项不可逆决策，做错了要停机迁移，而不是发个版本。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>不可逆清单是这一段的分量所在。指标的标准表达式、语义层的命名模型、权限的强制技术形态、缓存指纹的维度——这四项任何一项改动都会让历史答案失效。真正值得记住的是那句对照：它们是单向门，决策时要多评审、做原型、留迁移方案；其余是双向门，可以快速试错。</p>
+</div>
+
+<p><strong>系统边界</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">范围内</th><th scope="col">范围外</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>问题理解与澄清</td><td>数据采集与埋点</td></tr>
+      <tr><td>指标语义与口径</td><td>数仓建模本身</td></tr>
+      <tr><td>Schema 检索与裁剪</td><td>数据质量治理</td></tr>
+      <tr><td>SQL 生成、校验、执行</td><td>数据库内核</td></tr>
+      <tr><td>权限重写与审计</td><td>统一身份认证</td></tr>
+      <tr><td>图表路由与结论表达</td><td>人工深度分析</td></tr>
+  </tbody>
+</table>
+<p><strong>核心指标</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>正确</td><td>执行准确率（EX）、有效 SQL 率、完全匹配率（EM）、<strong>口径一致率</strong></td></tr>
+      <tr><td>体验</td><td>首次采纳率、追问率、平均延迟、P95 延迟、<strong>分歧率</strong></td></tr>
+      <tr><td>安全</td><td>越权拦截率、危险 SQL 拦截率、PII 泄露数</td></tr>
+      <tr><td>成本</td><td>单次查询 token、单次查询计算成本、缓存命中率、<strong>结果集回传 token 占比</strong></td></tr>
+      <tr><td>质量</td><td>结果复核率、空结果率、用户满意度</td></tr>
+  </tbody>
+</table>
+<p><strong>SLO 示例</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">目标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>简单查询 P95</td><td>&lt; 5s</td></tr>
+      <tr><td>复杂查询 P95</td><td>&lt; 30s</td></tr>
+      <tr><td>有效 SQL 率</td><td>&gt; 98%</td></tr>
+      <tr><td>首次采纳率</td><td>≥ 55%</td></tr>
+      <tr><td>越权访问</td><td><strong>0</strong>（硬约束）</td></tr>
+      <tr><td>危险 SQL 拦截</td><td><strong>100%</strong></td></tr>
+      <tr><td>审计覆盖率</td><td><strong>100%</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>本章专属不可逆决策清单</strong>（做错了要停机迁移 + 数据回填 + 全量对账，不是发个版本就能改）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">为什么不可逆</th><th scope="col">改动代价</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>指标的「标准表达式」与口径版本策略</strong></td><td>口径是所有答案的坐标系；表达式一改，全部历史答案失效</td><td>历史答案需重新标注口径 + 报表与看板对齐 + 指标版本全量回填</td></tr>
+      <tr><td><strong>语义层的命名与作用域模型</strong></td><td>决定指标能否复用、口径冲突如何裁决</td><td>全量指标重命名 + 上下游血缘断裂 + 同义词映射重训</td></tr>
+      <tr><td><strong>元数据 schema 与 Schema 检索的分层索引结构</strong></td><td>召回质量与裁剪效果全建立在它上面</td><td>全量重建索引 + 召回结果突变 + Top-K 命中率重训</td></tr>
+      <tr><td><strong>权限的强制技术形态</strong>（数据库策略层 / 视图 / AST 重写）</td><td>决定权限能否绕不过模型</td><td>全部查询重写逻辑重写 + 历史审计无法回放 + 存量视图迁移</td></tr>
+      <tr><td><strong>审计记录的粒度与不可篡改存储选型</strong></td><td>问数是读操作却会泄露数据，事后补不回「当时查了什么」</td><td>历史审计无法补齐 + 合规举证出现空洞</td></tr>
+      <tr><td><strong>缓存指纹的定义</strong>（问题 + 权限 + 数据版本 + 语义层版本）</td><td>少一个维度就可能给出过期答案或越权答案</td><td>全量缓存击穿 + 历史答案需重新评估 + 指纹算法变更即全域失效</td></tr>
+      <tr><td><strong>SQL 方言与执行引擎的绑定</strong>（Hive / Spark / Presto / ClickHouse）</td><td>生成、校验、自愈、成本模型全部按方言展开</td><td>全部 Few-shot 与校验规则重写 + 归因 SQL 全量回归</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>对照「单向门与双向门」的判据</strong>：这七项属单向门，决策时要多评审、做原型、留迁移方案。其余（模型选择、Top-K、批大小、超时阈值、缓存 TTL、样本量）是双向门，可以快速试错——但 <strong>Top-K 与样本量属于「可逆但很贵」</strong>：调它们会改变全部历史答案的完整度，必须伴随回归。</p>
+</blockquote>
+
+<h2 id="seg-2">1.2 核心矛盾与设计原则</h2><div class="oc-part-lead"><strong>第二段 · 核心矛盾</strong>这一段回答：自然语言与数据库语义之间到底隔着什么，为什么这六条原则在冲突时说了算。</div>
+
+<h3 id="sec-2.1">1.2.1 本质与六条章级原则</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>本质矛盾是自然语言的模糊性与数据库语义的精确性之间那道鸿沟，再叠加 LLM 的概率生成与 SQL 的确定性执行。六条章级原则规定了冲突时以谁为准：口径在语义层、权限在执行层、先下推再回传、结论可回溯、不确定就降级、读操作没有回滚所以防线前置。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>六条原则里最容易被违反的是第一条和第二条，因为它们都要求「把约束放在模型外面」。写 Prompt 让模型「只查本部门」是软的，注入内容可以覆盖它；查询重写、策略层、视图是硬的。一个很实用的自检：如果某条护栏需要靠模型自觉执行，它就不是护栏。</p>
+</div>
+
+<p><strong>本质</strong>：问数 Agent 的核心矛盾，是「自然语言的模糊性」与「数据库语义的精确性」之间的鸿沟，再叠加「LLM 的概率生成」与「SQL 的确定性执行」。<strong>模型可以猜，账不能猜</strong>——而问数 Agent 恰好是在「猜出来的 SQL」上直接驱动生产数仓。</p>
+<p><strong>六条章级原则</strong>（贯穿全章，冲突时以这六条为准）：</p>
+<ol>
+<li><strong>口径在语义层，不在 Prompt 里</strong>——模型只能引用标准指标，不能自创公式。<strong>「模型算出来的」不是口径，「指标卡里写着的」才是口径。</strong></li>
+<li><strong>权限在执行层强制，不靠模型自觉</strong>——查询重写、视图、策略层是硬约束，Prompt 里的「请只查本部门」是软建议。<strong>Prompt 会被注入内容覆盖，策略层不会。</strong></li>
+<li><strong>先下推再回传，绝不靠截断控制上下文</strong>——统计在 SQL 里算完，明细只回传样本。<strong>截断省的是 token，丢的是分布。</strong></li>
+<li><strong>结论必须可回溯到 SQL 与口径</strong>——没有可回溯 SQL 的答案不可信；没有口径的答案不可用。</li>
+<li><strong>不确定就降级为「给 SQL 不给结论」</strong>——检索不足、结果异常、口径冲突时，宁可只交 SQL 和原始结果，也不要编一个结论。<strong>「不知道」必须能被识别，不能被润色掉。</strong></li>
+<li><strong>读操作没有回滚，所以防线必须前置</strong>——问数不写业务库，但会泄露数据、打爆数仓、给出错误结论。<strong>这三件事都没有「撤销」按钮，因此校验必须发生在执行之前，而不是之后。</strong></li>
+</ol>
+
+<h3 id="sec-2.2">1.2.2 三个不等式与三个放大器</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>三组不等式划定了问题边界：结果集行数远超上下文能装的行数、Schema 规模远超 Prompt 能承载的规模、自然语言歧义远超 SQL 的确定性。三个放大器量化了代价：结果集放大可达 10 万倍，Schema 放大 1333 倍，口径放大最难察觉。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>放大器这一段要看的是量级差：结果集放大 10 万倍、Schema 放大 1333 倍，两者差两个数量级。这直接决定了优化优先级——先削结果集，再削 Schema。如果反过来做，你会花大量力气在 Schema 提示词上，而真正会爆的那一头原封不动。</p>
+</div>
+
+<p><strong>三个不等式</strong>：</p>
+<pre><code>结果集行数    &gt;&gt;  上下文能装的行数     → 靠下推聚合，不靠截断
+Schema 规模   &gt;&gt;  Prompt 能承载的规模  → 靠裁剪 + 分层索引
+自然语言歧义  &gt;&gt;  SQL 的确定性         → 靠语义层 + 澄清 + 校验</code></pre>
+<p><strong>三个放大器</strong>（本章最贵的量都藏在这里）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">放大器</th><th scope="col">说明</th><th scope="col">后果</th><th scope="col">量化</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>结果集放大</strong></td><td>一次查询可能回传几十万行；行放大 × 列放大</td><td>上下文撑爆 / 结论失真</td><td>明细直返 <strong>21.6 亿</strong> token/题；下推后 2.16 万，<strong>10 万倍</strong>（&lt;a href="#sec-3.6.2"&gt;结果集治理与下推&lt;/a&gt;）</td></tr>
+      <tr><td><strong>Schema 放大</strong></td><td>5000 张表的元数据全进 Prompt</td><td>选错表 + 根本放不下</td><td>全量 <strong>200 万</strong> token；裁剪后 1500，<strong>1333 倍</strong>（&lt;a href="#sec-3.4.1"&gt;Schema 裁剪&lt;/a&gt;）</td></tr>
+      <tr><td><strong>口径放大</strong></td><td>同一个「营收」在多个部门有多种口径</td><td>答案无法互认、结论对不上会</td><td>口径版本 × 作用域组合，冲突必须显式裁决（&lt;a href="#sec-3.3.2"&gt;口径冲突与作用域&lt;/a&gt;）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章的放大器方向值得单独记</strong>：别的系统放大的是数据量，问数章的放大器是结果集——<strong>它是唯一一个「答案本身太大，把模型挤爆」的架构</strong>：进上下文的是 Schema，中间是 SQL，出上下文的是结果集，<strong>三头都在挤压同一个窗口</strong>。</p>
+</blockquote>
+
+<h3 id="sec-2.3">1.2.3 四层正确性与八组关键矛盾</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>正确性分口径、SQL、权限、解读四层，必须分开保证。八组矛盾给每一条标注了默认策略与反转条件，比如「自动化 vs 资金安全」默认阈值加审批，低金额可全自动。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>原文只列了四层，漏掉了「结果完整」这一层——它恰恰是结果集放大最直接的后果，也是最容易被忽略的一类错误。补进去之后，问数的正确性就是「口径 + SQL + 权限 + 结果完整 + 解读」五层叠加。这个补充值得记住，因为它把最隐蔽的错误从视野里捞了出来。</p>
+</div>
+
+<p><strong>四层正确性</strong>（必须分开保证，缺一层就有一类错答案）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">要求</th><th scope="col">保障手段</th><th scope="col">典型漏法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>口径正确</strong></td><td>指标、时间、过滤与业务定义一致</td><td>语义层固化 + 版本 + 作用域</td><td>SQL 语法全对，指标算错了</td></tr>
+      <tr><td><strong>SQL 正确</strong></td><td>语法、Join、聚合、方言</td><td>AST 校验 + 白名单 + 自愈</td><td>笛卡尔积、少 Join、枚举写错</td></tr>
+      <tr><td><strong>权限正确</strong></td><td>行 / 列 / 租户 / 密级</td><td>查询重写 + 视图 + 策略层</td><td>只靠 Prompt 提醒模型</td></tr>
+      <tr><td><strong>解读正确</strong></td><td>不过度推断、不混淆相关与因果</td><td>归因规范 + 引用 + 人工复核</td><td>把相关性写成因果</td></tr>
+  </tbody>
+</table>
+<p><strong>为什么「生成对了 SQL」还不够</strong>：</p>
+<ul>
+<li><strong>口径可能错</strong>：SQL 语法正确，但指标定义不是业务要的。</li>
+<li><strong>权限可能错</strong>：查到了不该看的数据。</li>
+<li><strong>性能可能错</strong>：结果对，但打爆数仓。</li>
+<li><strong>结果可能残</strong>：SQL 对，但只回传了前 100 行，用户以为这就是全量（&lt;a href="#sec-3.6.2"&gt;结果集治理与下推&lt;/a&gt;）。</li>
+<li><strong>解读可能错</strong>：数据对，结论错。</li>
+</ul>
+<blockquote>
+  <p><strong>结论</strong>：<strong>问数 Agent 的正确性是「口径 + SQL + 权限 + 结果完整 + 解读」五层叠加</strong>。原版只列了四层，<strong>漏掉了「结果完整」这一层</strong>——它恰恰是本章放大器最直接的后果，也是最容易被忽略的一类错误。</p>
+</blockquote>
+<p><strong>八组关键矛盾</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">矛盾</th><th scope="col">典型表现</th><th scope="col">默认策略</th><th scope="col">何时反转</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>准确 vs 覆盖</td><td>只答确定问题准确率高</td><td>语义层 + 置信度分级</td><td>探索场景可放宽</td></tr>
+      <tr><td>延迟 vs 推理深度</td><td>多轮自愈慢</td><td>快路径 + 慢路径</td><td>复杂归因可接受分钟级</td></tr>
+      <tr><td>灵活 vs 受控</td><td>自由 SQL 灵活但危险</td><td>语义层 + 模板 + 沙箱</td><td>专家模式可放开</td></tr>
+      <tr><td>口径统一 vs 业务多样</td><td>各部门口径不同</td><td>指标版本 + 作用域</td><td>强治理组织统一</td></tr>
+      <tr><td>权限 vs 可用</td><td>过滤后数据不全</td><td>明确告知 + 申请流程</td><td>公开数据可放宽</td></tr>
+      <tr><td>成本 vs 质量</td><td>大模型准但贵</td><td>模型分级 + 缓存</td><td>高价值问题可用大模型</td></tr>
+      <tr><td>自动化 vs 可解释</td><td>直接给结论快</td><td>必须附 SQL / 口径</td><td>管理层摘要可折叠</td></tr>
+      <tr><td>实时 vs 稳定</td><td>实时数仓贵</td><td>分层：T+1 / 小时 / 实时</td><td>强实时业务单独链路</td></tr>
+      <tr><td><strong>覆盖 vs 资源</strong></td><td>什么都能问，但数仓扛不住</td><td>结果集下推 + 查询预算</td><td>内部可信场景可放宽</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-2.4">1.2.4 失败模式、信任分级与威胁模型</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>七类失败模式各配了防线，其中「结果残」——只返回部分行却当成全量——是本章特有的一类。信任分级把「已截断」写进级别条件：截断后的结果不能再按「高」级给结论。威胁模型里最需要警惕的是口径漂移——同名指标被改定义，答案静默变化。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>口径漂移这一条比 SQL 注入更可怕。注入会报错、越权会报错，只有口径漂移会笑眯眯地给出一个看起来合理的数字。失败会被发现，错误的数字会被拿去做决策——这就是它排在威胁模型末位却最危险的原因。</p>
+</div>
+
+<p><strong>七类失败模式</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">失败</th><th scope="col">表现</th><th scope="col">根因</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>指标错</td><td>口径不一致</td><td>无语义层</td><td>指标卡 + 版本 + 作用域</td></tr>
+      <tr><td>表错</td><td>选错表 / 视图</td><td>Schema 太大</td><td>Schema Linking + 分层索引</td></tr>
+      <tr><td>Join 错</td><td>笛卡尔积、漏 Join</td><td>关系不清</td><td>元数据 + AST 校验</td></tr>
+      <tr><td>过滤错</td><td>枚举 / 时间写错</td><td>缺样本</td><td>枚举抽样 + 澄清</td></tr>
+      <tr><td>权限错</td><td>越权读取</td><td>只靠 Prompt</td><td>查询重写 / 策略层</td></tr>
+      <tr><td>性能错</td><td>全表扫描、超时</td><td>无代价评估</td><td>EXPLAIN + 沙箱 + 扫描量上限</td></tr>
+      <tr><td><strong>结果残</strong></td><td><strong>只返回部分行却当成全量</strong></td><td><strong>用截断代替下推</strong></td><td><strong>统计 + 样本分离 + 截断标注</strong></td></tr>
+      <tr><td>解读错</td><td>相关当因果</td><td>过度推断</td><td>归因规范 + 人工</td></tr>
+  </tbody>
+</table>
+<p><strong>信任分级</strong>（这是问数 Agent 的「输出契约」，决定了用户敢不敢用）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">级别</th><th scope="col">条件</th><th scope="col">展示方式</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>高</td><td>命中标准指标 + SQL 校验通过 + 结果校验通过 + 结果未被截断</td><td>直接给结论 + SQL + 口径</td></tr>
+      <tr><td>中</td><td>指标需推断或存在多口径</td><td>给结果 + 口径说明 + 待确认标记</td></tr>
+      <tr><td>低</td><td>检索不足 / 结果异常 / 结果已截断</td><td><strong>只给 SQL 与原始结果，不下结论</strong></td></tr>
+      <tr><td>拒绝</td><td>越权 / 危险 / 资源超限</td><td>明确拒绝 + 原因 + 可走的替代路径</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「已截断」必须体现在信任级别里</strong>。截断后的结果如果仍按「高」级给出结论，用户会把前 100 行当成全量——<strong>这是本章最隐蔽、也最昂贵的一类错误</strong>，因为它不会报错。</p>
+</blockquote>
+<p><strong>威胁模型</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">威胁</th><th scope="col">路径</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>SQL 注入</td><td>多语句、注释、UNION</td><td>AST 白名单 + 参数化</td></tr>
+      <tr><td>越权</td><td>租户 / 行 / 列</td><td>查询重写 + 视图 + 策略层</td></tr>
+      <tr><td>资源耗尽</td><td>笛卡尔积、全表扫描、递归 CTE</td><td>EXPLAIN + 超时 + 扫描量上限</td></tr>
+      <tr><td>PII 泄露</td><td>敏感列 / 明细导出</td><td>列级权限 + 脱敏 + 导出审批</td></tr>
+      <tr><td>提示注入</td><td>问题文本里塞指令（「忽略前面的规则」）</td><td>指令隔离 + 结构化输出 + 判定在代码层</td></tr>
+      <tr><td>元数据投毒</td><td>指标定义 / 表注释被篡改</td><td>变更审核 + 版本 + 指纹</td></tr>
+      <tr><td><strong>口径漂移</strong></td><td><strong>同名指标被改定义，答案静默变化</strong></td><td><strong>指标版本 + 口径一致率监控 + 变更公告</strong></td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-2.5">1.2.5 成本结构</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>成本结构里排第一的不是 LLM token，而是结果集回传 token——实测约占输入 token 的 63%，是 Schema 侧的近 7 倍。LLM token 次之，数仓计算再次，向量检索与存储最小。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一段的核心是「成本表的第一行是本章新增的」。原版把 LLM token 笼统列为最大项，没有拆分 Schema 侧与结果集侧，于是优化方向指错了。很多人拼命压缩 Schema 提示词，却任由几万行结果集直接进上下文——不区分这两侧，优化就会打错靶子。</p>
+</div>
+
+<p><strong>成本结构</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">占比量级</th><th scope="col">优化手段</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>结果集回传 token</strong></td><td><strong>最大（实测约 63% 的输入 token）</strong></td><td><strong>统计下推、列裁剪、样本替代全量</strong></td></tr>
+      <tr><td>LLM token（Schema + 指令 + 推理）</td><td>次之</td><td>Schema 裁剪、模型分级、缓存</td></tr>
+      <tr><td>数仓计算</td><td>次之</td><td>物化视图、结果缓存、查询预算</td></tr>
+      <tr><td>向量检索</td><td>小</td><td>索引优化、Top-K 控制</td></tr>
+      <tr><td>存储 / 审计</td><td>小</td><td>分层、TTL</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>成本表的第一行是本章新增的</strong>。原版把「LLM token」笼统列为最大项，没有拆分<strong>「Schema 侧 token」与「结果集侧 token」</strong>。而实测（&lt;a href="#sec-3.8.4"&gt;容量与成本估算&lt;/a&gt;）表明<strong>结果集侧占输入 token 的 63%，是 Schema 侧的近 7 倍</strong>。<strong>不区分这两侧，优化就会打错靶子</strong>——很多人拼命压缩 Schema 提示词，却任由几万行的结果集直接进上下文。</p>
+</blockquote>
+
+<h2 id="seg-3">1.3 理论与方法论</h2><div class="oc-part-lead"><strong>第三段 · 理论与方法论</strong>这一段回答：从七项前置锚点出发，一步步推到方法论与容量成本；口径、Schema、SQL、结果集四层分别怎么治。</div>
+
+<h3 id="sec-3.1">1.3.1 S0 前置锚点与 4S 收敛顺序</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>七项锚点划定可行域：业务目标与成功标准、规模量级、质量属性优先级、硬约束、不可逆决策清单、核心路径与事实源、竞争与协作边界。第 2 项之所以改变答案，是因为问数的规模参数不只有 QPS，还有明细类问题占比与单次结果集行数。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「50 万个「昨天各渠道订单量」和 50 万个「导出上周全部订单明细」，是两个完全不同的系统」——这句话是本章容量规划的前提。只给日问题量这一个数，算不出任何东西，因为明细类占比每上升 1 个百分点，日上下文 token 就涨约 0.36 亿。</p>
+</div>
+
+<h4 id="sec-3.1.1" data-toc-skip>S0：七项前置锚点</h4>
+
+<p>先落定七件事，它们共同决定<strong>可行域</strong>——不在可行域内的方案不参与讨论。</p>
+<table>
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">锚点</th><th scope="col">本章答案</th><th scope="col">影响</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>业务目标与成功标准</strong></td><td>首次采纳率 ≥ 55%、口径一致率 ≥ 95%、分歧率 ≤ 3%、越权访问 0</td><td>决定自动化分级与拒答阈值</td></tr>
+      <tr><td>2</td><td><strong>规模量级</strong></td><td>日问题 50 万、峰值 29 QPS、每题 1.5 次 LLM 调用、<strong>明细类问题占 28%</strong>、单次结果集可达 120 万行</td><td>决定数仓并发、模型配额与结果集护栏阈值</td></tr>
+      <tr><td>3</td><td><strong>质量属性优先级</strong></td><td>权限正确 &gt; 口径正确 &gt; SQL 正确 &gt; 结果完整 &gt; 体验 &gt; 成本</td><td>决定降级顺序与 fail-closed 边界</td></tr>
+      <tr><td>4</td><td><strong>硬约束</strong></td><td>越权 0；危险 SQL 拦截 100%；只读；PII 最小化与留存期；审计覆盖率 100%</td><td>定义可行域；合规要求不可用技术折抵</td></tr>
+      <tr><td>5</td><td><strong>不可逆决策清单</strong></td><td>见 &lt;a href="#sec-1.3"&gt;边界、指标与不可逆决策&lt;/a&gt; 的本章七项</td><td>决策流程：多评审 + 原型 + 迁移方案</td></tr>
+      <tr><td>6</td><td><strong>核心路径与事实源</strong></td><td>核心路径 = 提问 → 澄清 → 语义 → Schema → 生成 → 校验 → 执行 → 结果校验 → 解读；事实源 = <strong>指标卡 + SQL + 查询日志 + 审计</strong></td><td>决定缓存与对账对象；结果缓存与元数据索引全是投影</td></tr>
+      <tr><td>7</td><td><strong>竞争与协作边界</strong></td><td>数仓、元数据平台、BI 平台在外部；问数 Agent 自建语义层、生成、校验、解读与审计</td><td>决定服务边界与团队成本</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 2 项为什么改变答案</strong>：问数系统的规模参数不只是 QPS，还有<strong>「明细类问题占比」与「单次结果集行数」</strong>。前者决定上下文预算的形状，后者决定结果集护栏的阈值。只给「日 50 万问题」这一个数，算不出任何东西——<strong>50 万个「昨天各渠道订单量」和 50 万个「导出上周全部订单明细」，是两个完全不同的系统</strong>。</p>
+</blockquote>
+
+<h4 id="sec-3.1.2" data-toc-skip>4S 收敛顺序</h4>
+
+<pre><code>S0 定题（锚点 + 不可逆清单）
+   → Scenario 定问题量、问题类型分布、明细占比、时效、权限模型
+      → Service 定澄清、语义、生成、校验、执行、解读的边界
+         → Storage 定指标卡、元数据、查询日志、结果缓存的唯一事实源
+            → Scale 定 Schema 裁剪、结果集下推、沙箱、缓存、限流</code></pre>
+
+<h3 id="sec-3.2">1.3.2 场景、规模与服务边界</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>场景表给出完整规模：日问题 50 万、峰值 29 QPS、问题类型取数 70%/分析 25%/归因 5%、数仓 5000 张表、明细单次可达 120 万行。13 个服务分清了同步与异步，关键点写明各自不可省的部分。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>服务表里有两个值得单独看：Schema Retriever 的「向量 + 关键词 + Join 历史 + 域路由」是召回上限的来源，SQL Validator 的「规则在代码层」是权限强制的来源。这两条决定了系统是「可控的查询」还是「看模型心情的查询」。</p>
+</div>
+
+<h4 id="sec-3.2.3" data-toc-skip>Scenario：场景与规模</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">数值</th><th scope="col">推导与来源</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>日问题量</td><td>50 万</td><td>—</td></tr>
+      <tr><td>平均问题 QPS</td><td>50 万 ÷ 86400</td><td>≈ <strong>5.8</strong></td></tr>
+      <tr><td><strong>峰值问题 QPS</strong></td><td>5.8 × 5</td><td><strong>29</strong>（峰值系数 5：9:30–11:30 与 20:00–21:30 两个业务高峰承载当日 40%，叠加周一早会脉冲）</td></tr>
+      <tr><td><strong>问题类型分布</strong></td><td>取数 70%、分析 25%、归因 5%</td><td><strong>决定是否需要多步归因链路</strong>；取数类可走快路径</td></tr>
+      <tr><td><strong>取数类内部拆分</strong></td><td>聚合 60% / 明细 40%</td><td>明细类合计占 <strong>28%</strong>，是结果集放大的主要来源</td></tr>
+      <tr><td>数据规模</td><td>数仓 5000 张表，核心表 200 张</td><td>决定 Schema 裁剪与域路由的必要性</td></tr>
+      <tr><td>单次结果集行数</td><td>聚合 5–50 行；明细可达 <strong>120 万行</strong></td><td><strong>决定结果集护栏阈值与是否必须下推</strong></td></tr>
+      <tr><td>每题 LLM 调用</td><td>平均 1.5 次</td><td>澄清 25% 触发一次追问；生成 1 次</td></tr>
+      <tr><td>时效</td><td>T+1 为主，部分小时级 / 实时</td><td>决定缓存 TTL 与数据版本策略</td></tr>
+      <tr><td>权限模型</td><td>多租户 + 区域 + 部门 + 列级密级</td><td>决定查询重写与视图层设计</td></tr>
+      <tr><td>合规</td><td>PII 保护、查询审计全量留痕、留存期</td><td>—</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「取数类内部拆分」是本章独有的关键参数</strong>。传统系统的容量参数是 QPS，问数系统还必须给出<strong>明细类问题占比</strong>——因为它是唯一能把「一次查询 120 万行」放进系统的入口，占比每上升 1 个百分点，日上下文 token 就会涨约 0.36 亿。</p>
+</blockquote>
+
+<h4 id="sec-3.2.4" data-toc-skip>Service：服务与接口</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">服务</th><th scope="col">职责</th><th scope="col">同步 / 异步</th><th scope="col">关键点</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Question Service</td><td>会话、澄清、意图分类</td><td>同步</td><td>多轮状态、<code>confirmed_slots</code></td></tr>
+      <tr><td>Semantic Service</td><td>指标、维度、口径、作用域</td><td>同步</td><td><strong>版本化、冲突裁决</strong></td></tr>
+      <tr><td>Metadata Service</td><td>表 / 列 / 血缘 / 枚举 / PII</td><td>同步</td><td>新鲜度、血缘可信度</td></tr>
+      <tr><td>Schema Retriever</td><td>表列召回与裁剪</td><td>同步</td><td>向量 + 关键词 + Join 历史 + 域路由</td></tr>
+      <tr><td>SQL Generator</td><td>SQL 生成</td><td>同步</td><td>结构化输出、方言适配</td></tr>
+      <tr><td>SQL Validator</td><td>AST、白名单、权限重写、代价预估</td><td>同步</td><td><strong>规则在代码层</strong></td></tr>
+      <tr><td>Query Executor</td><td>沙箱执行</td><td>同步 / 异步</td><td>资源组、超时、扫描量上限</td></tr>
+      <tr><td>Result Guard</td><td>结果集裁剪与形状判定</td><td>同步</td><td><strong>统计 + 样本分离</strong></td></tr>
+      <tr><td>Result Validator</td><td>结果校验</td><td>同步</td><td>一致性、空值、异常、截断标注</td></tr>
+      <tr><td>Chart / Attribution Service</td><td>图表路由、贡献度拆解</td><td>同步 / 异步</td><td>下推优先</td></tr>
+      <tr><td>Answer Composer</td><td>结论 + SQL + 口径 + 注意</td><td>同步</td><td>置信度分级</td></tr>
+      <tr><td>Audit Service</td><td>全量审计</td><td>异步</td><td>不可篡改</td></tr>
+      <tr><td>Budget Service</td><td>token / 扫描量 / 结果行数 / 时长预算</td><td>同步</td><td>超预算即降级</td></tr>
+  </tbody>
+</table>
+<p><strong>核心 API</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方法</th><th scope="col">路径</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>POST</td><td><code>/api/v1/ask</code></td><td>提问，返回答案或澄清</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/ask/{id}/clarify</code></td><td>补充澄清信息</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/ask/{id}</code></td><td>查询结果与状态</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/metrics</code></td><td>指标列表与口径</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/metrics/{name}/versions</code></td><td>指标历史版本与生效时间</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/queries/{id}/export</code></td><td>导出（<strong>独立审批链路，不在问数链路内</strong>）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong><code>export</code> 为什么单独拆出来</strong>：明细导出是问数链路上唯一一个「结果集大小不受控」的出口，也是唯一一个「绕过 Schema 裁剪与结果集下推」的出口。它必须走独立的审批、水印与限量流程，<strong>绝不能作为问数的一个普通 API 参数</strong>存在。</p>
+</blockquote>
+
+<h4 id="sec-3.2.5" data-toc-skip>Storage：数据模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">数据</th><th scope="col">存储</th><th scope="col">关键设计</th><th scope="col">是事实源吗</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>指标定义</td><td>元数据服务 / DB</td><td>名称、表达式、版本、owner、作用域</td><td><strong>是</strong></td></tr>
+      <tr><td>表 / 列元数据</td><td>元数据服务</td><td>注释、类型、枚举、血缘、PII 标签</td><td><strong>是</strong></td></tr>
+      <tr><td>查询会话</td><td>Redis / DB</td><td>多轮上下文、已确认槽位</td><td>否（可重建）</td></tr>
+      <tr><td>查询日志</td><td>数仓 / 日志</td><td>SQL、耗时、扫描量、行数、用户</td><td><strong>是</strong></td></tr>
+      <tr><td>结果缓存</td><td>Redis / 对象存储</td><td><strong>四元指纹</strong>（见 &lt;a href="#sec-3.8.2"&gt;缓存与数据版本&lt;/a&gt;）</td><td>否（可重建）</td></tr>
+      <tr><td>向量索引</td><td>向量库</td><td>元数据 embedding + 版本</td><td>否（可重建）</td></tr>
+      <tr><td>审计</td><td>不可篡改存储</td><td>谁、何时、问了什么、查了什么、改写前后 SQL</td><td><strong>是</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>区分事实源与投影是本章的基本功</strong>。指标卡、元数据、查询日志、审计是事实源；会话、缓存、向量索引全是投影，可以丢、可以重建、可以随时重建。<strong>投影丢了不致命，事实源丢了就没有回溯能力</strong>——而问数系统的价值恰恰在于「三年前有人问过什么、查到了什么、当时的口径是哪一版」。</p>
+</blockquote>
+<p><strong>指标卡结构</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">字段</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>metric_id</code></td><td>稳定 ID，<strong>跨版本不变</strong>（改名不改 ID）</td></tr>
+      <tr><td><code>name</code> / <code>synonyms</code></td><td>指标名与同义词、口语映射</td></tr>
+      <tr><td><code>definition</code></td><td>业务定义（人读）</td></tr>
+      <tr><td><code>sql_expression</code></td><td>标准 SQL 表达式（机器读）</td></tr>
+      <tr><td><code>dimensions</code></td><td>可用维度</td></tr>
+      <tr><td><code>time_grain</code></td><td>支持的时间粒度与时区</td></tr>
+      <tr><td><code>scope</code></td><td>适用业务 / 部门 / 租户（<strong>口径冲突的裁决依据</strong>）</td></tr>
+      <tr><td><code>owner</code></td><td>负责人</td></tr>
+      <tr><td><code>version</code> / <code>effective_from</code></td><td>版本与生效时间</td></tr>
+      <tr><td><code>lineage</code></td><td>上游表与依赖</td></tr>
+      <tr><td><code>caveats</code></td><td>使用注意（如「不含内部单」）</td></tr>
+      <tr><td><code>policies</code></td><td>密级、行级过滤策略引用</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong><code>metric_id</code> 与 <code>name</code> 分离是本章新增的一条硬要求</strong>。一旦允许「改名字不改语义」或「改语义不改名字」，历史答案的口径就无法回指——<strong>口径版本化会立刻失效</strong>。</p>
+</blockquote>
+
+<h4 id="sec-3.2.6" data-toc-skip>Scale：扩展与兜底</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">手段</th><th scope="col">触发条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Schema</td><td>分层裁剪、域路由、Top-K</td><td>表太多、上下文超限</td></tr>
+      <tr><td>结果集</td><td><strong>统计下推、列裁剪、样本替代</strong></td><td>回传行数超阈值</td></tr>
+      <tr><td>生成</td><td>模型分级、问题缓存</td><td>token 成本高</td></tr>
+      <tr><td>执行</td><td>只读副本、资源组、队列</td><td>数仓并发压力</td></tr>
+      <tr><td>结果</td><td>结果缓存、物化视图</td><td>重复问题多</td></tr>
+      <tr><td>权限</td><td>预计算视图、策略层</td><td>行级过滤复杂</td></tr>
+      <tr><td>降级</td><td>模板查询、保存问题、策展表集合</td><td>模型 / 数仓 / 元数据故障</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.3">1.3.3 语义层与口径冲突裁决</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>语义层不是指标字典，是口径的执行版本：它规定「在这个系统里净营收只能这样算、这样取、这样授权」。口径冲突有固定裁决顺序——用户所属租户部门的强制口径、指标 scope、平台默认口径，最后列候选让用户选，绝不默认。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「口径冲突时默认选一个」是本章最不可接受的错误：它不会报错、不会超时，SQL 也能正常执行，但会安静地给出一个看起来完全合理而业务上是错的数字。所以这一段的三条规则要连起来读——能唯一确定就用并注明版本，有多个候选就列出来让用户选，同名但完全不同义就拒绝自动作答。</p>
+</div>
+
+<h4 id="sec-3.3.7" data-toc-skip>语义层与指标治理</h4>
+
+<p><strong>本节是语义层与指标治理的权威版</strong>，&lt;a href="#sec-4.2.1"&gt;语义层护栏&lt;/a&gt;与&lt;a href="#seg-5"&gt;第 5 段&lt;/a&gt;只引用。</p>
+<p><strong>三类对象</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">对象</th><th scope="col">示例</th><th scope="col">作用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Measure</td><td>净营收、GMV、客单价、退款率</td><td>可聚合的数值</td></tr>
+      <tr><td>Dimension</td><td>时间、地区、渠道、品类、租户</td><td>分组维度</td></tr>
+      <tr><td>Time Grain</td><td>自然日 / 周 / 财周、时区、截止时点</td><td>时间口径</td></tr>
+  </tbody>
+</table>
+<p><strong>计算逻辑示例</strong>：</p>
+<pre><code>净营收 = 含税销售额 - 退货冲减 - 折扣补贴
+排除：测试单、未结算单、内部单</code></pre>
+<p><strong>治理规则</strong>：</p>
+<ul>
+<li>Agent 只能引用标准指标，不能自创公式；探索性公式必须显式标记「非标准」。</li>
+<li>指标变更走评审，保留版本与生效时间，旧版本不删除。</li>
+<li>指标卡带 owner 与血缘，出问题可追溯到人。</li>
+<li>同义词与口语映射到标准指标（「销售额」→「净营收」<strong>需用户确认</strong>，因为这是口径选择而不是措辞问题）。</li>
+<li><strong>指标定义变更后，所有依赖它的固定报表与看板必须同步评审</strong>——否则语义层与报表层会分叉。</li>
+</ul>
+<blockquote>
+  <p><strong>语义层不是「指标字典」，是「口径的执行版本」</strong>。区别在于：指标字典描述「净营收是什么」，语义层<strong>规定</strong>「在这个系统里，净营收只能这样算、这样取、这样授权」。前者是文档，后者是约束。</p>
+</blockquote>
+
+<h4 id="sec-3.3.8" data-toc-skip>口径冲突与作用域</h4>
+
+<p><strong>本节是口径冲突裁决的权威版</strong>，&lt;a href="#sec-4.2.1"&gt;语义层护栏&lt;/a&gt;只引用。</p>
+<p><strong>冲突的三个来源</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">来源</th><th scope="col">表现</th><th scope="col">例</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>定义不同</td><td>同一指标名，两套算法</td><td>财务的「营收」含税，运营的「营收」不含税</td></tr>
+      <tr><td>范围不同</td><td>同一算法，不同过滤</td><td>「GMV」是否含未支付订单</td></tr>
+      <tr><td>粒度不同</td><td>同一指标，聚合口径不同</td><td>「日活」是去重设备还是去重用户</td></tr>
+  </tbody>
+</table>
+<p><strong>裁决顺序（固定，不随上下文变化）</strong>：</p>
+<pre><code>1. 用户所属租户 / 部门的强制口径   ← 最高优先级
+2. 指标的 scope 作用域匹配
+3. 平台默认口径
+4. 若仍无法判定 → 列出候选口径让用户选，绝不默认</code></pre>
+<p><strong>答案里必须携带的口径元信息</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">字段</th><th scope="col">例</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>指标 ID 与版本</td><td><code>net_revenue@v2.3</code></td></tr>
+      <tr><td>生效时间</td><td>2026-01-01 起生效</td></tr>
+      <tr><td>作用域</td><td>华东区 / 财务口径</td></tr>
+      <tr><td>排除项</td><td>测试单、未结算单</td></tr>
+      <tr><td>时间口径</td><td>自然日，Asia/Shanghai，含当日未结算</td></tr>
+      <tr><td>数据截止时点</td><td>T+1，2026-11-24 06:00 数据就绪</td></tr>
+  </tbody>
+</table>
+<p><strong>口径冲突的三个处理动作</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">场景</th><th scope="col">动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>能按作用域唯一确定</td><td>直接用，<strong>在答案中注明版本与作用域</strong></td></tr>
+      <tr><td>有多个候选</td><td><strong>列出候选让用户选</strong>，不静默选一个</td></tr>
+      <tr><td>同名但完全不同义</td><td><strong>判定为口径冲突并拒绝自动作答</strong>，提示联系指标 owner</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「口径冲突时默认选一个」是本章最不可接受的错误</strong>。它不会报错、不会超时、SQL 也能正常执行——但它会安静地给出一个「看起来完全合理但业务上是错的」数字。<strong>这类错误比失败可怕一百倍</strong>：失败会被人发现，错误的数字会被拿去做决策。</p>
+</blockquote>
+
+<h3 id="sec-3.4">1.3.4 Schema 裁剪、问题澄清与澄清成本判据</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>Schema 裁剪用三层漏斗把 5000 张表收到 5 张，全量 200 万 token 裁到 1500，放大 1333 倍——不裁剪不是「贵一点」，而是根本不可行。问题分六类，其中口径咨询与明细导出必须从主链路分流。澄清成本约 ¥0.004 加 1.5 秒，错误成本至少 1 人天，所以口径不确定时追问永远划算。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>澄清成本对比是本章最实用的一段推导，但结论有两个而不是一个：追问几乎零成本所以该追；但追问有次数上限，超过两次用户会转人工，所以必须一次问全所有必要槽位，而不是挤牙膏。</p>
+</div>
+
+<h4 id="sec-3.4.9" data-toc-skip>Schema 裁剪（Schema Linking）</h4>
+
+<p><strong>本节是 Schema 裁剪的权威版</strong>，&lt;a href="#sec-4.2.1"&gt;语义层护栏&lt;/a&gt;只引用。</p>
+<p><strong>元数据维度</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>表 / 列注释</td><td>语义匹配</td></tr>
+      <tr><td>主外键</td><td>Join 路径</td></tr>
+      <tr><td>枚举值抽样</td><td>过滤条件</td></tr>
+      <tr><td>基数</td><td>判断聚合粒度</td></tr>
+      <tr><td>新鲜度</td><td>避免用过期表</td></tr>
+      <tr><td>PII 标签</td><td>权限与脱敏</td></tr>
+      <tr><td>血缘</td><td>选上游 / 下游表</td></tr>
+      <tr><td>业务域标签</td><td>域路由</td></tr>
+  </tbody>
+</table>
+<p><strong>检索策略（五路并行，合并去重）</strong>：</p>
+<ol>
+<li><strong>语义检索</strong>：问题 → 表 / 列描述向量召回。</li>
+<li><strong>关键词检索</strong>：专有名词、编号、字段名精确匹配。</li>
+<li><strong>历史 Join 路径</strong>：相似问题用过的关系（命中率最高的一路）。</li>
+<li><strong>相似问题缓存</strong>：命中直接复用表集合。</li>
+<li><strong>业务域路由</strong>：先定位域，再在域内检索。</li>
+</ol>
+<p><strong>裁剪原则</strong>：</p>
+<ul>
+<li>只暴露 Top-K 表与关键列，降低噪音。</li>
+<li>大表只给常用列与分区键。</li>
+<li>枚举值给抽样，不给全量。</li>
+<li>敏感列默认不暴露给模型（<strong>不是「暴露了再要求模型别用」</strong>）。</li>
+</ul>
+<p><strong>Schema 放大有多严重</strong>（量化）：</p>
+<pre><code>全量 Schema = 5000 张表 × (表级描述 100 token + 15 列 × 20 token)
+            = 5000 × 400 = 200 万 token
+上下文窗口 ≈ 200K token → 放不下，且噪声会让召回精度崩塌
+
+裁剪后 = Top-5 表 × (100 + 10 列 × 20) = 5 × 300 = 1500 token
+放大倍数 = 200 万 / 1500 = 1333 倍</code></pre>
+<blockquote>
+  <p><strong>1333 倍这个数字要说明两件事</strong>：第一，<strong>不裁剪不是「贵一点」，而是「根本不可行」</strong>——200 万 token 远超任何模型的上下文窗口；第二，裁剪不只是省 token，<strong>它同时是召回精度的手段</strong>：5000 张表进 Prompt，Top-1 命中率会低到无法使用。<strong>Schema 裁剪是可行性需求，不是成本优化项。</strong></p>
+</blockquote>
+<p><strong>裁剪的三层漏斗</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">手段</th><th scope="col">典型收敛比</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>域路由</td><td>先定业务域</td><td>5000 → 200</td></tr>
+      <tr><td>表召回</td><td>向量 + 关键词 + 历史路径</td><td>200 → 20</td></tr>
+      <tr><td>列裁剪</td><td>关键列 + 分区键 + 抽样枚举</td><td>20 表 × 40 列 → 5 表 × 10 列</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.4.10" data-toc-skip>问题分类与澄清</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">类型</th><th scope="col">示例</th><th scope="col">路由</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>简单取数</td><td>「昨天华东订单量」</td><td>快路径，直接生成</td></tr>
+      <tr><td>多维分析</td><td>「各渠道转化率对比」</td><td>标准 SQL + 图表</td></tr>
+      <tr><td>归因</td><td>「为什么下降」</td><td>慢路径，多步分析</td></tr>
+      <tr><td>口径咨询</td><td>「净营收怎么算」</td><td><strong>查指标卡，不查库</strong></td></tr>
+      <tr><td>明细导出</td><td>「导出上周全部订单」</td><td><strong>走独立导出审批链路</strong></td></tr>
+      <tr><td>闲聊 / 越界</td><td>「帮我写周报」</td><td>拒绝或转人工</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>两类问题必须被识别出来并从主链路分流</strong>：<strong>口径咨询</strong>根本不该生成 SQL（查指标卡即可，省掉整个数仓链路）；<strong>明细导出</strong>根本不该留在问数链路里（结果集不可控、权限与合规要求不同）。<strong>把它们混在同一条流水线里，是很多问数系统后期失控的根因。</strong></p>
+</blockquote>
+<p><strong>何时追问</strong>：</p>
+<ul>
+<li>指标不明确（营收 vs 净营收）。</li>
+<li>时间范围缺失或模糊（「最近」）。</li>
+<li>实体不明确（「华东」是否含某省）。</li>
+<li><strong>口径冲突（多版本 / 多作用域）</strong>。</li>
+<li>权限范围影响结果。</li>
+</ul>
+<p><strong>何时用默认值</strong>：</p>
+<ul>
+<li>低风险、可撤销、有明确惯例。</li>
+<li>默认值必须在答案中<strong>显著注明</strong>。</li>
+</ul>
+<p><strong>多轮澄清</strong>：保留 <code>confirmed_slots</code>（指标、时间、实体、过滤、粒度），后续轮次复用，避免重复问。</p>
+
+<h4 id="sec-3.4.11" data-toc-skip>澄清成本 vs 错误成本</h4>
+
+<p>追问一次的成本是可量化的，而错误答案的成本往往不可量化——<strong>这正是必须写进方案的判据</strong>。</p>
+<p><strong>澄清成本</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">数值</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>额外 LLM 调用</td><td>1 次</td><td>输入 ~1000 token（已确认槽位 + 问题）</td></tr>
+      <tr><td>token 成本</td><td>≈ 2,000 token</td><td>按输入 ¥2 / 百万计，约 ¥0.004</td></tr>
+      <tr><td>额外延迟</td><td>+1.5s</td><td>一次生成调用</td></tr>
+      <tr><td>用户耐心消耗</td><td>1 次</td><td>追问 2 次以上，转人工率显著上升</td></tr>
+      <tr><td>口径风险</td><td><strong>0</strong></td><td>槽位确认后写入，后续复用</td></tr>
+  </tbody>
+</table>
+<p><strong>错误答案的成本</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">量级</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>直接成本</td><td>视决策金额而定</td><td>错误的投放 / 库存 / 人力决策</td></tr>
+      <tr><td>信任成本</td><td>高且不可逆</td><td>一次错答被识破，采纳率长期下降</td></tr>
+      <tr><td>复核成本</td><td>每次 +1 人天</td><td>分析师复核 + 沟通 + 纠正</td></tr>
+      <tr><td>权限成本</td><td>不可估</td><td>越权口径泄露属于合规事故</td></tr>
+  </tbody>
+</table>
+<p><strong>判据</strong>：</p>
+<pre><code>追问成本（¥0.004 + 1.5s）  &lt;&lt;  错误成本（≥ 1 人天复核 + 决策损失 + 信任损失）
+                                    → 追问
+
+口径可由作用域唯一确定                →  不追问，直接答 + 注明版本</code></pre>
+<p><strong>澄清决策链路</strong>：</p>
+<pre><code>追问一次的成本（实测）
+  → 2,000 token + 1.5s + 一次用户耐心（≈ ¥0.004）
+  → 对照：错误答案 ≥ 1 人天复核 + 决策损失 + 信任损失（不可逆）
+  → 结论：口径不确定时，追问永远划算
+  → 但上限 1 次（同一问题）—— 追问 2 次以上，用户会直接转人工
+  → 一次问全所有必要槽位，不挤牙膏</code></pre>
+<blockquote>
+  <p><strong>三个必须记住的推论</strong>：</p>
+  <ol>
+  <li><strong>追问几乎是零成本的</strong>：一次追问不到半分钱，而一次错误答案至少一个人天。<strong>口径不确定时，追问永远是划算的</strong>。</li>
+  <li><strong>但追问有次数上限</strong>：连续追问 2 次以上，用户会放弃并转人工。所以应当<strong>一次问全所有必要槽位</strong>，而不是挤牙膏。</li>
+  <li><strong>可以用默认值替代追问的只有一种情况</strong>：默认值既符合惯例、又被显式注明、且用户能一眼看出并纠正。其余情况都要追问。</li>
+  </ol>
+</blockquote>
+
+<h3 id="sec-3.5">1.3.5 SQL 生成、校验与自愈</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>生成阶段用结构化输出约束格式，并强制声明 metrics_used，让下游能在生成阶段就核对口径。校验分拦截与改写两类：语法、语句类型、危险操作、表列白名单是拦截；权限重写、资源改写是改写。自愈只能改「怎么查」，不能改「查什么」。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「自愈只改怎么查、不改查什么」是这一段的红线。重试时可以调时间范围、分区裁剪、Join 顺序，但不得放宽行级权限、不得去掉用户确认过的过滤条件、不得把聚合改回明细全量——放宽语义的自愈会变成权限绕过，这是把可用性问题变成了安全问题。</p>
+</div>
+
+<h4 id="sec-3.5.12" data-toc-skip>SQL 生成</h4>
+
+<p><strong>Prompt 结构</strong>：</p>
+<pre><code>System：角色、约束、输出格式、安全规则
+Context：指标定义（含版本）、裁剪后 Schema、枚举样本、方言、业务规则
+Examples：按问题类型检索的 Few-shot
+Question：用户问题 + 已确认槽位
+Output：JSON { sql, explanation, assumptions, confidence, metrics_used }</code></pre>
+<p><strong>生成约束</strong>：</p>
+<ul>
+<li>只输出 <code>SELECT</code> / <code>WITH</code>。</li>
+<li>禁止 <code>SELECT *</code>，必须显式列。</li>
+<li>必须带时间过滤（除非用户明确全量）。</li>
+<li><strong>默认带聚合</strong>：除非问题明确要明细，否则强制 <code>GROUP BY</code> 或聚合函数（&lt;a href="#sec-3.6.2"&gt;结果集治理与下推&lt;/a&gt;）。</li>
+<li>自动加 <code>LIMIT</code>。</li>
+<li>使用标准 Join，禁止隐式笛卡尔积。</li>
+<li>方言适配（MySQL / PostgreSQL / Hive / Spark / ClickHouse）。</li>
+<li><strong>必须声明所用指标</strong>（<code>metrics_used</code>），供下游做口径核对。</li>
+</ul>
+<p><strong>Few-shot 选择</strong>：按问题类型（单表、多表、聚合、窗口、同比、贡献度）检索相似样例；<strong>样例必须是本方言、本指标版本下验证过的</strong>。</p>
+<blockquote>
+  <p><strong><code>metrics_used</code> 是一个成本极低、价值极高的字段</strong>：它让下游可以在生成阶段就核对「这个 SQL 用的是不是标准指标口径」，而不是等到结果出来再靠人肉看 SQL。<strong>它在错误还没变成一个数字之前就把错误拦下了。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.5.13" data-toc-skip>SQL 校验与权限重写</h4>
+
+<p><strong>本节是 SQL 校验与权限重写的权威版</strong>，&lt;a href="#sec-4.2.2"&gt;生成与校验护栏&lt;/a&gt;只引用。</p>
+<table>
+  <thead>
+    <tr><th scope="col">校验</th><th scope="col">内容</th><th scope="col">拦截还是改写</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>语法</td><td>AST 解析成功</td><td>拦截</td></tr>
+      <tr><td>语句类型</td><td>仅 <code>SELECT</code> / <code>WITH</code></td><td>拦截</td></tr>
+      <tr><td>危险操作</td><td>DDL / DML / 多语句 / 注释注入</td><td>拦截</td></tr>
+      <tr><td>函数</td><td>黑名单（文件、系统、网络、反射类）</td><td>拦截</td></tr>
+      <tr><td>对象</td><td>表 / 列存在且在白名单内</td><td>拦截</td></tr>
+      <tr><td>Join</td><td>必须有连接条件，防笛卡尔积</td><td>拦截</td></tr>
+      <tr><td>权限</td><td>注入行级条件、列级过滤</td><td><strong>改写</strong></td></tr>
+      <tr><td>资源</td><td>自动 LIMIT、扫描量预估</td><td>改写</td></tr>
+      <tr><td>代价</td><td>EXPLAIN 预估，超阈值拒绝或改写</td><td>拦截 / 改写</td></tr>
+  </tbody>
+</table>
+<p><strong>权限重写示例</strong>：</p>
+<pre><code class="language-sql">-- 原始
+SELECT region, SUM(amount) FROM orders GROUP BY region;
+
+-- 重写后（用户仅华东）
+SELECT region, SUM(amount) FROM orders
+WHERE tenant_id = 42 AND region = 'east'
+GROUP BY region;</code></pre>
+<p><strong>权限强制链路</strong>：</p>
+<pre><code>原始 SQL（模型生成）
+  → AST 解析（失败即拦截，不给模型解释机会）
+  → 语义校验（表列白名单、Join 条件、聚合合法性）
+  → 权限重写（行级 WHERE 注入 + 列级白名单裁剪 + 密级掩码）
+  → 资源改写（LIMIT 注入、扫描量预估、超阈值改写或拒绝）
+  → 方言编译（转为目标引擎可执行计划）
+  → 送入只读沙箱执行</code></pre>
+<p><strong>为什么必须在执行层</strong>：Prompt 里的「请只查本部门」可以被注入或忽略；<strong>只有重写 / 视图 / 策略层才是强制约束</strong>。而且模型是概率性的——即使 Prompt 写对了，同一输入也可能生成一条漏掉租户条件的 SQL。<strong>依赖模型守规矩的系统，迟早会漏一次。</strong></p>
+
+<h4 id="sec-3.5.14" data-toc-skip>沙箱执行与资源护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">措施</th><th scope="col">说明</th><th scope="col">参考阈值</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>只读副本</td><td>与生产隔离</td><td>独立资源组</td></tr>
+      <tr><td>独立资源组</td><td>限制 CPU / 内存 / 并发</td><td>问数专用队列</td></tr>
+      <tr><td>Statement Timeout</td><td>防长查询</td><td>简单 15s / 复杂 60s</td></tr>
+      <tr><td>最大返回行数</td><td>防大结果集</td><td><strong>10 万行（硬限）</strong></td></tr>
+      <tr><td>最大扫描量</td><td>防全表扫描</td><td><strong>100 GB（硬限）</strong></td></tr>
+      <tr><td>并发上限</td><td>防打爆数仓</td><td>峰值 360 并发 → 配额 300</td></tr>
+      <tr><td>查询队列</td><td>削峰</td><td>按复杂度分优先级</td></tr>
+      <tr><td>Kill 机制</td><td>超资源强制终止</td><td>到限即杀，不等自然结束</td></tr>
+      <tr><td>成本预估拦截</td><td>EXPLAIN 超阈值直接拒绝</td><td>提前于执行阻断</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>最大返回行数与最大扫描量是两个不同的闸</strong>：扫描量拦的是「代价高但结果小」的查询（一次全表聚合），返回行数拦的是「代价中等但结果巨大」的查询（明细导出）。<strong>只设其中一个，另一个方向就会被打爆。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.5.15" data-toc-skip>报错自愈</h4>
+
+<pre><code>执行失败
+  → 分类错误：语法 / 语义 / 权限 / 资源 / 超时
+  → 语法 / 语义：把报错 + 相关 Schema 回填，重新生成
+  → 权限：不重试，直接拒绝并提示
+  → 资源 / 超时：缩小范围或改写，最多 1 次
+  → 超过最大重试（2–3 次）：返回可解释错误或转人工</code></pre>
+<p><strong>自愈的安全边界</strong>：自愈<strong>只能改写「怎么查」，不能改写「查什么」</strong>——重试时可以调整时间范围、分区裁剪、Join 顺序、聚合粒度，<strong>但不得放宽行级权限、不得去掉用户确认过的过滤条件、不得把聚合改回明细全量</strong>。放宽语义的自愈会变成权限绕过。</p>
+<p><strong>失败样本沉淀</strong>：记录错误 SQL、报错、修正结果，用于优化 Schema 描述与 Few-shot；<strong>同时按错误类型统计 Top-N</strong>——「枚举写错」占比高说明枚举样本要给全；「表选错」占比高说明域路由有问题。</p>
+
+<h3 id="sec-3.6">1.3.6 结果校验与结果集治理</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>结果校验要能区分「无数据」与「过滤错」，空结果绝不能当成答案是 0。结果集治理给出四段漏斗：明细直返 21.6 亿 token、显式列 2.16 亿、截断 1.8 万、统计下推 2.16 万——最后一行是唯一同时可行且结论完整的方案。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一段有两句话值得单独抄下来：第一，截断与下推的 token 几乎一样（1.8 万 vs 2.16 万，只差 20%），但结论完整性完全不同——截断把订单金额的 P99 从全量分布变成前 100 行的分布；第二，行放大 10,000 倍比列放大 10 倍严重三个数量级，所以治理重心是「别把那么多行带回来」，而不是「少查几列」。</p>
+</div>
+
+<h4 id="sec-3.6.16" data-toc-skip>结果校验</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">校验</th><th scope="col">说明</th><th scope="col">不通过时</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>行数</td><td>空结果是否合理</td><td>区分「无数据」与「过滤错」</td></tr>
+      <tr><td>列类型</td><td>数值 / 时间 / 字符串是否符合预期</td><td>拒绝或降级</td></tr>
+      <tr><td>空值 / NaN</td><td>比例是否异常</td><td>标注</td></tr>
+      <tr><td>口径一致性</td><td>分项之和是否等于总计</td><td>拒绝</td></tr>
+      <tr><td>异常值</td><td>同比 / 环比是否超阈值</td><td>标注 + 提示复核</td></tr>
+      <tr><td>二次核对</td><td>关键结论用另一条 SQL 验证</td><td>降级为只给 SQL</td></tr>
+      <tr><td><strong>截断检测</strong></td><td><strong>本次结果是否被截断 / 是否为部分结果</strong></td><td><strong>标注 + 降低信任级别</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>空结果处理</strong>：区分「确实没有数据」与「过滤条件写错」；后者应触发澄清或自愈。<strong>空结果绝不能当成「答案是 0」</strong>。</p>
+
+<h4 id="sec-3.6.17" data-toc-skip>结果集治理与下推</h4>
+
+<p><strong>本节是结果集治理的权威版</strong>，&lt;a href="#sec-4.3.1"&gt;结果集与回传护栏&lt;/a&gt;与&lt;a href="#sec-5.2.4"&gt;明细查询与结果集放大&lt;/a&gt;只引用。</p>
+<p><strong>三段漏斗</strong>：问数系统的上下文被三头夹住——进来的 Schema、生成的 SQL、回去的结果集。</p>
+<pre><code>扫描量（数仓成本）  →  结果集行数（上下文成本）  →  进上下文的 token（模型成本）
+   120 万行              120 万行                    120 万行 × 180 token = 2.16 亿</code></pre>
+<p><strong>结果集放大</strong>（本章的签名量）：</p>
+<p>场景：订单明细查询，<code>orders</code> 宽表 120 列，筛选后 <strong>120 万行</strong>；单行序列化后显式 12 列 = 180 token，全列 <code>SELECT *</code> = 1800 token。</p>
+<table>
+  <thead>
+    <tr><th scope="col">策略</th><th scope="col">回传行数</th><th scope="col">单行 token</th><th scope="col">上下文 token</th><th scope="col">分布是否完整</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>明细直返 + <code>SELECT *</code></td><td>120 万</td><td>1800</td><td><strong>21.6 亿</strong></td><td>完整但<strong>物理不可行</strong></td></tr>
+      <tr><td>明细直返 + 显式列</td><td>120 万</td><td>180</td><td><strong>2.16 亿</strong></td><td>完整但<strong>物理不可行</strong></td></tr>
+      <tr><td><code>LIMIT 100</code> 截断</td><td>100</td><td>180</td><td>1.8 万</td><td><strong>不完整</strong>（尾部分布丢失）</td></tr>
+      <tr><td><strong>统计下推 + 显式列 + 样本 100</strong></td><td>120</td><td>180</td><td><strong>2.16 万</strong></td><td><strong>完整</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>两个放大维度</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">放大</th><th scope="col">治理手段</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>行放大</strong></td><td>120 万行 / 120 行 = <strong>10,000×</strong></td><td>聚合下推、样本替代、分位数在 SQL 内计算</td></tr>
+      <tr><td><strong>列放大</strong></td><td>1800 token / 180 token = <strong>10×</strong></td><td>禁 <code>SELECT *</code>、显式列白名单、敏感列不暴露</td></tr>
+      <tr><td><strong>合计</strong></td><td><strong>100,000×</strong></td><td>—</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>两条必须写进方案的结论</strong>：</p>
+  <ol>
+  <li><strong>「截断」和「下推」的 token 几乎一样（1.8 万 vs 2.16 万，只差 20%），但结论完整性完全不同。</strong> 截断把「订单金额的 P99」从全量分布变成前 100 行的分布——<strong>结论完整性不是一个能用 token 衡量的量</strong>。所以控制上下文的正确做法是<strong>下推</strong>，绝不是截断。</li>
+  <li><strong>行放大（10,000×）比列放大（10×）严重三个数量级。</strong> 这意味着治理重心是「别把那么多行带回来」，而不是「少查几列」。<strong>很多团队把力气花在列裁剪上，因为列裁剪容易看见；真正会爆的是行。</strong></li>
+  </ol>
+</blockquote>
+<p><strong>结果集放大的四段漏斗</strong>：</p>
+<pre><code>明细直返 + SELECT *        21.6 亿 token   ← 不可行
+明细直返 + 显式列           2.16 亿 token   ← 仍不可行
+截断 LIMIT 100              1.8 万 token    ← 可行但结论残
+统计下推 + 显式列 + 样本     2.16 万 token    ← 可行且结论完整</code></pre>
+<p><strong>下推算子清单</strong>（都要在 SQL 里算完，不要拉回本地再算）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">算子</th><th scope="col">SQL 写法</th><th scope="col">替代了什么</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>计数</td><td><code>COUNT(*)</code></td><td>全量行</td></tr>
+      <tr><td>汇总</td><td><code>SUM</code> / <code>AVG</code> / <code>MIN</code> / <code>MAX</code></td><td>全量行</td></tr>
+      <tr><td>分位数</td><td><code>PERCENTILE_APPROX</code> / <code>NTILE</code></td><td>排序全部行</td></tr>
+      <tr><td>直方图</td><td>按分桶 <code>GROUP BY bucket</code></td><td>全部原始行</td></tr>
+      <tr><td>Top-N 分组</td><td><code>ORDER BY v DESC LIMIT N</code></td><td>全部分组</td></tr>
+      <tr><td>占比</td><td><code>SUM(v) / SUM(SUM(v)) OVER ()</code></td><td>交叉计算</td></tr>
+      <tr><td>环比 / 同比</td><td>窗口函数 <code>LAG</code> / 自连接</td><td>两期全量</td></tr>
+  </tbody>
+</table>
+<p><strong>明细问题的标准返回结构</strong>（把「统计」与「样本」在协议层就分开）：</p>
+<pre><code class="language-json">{
+  "stats":       { "row_count": 1200000, "sum": 0, "p50": 0, "p90": 0, "p99": 0 },
+  "histogram":   [ { "bucket": "0-100", "count": 0 } ],
+  "top_groups":  [ { "key": "channel_a", "value": 0 } ],
+  "sample_rows": [ { "...": "..." } ],
+  "sample_size": 100,
+  "truncated":   true
+}</code></pre>
+<blockquote>
+  <p><code>truncated: true</code> 必须在协议层存在，并且直接驱动&lt;a href="#sec-2.4"&gt;信任分级&lt;/a&gt;。<strong>「模型看到的样本」和「用户看到的结论」必须是同一个数据契约的两端</strong>——只要中间少了一个字段，截断就会静默发生。</p>
+</blockquote>
+<p><strong>结果集护栏三层</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">手段</th><th scope="col">阈值参考</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>生成层</strong></td><td>默认聚合、禁 <code>SELECT *</code>、显式列、强制 LIMIT</td><td>明细类须显式声明</td></tr>
+      <tr><td><strong>执行层</strong></td><td>最大返回行数 10 万、最大扫描量 100GB、并发上限</td><td>硬限，到限即拒</td></tr>
+      <tr><td><strong>回传层</strong></td><td>统计 + 样本分离、列裁剪、分位数下推</td><td>单次回传 ≤ 32K token</td></tr>
+  </tbody>
+</table>
+<p><strong>什么时候允许明细全量返回</strong>：只有三种情况——用户明确申请导出（走独立审批链路）、问题本身就是「导出行级明细」且行数在 1000 以内、以及分析 / 归因链路中的中间结果（且必须先聚合再回传）。<strong>其余一律走「统计 + 样本」。</strong></p>
+
+<h3 id="sec-3.7">1.3.7 权限、可视化与归因</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>权限分租户、行级、列级、密级、导出、审计六层，强制优先级是策略层 > 查询重写 > 应用层，Prompt 只能辅助。列级权限与 Schema 裁剪联动——敏感列默认不进入给模型的 Schema。归因要区分加法、乘法与结构三种分解，并先做辛普森结构校验。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「敏感列默认不暴露给模型」常被当成优化项，其实它是安全边界：模型看不到的列，就不可能被写进 SQL，等执行层再拦就等于依赖模型不犯错。另一个容易忽略的是辛普森检查——整体退款率上升但每个渠道都在下降，原因是高退款率渠道的占比变了，这时候去「优化」那个渠道，就是让运营去优化一个什么都没做错的渠道。</p>
+</div>
+
+<h4 id="sec-3.7.18" data-toc-skip>权限模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">层级</th><th scope="col">方案</th><th scope="col">强制位置</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>租户</td><td>强制 <code>tenant_id</code> 过滤</td><td>策略层 / 重写</td></tr>
+      <tr><td>行级</td><td>查询重写 / 视图 / 策略层</td><td>策略层 / 重写</td></tr>
+      <tr><td>列级</td><td>掩码 / 拦截 / 不暴露 Schema</td><td>重写 + 检索</td></tr>
+      <tr><td>数据密级</td><td>按标签授权</td><td>策略层</td></tr>
+      <tr><td>导出</td><td>单独审批、水印、限量</td><td>独立链路</td></tr>
+      <tr><td>审计</td><td>全量记录（含改写前后 SQL）</td><td>审计服务</td></tr>
+  </tbody>
+</table>
+<p><strong>实现优先级</strong>：数据库视图 / 策略层 &gt; 查询重写 &gt; 应用层过滤。Prompt 提示只能作为辅助。</p>
+<p><strong>列级权限与 Schema 裁剪的联动</strong>：敏感列<strong>默认不进入给模型的 Schema</strong>。这不是「优化」，而是安全边界——<strong>模型看不到的列，就不可能被写进 SQL</strong>。等执行层再拦截，等于依赖模型不犯错。</p>
+
+<h4 id="sec-3.7.19" data-toc-skip>可视化路由与结论表达</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">结果形状</th><th scope="col">图表</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>单值</td><td>KPI 卡片</td></tr>
+      <tr><td>时间序列</td><td>折线</td></tr>
+      <tr><td>分类对比</td><td>柱状</td></tr>
+      <tr><td>构成占比</td><td>堆叠柱（慎用饼图）</td></tr>
+      <tr><td>明细</td><td>表格（<strong>默认只展示样本 + 统计</strong>）</td></tr>
+      <tr><td>分布</td><td>直方图（<strong>来自 SQL 聚合，不是前端现算</strong>）</td></tr>
+      <tr><td>相关性</td><td>散点</td></tr>
+  </tbody>
+</table>
+<p><strong>结论表达的四件套</strong>（缺一件都不算合格答案）：</p>
+<pre><code>1. 结论（可核验的数字）
+2. 口径（指标 ID + 版本 + 作用域 + 时间口径 + 数据截止时点）
+3. SQL（可复制、可审计）
+4. 注意事项（截断、排除项、假设、待验证）</code></pre>
+<p><strong>禁止的表达</strong>：</p>
+<ul>
+<li>把相关系数直接表述为因果。</li>
+<li>把部分结果表述为全部（「前 100 行显示…」必须写出来）。</li>
+<li>把非标准口径的探索公式表述为公司口径。</li>
+<li>在结果被截断时给出确定性结论。</li>
+</ul>
+
+<h4 id="sec-3.7.20" data-toc-skip>归因分析</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">方法</th><th scope="col">说明</th><th scope="col">注意</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>同比 / 环比</td><td>与上期对比</td><td>注意基期效应（春节 / 大促）</td></tr>
+      <tr><td>维度下钻</td><td>按地区 / 渠道 / 品类拆</td><td><strong>避免维度爆炸</strong>（见下）</td></tr>
+      <tr><td>贡献度</td><td>各维度对总变化的贡献</td><td>加法 / 乘法分解不同</td></tr>
+      <tr><td>结构分析</td><td>mix 变化 vs 单价变化</td><td>辛普森悖论</td></tr>
+      <tr><td>相关性</td><td>找候选因素</td><td>不等于因果</td></tr>
+  </tbody>
+</table>
+<p><strong>三种分解方式</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方式</th><th scope="col">公式</th><th scope="col">适用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>加法分解</td><td>Δ总 = Σ Δ维度</td><td>可加指标（销售额、订单量）</td></tr>
+      <tr><td>乘法分解</td><td>Δ总 = Δ量 × 价 + Δ价 × 量 + 交叉项</td><td>乘积指标（GMV = 价 × 量）</td></tr>
+      <tr><td>结构分解</td><td>Δ总 = Σ (mix 变化) + Σ (单价变化)</td><td>指标可拆成「量 × 价」</td></tr>
+  </tbody>
+</table>
+<p><strong>维度爆炸与解法</strong>：</p>
+<pre><code>地区(8) × 渠道(6) × 品类(20) = 960 行
+直接回传 960 行 × 180 token = 17.3 万 token   ← 又一次结果集放大
+解法：贡献度在 SQL 里算完，只回传 Top-20 贡献行 = 3,600 token（省 48 倍）</code></pre>
+<p><strong>辛普森悖论的具体形态</strong>：</p>
+<blockquote>
+  <p>整体退款率从 3.0% 升到 3.6%，看似恶化。但按渠道拆开，A/B/C 三个渠道的退款率<strong>全部下降</strong>（3.2%→3.1%、2.8%→2.7%、3.1%→3.0%）。真正原因是<strong>高退款率渠道 D 的订单占比从 20% 升到 32%</strong>——<strong>整体上升不是任何渠道变差，是结构变了</strong>。</p>
+  <p><strong>这正是「不标注假设」最贵的时刻</strong>：一句「渠道 D 变差了」会让运营去「优化 D」，而 D 什么都没做错。<strong>归因结论必须先做结构校验，再下结论。</strong></p>
+</blockquote>
+<p><strong>归因结论模板</strong>：</p>
+<pre><code>总变化 X%
+  → 按维度 A 拆解：A1 贡献 a%，A2 贡献 b%
+  → 按维度 B 拆解：B1 贡献 c%
+  → 交叉定位：A1 × B1 贡献最大
+  → 结构校验：各子项是否同向？（辛普森检查）
+  → 可能原因（待验证）：……</code></pre>
+
+<h3 id="sec-3.8">1.3.8 评测、缓存、成本与容量</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>评测主指标必须是执行准确率，口径正确率单独看，完全匹配率只作回归辅助。缓存指纹必须是四元组：问题、权限、数据版本、语义层版本，缺一维就可能给出过期或越权答案。容量估算给出日 85 亿 token、约 ¥1.93 万，其中结果集占输入 63%。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>四元缓存指纹里最容易漏的是数据版本：缓存命中后返回了昨天的分区数据，答案看起来完全正常，只是过时了。而问数的使用者往往不会去核对时间戳，所以过期必须被显式标注，而不是被隐藏。另外「只评 EM 是最常见的评测错误」——同一份结果可以由十几条等价 SQL 得到，EM 会把这些全判错。</p>
+</div>
+
+<h4 id="sec-3.8.21" data-toc-skip>评测方法</h4>
+
+<p><strong>离线评测</strong>：</p>
+<ul>
+<li>黄金集：问题 + 标准 SQL + 标准结果 + 指标版本。</li>
+<li>指标：</li>
+</ul>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">定义</th><th scope="col">局限</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>执行准确率（EX）</td><td>分别执行生成 SQL 与标准 SQL，比较结果集</td><td><strong>不区分「等价 SQL」与「偶然相同」</strong></td></tr>
+      <tr><td>有效 SQL 率</td><td>能成功执行的比例</td><td>成功不等于正确</td></tr>
+      <tr><td>完全匹配率（EM）</td><td>SQL 结构完全一致</td><td><strong>过严</strong>，等价写法会被判错</td></tr>
+      <tr><td>组件指标</td><td>Schema Linking / Join / 过滤条件准确率</td><td>便于定位</td></tr>
+      <tr><td><strong>口径正确率</strong></td><td>所用指标版本与黄金集一致</td><td><strong>原版缺失，必须补</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>只评 EM 是最常见的评测错误</strong>：同一份结果可以由十几条等价 SQL 得到（别名、CTE 写法、子查询改写），EM 会把这些全判错；而 EM 相同的结果集也可能口径不同。<strong>评测的主指标必须是 EX，口径正确率单独看，EM 只能作为回归报警的辅助信号。</strong></p>
+</blockquote>
+<p><strong>在线评测</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">说明</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>首次采纳率</td><td>用户不追问、不改写就用结果</td><td>最贴近真实价值</td></tr>
+      <tr><td>追问率</td><td>澄清轮数分布</td><td>口径歧义的直接信号</td></tr>
+      <tr><td><strong>分歧率</strong></td><td>同一问题在不同时间 / 不同人得到不同数值或不同口径版本</td><td><strong>口径一致性的在线代理指标</strong></td></tr>
+      <tr><td>空结果率</td><td>结果为空的占比</td><td>过滤条件写错的信号</td></tr>
+      <tr><td>P95 延迟</td><td>端到端</td><td>体验</td></tr>
+      <tr><td>单次成本</td><td>token + 计算</td><td>成本</td></tr>
+      <tr><td>用户满意度</td><td>点赞 / 点踩 / 举报</td><td>最终裁决</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>分歧率是本章新增的在线指标</strong>：同一个「上周华东净营收」今天和下个月由两个分析师问出不同数字，<strong>说明口径漂了或数据版本不一致</strong>。它是「口径一致率」在生产环境唯一可行的代理——因为生产环境不可能人工标注每一个答案的口径。</p>
+</blockquote>
+<p><strong>安全评测</strong>：注入、越权、危险函数、PII、资源耗尽、资源组隔离（<strong>不能打穿到数仓其他租户</strong>）。</p>
+
+<h4 id="sec-3.8.22" data-toc-skip>缓存与数据版本</h4>
+
+<p><strong>缓存指纹必须是四元组</strong>，缺一维就会给出错误答案：</p>
+<pre><code>cache_key = hash(问题指纹 + 权限指纹 + 数据版本 + 语义层版本)</code></pre>
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">含义</th><th scope="col">缺失的后果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>问题指纹</td><td>归一化后的问题 + 已确认槽位</td><td>命中不相干的问题</td></tr>
+      <tr><td>权限指纹</td><td>用户 / 租户 / 角色 / 生效的过滤条件</td><td><strong>越权泄露</strong></td></tr>
+      <tr><td>数据版本</td><td>分区版本 / 快照 ID / 指标物化批次</td><td><strong>给出过期答案</strong>（最常见）</td></tr>
+      <tr><td>语义层版本</td><td>指标卡版本集合</td><td>口径漂移，答案静默变化</td></tr>
+  </tbody>
+</table>
+<p><strong>TTL 分层</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">数据层</th><th scope="col">TTL</th><th scope="col">理由</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>实时表</td><td>1–5 分钟</td><td>数据在变</td></tr>
+      <tr><td>小时级物化</td><td>1 小时</td><td>批次对齐</td></tr>
+      <tr><td>T+1 事实表</td><td>到次日分区就绪</td><td>口径与数据同时固定</td></tr>
+      <tr><td>指标聚合层</td><td>1 小时</td><td>随上游批次失效</td></tr>
+      <tr><td><strong>指标定义（语义层）</strong></td><td><strong>变更即刻失效</strong></td><td><strong>口径变了，旧答案不再成立</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>最危险的一种错误是「数据版本缺失」</strong>：缓存命中后返回了昨天的分区数据，但用户不知道它来自昨天——<strong>答案看起来完全正常，只是过时了</strong>。问数系统的使用者往往不会去核对时间戳，<strong>所以过期必须被显式标注，而不是被隐藏</strong>。</p>
+</blockquote>
+
+<h4 id="sec-3.8.23" data-toc-skip>成本模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">手段</th><th scope="col">说明</th><th scope="col">本章收益量级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>结果集下推</strong></td><td>统计在 SQL 里算完</td><td><strong>最大杠杆</strong>（结果集占输入 token 的 63%）</td></tr>
+      <tr><td>问题 / SQL 缓存</td><td>命中直接返回</td><td>约 20%（取决于重复率）</td></tr>
+      <tr><td>模型分级</td><td>小模型做意图 / 路由与简单 SQL</td><td>约 14%</td></tr>
+      <tr><td>早停</td><td>置信度高不重试</td><td>约 8%</td></tr>
+      <tr><td>Schema 裁剪</td><td>只给相关表列</td><td>可行性刚需 + 整题输入约 2%</td></tr>
+      <tr><td>结果缓存</td><td>四元指纹</td><td>与上面重叠，避免重复计入</td></tr>
+      <tr><td>物化视图</td><td>高频聚合预计算</td><td><strong>token 不省，但同时降扫描量与结果集行数</strong></td></tr>
+      <tr><td>查询预算</td><td>每用户 / 租户配额</td><td>防止单租户吃满</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>成本优化要分两条轨道，不能排成一条队</strong>。<strong>上下文 token 侧</strong>（结果集下推 → 缓存 → 模型分级 → 早停 → Schema 裁剪）省的是模型账单；<strong>数仓计算侧</strong>（物化视图 → 结果缓存 → 查询预算）省的是扫描量账单——<strong>后者在问数系统里通常更大</strong>，却一分钱 token 都省不了。原版把「Schema 裁剪」列为第一手段，但实测显示结果集侧的 token 是 Schema 侧的近 7 倍。<strong>先削大头，两条轨道分开算。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.8.24" data-toc-skip>容量与成本估算</h4>
+
+<p><strong>本节是容量口径的权威版</strong>，&lt;a href="#seg-5"&gt;第 5 段&lt;/a&gt;与&lt;a href="#seg-6"&gt;第 6 段&lt;/a&gt;只引用。</p>
+<p><strong>假设</strong>：日问题 50 万，峰值系数 5，每题平均 1.5 次 LLM 调用；基线输入 4000 token/次（system 600 + 指标卡 1200 + 裁剪后 Schema 1500 + 会话历史 400 + 输出预留 300）；输出 500 token/次；单行结果序列化 180 token（显式 12 列）；结果集回传行数：聚合类 20 行、明细类 120 行（统计 20 + 样本 100）、分析归因类 50 行；模型价格输入 ¥2 / 百万 token、输出 ¥8 / 百万 token。</p>
+<p><strong>一、流量与并发</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>平均问题 QPS</td><td>50 万 ÷ 86400</td><td>≈ <strong>5.8</strong></td></tr>
+      <tr><td><strong>峰值问题 QPS</strong></td><td>5.8 × 5</td><td><strong>29</strong></td></tr>
+      <tr><td><strong>峰值 LLM 调用 QPS</strong></td><td>29 × 1.5</td><td><strong>44</strong></td></tr>
+      <tr><td>并发查询（简单查询 70%，P95 5s）</td><td>29 × 0.7 × 5</td><td>≈ 102</td></tr>
+      <tr><td>并发查询（分析归因 30%，P95 30s）</td><td>29 × 0.3 × 30</td><td>≈ 261</td></tr>
+      <tr><td><strong>峰值并发查询合计</strong></td><td>—</td><td><strong>≈ 360</strong>（配额按 300 留余量）</td></tr>
+  </tbody>
+</table>
+<p><strong>二、上下文与 token</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>每题基线输入 token</td><td>1.5 × 4000</td><td>6,000</td></tr>
+      <tr><td>每题结果集回传 token</td><td>0.42×3,600 + 0.28×21,600 + 0.30×9,000</td><td><strong>10,260</strong></td></tr>
+      <tr><td><strong>每题输入 token 合计</strong></td><td>6,000 + 10,260</td><td><strong>16,260</strong></td></tr>
+      <tr><td><strong>其中结果集占比</strong></td><td>10,260 ÷ 16,260</td><td><strong>63%</strong></td></tr>
+      <tr><td>每题输出 token</td><td>1.5 × 500</td><td>750</td></tr>
+      <tr><td><strong>日输入 token</strong></td><td>16,260 × 50 万</td><td><strong>81.3 亿</strong></td></tr>
+      <tr><td>日输出 token</td><td>750 × 50 万</td><td><strong>3.75 亿</strong></td></tr>
+      <tr><td><strong>日合计 token</strong></td><td>—</td><td><strong>85 亿</strong></td></tr>
+      <tr><td>输入成本</td><td>8,130 百万 × ¥2</td><td>¥16,260</td></tr>
+      <tr><td>输出成本</td><td>375 百万 × ¥8</td><td>¥3,000</td></tr>
+      <tr><td><strong>日 LLM 成本</strong></td><td>—</td><td><strong>≈ ¥19,300</strong>（约 <strong>58 万元 / 月</strong>）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这一节最重要的一个数字是 63%</strong>：<strong>结果集占了输入 token 的近三分之二，而 Schema 只占 1500 / 16260 ≈ 9%。</strong> 原版的成本模型只估了「LLM token 总量」，没有拆分这两侧，因此优化方向指错了——<strong>真正该削的是结果集，不是 Schema</strong>。</p>
+</blockquote>
+<p><strong>三、优化的收益对比</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">优化项</th><th scope="col">效果</th><th scope="col">代价</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Schema 裁剪 Top-5 → Top-3</td><td>基线 4000 → 3700，整题输入 −1.8%</td><td>召回可能变差</td></tr>
+      <tr><td>模型分级（60% 的调用走小模型，仅作用于基线输入）</td><td>基线输入 6000 → 4200 token/题，日省 ≈ ¥2,700</td><td>路由复杂度</td></tr>
+      <tr><td><strong>明细类占比 28% → 10%</strong></td><td><strong>结果集 51.3 亿 → 35.1 亿 token，每题输入 16,260 → 13,020（−20%），日省 ≈ ¥3,240</strong></td><td><strong>需产品侧引导 + 物化视图</strong></td></tr>
+      <tr><td>用 LIMIT 截断替代下推</td><td>结果集 −17%（21,600 → 18,000 token/题）</td><td><strong>丢失分布，结论失真——不可接受</strong></td></tr>
+      <tr><td>问题缓存（重复率 20%）</td><td>日省 ≈ ¥3,850</td><td>需四元指纹正确</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>最后一行是最值得警惕的对照</strong>：把下推换成截断，能省 17% 的 token——<strong>代价是所有明细类问题的结论全部失真</strong>。<strong>任何以「牺牲结论完整性」换来的成本优化，在问数系统里都是负收益</strong>，因为一次错误决策的损失远大于几个月的模型账单。</p>
+</blockquote>
+<p><strong>四、存储</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>查询日志</td><td>50 万 × 5KB</td><td>≈ 2.5 GB/天</td></tr>
+      <tr><td>审计记录</td><td>50 万 × 2KB</td><td>≈ 1 GB/天（不可删）</td></tr>
+      <tr><td>结果缓存</td><td>热 20% × 100KB</td><td>≈ 10 GB</td></tr>
+      <tr><td>向量索引</td><td>5000 表 × 40 列 × 1.5KB</td><td>≈ 300 MB</td></tr>
+      <tr><td>指标卡</td><td>200 指标 × 5KB</td><td>≈ 1 MB</td></tr>
+  </tbody>
+</table>
+<p><strong>五、结论</strong></p>
+<ol>
+<li><strong>上下文预算的大头是结果集（63%），不是 Schema（9%）</strong>。Schema 裁剪是可行性需求，结果集下推才是成本主杠杆。</li>
+<li><strong>瓶颈在数仓并发（360），不在 LLM QPS（44）</strong>——数仓一侧必须先做资源组、队列与物化视图。</li>
+<li><strong>明细类问题占比是最大的成本旋钮</strong>：28% → 10%，每题输入 16,260 → 13,020 token，日省约 ¥3,240。但它需要产品侧引导（把明细需求转成聚合查询 + 物化视图），<strong>不是纯技术能单方面解决的</strong>。</li>
+<li><strong>LLM 成本约 58 万元 / 月，在合理区间；而数仓计算成本通常更高</strong>——明细查询一次扫 100GB，物化视图的收益要先于模型优化。</li>
+<li><strong>必须先量「明细类问题占比」与「单次结果集行数分布」</strong>——这两个参数决定上下文曲线的形状，只给 QPS 算不出结论。</li>
+</ol>
+
+<h2 id="seg-4">1.4 工程落地与规则护栏</h2><div class="oc-part-lead"><strong>第四段 · 工程落地与护栏</strong>这一段回答：方法论怎么变成链路上的一环一环——哪些环节必须 fail-closed，哪些可以降级，降级时用户看到什么。</div>
+
+<h3 id="sec-4.1">1.4.1 端到端链路与接入护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>端到端链路有 13 步，从 API 网关到审计服务。接入层护栏覆盖鉴权、限流、配额、输入校验、敏感问题与导出分流，其中「单次回传 token」也要进配额维度。导出在网关层即路由到独立审批链路。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>链路图里最重要的两行是「权限重写」与「Result Guard」：前者保证查不到不该查的，后者保证带回来的不会撑爆模型、也不会被当成全量。这两行都必须在执行层，不能靠 Prompt——这是整章链路设计的收束点。</p>
+</div>
+
+<h4 id="sec-4.1.1" data-toc-skip>端到端链路</h4>
+
+<pre><code>客户端 / IM / 报表嵌入
+  → API 网关（鉴权、租户、限流、配额）
+  → Question Service（会话、澄清、意图分类、confirmed_slots）
+  → Semantic Service（指标、维度、口径版本、作用域裁决）
+  → Schema Retriever（域路由 → 表召回 → 列裁剪）
+  → SQL Generator（指标卡 + 裁剪 Schema + Few-shot + 方言）
+  → SQL Validator（AST → 语义 → 权限重写 → 资源改写 → 代价预估）
+  → Query Executor（只读副本、资源组、超时、扫描量上限）
+  → Result Guard（统计 + 样本分离、列裁剪、截断标注）
+  → Result Validator（空值、一致性、异常、截断检测）
+  → Chart Router / Attribution（贡献度在 SQL 里算完）
+  → Answer Composer（结论 + 口径 + SQL + 注意事项，按信任分级）
+  → Audit Service（改写前后 SQL、扫描量、返回行数，全量留痕）</code></pre>
+<blockquote>
+  <p><strong>图里最重要的两行是「权限重写」与「Result Guard」</strong>：前者保证「查不到不该查的」，后者保证「带回来的不会撑爆模型，也不会被当成全量」。<strong>这两行都必须在执行层，不能靠 Prompt。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.1.2" data-toc-skip>接入层护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>鉴权</td><td>用户、租户、角色</td></tr>
+      <tr><td>限流</td><td>按用户 / 租户 / 接口三维</td></tr>
+      <tr><td>配额</td><td>每日查询数、扫描量、<strong>单次回传 token</strong></td></tr>
+      <tr><td>输入校验</td><td>长度、注入特征</td></tr>
+      <tr><td>敏感问题</td><td>拒绝或转人工</td></tr>
+      <tr><td>导出分流</td><td>明细导出在网关层即路由到独立审批链路</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-4.2">1.4.2 语义、生成、校验与执行护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>语义层护栏要求指标有 owner、版本、口径、适用范围与血缘，变更须同步评审所有依赖的报表与看板。执行护栏给出四道硬限：Statement Timeout、最大返回行数 10 万、最大扫描量 100GB、并发上限 300。权限服务故障时 fail-closed。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「最大返回行数」与「最大扫描量」是两个不同的闸：扫描量拦的是「代价高但结果小」的查询（一次全表聚合），返回行数拦的是「代价中等但结果巨大」的查询（明细导出）。只设其中一个，另一个方向就会被打爆——这是本章最容易漏配的一对。</p>
+</div>
+
+<h4 id="sec-4.2.3" data-toc-skip>语义层护栏</h4>
+
+<ul>
+<li>指标必须有 owner、版本、口径、适用范围、血缘。</li>
+<li>变更走评审与灰度，保留历史版本与生效时间。</li>
+<li>Agent 不得自创指标；探索性公式标记为非标准。</li>
+<li>口径冲突时按&lt;a href="#sec-3.3.2"&gt;口径冲突与作用域&lt;/a&gt;的固定顺序裁决，并注明版本与作用域。</li>
+<li><strong>指标定义变更须同步评审所有依赖的报表与看板。</strong></li>
+<li><code>metric_id</code> 与名称分离，改名不改 ID。</li>
+</ul>
+
+<h4 id="sec-4.2.4" data-toc-skip>生成与校验护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">护栏</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>生成</td><td>结构化输出、禁 <code>SELECT *</code>、强制时间过滤、<strong>默认带聚合</strong>、声明 <code>metrics_used</code></td></tr>
+      <tr><td>语法</td><td>AST 解析</td></tr>
+      <tr><td>语句</td><td>仅只读</td></tr>
+      <tr><td>对象</td><td>表 / 列白名单</td></tr>
+      <tr><td>Join</td><td>连接条件校验</td></tr>
+      <tr><td>权限</td><td>行 / 列重写（<strong>执行层强制</strong>）</td></tr>
+      <tr><td>资源</td><td>自动 LIMIT、扫描量上限</td></tr>
+      <tr><td>代价</td><td>EXPLAIN 预估</td></tr>
+      <tr><td>指标</td><td>所用指标必须在语义层存在且版本匹配</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-4.2.5" data-toc-skip>执行护栏</h4>
+
+<ul>
+<li>只读副本 / 独立资源组。</li>
+<li>Statement Timeout（简单 15s、复杂 60s）。</li>
+<li><strong>最大返回行数 10 万</strong>。</li>
+<li><strong>最大扫描量 100 GB</strong>。</li>
+<li>并发上限 300 与队列（按复杂度分优先级）。</li>
+<li>超资源 Kill。</li>
+<li><strong>权限服务故障时 fail-closed</strong>：拒绝执行，不放行。</li>
+</ul>
+
+<h3 id="sec-4.3">1.4.3 结果集、解读与审计</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>结果集护栏有六个执行动作，第 5 步「截断即标注并下调信任级别」最容易被省略也最不能省。结果与解读护栏禁止把相关系数表述为因果。审计要同时留改写前 SQL 与改写后 SQL。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「改写前 SQL」必须留档，因为它是证明「这条 SQL 本来会越权、是我们拦下来的」的唯一证据。只留改写后的 SQL 等于没留审计——事后没人能证明防线生效过。同理，「截断标记缺失一次，就可能产生一个基于前 100 行的业务决策」。</p>
+</div>
+
+<h4 id="sec-4.3.6" data-toc-skip>结果集与回传护栏</h4>
+
+<p>方案见&lt;a href="#sec-3.6.2"&gt;结果集治理与下推&lt;/a&gt;，本节只列执行动作：</p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">规则</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td>生成阶段已判定是明细类 → 强制走「统计 + 样本」模板</td></tr>
+      <tr><td>2</td><td>执行层统计行数、扫描量，超限即拒绝并给出建议改写</td></tr>
+      <tr><td>3</td><td>回传层按协议分离 <code>stats</code> / <code>histogram</code> / <code>top_groups</code> / <code>sample_rows</code></td></tr>
+      <tr><td>4</td><td>列裁剪：只保留最终答案会用到的列</td></tr>
+      <tr><td>5</td><td><strong>截断即标注 <code>truncated: true</code>，并下调信任级别</strong></td></tr>
+      <tr><td>6</td><td>明细导出 → 独立审批链路，不在本链路内完成</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p>第 5 步是本章最容易被省略、也最不能省的一步。<strong>截断标记缺失一次，就可能产生一个基于「前 100 行」的业务决策。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.3.7" data-toc-skip>结果与解读护栏</h4>
+
+<ul>
+<li>结果校验不通过时，不下结论。</li>
+<li>低置信度只给 SQL 与原始结果。</li>
+<li>归因结论必须标注「相关 / 假设 / 待验证」。</li>
+<li>禁止把相关系数直接表述为因果。</li>
+<li><strong>归因前先做结构校验（辛普森检查）</strong>。</li>
+<li>关键结论附口径与 SQL。</li>
+<li><strong>每条答案带数据截止时点与是否截断</strong>。</li>
+</ul>
+
+<h4 id="sec-4.3.8" data-toc-skip>审计</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">记录</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>谁</td><td>用户、租户、角色</td></tr>
+      <tr><td>何时</td><td>时间戳</td></tr>
+      <tr><td>问什么</td><td>原始问题、澄清轮次、已确认槽位</td></tr>
+      <tr><td>生成什么</td><td>SQL、参数、<strong>所用指标与版本</strong></td></tr>
+      <tr><td>改写什么</td><td><strong>改写前 SQL、改写后 SQL</strong></td></tr>
+      <tr><td>查什么</td><td>表、列、行数、扫描量、耗时</td></tr>
+      <tr><td>返回什么</td><td>是否成功、返回行数、<strong>是否截断</strong></td></tr>
+      <tr><td>给了什么</td><td>结论、信任级别、注意事项</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「改写前 SQL」必须留档</strong>：它是证明「这条 SQL 本来会越权、是我们拦下来的」的唯一证据。<strong>只留改写后的 SQL，等于没留审计。</strong></p>
+</blockquote>
+
+<h3 id="sec-4.4">1.4.4 降级、延迟预算与观测</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>降级矩阵按依赖给行为，其中「语义层不可用就停止问数」最反直觉也最正确。延迟预算表给出 9 个阶段的目标与硬限，并要求超时 ≥ 预算。观测里「结果集」这一类是本章特有的必看项：回传 token 占比、截断率、明细类问题占比。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「语义层不可用就停止问数」值得停下来想一秒：此时系统完全可以照常生成 SQL，但它不知道净营收在你的组织里怎么定义，所以给出的任何数字都是随机的。宁可拒绝服务，不可给随机答案。这和「权限服务故障就 fail-closed」是同一个道理——防线依赖不可用时，放行比拒绝更危险。</p>
+</div>
+
+<h4 id="sec-4.4.9" data-toc-skip>降级矩阵</h4>
+
+<p><strong>本节是降级的权威版</strong>，&lt;a href="#sec-5.3.1"&gt;故障与兜底&lt;/a&gt;只引用。</p>
+<table>
+  <thead>
+    <tr><th scope="col">故障</th><th scope="col">影响</th><th scope="col">降级</th><th scope="col">用户看到什么</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>LLM 不可用</td><td>无法生成</td><td>模板查询 / 保存问题</td><td>明确告知暂不可用</td></tr>
+      <tr><td>语义层不可用</td><td>口径无法保证</td><td><strong>停止问数</strong>（可查指标卡）</td><td>明确告知口径服务不可用</td></tr>
+      <tr><td>Schema 检索故障</td><td>选表不准</td><td>使用策展表集合</td><td>答案范围收窄 + 注明</td></tr>
+      <tr><td>数仓繁忙</td><td>查询排队</td><td>降低并发、缩小时间范围、提示稍后</td><td>排队提示 + 范围收窄</td></tr>
+      <tr><td>权限服务故障</td><td>无法判定权限</td><td><strong>fail-closed，拒绝查询</strong></td><td>明确告知无法校验权限</td></tr>
+      <tr><td>结果校验失败</td><td>结论不可信</td><td>只返回 SQL 与原始结果</td><td>无结论，只有数据</td></tr>
+      <tr><td><strong>结果被截断</strong></td><td><strong>结论可能失真</strong></td><td><strong>标注截断 + 下调信任级别</strong></td><td><strong>明确的「部分结果」提示</strong></td></tr>
+      <tr><td>指标版本冲突</td><td>口径不一致</td><td>列出候选让用户选</td><td>候选清单</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「语义层不可用就停止问数」是最反直觉、也最正确的一条降级</strong>。此时系统可以照常生成 SQL，但<strong>它不知道「净营收」在你的组织里是怎么定义的</strong>——此时给出的任何数字都是随机的。<strong>宁可拒绝服务，不可给随机答案。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.4.10" data-toc-skip>延迟预算与超时降级</h4>
+
+<p><strong>本表是唯一的延迟口径来源</strong>，其他小节只引用。</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>接入与鉴权</td><td>50ms</td><td>200ms</td><td>429 / 登录提示</td></tr>
+      <tr><td>意图分类与路由</td><td>200ms</td><td>800ms</td><td>走模板问数</td></tr>
+      <tr><td>语义层与指标解析</td><td>100ms</td><td>400ms</td><td>用已缓存的指标卡；仍失败则拒答</td></tr>
+      <tr><td>Schema 召回与裁剪</td><td>300ms</td><td>1s</td><td>退化为策展表集合</td></tr>
+      <tr><td>SQL 生成</td><td>1.2s</td><td>4s</td><td>换小模型；仍超时走模板</td></tr>
+      <tr><td>SQL 校验与重写</td><td>50ms</td><td>200ms</td><td>校验失败即拒绝执行</td></tr>
+      <tr><td><strong>数仓执行</strong></td><td><strong>1.5s</strong></td><td><strong>15s</strong>（复杂 60s）</td><td>排队；超限改写范围</td></tr>
+      <tr><td>结果集治理与校验</td><td>200ms</td><td>800ms</td><td>只给原始结果，标注未校验</td></tr>
+      <tr><td>结论生成与解读</td><td>800ms</td><td>3s</td><td>只给 SQL 与原始结果</td></tr>
+      <tr><td><strong>简单查询合计</strong></td><td><strong>&lt; 5s（P95）</strong></td><td>15s</td><td>—</td></tr>
+      <tr><td><strong>归因多步合计</strong></td><td><strong>&lt; 30s（P95）</strong></td><td>60s</td><td>中途返回已完成的分解</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>预算是目标，超时是硬限，两者必须满足「超时 ≥ 预算」</strong>。「简单查询 P95 &lt; 5s」是用户可感知的承诺，「归因 P95 &lt; 30s」是分析类问题的承诺，<strong>两者不是同一个数</strong>——原版把它们混在一张 SLO 表里，没有给出每一步的分解，<strong>导致超时降级无从设计</strong>。</p>
+</blockquote>
+
+<h4 id="sec-4.4.11" data-toc-skip>观测与压测</h4>
+
+<p><strong>指标</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>请求</td><td>QPS、成功率、P95、澄清率、追问轮数分布</td></tr>
+      <tr><td>生成</td><td>有效 SQL 率、重试率、Schema 命中率、<strong>指标版本匹配率</strong></td></tr>
+      <tr><td>执行</td><td>查询耗时、扫描量、<strong>返回行数分布</strong>、超时率、排队时长</td></tr>
+      <tr><td><strong>结果集</strong></td><td><strong>回传 token 占比、截断率、明细类问题占比</strong></td></tr>
+      <tr><td>结果</td><td>空结果率、异常值率、复核率</td></tr>
+      <tr><td>解读</td><td><strong>分歧率</strong>、采纳率、改写率</td></tr>
+      <tr><td>安全</td><td>越权拦截、危险 SQL 拦截、PII、资源组越界</td></tr>
+      <tr><td>成本</td><td>token、扫描量、缓存命中、单题成本</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「结果集」这一类指标是本章特有的必看项</strong>：<code>回传 token 占比</code> 告诉你成本花在哪，<code>截断率</code> 告诉你有多少答案在丢分布，<code>明细类问题占比</code> 告诉你成本曲线的形状。<strong>它们比「token 总量」更能提前发现问题——token 总量是结果，这三个是原因。</strong></p>
+</blockquote>
+<p><strong>压测</strong>：</p>
+<ul>
+<li>峰值 5 倍问题。</li>
+<li><strong>明细大结果集（120 万行）压测</strong>，验证护栏是否真的拦住。</li>
+<li>大表全扫描（验证扫描量上限）。</li>
+<li>笛卡尔积（验证 AST 校验）。</li>
+<li>数仓并发打满（验证排队与降级）。</li>
+<li>LLM 限流（验证模型分级与快路径）。</li>
+<li>权限服务故障（<strong>验证 fail-closed，不是 fail-open</strong>）。</li>
+<li><strong>口径变更冲击</strong>：改一个指标定义，验证缓存失效与版本标注。</li>
+<li>注入与越权红队。</li>
+</ul>
+
+<h3 id="sec-4.5">1.4.5 护栏清单与上线检查</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>护栏清单给出 13 条并分级：权限强制、危险 SQL 拦截、资源上限、结果集完整性、PII、口径可追溯、审计不可篡改、fail-closed 八条 P0。上线检查 10 问覆盖指标、裁剪、AST、权限、资源、结果集、自愈、故障、归因、审计十件事。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>八个 P0 里有三个是结果集相关（资源上限、结果集完整性、审计含返回行数）。这不是因为它最复杂，而是因为问数是唯一一个「错误会安静地变成一个数字」的架构——越权会报错、超时会报错，只有截断和口径漂移会笑眯眯地给出答案。</p>
+</div>
+
+<h4 id="sec-4.5.12" data-toc-skip>规则护栏清单</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">领域</th><th scope="col">护栏</th><th scope="col">优先级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>权限强制</strong></td><td>行 / 列 / 租户 / 密级在执行层强制；敏感列不进入模型 Schema</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>危险 SQL 拦截</strong></td><td>AST 白名单，只读；DDL / DML / 多语句 / 危险函数 100% 拦截</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>资源上限</strong></td><td>超时 / 最大行数 / 最大扫描量 / 并发上限；到限即拒</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>结果集完整性</strong></td><td>截断必须标注；统计与样本分离；单次回传 ≤ 32K token</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>PII 与隐私</strong></td><td>列级权限、入上下文与日志前脱敏、导出独立审批水印、留存期</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>口径可追溯</strong></td><td>每条答案带指标 ID + 版本 + 作用域 + 数据截止时点</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>审计不可篡改</strong></td><td>全量留痕，含<strong>改写前后 SQL</strong>、扫描量、返回行数、是否截断</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>fail-closed</strong></td><td>权限 / 语义层不可用时拒绝，而非放行</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>归因规范</strong></td><td>相关不表述为因果；归因前做结构校验；结论标注假设</td><td>P1</td></tr>
+      <tr><td><strong>评测</strong></td><td>EX 为主指标 + 口径正确率 + 分层黄金集 + 每次变更回归</td><td>P1</td></tr>
+      <tr><td><strong>缓存正确性</strong></td><td>四元指纹（问题 + 权限 + 数据版本 + 语义层版本）</td><td>P1</td></tr>
+      <tr><td><strong>自愈边界</strong></td><td>自愈只改「怎么查」，不改「查什么」，不放宽权限</td><td>P1</td></tr>
+      <tr><td>成本</td><td>单题 token 超预算 120% 触发容量评审</td><td>P2</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>问数 Agent 的八个 P0 里有三个是「结果集」相关</strong>（资源上限、结果集完整性、审计含返回行数）。这不是因为它最复杂，而是因为<strong>它是唯一一个「错误会安静地变成一个数字」的架构</strong>——越权会报错、超时会报错，<strong>只有截断和口径漂移会笑眯眯地给出答案</strong>。</p>
+</blockquote>
+
+<h4 id="sec-4.5.13" data-toc-skip>上线检查（10 问）</h4>
+
+<ol>
+<li>所有指标是否都有标准表达式、owner、版本、作用域与血缘？<code>metric_id</code> 是否跨版本稳定？</li>
+<li>Schema 裁剪是否能稳定命中正确表？域路由与 Top-K 是否经过实测？</li>
+<li>AST 白名单是否覆盖所有危险语句？<strong>权限是否在执行层强制，而不是写在 Prompt 里</strong>？</li>
+<li>行 / 列权限是否覆盖全部可查表？敏感列是否已从给模型的 Schema 中移除？</li>
+<li>是否强制超时、返回行数、扫描量与并发上限？<strong>这四个是否都配了 Kill 与排队</strong>？</li>
+<li><strong>结果集是否强制「统计 + 样本」？截断是否一定会被标注并下调信任级别？</strong></li>
+<li>报错自愈是否有上限？<strong>自愈是否被限制在「只改怎么查、不改查什么」？</strong></li>
+<li>权限服务故障时是否 fail-closed？语义层不可用时是否停止问数？</li>
+<li>归因结论是否标注假设？<strong>归因前是否做结构校验（辛普森检查）</strong>？</li>
+<li>审计是否覆盖改写前后 SQL 与返回行数？口径变更时缓存是否失效？</li>
+</ol>
+
+<h2 id="seg-5">1.5 端到端案例</h2><div class="oc-part-lead"><strong>第五段 · 端到端案例</strong>这一段回答：一个真实的归因问题怎么走完整条链路，以及四个变体分别暴露什么。</div>
+
+<h3 id="sec-5.1">1.5.1 案例：净营收环比下降归因</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>一个「为什么本周净营收环比下降 12%」的问题走完整条链路：澄清三个槽位一次问全、语义层解析版本、域路由裁剪到 18 列、权限重写注入租户与区域、贡献度在 SQL 里算完只回传 Top-20。首轮 SQL 因枚举写错结果为空，修正后成功。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一段最值得记的是贡献度下推那段 SQL 的意义：它把「哪几行贡献最大」变成数据库的一次排序。模型在 960 行上排序会出错，在全量上排序根本做不到；下推之后不仅省 48 倍 token，排序还是精确的。这就是「下推」的通用范式——凡是对结果集全体做一次计算的步骤，都应该下推到 SQL，而不是把结果集交给模型。</p>
+</div>
+
+<h4 id="sec-5.1.1" data-toc-skip>案例：净营收环比下降归因</h4>
+
+<p><strong>问题</strong>：「为什么本周净营收环比下降 12%？」</p>
+<p><strong>链路</strong>：</p>
+<ol>
+<li><strong>澄清</strong>：净营收口径（<code>net_revenue@v2.3</code>，财务口径，含税减退货冲减减折扣补贴）、本周 / 上周口径（自然周 W46 / W45，Asia/Shanghai）、范围（全公司还是某区域）。三个槽位一次问全，<strong>不挤牙膏</strong>。</li>
+<li><strong>语义层</strong>：<code>net_revenue@v2.3</code> 表达式解析；排除测试单、未结算单、内部单；时间口径到「数据截止 2026-11-24 06:00」。</li>
+<li><strong>Schema 裁剪</strong>：域路由到「交易域」→ 表召回命中 <code>orders</code> / <code>refunds</code> / <code>discounts</code> / <code>channel_dim</code> / <code>region_dim</code> → 列裁剪到 18 列。</li>
+<li><strong>权限</strong>：用户只看华东区 → 查询重写注入 <code>tenant_id = 42 AND region = 'east'</code>。</li>
+<li><strong>SQL</strong>：CTE 计算本期与上期净营收，<strong>贡献度在 SQL 里算完</strong>，只回传 Top-20 贡献行。</li>
+<li><strong>执行</strong>：发现华东区下降 18%，其中渠道 A 下降 30%，品类 X 退款率上升。</li>
+<li><strong>自愈</strong>：首次 SQL 用了错误的退款状态枚举，结果为空；用枚举样本修正为 <code>refund_status IN ('APPROVED','COMPLETED')</code> 后成功。</li>
+<li><strong>输出</strong>：折线趋势 + 贡献度柱状图 + 结论「主要来自华东区渠道 A 的品类 X 退货上升」。</li>
+</ol>
+<p><strong>贡献度下推的 SQL</strong>（这是本章方法论最关键的一段代码）：</p>
+<pre><code class="language-sql">WITH base AS (
+  SELECT o.region, o.channel, o.category,
+         SUM(o.paid_amount) - SUM(r.refund_amount) - SUM(d.discount_amount) AS net_revenue
+  FROM orders o
+  LEFT JOIN refunds r
+         ON r.order_id = o.order_id
+        AND r.refund_status IN ('APPROVED','COMPLETED')
+  LEFT JOIN discounts d ON d.order_id = o.order_id
+  WHERE o.tenant_id = 42
+    AND o.region = 'east'
+    AND o.stat_date BETWEEN '2026-11-10' AND '2026-11-23'
+  GROUP BY o.region, o.channel, o.category
+),
+cur  AS (SELECT * FROM base WHERE stat_week = 'W46'),
+prev AS (SELECT * FROM base WHERE stat_week = 'W45'),
+contrib AS (
+  SELECT c.region, c.channel, c.category,
+         c.net_revenue - p.net_revenue AS delta,
+         SUM(c.net_revenue - p.net_revenue) OVER () AS total_delta
+  FROM cur c JOIN prev p
+    ON c.region = p.region AND c.channel = p.channel AND c.category = p.category
+)
+SELECT region, channel, category, delta,
+       delta / NULLIF(total_delta, 0) AS contrib_pct
+FROM contrib
+ORDER BY ABS(delta) DESC
+LIMIT 20;</code></pre>
+<blockquote>
+  <p><strong>这段 SQL 的价值不在语法，在它把「哪几行贡献最大」变成了数据库的一次排序</strong>。如果让模型把 960 行（8 地区 × 6 渠道 × 20 品类）全拿回来自己算贡献度，回传 17.3 万 token；用这个写法，<strong>数据库算完只回传 20 行 = 3,600 token，省 48 倍</strong>，而且<strong>排序是精确的</strong>——模型在小样本上排序会出错，在全量上排序则根本做不到。</p>
+  <p><strong>这就是「下推」的通用范式</strong>：<strong>凡是「对结果集的全体做一次计算」的步骤，都应该下推到 SQL，而不是把结果集交给模型。</strong></p>
+</blockquote>
+<p><strong>结论表达</strong>：</p>
+<pre><code>本周净营收环比 -12%（口径：net_revenue@v2.3 财务口径，排除测试单/未结算）
+数据截止 2026-11-24 06:00 · 已按租户与区域权限过滤 · 结果未截断
+
+华东区贡献 -8.1pct，其中渠道 A 贡献 -5.4pct
+渠道 A 下品类 X 退款率由 3.1% 升至 6.8%
+
+可能原因（待验证）：X 品类批次质量问题
+注意：本次归因为相关关系，非因果结论</code></pre>
+
+<h3 id="sec-5.2">1.5.2 四个变体：自助取数、澄清、权限与明细</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>四个变体覆盖快路径（自助取数，8 行结果、无放大）、多轮澄清（候选指标加 confirmed_slots）、权限受限（过滤后必须说出来）与明细查询（改写问题为直方图加分位数）。四个变体合起来说明：主路径决定能不能上线，变体决定会不会失控。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>变体 D 里那三段 SQL 的对比是整章方法论的一次实地验证：明细直返 21.6 亿 token、LIMIT 100 截断 1.8 万但 P99 算错、统计加直方图加样本 2.16 万且分布完整。任何用截断换 token 的方案，都是在用一个 16% 的成本节省，去换一个「P99 算错」的隐性损失。</p>
+</div>
+
+<h4 id="sec-5.2.2" data-toc-skip>变体 A：自助取数</h4>
+
+<p><strong>问题</strong>：「昨天各渠道订单量」</p>
+<ul>
+<li>无需澄清，命中标准指标 <code>order_count</code>，<strong>无多口径</strong>。</li>
+<li>Schema 只需 <code>orders</code> + <code>channel_dim</code>。</li>
+<li>生成单表聚合 SQL（带 <code>GROUP BY channel</code>）。</li>
+<li>结果形状：分类对比 → 柱状图。</li>
+<li><strong>结果集 8 行</strong>，无放大问题，直接给结果 + SQL + 口径。</li>
+</ul>
+<blockquote>
+  <p><strong>快路径是这个系统的主路径</strong>：像这样的问题应当走「意图分类 → 直接生成 → 校验 → 执行」，<strong>全程不超过 5s，不做任何 Schema 深度检索与多步分析</strong>。问数系统能不能上线，取决于这条路径的延迟与准确率，而不是归因能力。</p>
+</blockquote>
+
+<h4 id="sec-5.2.3" data-toc-skip>变体 B：多轮澄清</h4>
+
+<p><strong>问题</strong>：「最近销售额怎么样？」</p>
+<ul>
+<li>「最近」不明确 → 追问时间范围。</li>
+<li>「销售额」有歧义 → 提供 <code>gmv</code> / <code>net_revenue</code> 两个候选（<strong>两个都是标准指标，不自创</strong>）。</li>
+<li>用户确认后写入 <code>confirmed_slots</code>。</li>
+<li>后续追问复用已确认口径，<strong>不再重复问</strong>。</li>
+</ul>
+<p><strong>澄清决策</strong>：</p>
+<pre><code>澄清一次的成本（实测）
+  2,000 token（≈ ¥0.004） + 1.5s + 一次用户耐心
+  vs
+错误答案的成本
+  ≥ 1 人天复核 + 决策损失 + 信任损失（不可逆）
+→ 追问
+
+但：追问上限 1 次（同一问题），追问 2 次以上 → 直接给候选列表或转人工</code></pre>
+<p><strong>原则</strong>：澄清成本低于错误成本时追问；否则用默认值并显著注明。<strong>口径类问题几乎总是「追问」——因为默认值错误的代价太高。</strong></p>
+
+<h4 id="sec-5.2.4" data-toc-skip>变体 C：权限受限</h4>
+
+<p><strong>问题</strong>：「全公司各区域营收」</p>
+<ul>
+<li>用户仅有华东权限。</li>
+<li>查询重写注入 <code>tenant_id = 42 AND region = 'east'</code>。</li>
+<li><strong>答案明确说明「仅展示您有权限的华东区域」</strong>——不能默默只给一个区域，让用户误以为是全公司。</li>
+<li>审计记录<strong>改写前 SQL 与改写后 SQL</strong>。</li>
+</ul>
+<blockquote>
+  <p><strong>权限过滤后必须在答案里说出来</strong>，否则用户会把「华东」当成「全公司」，得出「其他地区营收为 0」的错误结论。<strong>被过滤掉的维度，必须以「不可见」的形式出现在答案里。</strong></p>
+</blockquote>
+
+<h4 id="sec-5.2.5" data-toc-skip>变体 D：明细查询与结果集放大</h4>
+
+<p><strong>问题</strong>：「上周华东区所有订单明细，看一下金额分布」</p>
+<p><strong>症状</strong>：系统按字面理解，生成一条明细 SQL，回传 120 万行。</p>
+<p><strong>处置</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">步骤</th><th scope="col">动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td>识别为<strong>明细类</strong>问题，但诉求里含「分布」——分布是聚合概念</td></tr>
+      <tr><td>2</td><td><strong>改写问题</strong>：金额分布 = 直方图 + 分位数，不是明细列举</td></tr>
+      <tr><td>3</td><td>一次 SQL 同时返回统计与样本</td></tr>
+      <tr><td>4</td><td>回传 <code>stats</code> / <code>histogram</code> / <code>sample_rows</code>（100 行）</td></tr>
+      <tr><td>5</td><td>图表用 <code>histogram</code>（<strong>来自 SQL 聚合，不是前端拿样本现算</strong>）</td></tr>
+  </tbody>
+</table>
+<p><strong>一次 SQL 同时出统计与样本</strong>：</p>
+<pre><code class="language-sql">SELECT
+  COUNT(*)                                   AS row_count,
+  SUM(paid_amount)                          AS total_amount,
+  AVG(paid_amount)                          AS avg_amount,
+  PERCENTILE_APPROX(paid_amount, 0.5)       AS p50,
+  PERCENTILE_APPROX(paid_amount, 0.9)       AS p90,
+  PERCENTILE_APPROX(paid_amount, 0.99)      AS p99
+FROM orders
+WHERE tenant_id = 42 AND region = 'east'
+  AND stat_date BETWEEN '2026-11-10' AND '2026-11-16';
+
+SELECT FLOOR(paid_amount / 100) * 100 AS bucket, COUNT(*) AS cnt
+FROM orders
+WHERE tenant_id = 42 AND region = 'east'
+  AND stat_date BETWEEN '2026-11-10' AND '2026-11-16'
+GROUP BY 1 ORDER BY 1;
+
+SELECT order_id, paid_amount, stat_date, channel
+FROM orders
+WHERE tenant_id = 42 AND region = 'east'
+  AND stat_date BETWEEN '2026-11-10' AND '2026-11-16'
+LIMIT 100;</code></pre>
+<p><strong>效果对比</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">回传 token</th><th scope="col">分布完整</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>明细直返 + <code>SELECT *</code></td><td><strong>21.6 亿</strong></td><td>完整但不可行</td></tr>
+      <tr><td><code>LIMIT 100</code> 截断</td><td>1.8 万</td><td><strong>不完整</strong>（P99 变成前 100 行的 P99）</td></tr>
+      <tr><td><strong>统计 + 直方图 + 样本 100</strong></td><td><strong>2.16 万</strong></td><td><strong>完整</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这就是本章核心方法论的一次实地验证</strong>：省 token 靠下推，保结论靠下推，<strong>两者是同一件事</strong>。任何用「截断」换 token 的方案，都是在用一个 16% 的成本节省，去换一个「P99 算错」的隐性损失。</p>
+</blockquote>
+
+<h3 id="sec-5.3">1.5.3 故障兜底、扩容与取舍</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>故障兜底补充三条，其中结果被截断要标注、下调信任并给出下载完整结果的路径。扩容 10 倍先坏的是数仓并发，其次是扫描量与成本。取舍复盘列出十条决策与各自的重新评估条件。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>扩容那一段有本章特有的非线性：大促期间明细类问题占比从 28% 升到 45%，日扫描量从 1.33PB 涨到 1.93PB，涨 45%，而流量只涨 10%——放大 4.5 倍。所以容量评审必须按「明细类问题占比右移」后的口径算，只乘 10 的评审会在第一个大促就把数仓和账单一起打爆。</p>
+</div>
+
+<h4 id="sec-5.3.6" data-toc-skip>故障与兜底</h4>
+
+<p>降级矩阵以&lt;a href="#sec-4.4.1"&gt;降级矩阵&lt;/a&gt;为准，本例补充三条：</p>
+<table>
+  <thead>
+    <tr><th scope="col">故障</th><th scope="col">影响</th><th scope="col">兜底</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>SQL 报错</td><td>无结果</td><td>回填报错自愈，最多 3 次，且不越过自愈安全边界</td></tr>
+      <tr><td>结果为空</td><td>可能是过滤错</td><td>区分无数据 / 条件错，触发澄清</td></tr>
+      <tr><td><strong>结果被截断</strong></td><td><strong>结论可能失真</strong></td><td><strong>标注 <code>truncated: true</code> + 下调信任级别 + 给出「下载完整结果」的路径</strong></td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-5.3.7" data-toc-skip>扩容 10 倍，哪里先坏？</h4>
+
+<p>以&lt;a href="#sec-3.8.4"&gt;容量与成本估算&lt;/a&gt;的基准放大 10 倍（日 500 万问题、峰值 290 QPS、LLM 调用 440 QPS、并发查询 3600）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">先坏的点</th><th scope="col">现象</th><th scope="col">触发指标</th><th scope="col">对策</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>数仓并发</strong></td><td>排队、超时</td><td>并发 &gt; 300 配额</td><td>队列、资源组、物化视图</td></tr>
+      <tr><td>2</td><td><strong>扫描量与成本</strong></td><td>日扫描量与账单飙升，查询被拒</td><td>日扫描量 &gt; 预算</td><td>物化视图、结果缓存、查询预算</td></tr>
+      <tr><td>3</td><td>LLM 配额</td><td>429</td><td>调用 QPS &gt; 配额 80%</td><td>模型分级、缓存、限流</td></tr>
+      <tr><td>4</td><td>Schema 检索</td><td>选表不准</td><td>Top-5 命中率下降</td><td>分层索引、域路由</td></tr>
+      <tr><td>5</td><td>语义层维护</td><td>口径冲突</td><td>指标变更积压</td><td>治理流程、版本</td></tr>
+      <tr><td>6</td><td>审计存储</td><td>增长快</td><td>磁盘水位 &gt; 70%</td><td>分层、归档</td></tr>
+      <tr><td>7</td><td><strong>成本（非线性）</strong></td><td>账单涨幅 &gt; 流量涨幅</td><td>单题 token &gt; 预算 120%</td><td>治理明细占比、下推、模型分级</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 2 与第 7 位是本章特有的非线性</strong>。大促期间明细诉求激增，明细类问题占比从 28% 升到 45%：</p>
+  <ul>
+  <li><strong>扫描量</strong>：聚合查询约扫 1GB、明细约扫 8GB → 日扫描量从 1.33 PB 涨到 1.93 PB，<strong>涨 45%，而流量只涨 10%——放大 4.5 倍</strong>。</li>
+  <li><strong>token</strong>：结果集回传从 10,260 涨到 13,320 token/题（+30%），总输入 token 从 16,260 涨到 19,320（<strong>+18.8%</strong>）。</li>
+  </ul>
+  <p><strong>容量评审必须按「明细类问题占比右移」后的口径算，而不是简单乘 10。</strong> 只乘 10 的评审，会在第一个大促就把数仓和账单一起打爆。</p>
+</blockquote>
+
+<h4 id="sec-5.3.8" data-toc-skip>取舍复盘</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">代价</th><th scope="col">收益</th><th scope="col">重新评估条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>语义层优先</td><td>建设成本高</td><td>口径可信</td><td>指标少时可轻量</td></tr>
+      <tr><td>只读沙箱</td><td>资源成本</td><td>安全隔离</td><td>专用集群可合并</td></tr>
+      <tr><td>查询重写</td><td>实现复杂</td><td>权限强约束</td><td>视图层完善后可简化</td></tr>
+      <tr><td>强制引用 SQL</td><td>体验略重</td><td>可追溯</td><td>管理层摘要可折叠</td></tr>
+      <tr><td>结果缓存</td><td>一致性风险</td><td>成本下降</td><td>实时性要求提高</td></tr>
+      <tr><td>归因标注假设</td><td>结论不够「干脆」</td><td>避免误导</td><td>高置信场景可简化</td></tr>
+      <tr><td><strong>默认聚合而非默认明细</strong></td><td>用户要多点一次</td><td>结果集可控、结论完整</td><td>明细诉求常态化后评估</td></tr>
+      <tr><td><strong>下推优先于截断</strong></td><td>SQL 更复杂、开发更慢</td><td>结论不失真、成本可控</td><td>引擎算力能力足够时才考虑更多下推</td></tr>
+      <tr><td><strong>四元缓存指纹</strong></td><td>缓存命中率略降</td><td>不给过期 / 越权答案</td><td>数据版本机制成熟后可简化</td></tr>
+      <tr><td><strong>导出独立成链</strong></td><td>用户多一步审批</td><td>结果集与合规可控</td><td>内部可信场景可合并</td></tr>
+  </tbody>
+</table>
+
+<h2 id="seg-6">1.6 演进、指标与误区</h2><div class="oc-part-lead"><strong>第六段 · 演进与误区</strong>这一段回答：这套系统怎么一步步长大，成熟后看哪几个数，以及哪些坑最贵。</div>
+
+<h3 id="sec-6.1">1.6.1 演进路线与指标体系</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>演进路线 L0 到 L5，L2（NL2SQL）到 L3（语义层加权限）是最关键也最容易被跳过的一次跨越。指标体系六层，其中「结果集」层是本章特有的必看项，治理层用来盯口径一致率、指标覆盖率与变更积压。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>L2 到 L3 的跨越是被两类问题逼回来的：口径问题（同一个营收两个部门算出两个数）和安全问题（模型把租户条件漏掉）。这两类问题都不会自己消失，只会在规模变大后变得更频繁——所以「暂时不做语义层」不是拖延，是把账单推到以后。</p>
+</div>
+
+<h4 id="sec-6.1.1" data-toc-skip>演进路线</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">形态</th><th scope="col">触发条件</th><th scope="col">关键改造</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>L0</td><td>固定报表</td><td>起步</td><td>BI 工具</td></tr>
+      <tr><td>L1</td><td>模板问数</td><td>参数化需求多</td><td>模板 + 参数</td></tr>
+      <tr><td>L2</td><td>NL2SQL</td><td>长尾取数</td><td>Schema 检索、生成</td></tr>
+      <tr><td>L3</td><td>语义层 + 权限</td><td>口径 / 安全问题</td><td>指标卡、重写、沙箱</td></tr>
+      <tr><td>L4</td><td>归因与建议</td><td>分析需求</td><td>多步分析、贡献度</td></tr>
+      <tr><td>L5</td><td>主动洞察</td><td>成熟</td><td>订阅、异常推送</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>L2 → L3 是最关键的一次跨越，也是最容易被跳过的</strong>。很多系统停在 L2（NL2SQL 直连数仓），然后被两类问题逼回 L3：<strong>口径问题</strong>（同一个「营收」两个部门算出两个数）和<strong>安全问题</strong>（模型把租户条件漏掉了）。<strong>这两类问题都不会自己消失，只会在规模变大后变得更频繁。</strong></p>
+</blockquote>
+
+<h4 id="sec-6.1.2" data-toc-skip>指标体系</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">层级</th><th scope="col">指标</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>正确</td><td>EX、有效 SQL 率、EM、<strong>口径正确率</strong></td><td>判断生成质量</td></tr>
+      <tr><td>体验</td><td>采纳率、追问率、P95、<strong>分歧率</strong></td><td>判断可用性</td></tr>
+      <tr><td>安全</td><td>越权 / 危险 / PII 拦截</td><td>判断风险</td></tr>
+      <tr><td><strong>结果集</strong></td><td><strong>回传 token 占比、截断率、明细类占比</strong></td><td><strong>判断成本与结论完整性</strong></td></tr>
+      <tr><td>成本</td><td>token、扫描量、缓存命中</td><td>判断可持续</td></tr>
+      <tr><td>治理</td><td>口径一致率、指标覆盖率、变更积压</td><td>判断语义层质量</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.2">1.6.2 评测回归与成本优化</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>评测回归的黄金集要覆盖明细类与口径冲突，并且每次模型、Prompt、语义层、引擎变更都要跑回归，在线 A/B 护栏指标优先。成本优化分两条轨道：上下文 token 侧第一刀是结果集下推，数仓计算侧第一刀是物化视图。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「省 token」不等于「降成本」。物化视图一分钱 token 都不省，但它同时降低扫描量与数仓成本，而扫描量通常才是问数系统真正的大头——本章基准是日扫描 1.33PB 对日模型账单 ¥1.93 万。两条轨道分开算，不要合并成一个排行榜。</p>
+</div>
+
+<h4 id="sec-6.2.3" data-toc-skip>评测与回归</h4>
+
+<ul>
+<li>黄金集覆盖：单表、多表 Join、嵌套聚合、时间窗口、权限、归因、<strong>明细类</strong>、<strong>口径冲突</strong>。</li>
+<li>每次模型 / Prompt / 语义层 / 引擎变更跑回归。</li>
+<li>在线 A/B，<strong>护栏指标优先</strong>（越权、错误结论、截断未标注）。</li>
+<li>每周复盘 Top 错误，沉淀到 Few-shot 与 Schema 描述。</li>
+<li><strong>口径变更专项回归</strong>：改一个指标定义，验证历史黄金集用新版本重跑后的差异可解释。</li>
+</ul>
+
+<h4 id="sec-6.2.4" data-toc-skip>成本优化</h4>
+
+<p><strong>分两条轨道，不排成一条队</strong>：</p>
+<p><strong>轨道一：上下文 token 侧</strong>（省模型账单）</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">手段</th><th scope="col">收益</th><th scope="col">备注</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>结果集下推</strong></td><td>63% 的输入 token 都在这里</td><td>最大杠杆</td></tr>
+      <tr><td>2</td><td>问题 / SQL 缓存</td><td>约 20%（取决于重复率）</td><td>需四元指纹正确</td></tr>
+      <tr><td>3</td><td>模型分级</td><td>约 14%</td><td>意图 / 简单 SQL 走小模型</td></tr>
+      <tr><td>4</td><td>早停</td><td>约 8%</td><td>置信度高不重试</td></tr>
+      <tr><td>5</td><td>Schema 裁剪</td><td>约 2%</td><td>同时是可行性刚需</td></tr>
+  </tbody>
+</table>
+<p><strong>轨道二：数仓计算侧</strong>（省扫描量账单）</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">手段</th><th scope="col">收益</th><th scope="col">备注</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>物化视图</strong></td><td>同时降扫描量与结果集行数</td><td><strong>数仓侧收益通常超过模型侧</strong></td></tr>
+      <tr><td>2</td><td>结果缓存</td><td>重复问题不再扫库</td><td>四元指纹必须正确</td></tr>
+      <tr><td>3</td><td>查询预算</td><td>防止单租户吃满</td><td>按用户 / 租户配额</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「省 token」不等于「降成本」</strong>。物化视图虽然一分钱 token 都不省，但它同时降低扫描量与数仓成本，而<strong>扫描量通常才是问数系统真正的大头</strong>（本章基准：日扫描 1.33 PB vs 日模型账单 ¥1.93 万）。<strong>两条轨道分开算，不要合并成一个排行榜。</strong></p>
+</blockquote>
+
+<h3 id="sec-6.3">1.6.3 产品对比与常见误区</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>产品对比把本章形态与传统 BI、指标平台、NL2SQL Agent、数据搜索、通用 LLM 加 DB 放在一张表里，各自的核心、优势与局限一目了然。常见误区 17 条，其中加粗的四条是最贵的：用截断控制上下文、把 Schema 裁剪当成本优化、明细导出混在问数链路、口径冲突时默认选一个。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>误区清单里最值得警惕的是「把 Schema 裁剪当成本优化」——它打错靶子。Schema 裁剪是可行性刚需（不裁根本放不下），而成本的大头是结果集，占输入 63%。把精力花在裁剪上的人，通常会发现自己优化了一个占 9% 的项，却放任占 63% 的那头继续涨。</p>
+</div>
+
+<h4 id="sec-6.3.5" data-toc-skip>产品对比</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">产品 / 形态</th><th scope="col">核心</th><th scope="col">优势</th><th scope="col">局限</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>传统 BI</td><td>拖拽报表</td><td>稳定、可控、零幻觉</td><td>长尾覆盖差</td></tr>
+      <tr><td>指标平台</td><td>指标治理</td><td>口径统一</td><td>不解决自由提问</td></tr>
+      <tr><td>NL2SQL Agent</td><td>自然语言取数</td><td>覆盖长尾</td><td>口径 / 权限 / 结果集风险</td></tr>
+      <tr><td>数据搜索</td><td>关键词找表</td><td>发现数据</td><td>不做分析</td></tr>
+      <tr><td>通用 LLM + DB</td><td>直接生成 SQL</td><td>灵活</td><td>安全 / 口径 / 资源全弱</td></tr>
+      <tr><td><strong>问数 Agent（本章形态）</strong></td><td><strong>语义层 + 生成 + 校验 + 解读</strong></td><td><strong>口径可信、可审计、结果可控</strong></td><td><strong>建设成本高、依赖语义层成熟度</strong></td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-6.3.6" data-toc-skip>常见误区</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">误区</th><th scope="col">问题</th><th scope="col">正确做法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>只做 Text-to-SQL</td><td>口径不可控</td><td>语义层优先</td></tr>
+      <tr><td>让模型自由写 SQL</td><td>危险 / 越权</td><td>AST 白名单 + 沙箱</td></tr>
+      <tr><td>权限靠 Prompt</td><td>可被绕过</td><td>查询重写 / 视图</td></tr>
+      <tr><td>不做 AST 校验</td><td>注入风险</td><td>解析 + 白名单</td></tr>
+      <tr><td>不限制资源</td><td>打爆数仓</td><td>超时 / 行数 / 扫描量</td></tr>
+      <tr><td>不做口径说明</td><td>结论不可信</td><td>附口径与版本</td></tr>
+      <tr><td>相关当因果</td><td>误导决策</td><td>标注假设 + 结构校验</td></tr>
+      <tr><td>只评 EM</td><td>忽略结果正确</td><td>EX + 口径正确率</td></tr>
+      <tr><td>不做失败沉淀</td><td>重复犯错</td><td>错误样本库</td></tr>
+      <tr><td>忽略 Schema 大小</td><td>选错表</td><td>裁剪 + 域路由</td></tr>
+      <tr><td>不做缓存</td><td>成本高</td><td>四元指纹缓存</td></tr>
+      <tr><td>不做审计</td><td>无法追责</td><td>全量记录 + 改写前后 SQL</td></tr>
+      <tr><td><strong>用截断控制上下文</strong></td><td><strong>结论失真且静默</strong></td><td><strong>统计下推 + 样本分离</strong></td></tr>
+      <tr><td><strong>把 Schema 裁剪当成本优化</strong></td><td><strong>打错靶子</strong></td><td><strong>结果集才是大头（63%）</strong></td></tr>
+      <tr><td><strong>明细导出混在问数链路</strong></td><td><strong>结果集与合规失控</strong></td><td><strong>独立审批链路</strong></td></tr>
+      <tr><td><strong>口径冲突时默认选一个</strong></td><td><strong>安静地产出错误数字</strong></td><td><strong>列候选让用户选</strong></td></tr>
+      <tr><td><strong>只留改写后的 SQL 审计</strong></td><td><strong>无法证明拦截生效</strong></td><td><strong>前后都留</strong></td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.4">1.6.4 高频追问、答题提纲与一页纸手册</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>高频追问 12 条覆盖模型编造指标、危险 SQL、权限保证、自愈边界、Schema 过大、结果集过大、评测、归因、成本、口径冲突、多轮槽位、提示注入与结果可信。答题提纲给 10 分钟版与 35 分钟版，一页纸手册按 S0 到 S5 六阶段组织。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>答题提纲与练习的设计值得注意：10 分钟版强调「先给框架」，35 分钟版把「结果集 63% 占比的推导」和「扫描量的非线性」放在前 14 分钟——因为这两处最能区分「背过」与「算过」。练习里第 6、7 题是必做的计算题，不算一遍就不知道自己有没有真的理解成本结构。</p>
+</div>
+
+<h4 id="sec-6.4.7" data-toc-skip>高频追问</h4>
+
+<ul>
+<li><strong>如何防止模型编造指标？</strong> → 语义层固化指标，Agent 只能引用标准定义；生成阶段声明 <code>metrics_used</code>，执行前核对版本；SQL 与结果可追溯。</li>
+<li><strong>如何防止危险 SQL？</strong> → AST 白名单 + 只读资源组 + 超时 / 行数 / 扫描量限制 + EXPLAIN 代价预估。</li>
+<li><strong>如何保证行 / 列权限？</strong> → 查询重写 / 视图 / 策略层强制，不靠 Prompt；敏感列不进入模型 Schema。</li>
+<li><strong>SQL 生成错了怎么办？</strong> → 报错回填 + 最大重试 2–3 次 + 失败样本沉淀；<strong>自愈只改「怎么查」，不改「查什么」</strong>。</li>
+<li><strong>Schema 太大怎么办？</strong> → 域路由 + 语义检索 + 关键词 + Join 历史 + 列裁剪，只暴露 Top-K。</li>
+<li><strong>结果集太大怎么办？</strong> → 统计下推到 SQL + 样本替代全量 + 列裁剪；<strong>不要靠截断</strong>。</li>
+<li><strong>如何评估问数 Agent？</strong> → 执行准确率为主 + 口径正确率 + 在线采纳率与分歧率 + 安全测试。</li>
+<li><strong>如何做归因？</strong> → 同比环比 + 维度下钻 + 贡献度拆解（<strong>贡献度在 SQL 里算</strong>）；结论标注假设并做结构校验。</li>
+<li><strong>如何控制成本？</strong> → 先下推结果集，再物化视图，再模型分级，再缓存；先削大头。</li>
+<li><strong>口径冲突怎么办？</strong> → 指标版本 + 作用域 + 固定裁决顺序 + 答案注明；判不了就列候选。</li>
+<li><strong>多轮如何不重复问？</strong> → <code>confirmed_slots</code> 保存已确认口径。</li>
+<li><strong>如何防止提示注入？</strong> → 问题文本作为数据、结构化输出、规则与判定在代码层。</li>
+<li><strong>如何保证结果可信？</strong> → 结果校验 + 二次核对 + 截断标注 + 低置信不下结论。</li>
+</ul>
+
+<h4 id="sec-6.4.8" data-toc-skip>答题提纲与练习</h4>
+
+<p><strong>10 分钟版（自述型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–1 min</td><td>澄清：问题量、<strong>问题类型分布与明细占比</strong>、数据规模、权限模型、时效</td></tr>
+      <tr><td>1–3 min</td><td>容量：QPS、LLM 调用峰值、数仓并发、<strong>上下文 token 结构（结果集占 63%）</strong></td></tr>
+      <tr><td>3–5 min</td><td>架构：语义层 → Schema 裁剪 → 生成 → 校验重写 → 沙箱 → 结果集治理 → 解读</td></tr>
+      <tr><td>5–7 min</td><td>权限、结果集下推、审计</td></tr>
+      <tr><td>7–9 min</td><td>深挖一个点（推荐：结果集放大 / 权限强制）</td></tr>
+      <tr><td>9–10 min</td><td>安全护栏、降级、评测</td></tr>
+  </tbody>
+</table>
+<p><strong>35 分钟版（深聊型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–5 min</td><td>澄清与七锚点：规模、<strong>明细占比</strong>、权限模型、口径现状、不可逆清单</td></tr>
+      <tr><td>5–14 min</td><td>容量与成本（含结果集 63% 占比的推导、扫描量的非线性）</td></tr>
+      <tr><td>14–22 min</td><td>架构与数据流：语义层 / Schema 裁剪 / 生成 / 校验重写 / 沙箱 / 结果集治理 / 解读</td></tr>
+      <tr><td>22–26 min</td><td>数据模型与 API：指标卡（含版本与作用域）、审计、缓存四元指纹</td></tr>
+      <tr><td>26–34 min</td><td>深挖三个点（各约 3 min）：① 结果集放大与下推 ② 权限强制与 fail-closed ③ 口径治理与分歧率</td></tr>
+      <tr><td>34–35 min</td><td>演进阈值、安全护栏、评测闭环</td></tr>
+  </tbody>
+</table>
+<p><strong>练习</strong>：</p>
+<ol>
+<li>设计日 50 万问题的问数 Agent，给出完整链路与容量（<strong>必须包含结果集 token 的估算</strong>）。</li>
+<li>设计 Schema Linking 方案，要求 Top-5 命中率 &gt; 90%，并给出裁剪前后的 token 对比。</li>
+<li>设计行 / 列权限的强制执行方案，并说明权限服务故障时为什么必须 fail-closed。</li>
+<li>设计 SQL 自愈与失败样本沉淀机制，<strong>并给出自愈的安全边界</strong>。</li>
+<li>设计归因分析流程，避免相关当因果，<strong>并说明如何避免维度爆炸</strong>。</li>
+<li>计算：日 50 万问题、每题 1.5 次调用、基线输入 4000、输出 500；聚合类 42% 回传 20 行、明细类 28% 回传 120 行、分析类 30% 回传 50 行；单行 180 token；输入 ¥2/百万、输出 ¥8/百万——每天多少 token、多少钱？<strong>结果集占输入的百分之几？</strong></li>
+<li>计算：若明细类占比从 28% 升到 45%（大促），日扫描量与日 token 分别涨多少倍？为什么容量评审不能简单乘 10？</li>
+<li>设计「答案数字看起来正常但实际是过期数据」的排查路径。</li>
+</ol>
+
+<h4 id="sec-6.4.9" data-toc-skip>一页纸作战手册</h4>
+
+<p><strong>S0 定题</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>落七锚点</td><td>唯一事实源是什么？哪几个决策不可逆？</td><td>7 项写下来，事实源 = 指标卡 + SQL + 查询日志 + 审计</td></tr>
+      <tr><td>定优先级</td><td>口径、权限、成本冲突时保谁？</td><td>权限 &gt; 口径 &gt; SQL &gt; 结果完整 &gt; 体验 &gt; 成本</td></tr>
+      <tr><td><strong>量两个参数</strong></td><td><strong>明细类问题占比？单次结果集行数？</strong></td><td><strong>各给一个带来源的数值</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S1 建模</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>分层</td><td>每层只做什么、明确不做什么？</td><td>澄清 / 语义 / Schema / 生成 / 校验 / 执行 / 结果集 / 解读八层职责表</td></tr>
+      <tr><td>定口径</td><td>冲突怎么裁决？</td><td>固定裁决顺序 + <code>metric_id</code> 稳定 + 版本与作用域入答案</td></tr>
+      <tr><td>定事实源</td><td>哪些不可重建？</td><td>指标卡、元数据、查询日志、审计是事实源；缓存与索引是投影</td></tr>
+  </tbody>
+</table>
+<p><strong>S2 决策</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>选路径</td><td>快慢路径怎么分？</td><td>命中标准指标走快路径（P95 &lt; 5s）；归因走慢路径（&lt; 30s）</td></tr>
+      <tr><td>选下推策略</td><td>明细怎么返回？</td><td>统计 + 样本分离；<strong>禁止用截断替代下推</strong></td></tr>
+      <tr><td>选权限形态</td><td>强制在哪一层？</td><td>策略层 / 视图 &gt; 查询重写 &gt; 应用层；Prompt 不算</td></tr>
+  </tbody>
+</table>
+<p><strong>S3 论证</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>算并发</td><td>数仓扛得住吗？</td><td>峰值 29 QPS → 约 360 并发查询，配额 300</td></tr>
+      <tr><td>算 token</td><td>钱花在哪？</td><td>日 85 亿 token、约 ¥1.93 万；<strong>结果集占输入 63%</strong></td></tr>
+      <tr><td>算扫描</td><td>数仓账单呢？</td><td>日 1.33 PB；明细占比 28% → 45% → 扫描涨 45%</td></tr>
+      <tr><td>算质量</td><td>怎么知道变好了？</td><td>EX 为主 + 口径正确率 + 分歧率</td></tr>
+  </tbody>
+</table>
+<p><strong>S4 兜底</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>写延迟预算</td><td>每一步各多少？</td><td>9 阶段预算 + 硬限（&lt;a href="#sec-4.4.2"&gt;延迟预算与超时降级&lt;/a&gt;）</td></tr>
+      <tr><td>写降级矩阵</td><td>每个依赖挂了用户看到什么？</td><td>8 类故障各有行为；<strong>语义层挂了就停问数；权限挂了 fail-closed</strong></td></tr>
+      <tr><td>定护栏</td><td>安全排第几？</td><td>权限 / 危险 SQL / 资源 / 结果集 / PII / 口径 / 审计 / fail-closed <strong>八项 P0</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S5 闭环</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>定演进阈值</td><td>涨 10 倍哪里先坏？</td><td>数仓并发 → 扫描量 → LLM 配额（&lt;a href="#sec-5.3.2"&gt;扩容 10 倍，哪里先坏&lt;/a&gt;）</td></tr>
+      <tr><td>定指标</td><td>技术好了业务就好了吗？</td><td>采纳率必须与分歧率、复核率合看</td></tr>
+      <tr><td>建复盘闭环</td><td>行动项有负责人吗？</td><td>行动项 → 负责人 → 验证结果</td></tr>
+  </tbody>
+</table>
+<hr>
+
+<h2 id="seg-7">1.7 总结</h2><div class="oc-part-lead"><strong>总结</strong>把这一章收成一页纸：结论、边界，以及下一章要解决什么。</div>
+
+<h3 id="sec-7.1">1.7.1 一句话总结</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>问数 Agent 的可信度不来自更强的模型，而来自四道落在模型之外的防线：口径在语义层、权限在执行层、结果靠下推而不是截断、答案必须带口径与 SQL。</p>
+</div>
+
+<h3 id="sec-7.2">1.7.2 本章结论</h3><ol class="oc-points">
+  <li><strong>问数是一条受控流水线，不是一次生成。</strong>每一步都可能出错，系统的价值是把每种错误拦在答案之前。正确性是口径、SQL、权限、结果完整、解读五层叠加，缺一层就有一类错答案。</li>
+  <li><strong>成本的大头是结果集，不是 Schema。</strong>结果集回传占输入 token 的 63%，Schema 只占 9%。把 Schema 裁剪当成本优化是打错靶子；真正的杠杆是统计下推与样本分离。</li>
+  <li><strong>截断换来的省 token 是负收益。</strong>截断与下推的 token 只差 20%，但截断会把 P99 从全量分布变成前 100 行的分布。结论完整性不是能用 token 衡量的量。</li>
+  <li><strong>越权与口径漂移必须落在执行层。</strong>Prompt 里的「只查本部门」是软建议，注入内容可以覆盖它；查询重写、策略层、视图才是硬约束。依赖模型守规矩的系统，迟早会漏一次。</li>
+  <li><strong>不完整的结果比失败更危险。</strong>失败会被人发现，错误的数字会被拿去做决策。所以截断必须标注、冲突必须摊开、语义层不可用就停止问数。</li>
+</ol>
+
+<h3 id="sec-7.3">1.7.3 下一章</h3><p>下一章 <strong>第 2 章：问答 Agent——从知识库到可核验答案</strong>：问数读的是结构化数仓，问答读的是非结构化知识库；两者同构，但防线的落点完全不同——问数防口径错，问答防幻觉。</p>
+
+<h3 id="sec-7.4">1.7.4 相关阅读</h3><ul>
+  <li><a href="/2026/11/26/agent-design-02-rag/"><strong>第 2 章 · 问答 Agent</strong></a> — 与本章同构的兄弟：召回宽、注入窄，引用完整率 100%，并给出会拒答的产品化设计。</li>
+  <li><a href="/2026/08/06/ai-programming-engineering/"><strong>AI 编程工程实践 01</strong></a> — 从更上层看 Agent 平台：一次交付如何被组织成可复用的能力。</li>
+  <li><a href="/2026/06/13/observable-ops-03-04-sre-agents/"><strong>智能系统运维可观测性 · 参考 04</strong></a> — 同一套「先降噪、再调查、后执行」的思路，落在运维域的另一种形态。</li>
+</ul>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">1.1 问数 Agent 是什么</a><a class="reading-toc-link level-3" href="#sec-1.1">1.1.1 定义与能力层次</a><a class="reading-toc-link level-3" href="#sec-1.2">1.1.2 用户、场景与与传统 BI 的关系</a><a class="reading-toc-link level-3" href="#sec-1.3">1.1.3 边界、指标与不可逆决策</a><a class="reading-toc-link level-2" href="#seg-2">1.2 核心矛盾与设计原则</a><a class="reading-toc-link level-3" href="#sec-2.1">1.2.1 本质与六条章级原则</a><a class="reading-toc-link level-3" href="#sec-2.2">1.2.2 三个不等式与三个放大器</a><a class="reading-toc-link level-3" href="#sec-2.3">1.2.3 四层正确性与八组关键矛盾</a><a class="reading-toc-link level-3" href="#sec-2.4">1.2.4 失败模式、信任分级与威胁模型</a><a class="reading-toc-link level-3" href="#sec-2.5">1.2.5 成本结构</a><a class="reading-toc-link level-2" href="#seg-3">1.3 理论与方法论</a><a class="reading-toc-link level-3" href="#sec-3.1">1.3.1 S0 前置锚点与 4S 收敛顺序</a><a class="reading-toc-link level-3" href="#sec-3.2">1.3.2 场景、规模与服务边界</a><a class="reading-toc-link level-3" href="#sec-3.3">1.3.3 语义层与口径冲突裁决</a><a class="reading-toc-link level-3" href="#sec-3.4">1.3.4 Schema 裁剪、问题澄清与澄清成本判据</a><a class="reading-toc-link level-3" href="#sec-3.5">1.3.5 SQL 生成、校验与自愈</a><a class="reading-toc-link level-3" href="#sec-3.6">1.3.6 结果校验与结果集治理</a><a class="reading-toc-link level-3" href="#sec-3.7">1.3.7 权限、可视化与归因</a><a class="reading-toc-link level-3" href="#sec-3.8">1.3.8 评测、缓存、成本与容量</a><a class="reading-toc-link level-2" href="#seg-4">1.4 工程落地与规则护栏</a><a class="reading-toc-link level-3" href="#sec-4.1">1.4.1 端到端链路与接入护栏</a><a class="reading-toc-link level-3" href="#sec-4.2">1.4.2 语义、生成、校验与执行护栏</a><a class="reading-toc-link level-3" href="#sec-4.3">1.4.3 结果集、解读与审计</a><a class="reading-toc-link level-3" href="#sec-4.4">1.4.4 降级、延迟预算与观测</a><a class="reading-toc-link level-3" href="#sec-4.5">1.4.5 护栏清单与上线检查</a><a class="reading-toc-link level-2" href="#seg-5">1.5 端到端案例</a><a class="reading-toc-link level-3" href="#sec-5.1">1.5.1 案例：净营收环比下降归因</a><a class="reading-toc-link level-3" href="#sec-5.2">1.5.2 四个变体：自助取数、澄清、权限与明细</a><a class="reading-toc-link level-3" href="#sec-5.3">1.5.3 故障兜底、扩容与取舍</a><a class="reading-toc-link level-2" href="#seg-6">1.6 演进、指标与误区</a><a class="reading-toc-link level-3" href="#sec-6.1">1.6.1 演进路线与指标体系</a><a class="reading-toc-link level-3" href="#sec-6.2">1.6.2 评测回归与成本优化</a><a class="reading-toc-link level-3" href="#sec-6.3">1.6.3 产品对比与常见误区</a><a class="reading-toc-link level-3" href="#sec-6.4">1.6.4 高频追问、答题提纲与一页纸手册</a><a class="reading-toc-link level-2" href="#seg-7">1.7 总结</a><a class="reading-toc-link level-3" href="#sec-7.1">1.7.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-7.2">1.7.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-7.3">1.7.3 下一章</a><a class="reading-toc-link level-3" href="#sec-7.4">1.7.4 相关阅读</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div></div><div><a href="/2026/11/26/agent-design-02-rag/"><small>下一篇 →</small><span>问答 Agent——从知识库到可核验答案</span></a></div><a class="article-series-return" href="/categories/agent-design/">返回AI Agent 系统设计 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=13" defer></script></body>
+</html>

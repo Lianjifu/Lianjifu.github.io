@@ -1,0 +1,2165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 2 章：问答 Agent：问答 Agent——从知识库到可核验答案 | AI Agent 系统设计</title>
+  <meta name="description" content="问答 Agent 把用户提问变成有依据、可核验、可追溯的答案。本章拆开多路召回、重排与注入预算、引用与拒答、权限隔离与知识时效，给出日 200 万问答的容量与成本估算。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 2 章：问答 Agent：问答 Agent——从知识库到可核验答案">
+  <meta property="og:url" content="https://www.lianjifu.cn/2026/11/26/agent-design-02-rag/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="问答 Agent 把用户提问变成有依据、可核验、可追溯的答案。本章拆开多路召回、重排与注入预算、引用与拒答、权限隔离与知识时效，给出日 200 万问答的容量与成本估算。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-26T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-26T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="agent-design">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" content="https://www.lianjifu.cn/2026/11/26/agent-design-02-rag/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="/css/2026.css?v=2">
+  <link rel="stylesheet" href="/css/portal.css?v=13">
+  <link rel="stylesheet" href="/css/article.css?v=8">
+  <link rel="stylesheet" href="/css/agent-design.css?v=1">
+  <script src="/js/portal.js?v=7" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="agent-design"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+        <path d="M8 3v4M16 3v4M3.5 10.5h17" />
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24">
+        <path
+          d="M3.5 6.6a2 2 0 0 1 2-2h3.3a2 2 0 0 1 1.5.7l1.3 1.7h6.9a2 2 0 0 1 2 2v8.4a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"
+        />
+      </symbol>
+    </svg>
+<header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/agent-design/"
+                  ><span class="series-dot slate"></span
+                  ><span
+                    ><strong>AI Agent 系统设计</strong
+                    ><small>十类 Agent 的系统设计</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/agent-design/">AI Agent 系统设计</a></div>
+      <span class="article-kicker">第 2 章：问答 Agent</span>
+      <h1 class="post-title" itemprop="name headline">问答 Agent——从知识库到可核验答案</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-26T10:00:00+08:00">2026-11-26</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/agent-design/" itemprop="url" rel="index"><span itemprop="name">AI Agent 系统设计</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body agent-design-body" itemprop="articleBody">
+<p class="oc-lead">
+  问答 Agent 把用户提问变成有依据、可核验、可追溯的答案。难点不在「答得像人」，而在「答得准、且知道什么时候不该答」——检索噪声会被模型编成结论，过期知识会被反复复用，答不上来时还必须敢拒答。本章围绕知识切分与多路召回、重排与注入预算、引用与拒答、权限隔离与知识时效展开。
+</p>
+
+<table class="guide-card collapsed">
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr class="guide-card-header">
+      <td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>AI 答得很像人，但你没法验证</li>
+          <li>流畅不等于有据——没有可点开的来源，用户就只能选择信或不信</li>
+          <li>问答 Agent 唯一不可妥协的产品定义是：答案必须挂在一个可点开的来源上</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>「答不上来」必须被产品化</li>
+          <li>开放提问的表达空间与封闭答案的证据要求之间，隔着一道必须正面处理的鸿沟</li>
+          <li>拒答不是失败，而是系统的一部分；一句「无法回答」是最差的拒答</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>召回宽、注入窄是本章的第一原则</li>
+          <li>召回保证不漏，重排保证不噪——多召回的每一条都在为答案的噪音做贡献</li>
+          <li>k 从 10 加到 50，命中率涨 11pp，准确率反降 3pp，幻觉率涨 13pp</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>幻觉的成本远高于 token 的成本</li>
+          <li>18% 幻觉率若 1% 被采信并纠正，每天 18 万元，比省下的 token 还多</li>
+          <li>所以优化优先级是幻觉率优先，而降幻觉最便宜的手段不是换更强的模型，是重排</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+<div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p><strong>本章回答</strong>：知识库问答怎样变成一个有依据、可核验、且敢拒答的答案</p>
+  <p><strong>核心机制</strong>：意图路由与可行性预判 → 多路召回 → 重排收敛 → 上下文预算构建 → 结构化生成与引用 → 代码层校验 → 分级拒答</p>
+  <p><strong>关键数字</strong>：日问答 200 万 · 峰值 116 QPS · 知识库 500 万块 · 重排 5800 对/秒 · 注入 token 占输入 73%</p>
+  <p><strong>读完能做什么</strong>：设计一条问答链路，并说清检索、注入、引用三段各自该守住什么</p>
+</div>
+
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>知识库问答怎样变成一个有依据、可核验、且敢拒答的答案</td></tr>
+    <tr><td>核心机制</td><td>意图路由与可行性预判 → 多路召回 → 重排收敛 → 上下文预算构建 → 结构化生成与引用 → 代码层校验 → 分级拒答</td></tr>
+    <tr><td>关键数字</td><td>日问答 200 万 · 峰值 116 QPS · 知识库 500 万块 · 重排 5800 对/秒 · 注入 token 占输入 73%</td></tr>
+    <tr><td>读完能做什么</td><td>设计一条问答链路，并说清检索、注入、引用三段各自该守住什么</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 问答 Agent 是什么</div>
+    <div>它是什么、给谁用、与 FAQ 和全文检索差在哪，以及哪些决策做错了要停机迁移。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 核心矛盾</div>
+    <div>开放提问与封闭答案之间的鸿沟，以及六条必须坚持的原则。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 理论与方法论</div>
+    <div>从七项前置锚点推到容量与成本：切分、召回、重排、注入、引用、拒答怎么治。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · 工程落地与护栏</div>
+    <div>把方法论变成链路上的一环一环：十个 P0 护栏与九类依赖的降级行为。</div>
+  </div>
+  <div class="oc-card">
+    <div>第五段 · 端到端案例</div>
+    <div>一个「出差住宿标准是多少」的问题，走完整条链路。</div>
+  </div>
+  <div class="oc-card">
+    <div>第六段 · 演进与误区</div>
+    <div>六级演进路线、七个指标层，以及十五条最贵的误区。</div>
+  </div>
+  <div class="oc-card">
+    <div>总结</div>
+    <div>把这一章压成一页纸：结论、边界、下一章。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">2.1 问答 Agent 是什么</h2><div class="oc-part-lead"><strong>第一段 · 问答 Agent 是什么</strong>这一段回答：问答 Agent 究竟是什么、与 FAQ 和全文检索差在哪、给谁用，以及哪些决策一旦做错就要停机迁移。</div>
+
+<h3 id="sec-1.1">2.1.1 定义与能力层次</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>问答 AI Agent 接收自然语言问题，完成意图路由、检索规划、多路召回、重排、上下文构建、生成与引用、置信度判定与拒答、以及基于反馈的评测闭环。它与问数 Agent 是同构的兄弟：都是「读 → 推理 → 答」，差别只在事实源——问数读结构化数仓，问答读非结构化知识库。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一段最值得带走的是那句镜像关系：问数章说「先下推再回传，绝不靠截断控制上下文」，本章说「召回宽、注入窄，绝不靠加宽召回换命中率」。同一个底层道理的两面——送进模型的东西，要么是算好的，要么是筛过的，不能是原样倒进去的。</p>
+</div>
+
+<p><strong>定义</strong>：问答 AI Agent 是面向知识密集型场景的智能体系统。它接收自然语言问题，完成意图路由、检索规划、多路召回、重排、上下文构建、答案生成与引用、置信度判定与拒答、以及基于反馈的评测闭环，最终给出<strong>有依据、可核验、可追溯</strong>的答案。</p>
+<p>它与问数 Agent 是<strong>同构的兄弟</strong>：两者都是「读 → 推理 → 答」，差别只在数据源——问数读的是<strong>结构化数仓</strong>，问答读的是<strong>非结构化知识库</strong>。这个同构性是本章的骨架：</p>
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">问数 Agent（&lt;a href="/2026/11/26/agent-design-01-text2sql/"&gt;第 1 篇&lt;/a&gt;）</th><th scope="col">问答 Agent（本章）</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>事实源</td><td>语义层 + 数仓</td><td>切分后的知识块 + 版本</td></tr>
+      <tr><td>事实的形态</td><td><strong>结构化、可计算</strong></td><td><strong>非结构化、需引用</strong></td></tr>
+      <tr><td>幻觉的形态</td><td>口径错、Join 错</td><td><strong>无依据生成</strong></td></tr>
+      <tr><td>防线</td><td>口径固化 + AST 校验 + 沙箱</td><td><strong>召回 + 重排 + 引用 + 拒答</strong></td></tr>
+      <tr><td>正确的证明</td><td>SQL 可执行可复现</td><td><strong>引用可点开可核验</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>两章的核心方法论也是镜像的</strong>：问数章说「<strong>先下推再回传，绝不靠截断控制上下文</strong>」，本章说「<strong>召回宽、注入窄，绝不靠加宽召回换命中率</strong>」。<strong>同一个底层道理的两面</strong>：送进模型的东西，要么是算好的，要么是筛过的；<strong>不能是原样倒进去的。</strong></p>
+</blockquote>
+<p><strong>三类能力层次</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">回答的问题</th><th scope="col">典型输出</th><th scope="col">难度</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>L1 单跳问答</strong></td><td>是什么</td><td>一段答案 + 若干引用</td><td>中</td></tr>
+      <tr><td><strong>L2 多跳推理</strong></td><td>A 和 B 怎么合起来算</td><td>分解 + 逐步 + 引用</td><td>较高</td></tr>
+      <tr><td><strong>L3 行动与闭环</strong></td><td>接下来该做什么</td><td>结论 + 待办 + 派单</td><td>高</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-1.2">2.1.2 用户、场景与相近系统</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>内部员工、客服一线、客户、知识管理员是四类主要用户，风险各不相同。与 FAQ、全文检索、文档摘要、通用 LLM 聊天的区别是：那些系统要么不组织答案，要么不引用，要么会一本正经地编。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「答案必须挂在一个可点开的来源上」是这一段唯一不可妥协的产品定义。没有这一条，它就退化成一个「回答得很像人、但你没法验证」的搜索框——而这恰恰是用户不信任 AI 回答的根本原因。所有后面的工程量，都是为了让这句话能兑现。</p>
+</div>
+
+<p><strong>典型用户与场景</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">用户</th><th scope="col">场景</th><th scope="col">关注点</th><th scope="col">主要风险</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>内部员工</td><td>制度、流程、报销标准</td><td>准确、时效、找得到人</td><td>引用错条款、过期政策</td></tr>
+      <tr><td>客服 / 一线</td><td>产品用法、故障处理</td><td>快、能直接用</td><td>幻觉误导一线</td></tr>
+      <tr><td>客户</td><td>产品说明、政策解读</td><td>准确、可自助</td><td>越权泄露内部制度</td></tr>
+      <tr><td>知识管理员</td><td>知识入库与治理</td><td>冲突、过期、覆盖</td><td>旧版本污染新答案</td></tr>
+  </tbody>
+</table>
+<p><strong>与相近系统的区别</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">系统</th><th scope="col">核心</th><th scope="col">与问答 Agent 的差异</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>FAQ / 关键词检索</td><td>精确匹配</td><td><strong>答不上来就答不上来，不会推理也不会兜底</strong></td></tr>
+      <tr><td>全文检索（Elasticsearch）</td><td>召回相关文档</td><td><strong>把文档甩给人，不组织答案</strong></td></tr>
+      <tr><td>文档摘要</td><td>单篇概括</td><td>不跨文档、不引用、不拒答</td></tr>
+      <tr><td>通用 LLM 聊天</td><td>靠参数化知识回答</td><td><strong>不知道你的内部制度，会一本正经地编</strong></td></tr>
+      <tr><td>问答 Agent</td><td>检索 + 重排 + 生成 + 引用 + 拒答</td><td><strong>答案必须挂在一个可点开的来源上</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「答案必须挂在一个可点开的来源上」是本章唯一不可妥协的产品定义</strong>。没有这一条，它就退化成一个「回答得很像人、但你没法验证」的搜索框——而这恰恰是用户不信任 AI 回答的根本原因。</p>
+</blockquote>
+
+<h3 id="sec-1.3">2.1.3 边界、指标与不可逆决策</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>范围内是问题理解、切分索引、召回重排、生成引用、拒答澄清、反馈回流六件事，范围外是知识生产与审核流程、文档协作与权限系统本身。核心指标分效果、引用、检索、体验、成本、安全六类。另有七项不可逆决策，其中切分策略、Embedding 模型、引用契约三项代价最大。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>不可逆清单里最容易被低估的是「引用契约与答案结构」：引用是可信度的唯一载体，一旦换了粒度或校验方式，全量答案与引用要重新生成，下游解析全部失效。它不像切分策略那样「早就听说过」，但它一旦上线就极难改。</p>
+</div>
+
+<p><strong>系统边界</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">范围内</th><th scope="col">范围外</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>问题理解与意图路由</td><td>知识内容的<strong>生产</strong>与审核流程</td></tr>
+      <tr><td>切分、入库、索引与版本</td><td>文档协作与权限系统本身</td></tr>
+      <tr><td>召回、重排、上下文构建</td><td>通用搜索引擎的实现</td></tr>
+      <tr><td>生成、引用、拒答、澄清</td><td>人工知识运营</td></tr>
+      <tr><td>反馈回流与评测闭环</td><td>企业微信 / 邮件等通知渠道</td></tr>
+  </tbody>
+</table>
+<p><strong>核心指标</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>效果</td><td>答案准确率、<strong>幻觉率</strong>、<strong>误拒率</strong>、拒答恰当率</td></tr>
+      <tr><td>引用</td><td><strong>引用精确率</strong>、<strong>引用召回率</strong>、<strong>引用完整率</strong>、引用点击率</td></tr>
+      <tr><td>检索</td><td><strong>recall@k</strong>、重排前后命中率、注入块数</td></tr>
+      <tr><td>体验</td><td>首响 P95、追问率、答案质疑率、首次解决率</td></tr>
+      <tr><td>成本</td><td>单问 token、注入 token 占比、重排算力</td></tr>
+      <tr><td>安全</td><td><strong>越权召回率</strong> 0、敏感内容泄露 0</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>两个新指标是本章的核心</strong>：<strong>幻觉率</strong>（答了但没有依据）与<strong>误拒率</strong>（本可答却拒答）。它们是一对此消彼长的指标，<strong>必须一起看</strong>——单看任何一个都能得出「应该调松/调紧」的反向结论。</p>
+</blockquote>
+<p><strong>SLO 示例</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">目标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>首 token P95</td><td>&lt; 800ms</td></tr>
+      <tr><td>简单问答 P95</td><td>&lt; 2s</td></tr>
+      <tr><td>复杂多跳 P95</td><td>&lt; 8s</td></tr>
+      <tr><td><strong>幻觉率</strong></td><td><strong>≤ 5%</strong></td></tr>
+      <tr><td><strong>误拒率</strong></td><td><strong>≤ 8%</strong></td></tr>
+      <tr><td><strong>引用完整率</strong></td><td><strong>100%</strong></td></tr>
+      <tr><td><strong>越权召回率</strong></td><td><strong>0</strong>（硬约束）</td></tr>
+      <tr><td>答案质疑率</td><td>≤ 3%</td></tr>
+  </tbody>
+</table>
+<p><strong>本章专属不可逆决策清单</strong>（做错了要停机迁移 + 数据回填 + 全量对账，不是发个版本就能改）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">为什么不可逆</th><th scope="col">改动代价</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>切分策略与块结构</strong>（块边界、重叠、标题路径、表格行、表头携带）</td><td>决定召回粒度与语义完整性；改了就全库重建</td><td>全量重建索引 + 召回结果突变 + 历史引用链断裂</td></tr>
+      <tr><td><strong>Embedding 模型与向量索引 schema（含 ACL 字段）</strong></td><td>检索的坐标系；换了模型所有向量作废</td><td>全量重算向量 + 索引重建 + 灰度双写</td></tr>
+      <tr><td><strong>多路召回的组成与融合算法</strong>（向量 / BM25 / 历史问答对 / 实体的权重与 RRF 参数）</td><td>决定 recall@k 的上限</td><td>参数需全量重跑黄金集 + 线上指标断档</td></tr>
+      <tr><td><strong>重排模型与重排策略</strong>（cross-encoder 版本、top-N 重排范围）</td><td>决定注入质量与幻觉率</td><td>换模型要重跑黄金集 + 延迟预算重排</td></tr>
+      <tr><td><strong>注入预算与注入条数的口径</strong>（k 是多少、怎么算、超了怎么办）</td><td>决定成本、延迟与幻觉率三者</td><td>改 k 要重跑成本与质量双回归</td></tr>
+      <tr><td><strong>知识版本与生效时间模型</strong>（version / effective_from / 废止态）</td><td>决定「过期知识会不会被用到」</td><td>全库补版本字段 + 历史答案的口径需重新标注</td></tr>
+      <tr><td><strong>引用契约与答案结构</strong>（引用粒度、引用如何校验、答案 schema）</td><td>引用是可信度的唯一载体</td><td>全量答案与引用重新生成 + 下游解析全部失效</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>对照「单向门与双向门」的判据</strong>：这七项属单向门，决策时要多评审、做原型、留迁移方案。其余（模型选择、top-k、召回路数、阈值、批大小、缓存）是双向门，可以快速试错——但 <strong>k 值与召回路数属于「可逆但很贵」</strong>：它们直接改变幻觉率与误拒率这两个核心指标，必须伴随黄金集回归。</p>
+</blockquote>
+
+<h2 id="seg-2">2.2 核心矛盾与设计原则</h2><div class="oc-part-lead"><strong>第二段 · 核心矛盾</strong>这一段回答：开放提问与封闭答案之间到底隔着什么，为什么这六条原则在冲突时说了算。</div>
+
+<h3 id="sec-2.1">2.2.1 本质与六条章级原则</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>本质矛盾是开放提问的表达空间与封闭答案的证据要求之间的冲突——用户可以问任何事，但答案必须挂在一个存在的、可点开的、当前生效的知识块上。六条章级原则规定了冲突时以谁为准：召回宽注入窄、没有依据就不作答、答案必须带可点开的引用、知识时效要标截止时点、权限在检索层过滤、拒答率是双面指标。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>六条原则里第三条和第五条最容易被违反，因为它们都要求「把约束放在模型外面」。模型看不见的文档，就不可能被写进答案；Prompt 里那句「请不要透露内部制度」是提示，不是防线。一个好用的自检：如果某条护栏要靠模型自觉执行，它就不是护栏。</p>
+</div>
+
+<p><strong>本质</strong>：问答 Agent 的核心矛盾，是「开放提问的表达空间」与「封闭答案的证据要求」之间的冲突。用户可以问任何事，但答案必须挂在一个存在的、可点开的、当前生效的知识块上。<strong>这意味着「答不上来」是一个必须被产品化的一等公民，而不是失败。</strong></p>
+<p><strong>六条章级原则</strong>（贯穿全章，冲突时以这六条为准）：</p>
+<ol>
+<li><strong>召回宽、注入窄</strong>——召回保证不漏（宽），重排后注入保证不噪（窄）。<strong>这是本章的第一原则</strong>：宽召回 + 窄注入同时成立，两个指标才同时改善。</li>
+<li><strong>没有依据就不作答</strong>——检索不到就明说「知识库里没有」，<strong>宁可拒答，不可流畅地编</strong>。模型的生成能力远强于它的判别能力（&lt;a href="#sec-3.3.4"&gt;重排&lt;/a&gt;）。</li>
+<li><strong>答案必须带引用，且引用可点开原文</strong>——不可核验的答案不可信。<strong>每个实质性论断都要有引用</strong>，这是 P0 而非加分项。</li>
+<li><strong>知识有时效，答案要带截止时点</strong>——过期知识不静默使用；答案要说明「基于哪一版知识、截至什么时候」。</li>
+<li><strong>权限在检索层过滤，不在生成层声明</strong>——模型看不到的文档，就不可能被写进答案。<strong>「请不要透露内部制度」是提示，不是防线。</strong></li>
+<li><strong>拒答率是双面指标</strong>——幻觉率与误拒率必须一起看。<strong>单看拒答率，永远会得出「应该放宽」的错误结论。</strong></li>
+</ol>
+
+<h3 id="sec-2.2">2.2.2 三个不等式与三个放大器</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>三组不等式划定了问题边界：生成能力远超判别能力、开放提问远超封闭答案、知识规模远超人工维护速度。三个放大器量化了代价：召回放大让准确率反降 3pp 而幻觉率涨 13pp，幻觉放大让错误答案比错误检索更贵，知识复用放大让一条过期条款每天被复用 6 万次。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一段最反直觉的一句在「生成能力 >> 判别能力」：模型被问「住宿标准是多少」，上下文里有 50 块、其中 12 块提到金额，它会从这 12 块里「综合」出一个看起来合理的数字——它无法区分「这块说的是住宿标准」和「这块说的是餐补标准」。所以幻觉的根源不是模型撒谎，是模型分不清。</p>
+</div>
+
+<p><strong>三个不等式</strong>：</p>
+<pre><code>生成能力  &gt;&gt;  判别能力   →  噪音一旦进上下文，就会被编成合乎逻辑的结论
+开放提问  &gt;&gt;  封闭答案   →  拒答与澄清不是失败，是产品的一部分
+知识规模  &gt;&gt;  人工维护速度 →  靠版本与时效标注，不靠人肉</code></pre>
+<p><strong>三个放大器</strong>（本章最贵的量都藏在这里）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">放大器</th><th scope="col">说明</th><th scope="col">后果</th><th scope="col">量化</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>召回放大（宽度 vs 精度）</strong></td><td>召回集变宽，命中更多、噪声更多</td><td>幻觉率上升，上下文暴涨</td><td>k 从 10 → 50：命中率 +11pp，<strong>准确率反降 3pp，幻觉率涨 13pp</strong>，上下文 +168%（&lt;a href="#sec-3.3.4"&gt;重排&lt;/a&gt;）</td></tr>
+      <tr><td><strong>幻觉放大</strong></td><td>模型的生成能力远强于判别能力</td><td>错误答案比错误检索更贵</td><td>18% 幻觉率 → 若 1% 被采信并纠正，<strong>¥18 万/天，比省下的 token 还多</strong>（&lt;a href="#sec-3.4.3"&gt;拒答、澄清与置信度&lt;/a&gt;）</td></tr>
+      <tr><td><strong>知识复用放大</strong></td><td>一条过期条款被命中一次，就被复用成千上万次</td><td>错误知识被规模化传播</td><td>过期块贡献 3% 的问答 → <strong>6 万次/天基于过期知识作答</strong>（&lt;a href="#sec-3.5.3"&gt;知识时效与版本&lt;/a&gt;）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章的放大器方向值得单独记</strong>：别的系统放大的是数据量，问答章放大的是「不确定的证据量」——<strong>它是唯一一个「为了不漏答案而做的动作，会系统性地制造错答案」的架构</strong>。</p>
+</blockquote>
+
+<h3 id="sec-2.3">2.2.3 四层正确性与八组关键矛盾</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>正确性分证据正确、依据完整、知识有效、权限正确四层，必须分开保证。八组矛盾给每一条标注了默认策略与反转条件，比如「拒答 vs 体验」默认澄清一次后给候选，高价值场景可以多拒。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>四层里最容易被漏掉的是「知识有效」：检索到的块确实支持答案、每个论断都有依据、依据是当前生效的版本——三件事都要成立。尤其是第三件：库里同时存在新旧两版时，答案可能完全有据却已经过期，这在四层里是独立的错误类型，不能被「有引用」掩盖。</p>
+</div>
+
+<p><strong>四层正确性</strong>（必须分开保证）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">要求</th><th scope="col">保障手段</th><th scope="col">典型漏法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>证据正确</strong></td><td>检索到的块确实支持答案</td><td>多路召回 + 重排 + 引用精确率</td><td>只用向量检索，术语/编号全miss</td></tr>
+      <tr><td><strong>依据完整</strong></td><td>每个论断都有依据</td><td>引用完整率 100% + 结构化输出</td><td>答案里混着无依据的「常识」</td></tr>
+      <tr><td><strong>知识有效</strong></td><td>依据是当前生效的版本</td><td>版本 / 生效时间过滤</td><td>库里同时存在新旧两版</td></tr>
+      <tr><td><strong>权限正确</strong></td><td>不越权、不泄露</td><td><strong>ACL 进索引 + 检索层过滤</strong></td><td>检索后过滤，悄悄吃掉召回预算（&lt;a href="#sec-3.5.2"&gt;权限与租户隔离&lt;/a&gt;）</td></tr>
+  </tbody>
+</table>
+<p><strong>八组关键矛盾</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">矛盾</th><th scope="col">典型表现</th><th scope="col">默认策略</th><th scope="col">何时反转</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>覆盖 vs 准确</td><td>召回放宽 → 什么都能答</td><td><strong>重排 + 拒答</strong></td><td>探索型场景可放宽</td></tr>
+      <tr><td>速度 vs 深度</td><td>多跳太慢</td><td>单跳快路径 + 多跳慢路径</td><td>复杂问题可接受秒级</td></tr>
+      <tr><td>简洁 vs 完整</td><td>短答案漏前提</td><td><strong>带引用与前提条件</strong></td><td>简单问答可折叠</td></tr>
+      <tr><td>通用 vs 垂直</td><td>通用域知识广但不深</td><td>领域知识库 + 语义层</td><td>开放域可放宽</td></tr>
+      <tr><td>实时 vs 稳定</td><td>知识更新后检索未生效</td><td>版本 + 增量索引</td><td>知识不变可全量</td></tr>
+      <tr><td>自动 vs 人工</td><td>全自动有幻觉风险</td><td>关键域人工复核</td><td>低风险可全自动</td></tr>
+      <tr><td>复用 vs 隔离</td><td>通用模型便宜但不懂内部</td><td>领域微调 / 检索增强</td><td>通用域可放宽</td></tr>
+      <tr><td>拒答 vs 体验</td><td>拒多了用户不用</td><td>澄清一次后给候选</td><td>高价值场景可多拒</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-2.4">2.2.4 失败模式、信任分级与威胁模型</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>八类失败模式里，幻觉、引用错位、过期作答、越权泄露是本章特有的四类。信任分级多出一档「低」——只给有依据的部分并明确指出不确定的部分。威胁模型里提示注入的危险级别高于其它 Agent：别的章注入是要模型多做事，本章注入是要模型把恶意文本当成知识讲出来。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「低」这一档的存在不是精细化，是结构性前提。很多系统只有「有答案」和「没答案」两种状态，于是把「部分有依据」硬撑成完整答案——这正是幻觉最常见的产生方式。没有中间档，Agent 就没有承认「这一句我不确定」的地方。</p>
+</div>
+
+<p><strong>八类失败模式</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">失败</th><th scope="col">表现</th><th scope="col">根因</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>幻觉</strong></td><td>答得流畅但没有依据</td><td>噪音进上下文</td><td><strong>重排 + 引用 + 拒答</strong></td></tr>
+      <tr><td><strong>答非所问</strong></td><td>检索到的与问题不相关</td><td>召回单一 / 切分错</td><td>多路召回 + 重排</td></tr>
+      <tr><td><strong>术语漏召</strong></td><td>产品型号、编号查不到</td><td>只用向量检索</td><td>BM25 + 历史问答对</td></tr>
+      <tr><td><strong>引用错位</strong></td><td>引用指向不相关的段落</td><td>重排缺失或只做语义匹配</td><td><strong>引用精确率评测 + 逐句校验</strong></td></tr>
+      <tr><td><strong>过期作答</strong></td><td>用旧政策回答</td><td>无版本 / 无生效时间</td><td>版本过滤 + 标注截止时点</td></tr>
+      <tr><td><strong>越权泄露</strong></td><td>答出了无权内容</td><td>权限只在生成层声明</td><td><strong>ACL 进索引</strong></td></tr>
+      <tr><td><strong>过度拒答</strong></td><td>能答却不答</td><td>阈值过严 / 无澄清</td><td>误拒率单独监控</td></tr>
+      <tr><td><strong>多跳拼接错</strong></td><td>各步都对，合起来不对</td><td>无合并一致性校验</td><td>子问题一致性校验</td></tr>
+  </tbody>
+</table>
+<p><strong>信任分级</strong>（答案的「输出契约」）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">级别</th><th scope="col">条件</th><th scope="col">展示方式</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>高</td><td>召回充分 + 重排置信高 + 引用完整 + 知识版本有效</td><td>直接给答案 + <strong>可点开的引用</strong> + 知识截止时点</td></tr>
+      <tr><td>中</td><td>答案可用但存在多义解读或知识较旧</td><td>给答案 + 引用 + <strong>标注版本与时点</strong> + 提示复核</td></tr>
+      <tr><td>低</td><td>仅部分论断有依据 / 存在冲突版本</td><td><strong>给出有依据的部分 + 明确指出不确定的部分</strong></td></tr>
+      <tr><td>拒绝</td><td>无依据 / 越权 / 歧义无法消解</td><td><strong>明确说明原因</strong> + 可走的替代路径（问谁、提工单、换问法）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「低」这一档是本章特有的</strong>：很多系统只有「有答案」和「没答案」两种状态，于是把「部分有依据」硬撑成完整答案——<strong>这正是幻觉最常见的产生方式</strong>。<strong>中间档的存在，是让 Agent 敢承认「这一句我不确定」的结构性前提。</strong></p>
+</blockquote>
+<p><strong>威胁模型</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">威胁</th><th scope="col">路径</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>越权召回</strong></td><td>用户问到无权文档</td><td><strong>ACL 进索引 + 检索层过滤</strong></td></tr>
+      <tr><td><strong>提示注入</strong></td><td>文档内容里藏指令</td><td>数据隔离 + 判定在代码层 + 引用校验</td></tr>
+      <tr><td><strong>知识投毒</strong></td><td>恶意文档进入知识库</td><td>入库审核 + owner + 版本 + 来源可信度</td></tr>
+      <tr><td><strong>答案投毒</strong></td><td>用户诱导输出内部信息</td><td>输出侧关键词与引用校验</td></tr>
+      <tr><td>PII 泄露</td><td>文档含个人信息</td><td>入库脱敏 + 检索层按字段过滤</td></tr>
+      <tr><td>内部越权</td><td>跨租户检索</td><td>租户隔离 + 审计</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>提示注入在问答 Agent 里的危险级别高于其它 Agent</strong>：其它章的注入目标是「让模型做多余的动作」，<strong>问答章的注入目标是「让模型把一段恶意文本当成知识讲出来」</strong>——而用户会认为那是系统的官方答案。<strong>所以文档内容必须被严格当作数据包裹，且引用必须能追溯到源文档的原始位置。</strong></p>
+</blockquote>
+
+<h3 id="sec-2.5">2.2.5 成本结构</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>成本结构里排第一的不是 LLM 调用，而是注入 token——重排后的证据块占输入的 73%。LLM 调用次之，重排算力、向量与 BM25 检索、索引与存储依次变小。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一段和问数章形成对照：问数章的大头是「结果集侧 token」，问答章的大头是「注入侧 token」——都是同一个结论的两种形态，即真正贵的不是模型，是喂给模型的东西。所以两个专题的优化第一刀也都是同一类动作：问数是下推，问答是收敛。</p>
+</div>
+
+<p><strong>成本结构</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">占比量级</th><th scope="col">优化手段</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>注入 token（证据块）</strong></td><td><strong>最大（占输入 73%）</strong></td><td><strong>重排收敛 + 注入预算硬限</strong></td></tr>
+      <tr><td>LLM 调用</td><td>次之</td><td>单跳快路径、多跳按需</td></tr>
+      <tr><td>重排算力</td><td>小</td><td>GPU 批处理、只重排 top-N</td></tr>
+      <tr><td>向量 / BM25 检索</td><td>小</td><td>多路并行、缓存高频 Query</td></tr>
+      <tr><td>索引与存储</td><td>小</td><td>分层、增量</td></tr>
+  </tbody>
+</table>
+
+<h2 id="seg-3">2.3 理论与方法论</h2><div class="oc-part-lead"><strong>第三段 · 理论与方法论</strong>这一段回答：从七项前置锚点出发，一步步推到方法论与容量成本；切分、召回、重排、注入、引用、拒答各自怎么治。</div>
+
+<h3 id="sec-3.1">2.3.1 S0 前置锚点与 4S 收敛顺序</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>七项锚点划定可行域：业务目标与成功标准、规模量级、质量属性优先级、硬约束、不可逆决策清单、核心路径与事实源、竞争与协作边界。第 2 项之所以改变答案，是因为问答的规模参数不只是 QPS，还有知识库块数与块大小。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>500 万块 × 400 token 意味着全部塞进上下文是 20 亿 token，远超任何窗口。所以「知识库多大」直接决定了「检索必须多准」——检索的精度就是本章全部工程量的来源。这也是为什么这一章的护栏清单里，检索相关占了大半。</p>
+</div>
+
+<h4 id="sec-3.1.1" data-toc-skip>S0：七项前置锚点</h4>
+
+<p>先落定七件事，它们共同决定<strong>可行域</strong>——不在可行域内的方案不参与讨论。</p>
+<table>
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">锚点</th><th scope="col">本章答案</th><th scope="col">影响</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>业务目标与成功标准</strong></td><td>答案准确率 ≥ 85%、<strong>幻觉率 ≤ 5%</strong>、<strong>误拒率 ≤ 8%</strong>、引用完整率 100%、越权召回 0</td><td>决定召回 / 重排 / 拒答的取舍</td></tr>
+      <tr><td>2</td><td><strong>规模量级</strong></td><td>日问答 200 万、峰值 116 QPS、<strong>知识库 500 万块（400 token/块）</strong>、多跳占比 15%</td><td>决定索引规模、注入预算与重排算力</td></tr>
+      <tr><td>3</td><td><strong>质量属性优先级</strong></td><td>证据正确 &gt; 依据完整 &gt; 知识有效 &gt; 权限正确 &gt; 体验 &gt; 成本</td><td>决定降级顺序与 fail-closed 边界</td></tr>
+      <tr><td>4</td><td><strong>硬约束</strong></td><td>越权召回 0；引用完整率 100%；不输出无依据论断；PII 最小化；<strong>审计覆盖率 100%</strong></td><td>定义可行域</td></tr>
+      <tr><td>5</td><td><strong>不可逆决策清单</strong></td><td>见 &lt;a href="#sec-1.3"&gt;边界、指标与不可逆决策&lt;/a&gt; 的本章七项</td><td>决策流程：多评审 + 原型 + 迁移方案</td></tr>
+      <tr><td>6</td><td><strong>核心路径与事实源</strong></td><td>核心路径 = 提问 → 路由 → 检索 → 重排 → 上下文 → 生成 → 引用 → 置信度 → 拒答 → 反馈；事实源 = <strong>知识块 + 版本 + 引用关系 + 反馈记录</strong></td><td>决定缓存与对账对象；向量索引与检索缓存全是投影</td></tr>
+      <tr><td>7</td><td><strong>竞争与协作边界</strong></td><td>文档系统、权限系统、企业搜索在外部；切分、召回、重排、引用、拒答、评测自建</td><td>决定服务边界与团队成本</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 2 项为什么改变答案</strong>：问答系统的规模参数不只是 QPS，还有<strong>「知识库块数」与「块大小」</strong>。500 万块 × 400 token 意味着<strong>全部塞进上下文是 20 亿 token</strong>——远超任何窗口。所以「知识库多大」直接决定了「检索必须多准」，而检索的精度就是本章全部工程量的来源。</p>
+</blockquote>
+
+<h4 id="sec-3.1.2" data-toc-skip>4S 收敛顺序</h4>
+
+<pre><code>S0 定题（锚点 + 不可逆清单）
+   → Scenario 定问答量、问题类型、知识规模、多跳占比、时效要求、租户模型
+      → Service 定路由、检索、重排、生成、引用、拒答、反馈的边界
+         → Storage 定知识块、版本、引用关系、反馈记录的唯一事实源
+            → Scale 定多路召回、重排算力、注入预算、缓存、降级</code></pre>
+
+<h3 id="sec-3.2">2.3.2 场景、规模与服务边界</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>场景表给出完整规模：日问答 200 万、峰值 116 QPS、单跳 85% 多跳 15%、知识库 500 万块（400 token/块）、文档 8 万篇。10 个服务里，Verifier 被单列出来——引用校验、幻觉检测与拒答判定在代码层，不交给模型自觉。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>服务表里最该注意的三个：Query Planner 只在多跳慢路径上跑，Verifier 是代码层的最后一道关卡，Feedback Service 是闭环入口。把这三个位置想清楚，整条链路的形状就定了——尤其 Verifier，它决定了系统是「可控的检索增强」还是「一个会写小作文的模型」。</p>
+</div>
+
+<h4 id="sec-3.2.3" data-toc-skip>Scenario：场景与规模</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">数值</th><th scope="col">推导与来源</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>日问答量</td><td>200 万</td><td>—</td></tr>
+      <tr><td>平均问答 QPS</td><td>200 万 ÷ 86400</td><td>≈ <strong>23</strong></td></tr>
+      <tr><td><strong>峰值问答 QPS</strong></td><td>23 × 5</td><td><strong>116</strong>（峰值系数 5：工作日 10:00–11:00 与 15:00–16:00 两个高峰承载当日 30%，叠加月初结算期脉冲）</td></tr>
+      <tr><td>问题类型</td><td>单跳 85%、多跳 15%</td><td><strong>决定平均 LLM 调用次数（1.2 次）</strong></td></tr>
+      <tr><td><strong>知识库规模</strong></td><td><strong>500 万块</strong>（约 20 亿 token）</td><td><strong>决定检索精度要求</strong></td></tr>
+      <tr><td><strong>块大小</strong></td><td><strong>400 token</strong>（重叠 15%）</td><td><strong>决定召回粒度与注入量</strong></td></tr>
+      <tr><td>文档数</td><td>8 万篇（制度、FAQ、产品手册、工单知识）</td><td>决定块与文档的映射</td></tr>
+      <tr><td><strong>多跳占比</strong></td><td>15%</td><td><strong>多跳 token 是单跳的 3–5 倍</strong></td></tr>
+      <tr><td>知识更新</td><td>每周 2% 块变更 + 每日 0.3% 新增</td><td>决定增量索引与版本策略</td></tr>
+      <tr><td>租户</td><td>集团 + 分子公司 + 部门，<strong>密级三级</strong></td><td>决定 ACL 模型</td></tr>
+      <tr><td>引用要求</td><td>每个实质性论断必须可点开原文</td><td><strong>可信度的唯一载体</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「知识库规模」是本章独有的关键参数</strong>。传统系统的容量参数是 QPS；问答系统还必须给出<strong>块数与块大小</strong>，因为它们共同决定了「检索必须多准才不遗漏证据」。<strong>500 万块的知识库，top-50 的召回命中率若只有 80%，就意味着每 5 个问题有 1 个注定要靠猜。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.2.4" data-toc-skip>Service：服务与接口</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">服务</th><th scope="col">职责</th><th scope="col">同步 / 异步</th><th scope="col">关键点</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Gateway</td><td>鉴权、租户、限流</td><td>同步</td><td>身份 → ACL 上下文</td></tr>
+      <tr><td>Intent Router</td><td>问题分类、单跳 / 多跳判定</td><td>同步</td><td><strong>快慢分离</strong></td></tr>
+      <tr><td>Query Planner</td><td>多跳问题分解</td><td>异步（慢路径）</td><td>子问题 + 依赖关系</td></tr>
+      <tr><td>Retriever</td><td>多路召回 + ACL 过滤</td><td>同步</td><td>向量 / BM25 / 历史问答对 / 实体</td></tr>
+      <tr><td>Reranker</td><td>重排收敛</td><td>同步</td><td>cross-encoder，批处理</td></tr>
+      <tr><td>Context Builder</td><td>上下文组装与预算裁剪</td><td>同步</td><td>块 + 标题路径 + 版本 + 预算</td></tr>
+      <tr><td>Generator</td><td>生成 + 结构化引用</td><td>同步</td><td>JSON 输出</td></tr>
+      <tr><td><strong>Verifier</strong></td><td><strong>引用校验 + 幻觉检测 + 拒答判定</strong></td><td>同步</td><td><strong>代码层，不交给模型自觉</strong></td></tr>
+      <tr><td>Feedback Service</td><td>反馈回流、点击、质疑</td><td>异步</td><td>评测闭环</td></tr>
+      <tr><td>Audit Service</td><td>全链路审计</td><td>异步</td><td>不可篡改</td></tr>
+  </tbody>
+</table>
+<p><strong>核心 API</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方法</th><th scope="col">路径</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>POST</td><td><code>/api/v1/ask</code></td><td>提问，返回答案 + 引用 + 置信度</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/ask/{id}/clarify</code></td><td>澄清歧义</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/ask/{id}/citations</code></td><td>引用明细与原文定位</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/feedback</code></td><td>反馈（对 / 错 / 引用不准）</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/knowledge/search</code></td><td>知识检索（供其它系统复用）</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.2.5" data-toc-skip>Storage：数据模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">数据</th><th scope="col">存储</th><th scope="col">关键设计</th><th scope="col">是事实源吗</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>知识块</strong></td><td>对象存储 + 元数据</td><td>正文 + 标题路径 + 来源 + <strong>版本 / 生效时间</strong> + <strong>ACL</strong></td><td><strong>是</strong></td></tr>
+      <tr><td><strong>文档元数据</strong></td><td>元数据服务</td><td>owner、密级、状态、废止标记</td><td><strong>是</strong></td></tr>
+      <tr><td><strong>引用关系</strong></td><td>问答日志</td><td>question_id → chunk_id → 字符区间</td><td><strong>是</strong></td></tr>
+      <tr><td><strong>反馈记录</strong></td><td>数仓</td><td>点踩、质疑、引用点击、纠错</td><td><strong>是</strong></td></tr>
+      <tr><td>向量索引</td><td>向量库</td><td>embedding + <strong>ACL 字段</strong> + 版本</td><td>否（可重建）</td></tr>
+      <tr><td>倒排索引</td><td>ES / BM25</td><td>关键词 + 过滤字段</td><td>否（可重建）</td></tr>
+      <tr><td>历史问答对</td><td>Redis / DB</td><td>问题 → 已确认答案 + 引用</td><td>否（可重建）</td></tr>
+      <tr><td>检索缓存</td><td>Redis</td><td>Query → 命中块（<strong>按 ACL 指纹分桶</strong>）</td><td>否（<strong>必须可重建</strong>）</td></tr>
+      <tr><td>问答日志</td><td>数仓</td><td>prompt、召回、重排、注入、答案、耗时</td><td><strong>是</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>检索缓存必须按 ACL 指纹分桶</strong>。同一个问题，不同用户、不同密级、不同租户，<strong>可召回的块集合是不同的</strong>。共用一个缓存 key，等于把 A 用户能看到的答案返回给 B 用户——<strong>这是本章最容易被忽略的越权路径</strong>。</p>
+</blockquote>
+<p><strong>知识块的必备字段</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">字段</th><th scope="col">为什么必须有</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>chunk_id</code></td><td>引用定位</td></tr>
+      <tr><td><code>title_path</code>（文档 &gt; 章节 &gt; 小节）</td><td><strong>检索到一块要知道它出自哪一节</strong>，否则答案无法定位</td></tr>
+      <tr><td><code>source_uri</code> + <code>span</code></td><td>引用可点开原文的具体位置</td></tr>
+      <tr><td><code>version</code> + <code>effective_from</code> + <code>status</code></td><td>知识时效</td></tr>
+      <tr><td><code>acl</code></td><td>权限过滤</td></tr>
+      <tr><td><code>owner</code></td><td>过期知识找得到人</td></tr>
+      <tr><td><code>embedding</code></td><td>向量召回</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.2.6" data-toc-skip>Scale：扩展与兜底</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">手段</th><th scope="col">触发条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>召回</strong></td><td>多路并行 + 高召回宽窗口</td><td>命中率不足</td></tr>
+      <tr><td><strong>重排</strong></td><td>GPU 批处理、只重排 top-N</td><td>重排延迟超预算</td></tr>
+      <tr><td><strong>注入</strong></td><td>预算硬限 + 重排后收敛</td><td>上下文超限</td></tr>
+      <tr><td>生成</td><td>模型分级（单跳小模型）</td><td>token 成本高</td></tr>
+      <tr><td>检索</td><td>Query 缓存、热门问答直答</td><td>重复率高</td></tr>
+      <tr><td>降级</td><td>模板拒答、只给引用不给答案</td><td>依赖故障</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.3">2.3.3 切分、召回与重排</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>切分有三条铁律：每块带标题路径、表格行携带表头、重叠 10–20%。切分粒度与注入粒度必须解耦——检索用 200 token 小块，注入用 600 token 合并段。召回走五路并用 RRF 融合。重排用交叉编码把宽召回收敛成窄注入，k 的倒 U 型拐点在 10–20 之间。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一段有一个数据特别值得记：「检索 200 token 块，不合并」召回到 91%，准确率却只有 81%——它召回到了正确的块，却因为块被切碎而答不对。**召回到 ≠ 答得对**。检索粒度与注入粒度必须分别设计，这是本章最容易被做错的一个工程点。</p>
+</div>
+
+<h4 id="sec-3.3.7" data-toc-skip>问题理解与意图路由</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">类型</th><th scope="col">示例</th><th scope="col">路由</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>事实型</strong></td><td>「出差住宿标准是多少」</td><td>单跳快路径</td></tr>
+      <tr><td><strong>流程型</strong></td><td>「报销要先审批吗」</td><td>单跳 + 流程块拼接</td></tr>
+      <tr><td><strong>对比型</strong></td><td>「A 方案和 B 方案的差别」</td><td>单跳 + 多块对比</td></tr>
+      <tr><td><strong>多跳型</strong></td><td>「我们和 X 公司的合同里违约金是多少」</td><td><strong>多跳慢路径</strong>（先定位实体）</td></tr>
+      <tr><td><strong>闲聊 / 越界</strong></td><td>「写首诗」</td><td>明确拒答并说明边界</td></tr>
+      <tr><td><strong>无依据型</strong></td><td>问一个库里根本没有的事</td><td><strong>拒答</strong>（这是必须被评测覆盖的一类）</td></tr>
+  </tbody>
+</table>
+<p><strong>路由的关键判断：这个问题库里有答案吗？</strong></p>
+<p>在生成之前先做一次<strong>可行性判断</strong>（用检索结果的最高重排分做阈值）：</p>
+<ul>
+<li>最高分 ≥ 阈值 → 正常生成</li>
+<li>最高分在灰区 → <strong>先澄清</strong>（「你说的 X 是 A 还是 B？」）</li>
+<li>最高分 &lt; 阈值 → <strong>直接拒答，不进生成</strong></li>
+</ul>
+<blockquote>
+  <p><strong>这一层能省掉大量幻觉</strong>：让模型在「检索不到」的情况下自由发挥，它一定会编。<strong>把「答不上来」这个判断前移到检索之后、生成之前，是本章最有效的一道防线</strong>——它比任何事后的幻觉检测都便宜、都可靠。</p>
+</blockquote>
+
+<h4 id="sec-3.3.8" data-toc-skip>知识库与切分策略</h4>
+
+<p><strong>切分的三种粒度</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">粒度</th><th scope="col">优点</th><th scope="col">缺点</th><th scope="col">适用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>固定长度（200 token）</td><td>召回精确、块小</td><td>语义被切断</td><td>条款、FAQ</td></tr>
+      <tr><td>语义边界（按段落）</td><td>语义完整</td><td>块大小不均</td><td>正文、手册</td></tr>
+      <tr><td><strong>结构化（标题路径 + 表格行）</strong></td><td><strong>可定位、可引用、上下文完整</strong></td><td>实现复杂</td><td><strong>制度文档（主力）</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>三条切分铁律</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">铁律</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>每个块带标题路径</strong></td><td>「差旅报销标准 &gt; 住宿 &gt; 一线城市」——没有它，引用无法定位，答案无法解释</td></tr>
+      <tr><td><strong>表格行必须携带表头</strong></td><td>单独一行「城市 \</td><td>限额 \</td><td>备注」是读不懂的</td></tr>
+      <tr><td><strong>重叠 10–20%</strong></td><td>跨块的句子不至于被切成两半</td></tr>
+  </tbody>
+</table>
+<p><strong>切分粒度 ≠ 注入粒度</strong>（本章的关键工程点）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">粒度</th><th scope="col">理由</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>检索 / 重排</strong></td><td><strong>小块（200 token）</strong></td><td>精确——大块里混着多个主题，命中不精确</td></tr>
+      <tr><td><strong>注入模型</strong></td><td><strong>合并段（600 token，小块 + 相邻块）</strong></td><td>完整——答案需要上下文，孤立一句读不懂</td></tr>
+  </tbody>
+</table>
+<p>量化（黄金集回放）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">recall@10</th><th scope="col">答案准确率</th><th scope="col">注入 token</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>检索 500 token 块，直接注入</td><td>84%</td><td>79%</td><td>5,000</td></tr>
+      <tr><td><strong>检索 200 token 块 + 注入时合并相邻块</strong></td><td><strong>91%</strong></td><td><strong>86%</strong></td><td>5,400</td></tr>
+      <tr><td>检索 200 token 块，不合并</td><td>91%</td><td>81%</td><td>2,000</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第三行是最容易被接受的方案，也是最差的一档</strong>：它召回到了正确的块，却因为块被切碎而答不对。<strong>召回到 ≠ 答得对</strong>——<strong>检索粒度与注入粒度必须分别设计</strong>。</p>
+</blockquote>
+
+<h4 id="sec-3.3.9" data-toc-skip>检索：多路召回</h4>
+
+<p><strong>本节是多路召回的权威版</strong>，&lt;a href="#sec-4.2.1"&gt;检索与重排护栏&lt;/a&gt;只引用。</p>
+<p><strong>五路召回</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">召回路</th><th scope="col">擅长</th><th scope="col">成本</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>向量召回</strong></td><td>语义相近、口语化提问</td><td>低</td></tr>
+      <tr><td><strong>BM25 / 关键词</strong></td><td>产品型号、编号、专有名词、缩写</td><td>低</td></tr>
+      <tr><td><strong>结构化过滤</strong></td><td>部门、文档类型、密级、时间范围</td><td>极低</td></tr>
+      <tr><td><strong>历史问答对</strong></td><td><strong>问法相同、答案已确认</strong></td><td>极低</td></tr>
+      <tr><td><strong>实体 / 图谱</strong></td><td>「我们和 X 公司的合同」这类涉及关系的问题</td><td>中</td></tr>
+  </tbody>
+</table>
+<p><strong>融合</strong>：用 RRF（Reciprocal Rank Fusion）合并各路排名，而不是加权求和分数——<strong>不同召回路的分数不可比，排名可比</strong>。</p>
+<p><strong>多路召回的命中率提升</strong>（黄金集 2,000 题）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">召回组合</th><th scope="col">top-10 命中率</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>仅向量</td><td>71%</td></tr>
+      <tr><td>仅 BM25</td><td>63%</td></tr>
+      <tr><td><strong>向量 + BM25（RRF）</strong></td><td><strong>82%</strong></td></tr>
+      <tr><td><strong>+ 历史问答对</strong></td><td><strong>89%</strong></td></tr>
+      <tr><td>+ 实体 / 图谱</td><td>92%</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>三条结论</strong>：</p>
+  <ol>
+  <li><strong>向量 + BM25 是最小可用组合</strong>，各加一路都有明确收益。</li>
+  <li><strong>历史问答对是性价比最高的一路</strong>：成本几乎为零（问题字符串匹配 + 已确认答案），命中率却从 82% 提到 89%。<strong>而且它天然带「已确认」的语义</strong>——这份答案是人核过的。</li>
+  <li><strong>专有名词场景必须上 BM25</strong>：向量检索对型号、编号、政策代号是弱项，而这些恰好是企业知识库里最常被问的东西。</li>
+  </ol>
+</blockquote>
+<p><strong>召回阶段的两个纪律</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">纪律</th><th scope="col">原因</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>召回要宽</strong></td><td>这一层的唯一目标是「不漏」，精度交给重排</td></tr>
+      <tr><td><strong>召回必须带 ACL 过滤</strong></td><td>过滤放在检索之后会悄悄吃掉召回预算（&lt;a href="#sec-3.5.2"&gt;权限与租户隔离&lt;/a&gt;）</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.3.10" data-toc-skip>重排：把宽召回收敛成窄注入</h4>
+
+<p><strong>本节是重排的权威版</strong>，&lt;a href="#sec-4.2.1"&gt;检索与重排护栏&lt;/a&gt;只引用。</p>
+<p><strong>为什么必须有重排</strong>：召回是<strong>双塔</strong>结构——query 和 chunk 分别编码再算相似度，快但粗；重排是<strong>交叉编码</strong>结构——query 与 chunk 一起进模型，能判断「这个块是否真的回答了这个问题」，准但慢。<strong>双塔负责不漏，交叉编码负责不噪。</strong></p>
+<p><strong>召回量的倒 U 型曲线</strong>（黄金集回放，注入块数 k 与质量）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">注入块数 k</th><th scope="col">证据命中率</th><th scope="col">答案准确率</th><th scope="col"><strong>幻觉率</strong></th><th scope="col">上下文 token</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>3</td><td>61%</td><td>62%</td><td>14%</td><td>1,200</td></tr>
+      <tr><td>5</td><td>74%</td><td>73%</td><td>8%</td><td>2,000</td></tr>
+      <tr><td><strong>10</strong></td><td><strong>86%</strong></td><td><strong>85%</strong></td><td><strong>5%</strong></td><td>4,000</td></tr>
+      <tr><td>20</td><td>93%</td><td><strong>87%</strong></td><td>9%</td><td>8,000</td></tr>
+      <tr><td>50</td><td>97%</td><td><strong>82%</strong></td><td><strong>18%</strong></td><td>20,000</td></tr>
+  </tbody>
+</table>
+<p><strong>三条读数</strong>：</p>
+<ol>
+<li><strong>k 从 10 → 50：证据命中率 +11pp，答案准确率反降 3pp，幻觉率从 5% 涨到 18%。</strong></li>
+<li><strong>倒 U 型的拐点在 k = 10–20 之间</strong>；超过拐点，<strong>多召回的每一条都在为答案的噪音做贡献</strong>。</li>
+<li><strong>幻觉率是随 k 单调上升的</strong>（14% → 8% → 5% → 9% → 18%，先降后升是过少噪声导致），<strong>准确率的最高点远早于命中率的最高点</strong>。</li>
+</ol>
+<p><strong>「召回宽、注入窄」的完整链路</strong>：</p>
+<pre><code>宽召回（保证不漏）
+  → 召回 top-50（向量 + BM25 + 历史问答对 + 实体）—— 精度交给重排
+  → 重排（cross-encoder 批处理，50 对 × 2.4ms = 120ms）
+  → 注入 top-10（4,000 token）
+  → 结果：上下文 −74%、准确率 +3pp、幻觉率 −13pp、月省 ¥192 万</code></pre>
+<p><strong>「召回宽、注入窄」的完整方案与收益</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">上下文 / 问</th><th scope="col">准确率</th><th scope="col">幻觉率</th><th scope="col">月成本</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>top-50 直接注入</strong>（现状）</td><td>21,500 token</td><td>82%</td><td>18%</td><td><strong>≈ ¥300 万</strong></td></tr>
+      <tr><td><strong>top-50 召回 → 重排 → 注入 top-10</strong></td><td>5,500 token</td><td><strong>85%</strong></td><td><strong>5%</strong></td><td><strong>≈ ¥108 万</strong></td></tr>
+      <tr><td>收益</td><td><strong>−74%</strong></td><td><strong>+3pp</strong></td><td><strong>−13pp</strong></td><td><strong>−¥192 万 / 月</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>三个指标同时改善，是本章最有说服力的一张表。</strong> 重排的成本是 <strong>+120ms</strong>（50 对 cross-encoder 批处理，单对约 2.4ms）与一笔相对 token 成本可忽略的 GPU 费用；<strong>换来的是上下文 −74%、幻觉率 −13pp、月省 ¥192 万</strong>。</p>
+  <p><strong>这说明了一个普遍规律</strong>：<strong>很多「模型不够强」的问题，实际是「喂给模型的东西不够干净」。</strong> 换更强的模型往往更贵且收益有限；加一层重排，往往同时更便宜更准。</p>
+</blockquote>
+<p><strong>为什么噪音会被编成答案</strong>（幻觉的机制）：</p>
+<pre><code>生成能力 &gt;&gt; 判别能力
+模型被问「住宿标准是多少」，上下文里有 50 块，其中 12 块提到金额
+→ 模型会从这 12 块里「综合」出一个看起来合理的数字
+→ 它无法区分「这块说的是住宿标准」和「这块说的是餐补标准」</code></pre>
+<blockquote>
+  <p><strong>模型的判别能力弱于生成能力，是幻觉的根源。</strong> 推理模型能写「根据文档，标准是 XX 元」，但它未必能意识到这 12 块里其实有 8 块讲的是另一个标准。<strong>重排的作用，就是把「模型要判断的东西」从 50 块减到 5 块——它不提升模型的判别能力，它减少了模型需要判别的东西。</strong></p>
+</blockquote>
+<p><strong>重排的工程约束</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">约束</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>只重排 top-N</td><td>N 从 50 降到 20，重排耗时减半，召回命中率掉 3pp（实测）</td></tr>
+      <tr><td>批处理</td><td>一次请求的 N 对一起打分，避免逐对串行</td></tr>
+      <tr><td>重排模型可降级</td><td>交叉编码不可用时退回向量分数排序，<strong>并打标 <code>degraded</code></strong></td></tr>
+      <tr><td><strong>重排结果要落日志</strong></td><td>没有重排日志，就无法解释「为什么这条没被引用」</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.4">2.3.4 上下文、生成与拒答</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>上下文预算里注入证据占 73%，是最大头，块必须带标题路径、来源、版本时效、可点开链接四件套包装。生成用结构化输出，引用要粒度到块加块内区间。拒答分无依据拒答、歧义澄清、权限拒答三种，澄清最多一次。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>预算不够时的裁剪顺序最后一条是关键：注入证据本身不可丢，丢到超限就触发「预算不足」降级，而不是截断证据。因为证据被截断会产生「引用指向不完整」的答案——这比少引用几块更糟。所以证据不够时要明说「资料不足，无法回答」，而不是截断了还装作答了。</p>
+</div>
+
+<h4 id="sec-3.4.11" data-toc-skip>上下文构建与预算</h4>
+
+<p><strong>上下文预算表</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">组成</th><th scope="col">token</th><th scope="col">占比</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>指令与拒答规则</td><td>1,000</td><td>18%</td><td>含输出格式与引用要求</td></tr>
+      <tr><td><strong>注入证据（重排后 top-10 × 400）</strong></td><td><strong>4,000</strong></td><td><strong>73%</strong></td><td><strong>最大头</strong></td></tr>
+      <tr><td>历史对话与摘要</td><td>500</td><td>9%</td><td>滚动摘要</td></tr>
+      <tr><td><strong>合计（输入）</strong></td><td><strong>5,500</strong></td><td>100%</td><td>输出预留另计 600</td></tr>
+  </tbody>
+</table>
+<p><strong>上下文预算构成</strong>：</p>
+<pre><code>注入证据（重排后 top-10）
+  → 指令与拒答规则 ······················ 1,000 token（18%）
+  → 注入证据（top-10 × 400）············· 4,000 token（73%）  ← 最大头
+  → 历史对话与滚动摘要 ···················   500 token（ 9%）
+  → 输出预留 ·····························   600 token
+  → 裁剪顺序：历史 → 低分块 → 低密度块 → few-shot → 证据（最后）</code></pre>
+<p><strong>注入块的必备包装</strong>（不是裸文本）：</p>
+<pre><code>[标题路径] 差旅报销标准 &gt; 住宿 &gt; 一线城市
+[来源]     《员工差旅管理办法》v3.2 · 第 4.1 节
+[版本时效] 生效于 2025-03-01 · 状态：生效中
+[可点开]   doc://travel-policy/4.1</code></pre>
+<blockquote>
+  <p><strong>这四行包装是引用可核验的前提</strong>。裸文本块即使内容正确，用户也无法判断它出自哪一节、是第几版、能不能点开核对。<strong>「引用完整率 100%」这条 P0 护栏，靠的就是这层包装。</strong></p>
+</blockquote>
+<p><strong>预算不够时的裁剪顺序</strong>（先丢什么）：</p>
+<pre><code>1. 历史对话（压成摘要）        ← 最先丢
+2. 低分注入块（重排分从低到高砍）
+3. 低密度块（信息量低的块整块丢）
+4. 指令中的示例（few-shot）    ← 最后丢
+5. **注入证据本身不可丢** → 丢到超限就触发「预算不足」降级，而不是截断证据</code></pre>
+<blockquote>
+  <p><strong>第 5 条是关键</strong>：证据块被截断会产生「引用指向不完整」的答案——<strong>这比少引用几块更糟</strong>。<strong>所以证据不够时要明说「资料不足，无法回答」，而不是截断了还装作答了。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.4.12" data-toc-skip>生成与引用</h4>
+
+<p><strong>结构化输出</strong>：</p>
+<pre><code class="language-json">{
+  "answer": "一线城市住宿标准为每晚 600 元，需凭发票报销……",
+  "citations": [
+    { "chunk_id": "c_8821", "title_path": "差旅报销标准 &gt; 住宿 &gt; 一线城市",
+      "source_uri": "doc://travel-policy/4.1", "span": [120, 340],
+      "supports": "一线城市住宿限额 600 元/晚" }
+  ],
+  "confidence": "high",
+  "knowledge_cutoff": "2026-03-01",
+  "caveats": ["不含总监及以上职级"]
+}</code></pre>
+<p><strong>引用的四条要求</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">要求</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>粒度到块 + 块内区间</strong></td><td>只到文档级，用户还得自己找；到块 + 区间才能一键定位</td></tr>
+      <tr><td><strong>必须可点开原文</strong></td><td>不可点开的引用等于没有引用</td></tr>
+      <tr><td><strong>必须通过精确率校验</strong></td><td>引用的块确实支持该论断（逐句校验）</td></tr>
+      <tr><td><strong>必须标知识截止时点</strong></td><td>用户要知道「这是基于哪一版」</td></tr>
+  </tbody>
+</table>
+<p><strong>引用完整率是 P0</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">完整率</th><th scope="col">后果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>100%</td><td>每个论断可核验，信任的基础</td></tr>
+      <tr><td>95%</td><td>用户点开发现 1 句没依据 → <strong>整体信任崩塌</strong>（不是「差 5%」）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>引用完整率是典型的「非线性信任指标」</strong>：100% 与 95% 的差别不是「5% 的答案差一点」，而是「用户是否还愿意点开引用」。<strong>一条无依据的引用会污染整个答案的可信度</strong>，因为用户不知道哪一条是编的。</p>
+</blockquote>
+
+<h4 id="sec-3.4.13" data-toc-skip>拒答、澄清与置信度</h4>
+
+<p><strong>本节是拒答决策的权威版</strong>，&lt;a href="#sec-4.3.1"&gt;引用与拒答护栏&lt;/a&gt;只引用。</p>
+<p><strong>拒答与澄清的三种类型</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类型</th><th scope="col">场景</th><th scope="col">动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>无依据拒答</strong></td><td>检索不到相关内容</td><td>「知识库中没有找到相关制度」+ <strong>可走的下一步</strong>（问谁 / 提工单 / 换问法）</td></tr>
+      <tr><td><strong>歧义澄清</strong></td><td>有多个合理解读</td><td><strong>追问一次</strong>（「你说的 X 是 A 还是 B？」），<strong>最多一次</strong></td></tr>
+      <tr><td><strong>权限拒答</strong></td><td>无权查看</td><td>「该内容需要 XX 权限，可向 XX 申请」——<strong>不泄露内容存在性之外的信息</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>置信度不可信</strong>（与其它 Agent 场景同理）：模型自报的 confidence 不可靠。更稳的做法是<strong>用重排分数 + 独立分类器头</strong>，或<strong>多次采样看一致性</strong>。</p>
+<p><strong>双面指标：幻觉率 vs 误拒率</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">拒答阈值</th><th scope="col">幻觉率</th><th scope="col">误拒率</th><th scope="col">综合可用率 = 1 − 幻觉 − 误拒</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>严格（高阈值）</td><td>2%</td><td>18%</td><td>82%</td></tr>
+      <tr><td><strong>平衡（推荐）</strong></td><td><strong>5%</strong></td><td><strong>8%</strong></td><td><strong>87%</strong></td></tr>
+      <tr><td>宽松（低阈值）</td><td>14%</td><td>3%</td><td>86%</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>看这张表最重要的一行不是「平衡」那一行，而是「严格」与「宽松」两行的对比</strong>：两者的<strong>综合可用率几乎相同（82% vs 86%）</strong>，但<strong>信任代价完全不同</strong>——</p>
+  <ul>
+  <li><strong>幻觉率 14%</strong>：用户按错误答案操作 → <strong>信任崩塌，且不可逆</strong></li>
+  <li><strong>误拒率 18%</strong>：用户多问一次 / 换个问法 → <strong>成本是一次交互，可恢复</strong></li>
+  </ul>
+  <p><strong>所以拒答策略必须偏向严格。</strong> 单看「综合可用率」会得出「严格和宽松差不多」的结论，从而在阈值上调时反复摇摆；<strong>必须给「信任损失」单独定价</strong>。这就是「拒答率是双面指标」的真正含义：<strong>它不是往一边调的问题，而是要按两类错误的代价不对称来定。</strong></p>
+</blockquote>
+<p><strong>阈值决策</strong>：</p>
+<pre><code>幻觉率 vs 误拒率
+  → 严格（高阈值）：幻觉  2% + 误拒 18% → 综合可用率 82%
+  → 平衡（推荐）  ：幻觉  5% + 误拒  8% → 综合可用率 87%
+  → 宽松（低阈值）：幻觉 14% + 误拒  3% → 综合可用率 86%
+  → 严格与宽松的综合可用率接近，但信任代价完全不同
+  → 幻觉不可逆，误拒可恢复 → 阈值必须偏向严格</code></pre>
+<p><strong>幻觉的成本量化</strong>（回到&lt;a href="#sec-2.2"&gt;三个不等式与三个放大器&lt;/a&gt;）：</p>
+<pre><code>日问答 200 万 × 幻觉率 18% = 36 万条无依据答案 / 天
+假设 1% 被用户采信并据此行动，需要人工纠正（每次 ¥50）
+→ 1,800 次 × ¥50 = ¥18 万 / 天 ≈ ¥540 万 / 月
+对比：把 top-50 改成重排后 top-10 每月省 ¥192 万 token
+→ **省下的 token 钱，会被幻觉的纠正成本吃掉还多**</code></pre>
+<blockquote>
+  <p><strong>这个对比是本章最实用的一条结论</strong>：<strong>在问答 Agent 里，降低幻觉率的收益大于降低 token 成本。</strong> 而降低幻觉率最便宜的手段不是换更强的模型，是<strong>重排</strong>。</p>
+</blockquote>
+<p><strong>拒绝时的输出契约</strong>：拒答也必须是<strong>有用的答案</strong>——「库里没有 + 你可以问谁 + 你可以换什么问法 + 已知的相近制度是什么」。<strong>一句「无法回答」是最差的拒答。</strong></p>
+
+<h3 id="sec-3.5">2.3.5 多跳、权限与知识时效</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>多跳要串起两个以上来源或先定位实体，分解后逐跳检索重排，最后必须做合并一致性校验——只验子步骤不验合并等于没验。权限分 ACL 进索引与检索后过滤两种，前者命中率 89%、后者 62%。知识时效靠版本、生效时间与状态三件套。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>多跳的失败模式与单跳完全不同：单跳的失败是「证据不对」，多跳的失败是「每一步都对，但组合是错的」。合同在检索期间被换成修订版，子答案各自都答对，合并起来就是错的。所以合并一致性校验，尤其是版本一致性，是多跳链路里最不能省的一步。</p>
+</div>
+
+<h4 id="sec-3.5.14" data-toc-skip>多跳与复杂问题拆解</h4>
+
+<p><strong>多跳的判定</strong>：答案需要串联 ≥ 2 个来源，或需要先定位一个实体。</p>
+<p><strong>分解流程</strong>：</p>
+<pre><code>问题 → 实体链接（找到「X 公司」「3 号合同」）
+     → 拆成子问题（子问题之间有依赖）
+     → 逐个检索 + 重排（每个子问题独立预算）
+     → 逐步作答
+     → **合并一致性校验**（子答案之间是否矛盾）</code></pre>
+<p><strong>三笔账</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">数值</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>多跳占比</td><td>15%</td><td>—</td></tr>
+      <tr><td>LLM 调用次数</td><td>单跳 1 次，多跳 3–5 次</td><td>平均 1.2 次</td></tr>
+      <tr><td><strong>注入预算</strong></td><td><strong>总量受同一预算约束，每跳更少</strong></td><td>2 跳时每跳给 2,500 而不是 4,000</td></tr>
+      <tr><td>token 倍数</td><td>多跳是单跳的 <strong>3–5 倍</strong></td><td>—</td></tr>
+  </tbody>
+</table>
+<p><strong>合并一致性校验</strong>（本章特有、最易漏的一步）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">失败</th><th scope="col">表现</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>子答案矛盾</strong></td><td>「合同期限是 2 年」与另一条说「3 年」</td><td>合并前检测数值/日期冲突</td></tr>
+      <tr><td><strong>子答案都偏</strong></td><td>各步都对，但合起来不成立</td><td>合并后整体再校验一次</td></tr>
+      <tr><td><strong>分解错</strong></td><td>根本不需要拆，或拆错了维度</td><td>分解结果要与原问题做语义回检</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>多跳的失败模式与单跳完全不同</strong>：单跳的失败是「证据不对」，多跳的失败是「<strong>每一步都对，但组合是错的</strong>」。<strong>只验子步骤不验合并，等于没验。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.5.15" data-toc-skip>权限与租户隔离</h4>
+
+<p><strong>核心原则</strong>：<strong>ACL 进索引，检索层过滤。模型看不到的文档，不可能被写进答案。</strong></p>
+<p><strong>两种方案的量化对比</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">做法</th><th scope="col">召回命中率</th><th scope="col">风险</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>A：ACL 进索引</strong></td><td>块带 acl 字段，检索时过滤</td><td><strong>89%</strong>（top-50 中过滤后仍余 50 块）</td><td>权限变更需更新受影响块的索引字段</td></tr>
+      <tr><td><strong>B：检索后过滤</strong></td><td>索引不带 ACL，取回 top-50 再按用户过滤</td><td><strong>62%</strong>（top-50 中 40 块被过滤掉，只余 10 块）</td><td><strong>召回预算被悄悄吃掉 44%</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>方案 B 的失败极其隐蔽</strong>：它不报错、不越权，只是<strong>让有效召回从 50 变成 10</strong>，检索质量断崖式下降。团队通常会去调 top-k 或换模型，而<strong>真正的病根是过滤位置错了</strong>。</p>
+  <p><strong>所以「权限过滤放在检索之前还是之后」不只是安全选择，也是质量选择。</strong></p>
+</blockquote>
+<p><strong>权限变更的传播</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">机制</th><th scope="col">延迟</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>增量更新索引的 ACL 字段</strong></td><td>秒级</td><td>按受影响用户 / 部门 / 密级反查块并更新</td></tr>
+      <tr><td>权限变更事件 → 重建受影响文档的块</td><td>分钟级</td><td>兜底</td></tr>
+      <tr><td><strong>过滤层版本号</strong></td><td>—</td><td>权限服务版本与索引版本对齐，落后则拒绝而非放行</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>权限版本落后时必须 fail-closed</strong>（拒绝检索）而不是 fail-open（放行旧权限）。<strong>这与问数章「权限服务故障就拒绝」是同一条原则。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.5.16" data-toc-skip>知识时效与版本</h4>
+
+<p><strong>版本模型</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">字段</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>version</code></td><td>同一文档的版本号</td></tr>
+      <tr><td><code>effective_from</code> / <code>effective_to</code></td><td>生效区间</td></tr>
+      <tr><td><code>status</code></td><td>草稿 / 生效中 / 已废止</td></tr>
+      <tr><td><code>owner</code></td><td>过期了找得到人</td></tr>
+  </tbody>
+</table>
+<p><strong>三条时效规则</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">规则</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>检索只取生效中的版本</strong></td><td>已废止版本不进召回</td></tr>
+      <tr><td><strong>冲突版本取最新的生效版本</strong></td><td>同文档多版本共存时按 <code>effective_from</code> 取最新且生效中的</td></tr>
+      <tr><td><strong>答案标注知识截止时点</strong></td><td>用户要知道「基于哪一版、截至什么时候」</td></tr>
+  </tbody>
+</table>
+<p><strong>知识复用放大</strong>：</p>
+<pre><code>一条过期条款被命中一次 → 它不会被「用一次就废」
+→ 只要它还在库里、还在被召回，就会被反复复用
+
+量化：库中 1% 的块已过期（5 万块），但它们贡献 3% 的问答
+→ 200 万 × 3% = 6 万次 / 天 基于过期知识作答
+→ 用户按过期政策操作 → **一次错误影响多个用户，但只有第一个会来投诉**</code></pre>
+<blockquote>
+  <p><strong>过期知识的危害不在于错一次，而在于「同一个错误被复制 6 万次」</strong>。而用户只会反馈自己遇到的那一次——<strong>所以这类问题的排查难度极高，因为反馈量与影响量严重不成比例</strong>。</p>
+</blockquote>
+<p><strong>时效的三道防线</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">防线</th><th scope="col">做法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>入库</td><td>强制填 <code>effective_from</code> 与 <code>owner</code>，缺失不通过</td></tr>
+      <tr><td>检索</td><td>只召回生效中版本；命中即将过期的块时告警</td></tr>
+      <tr><td>回答</td><td>标注知识截止时点；命中超过 N 天未复核的块时标注「建议与 X 确认」</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.6">2.3.6 评测、成本与容量</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>黄金集必须分可答题、不可答题、越权题三个区，缺一不可。评测以引用精确率优先——标注成本低、定位准。容量估算给出日 136.4 亿 token、约 ¥35,920（约 ¥108 万/月），注入占输入 73%，重排算力 5800 对/秒。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「引用精确率」比「答案准确率」更值得优先做，因为它标注成本低得多——只需判断「这段文字支持这句话吗」，不需要写出标准答案，而且它能直接告诉你是「召回错了」还是「重排错了」还是「生成错了」。recall@k 是上游指标，只看它加大召回是本章最常见的误诊。</p>
+</div>
+
+<h4 id="sec-3.6.17" data-toc-skip>评测方法</h4>
+
+<p><strong>黄金集的三个维度</strong>（缺一不可）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">内容</th><th scope="col">为什么必须有</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>可答题</strong></td><td>问题 + 标准答案</td><td>基本盘</td></tr>
+      <tr><td><strong>不可答题</strong></td><td>库里没有的问题</td><td><strong>不覆盖它，就等于把拒答能力训没了</strong></td></tr>
+      <tr><td><strong>越权题</strong></td><td>有答案但用户无权</td><td>只测可答题的系统，会在权限上裸奔</td></tr>
+  </tbody>
+</table>
+<p><strong>指标体系</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">定义</th><th scope="col">地位</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>幻觉率</strong></td><td>答案含无依据论断的比例</td><td><strong>核心</strong></td></tr>
+      <tr><td><strong>误拒率</strong></td><td>本可回答却拒答的比例</td><td><strong>核心</strong></td></tr>
+      <tr><td>答案准确率</td><td>与标准答案语义一致</td><td>结果指标（标注成本高）</td></tr>
+      <tr><td><strong>引用精确率</strong></td><td>引用的块确实支持该论断</td><td><strong>核心</strong>（比准确率更易标注）</td></tr>
+      <tr><td><strong>引用召回率</strong></td><td>标准答案的关键论断都被引用</td><td>核心</td></tr>
+      <tr><td>引用完整率</td><td>每个论断都有引用</td><td>硬约束</td></tr>
+      <tr><td>拒答恰当率</td><td>该拒的拒了</td><td>与误拒率一起看</td></tr>
+      <tr><td><strong>recall@k（检索层）</strong></td><td>证据在 top-k 内</td><td><strong>上游指标，不是结果指标</strong></td></tr>
+      <tr><td>线上：答案质疑率</td><td>用户点「这个不对」</td><td>生产环境的幻觉代理指标</td></tr>
+      <tr><td>线上：引用点击率</td><td>用户点开引用核对</td><td>可信度代理指标</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「引用精确率」比「答案准确率」更值得优先做</strong>，因为它<strong>标注成本低得多</strong>（只需判断「这段文字支持这句话吗」，不需要写出标准答案），而且<strong>定位更准</strong>——它能直接告诉你是「召回错了」还是「重排错了」还是「生成错了」。</p>
+  <p><strong>recall@k 是上游指标</strong>：retrieval 命中率 90% 但准确率只有 70%，说明问题出在重排与生成，不是召回。<strong>只看 recall@k 就去加大召回，是本章最常见的误诊。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.6.18" data-toc-skip>容量与成本估算</h4>
+
+<p><strong>本节是容量口径的权威版</strong>，&lt;a href="#seg-5"&gt;第 5 段&lt;/a&gt;与&lt;a href="#seg-6"&gt;第 6 段&lt;/a&gt;只引用。</p>
+<p><strong>假设</strong>：日问答 200 万，峰值系数 5；单跳 85% / 多跳 15%，平均 1.2 次 LLM 调用；上下文输入 5,500 token（指令 1,000 + 注入 4,000 + 历史 500），输出 600 token；注入 = 重排后 top-10 × 400 token；模型价格输入 ¥2 / 百万、输出 ¥8 / 百万。</p>
+<p><strong>一、流量</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>平均问答 QPS</td><td>200 万 ÷ 86400</td><td>≈ <strong>23</strong></td></tr>
+      <tr><td><strong>峰值问答 QPS</strong></td><td>23 × 5</td><td><strong>116</strong></td></tr>
+      <tr><td><strong>峰值 LLM 调用</strong></td><td>116 × 1.2</td><td><strong>139</strong></td></tr>
+      <tr><td>峰值重排对数</td><td>116 × 50</td><td><strong>5,800 对 / 秒</strong></td></tr>
+      <tr><td>峰值召回请求</td><td>116 × 5 路</td><td>≈ <strong>580</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>重排是本章的第二大算力消耗</strong>：5,800 对/秒的 cross-encoder 打分，按单对 2.4ms 批处理，约需 <strong>1.4 万 QPS 的 GPU 吞吐</strong>——这是一个必须提前算的数，因为<strong>它不在 LLM 配额里，却会在重排服务上先炸</strong>。</p>
+</blockquote>
+<p><strong>二、token 与成本</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>每问输入 token</td><td>5,500 × 1 + 3,000 × 0.2（多跳追加）</td><td><strong>6,100</strong></td></tr>
+      <tr><td>每问输出 token</td><td>1.2 × 600</td><td>720</td></tr>
+      <tr><td><strong>日输入 token</strong></td><td>6,100 × 200 万</td><td><strong>122 亿</strong></td></tr>
+      <tr><td>日输出 token</td><td>720 × 200 万</td><td><strong>14.4 亿</strong></td></tr>
+      <tr><td><strong>日合计 token</strong></td><td>—</td><td><strong>136.4 亿</strong></td></tr>
+      <tr><td>输入成本</td><td>12,200 百万 × ¥2</td><td>¥24,400</td></tr>
+      <tr><td>输出成本</td><td>1,440 百万 × ¥8</td><td>¥11,520</td></tr>
+      <tr><td><strong>日 LLM 成本</strong></td><td>—</td><td><strong>≈ ¥35,920</strong>（约 <strong>¥108 万 / 月</strong>）</td></tr>
+  </tbody>
+</table>
+<p><strong>三、与「不做重排」的对比</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">输入 token / 问</th><th scope="col">日输入 token</th><th scope="col">日成本</th><th scope="col">月成本</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>top-50 直接注入</strong></td><td>22,100</td><td>442 亿</td><td>¥99,920</td><td><strong>≈ ¥300 万</strong></td></tr>
+      <tr><td><strong>重排后注入 top-10</strong></td><td>6,100</td><td>122 亿</td><td>¥35,920</td><td><strong>≈ ¥108 万</strong></td></tr>
+      <tr><td>节省</td><td><strong>−72%</strong></td><td>−320 亿</td><td><strong>−¥64,000 / 天</strong></td><td><strong>−¥192 万 / 月</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>四、存储与索引</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">数据</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>知识块</td><td>500 万 × 400 token ≈ 2GB 正文 + 元数据</td><td>≈ <strong>12 GB</strong>（含元数据与 ACL）</td></tr>
+      <tr><td>向量索引</td><td>500 万 × 1KB</td><td>≈ 5 GB</td></tr>
+      <tr><td>倒排索引</td><td>500 万 × 0.5KB</td><td>≈ 2.5 GB</td></tr>
+      <tr><td><strong>问答日志</strong></td><td>200 万 × 8KB（含召回、重排、注入、答案）</td><td><strong>≈ 16 GB / 天（5.8 TB / 年）</strong></td></tr>
+      <tr><td>引用关系</td><td>200 万 × 10 引用 × 100B</td><td>≈ 2 GB / 天</td></tr>
+      <tr><td>反馈记录</td><td>200 万 × 200B</td><td>≈ 400 MB / 天</td></tr>
+  </tbody>
+</table>
+<p><strong>五、结论</strong></p>
+<ol>
+<li><strong>成本的大头是注入 token（占输入 73%）</strong>，而注入量由重排收敛决定——<strong>重排是本章唯一同时改善成本与质量的杠杆</strong>。</li>
+<li><strong>第二瓶颈是重排算力（5,800 对/秒）</strong>，它比 LLM 配额更早成为扩容的卡点，且不在任何 LLM 成本预算里。</li>
+<li><strong>问答日志是最大的存储消耗（16 GB/天）</strong>，必须分层与采样。</li>
+<li><strong>幻觉的隐含成本（¥540 万/月）大于 token 成本（¥108 万/月）</strong>——<strong>优化优先级应当是幻觉率优先</strong>。</li>
+<li><strong>必须先量「问题类型分布」与「多跳占比」</strong>：它决定平均 LLM 调用次数与 token 曲线形状。</li>
+</ol>
+
+<h4 id="sec-3.6.19" data-toc-skip>成本模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">量级</th><th scope="col">优化手段</th><th scope="col">收益量级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>注入 token</strong></td><td><strong>最大（输入的 73%）</strong></td><td><strong>重排收敛 + 注入预算硬限</strong></td><td><strong>−72% 输入</strong></td></tr>
+      <tr><td>LLM 调用次数</td><td>次之</td><td>单跳快路径、多跳按需、小模型处理简单题</td><td>约 −20%</td></tr>
+      <tr><td>重排算力</td><td>小</td><td>只重排 top-20、降级到向量分数</td><td>约 −50%</td></tr>
+      <tr><td>检索</td><td>小</td><td>Query 缓存、热门问答直答</td><td>约 −15%</td></tr>
+      <tr><td>索引与日志</td><td>小</td><td>分层、采样、TTL</td><td>—</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章的成本优化只有一条主线：让更少的 token 承载更可靠的证据。</strong> 换模型、调 Prompt、砍系统提示词，收益都在个位数百分比；<strong>而「重排 + 注入预算」这一个动作，同时省 72% 的钱、提 3pp 准确率、降 13pp 幻觉率。</strong></p>
+</blockquote>
+
+<h2 id="seg-4">2.4 工程落地与规则护栏</h2><div class="oc-part-lead"><strong>第四段 · 工程落地与护栏</strong>这一段回答：方法论怎么变成链路上的一环一环——十个 P0 护栏各守什么，九类依赖挂掉时用户看到什么。</div>
+
+<h3 id="sec-4.1">2.4.1 端到端链路与意图路由</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>端到端链路有 11 步，从 Gateway 到 Feedback。其中 Intent Router 负责分类与快慢分离，Verifier 是代码层的最后一道关卡，Context Builder 是唯一的注入收敛点。路由护栏里最关键的一条是「可行性前置判断」：检索后重排分低于阈值就直接拒答，不进生成。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「把「答不上来」这个判断前移到检索之后、生成之前，是本章最有效的一道防线」——它比任何事后的幻觉检测都便宜、都可靠。让模型在「检索不到」的情况下自由发挥，它一定会编；而在它编之前拦住，成本几乎为零。</p>
+</div>
+
+<h4 id="sec-4.1.1" data-toc-skip>端到端链路</h4>
+
+<pre><code>用户提问 / 工单转入
+  → Gateway（鉴权、租户、密级 → ACL 上下文）
+  → Intent Router（事实型 / 流程型 / 多跳 / 越界；单跳快路径 vs 多跳慢路径）
+  → Query Planner（仅多跳：实体链接 + 子问题分解）
+  → Retriever（五路召回 + 融合 RRF + ACL 过滤）
+  → Reranker（cross-encoder，top-50 → top-10）
+  → Context Builder（预算裁剪 + 块包装：标题路径 / 版本 / 可点开链接）
+  → Generator（结构化输出：答案 + 引用 + 置信度 + 截止时点）
+  → Verifier（引用精确率校验 + 幻觉检测 + 拒答判定，代码层）
+  → Answer（答案 + 可点开引用 / 或澄清 / 或拒答 + 下一步建议）
+  → Feedback（点踩、质疑、引用点击、纠错 → 评测闭环）</code></pre>
+<blockquote>
+  <p><strong>图里最重要的一行是「Verifier」和它前面的「Context Builder」</strong>：前者是<strong>代码层的最后一道关卡</strong>（不靠模型自觉），后者是<strong>唯一的注入收敛点</strong>（所有裁剪在这里发生）。<strong>这两个位置决定了系统是「可控的检索增强」还是「一个会写小作文的模型」。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.1.2" data-toc-skip>意图路由护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>问题分类</td><td>事实 / 流程 / 对比 / 多跳 / 越界</td></tr>
+      <tr><td>单跳快路径</td><td>不进 Planner，直接检索</td></tr>
+      <tr><td><strong>可行性前置判断</strong></td><td>检索后、重排分低于阈值 → 直接拒答，<strong>不进生成</strong></td></tr>
+      <tr><td>歧义澄清</td><td><strong>最多一次</strong>；两次澄清仍不确定 → 给候选列表或拒答</td></tr>
+      <tr><td>越界识别</td><td>「写首诗」「你是谁」→ 明确说明边界</td></tr>
+      <tr><td>租户 / 密级上下文</td><td>鉴权结果作为 ACL 过滤输入</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-4.2">2.4.2 检索、重排与上下文护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>检索护栏要求多路必做、召回要宽、ACL 必须在检索层过滤、重排范围有下限、降级要打标、日志必落、缓存按 ACL 指纹分桶。上下文护栏要求注入预算硬限、块带齐四件套包装、裁剪顺序固定且证据最后、结构化输出、每条引用可点开。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一段里「缓存按 ACL 指纹分桶」是最容易被忽略的越权路径：同一个问题，不同用户、不同密级、不同租户，可召回的块集合是不同的。共用一个缓存 key，等于把 A 用户能看到的答案返回给 B 用户。</p>
+</div>
+
+<h4 id="sec-4.2.3" data-toc-skip>检索与重排护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>多路必做</strong></td><td>向量 + BM25 必做；历史问答对强烈建议</td></tr>
+      <tr><td><strong>召回要宽</strong></td><td>精度交给重排，不在召回阶段收窄</td></tr>
+      <tr><td><strong>ACL 必须在检索层过滤</strong></td><td>检索后过滤会吃掉 44% 的召回预算</td></tr>
+      <tr><td><strong>重排范围可配但有下限</strong></td><td>top-N 不得低于 20（低于则命中率掉 3pp）</td></tr>
+      <tr><td><strong>重排降级要打标</strong></td><td>交叉编码不可用 → 退回向量分数，标 <code>degraded</code></td></tr>
+      <tr><td><strong>重排日志必落</strong></td><td>否则无法解释「为什么这条没被引用」</td></tr>
+      <tr><td><strong>缓存按 ACL 指纹分桶</strong></td><td>否则会跨权限返回答案</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-4.2.4" data-toc-skip>上下文与生成护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>注入预算硬限</strong></td><td>超出即降级，<strong>不截断证据</strong></td></tr>
+      <tr><td><strong>块四件套包装</strong></td><td>标题路径 / 来源 / 版本时效 / 可点开链接</td></tr>
+      <tr><td>裁剪顺序固定</td><td>历史 → 低分块 → 低密度块 → few-shot；<strong>证据最后</strong></td></tr>
+      <tr><td><strong>结构化输出</strong></td><td>JSON，含 answer / citations / confidence / cutoff / caveats</td></tr>
+      <tr><td><strong>每条引用必须可点开</strong></td><td>不可点开的引用等于没有引用</td></tr>
+      <tr><td>引用粒度</td><td>块 + 块内字符区间</td></tr>
+      <tr><td>答案必带知识截止时点</td><td>—</td></tr>
+      <tr><td>低置信输出</td><td>只给有依据的部分 + 明确指出不确定处</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-4.3">2.4.3 引用、拒答与权限护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>引用护栏要求完整率 100%、逐句精确率校验在代码层、幻觉率与误拒率分开统计、拒答必须有用、澄清上限一次、置信度来源可解释、权限拒答不泄露存在性。权限与数据护栏要求 ACL 进索引、权限版本对齐时 fail-closed、文档一律当数据包裹。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「权限版本落后时必须 fail-closed（拒绝检索）而不是 fail-open（放行旧权限）」——这与问数章「权限服务故障就拒绝」是同一条原则。两个专题虽然是兄弟，但这条红线完全一致：防线的依赖不可用时，放行比拒绝危险得多。</p>
+</div>
+
+<h4 id="sec-4.3.5" data-toc-skip>引用与拒答护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>引用完整率 100%</strong></td><td>每个实质性论断都要有引用</td></tr>
+      <tr><td><strong>引用精确率校验</strong></td><td>逐句校验「这块支持这句话吗」，在代码层</td></tr>
+      <tr><td><strong>幻觉率与误拒率分开统计</strong></td><td><strong>单看拒答率会得出反向结论</strong></td></tr>
+      <tr><td><strong>拒答必须有用</strong></td><td>「库里没有 + 问谁 + 换什么问法 + 相近制度」</td></tr>
+      <tr><td>澄清上限 1 次</td><td>两次仍不确定 → 给候选或拒答</td></tr>
+      <tr><td>置信度来源可解释</td><td><strong>用重排分 + 分类器头</strong>，不用模型自报</td></tr>
+      <tr><td>权限拒答不泄露存在性</td><td>只说需要什么权限，不描述内容</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-4.3.6" data-toc-skip>权限与数据护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>ACL 进索引</strong></td><td>检索层过滤</td></tr>
+      <tr><td><strong>权限版本对齐</strong></td><td>索引落后于权限服务 → <strong>拒绝检索（fail-closed）</strong></td></tr>
+      <tr><td>文档内容一律当数据包裹</td><td>防提示注入</td></tr>
+      <tr><td>入库脱敏</td><td>PII 不进知识库，或按字段级 ACL</td></tr>
+      <tr><td>入库审核</td><td>投毒防线：来源可信度 + owner + 审核状态</td></tr>
+      <tr><td>审计全量留痕</td><td>谁问了什么、召回了什么、答了什么、引用了哪些块</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-4.4">2.4.4 降级、延迟预算与观测</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>降级矩阵的判据是一句话：依赖失效时，后果是「答不出来」还是「答出错、答越权」。权限、审计、知识版本、Verifier 四类一律 fail-closed，重排与检索可以降级并打标。延迟预算表给出 9 段目标与硬限，其中「引用校验与拒答判定」占 150ms 不可被挤掉。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「只返回引用块，不生成答案」是本章最有价值的一条降级——它把系统从「编答案」拉回「给证据」，用户仍能自己看原文。同理，延迟预算里那 150ms 的校验不是可选的质量增强，它是「不输出未校验答案」的最后一道关卡，所以不能被前面的环节挤掉。</p>
+</div>
+
+<h4 id="sec-4.4.7" data-toc-skip>降级矩阵（Fail-Open / Fail-Closed）</h4>
+
+<p><strong>本节是降级的权威版</strong>，&lt;a href="#sec-5.3.1"&gt;故障与兜底&lt;/a&gt;只引用。</p>
+<p>判据：<strong>依赖失效时，失效的后果是「答不出来」还是「答出错 / 答越权」？</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">依赖 / 环节</th><th scope="col">典型故障</th><th scope="col">策略</th><th scope="col">降级动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>权限服务 / ACL 索引</strong></td><td>超时、版本落后</td><td><strong>Fail-Closed</strong></td><td><strong>拒绝检索</strong>，不返回任何块</td></tr>
+      <tr><td><strong>向量检索</strong></td><td>超时</td><td>降级</td><td>只用 BM25；再失败则拒答</td></tr>
+      <tr><td><strong>BM25 检索</strong></td><td>超时</td><td>降级</td><td>只用向量；再失败则拒答</td></tr>
+      <tr><td><strong>重排服务</strong></td><td>超时 / 限流</td><td>降级</td><td>退回向量分数排序，<strong>打标 <code>degraded</code></strong></td></tr>
+      <tr><td><strong>LLM 服务</strong></td><td>超时 / 限流</td><td>模型降级</td><td>切小模型；再失败则<strong>只返回引用块，不生成答案</strong></td></tr>
+      <tr><td><strong>知识库元数据 / 版本服务</strong></td><td>超时</td><td><strong>Fail-Closed</strong></td><td>拒绝回答（无法确认时效）</td></tr>
+      <tr><td><strong>Verifier 服务</strong></td><td>超时</td><td><strong>Fail-Closed</strong></td><td><strong>不输出未校验的答案</strong>，只给引用</td></tr>
+      <tr><td><strong>历史问答对缓存</strong></td><td>不可用</td><td>降级</td><td>跳过这一路召回</td></tr>
+      <tr><td><strong>反馈服务</strong></td><td>不可用</td><td>降级</td><td>不影响作答，只是评测延迟</td></tr>
+  </tbody>
+</table>
+<p><strong>治理要点</strong>：每次降级打标 <code>degraded=true</code>、<code>fallback_mode</code> 与 <code>reason_code</code>；<strong>「只返回引用块，不生成答案」是本章最有价值的一条降级</strong>——它把系统从「编答案」拉回「给证据」，用户仍能自己看原文。</p>
+
+<h4 id="sec-4.4.8" data-toc-skip>延迟预算与超时降级</h4>
+
+<p><strong>本表是唯一的延迟口径来源</strong>，其他小节只引用。</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>接入与鉴权</td><td>50ms</td><td>200ms</td><td>429 / 登录提示</td></tr>
+      <tr><td>意图路由与可行性预判</td><td>100ms</td><td>300ms</td><td>按事实型处理</td></tr>
+      <tr><td><strong>多路召回（并行）</strong></td><td><strong>300ms</strong></td><td><strong>800ms</strong></td><td><strong>丢掉最慢的一路</strong>，标 degraded</td></tr>
+      <tr><td><strong>重排（top-50 批处理）</strong></td><td><strong>120ms</strong></td><td><strong>300ms</strong></td><td><strong>退回向量分数排序</strong></td></tr>
+      <tr><td>上下文构建</td><td>30ms</td><td>100ms</td><td>裁历史与低分块</td></tr>
+      <tr><td><strong>LLM 生成（首 token）</strong></td><td><strong>600ms</strong></td><td><strong>2s</strong></td><td>换小模型</td></tr>
+      <tr><td>LLM 生成（完整答案）</td><td>1.2s</td><td>4s</td><td><strong>只返回引用块，不生成答案</strong></td></tr>
+      <tr><td><strong>引用校验与拒答判定</strong></td><td><strong>150ms</strong></td><td><strong>400ms</strong></td><td><strong>不输出未校验的答案</strong></td></tr>
+      <tr><td><strong>单跳合计</strong></td><td><strong>&lt; 2s（P95）</strong></td><td>5s</td><td>—</td></tr>
+      <tr><td><strong>多跳合计（每跳）</strong></td><td><strong>&lt; 8s（P95）</strong></td><td>20s</td><td>中途返回已完成的步骤</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章的延迟预算里有一个前面几章没有的约束</strong>：<strong>「引用校验与拒答判定」占 150ms</strong>。它不是可选的质量增强——<strong>它是「不输出未校验答案」的最后一道关卡</strong>，所以它的预算不能被前面的环节挤掉。<strong>如果召回或重排超时，正确做法是降级检索质量并打标，而不是砍掉校验。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.4.9" data-toc-skip>观测与压测</h4>
+
+<p><strong>观测</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>检索</td><td><strong>recall@k</strong>、各召回路命中率、<strong>过滤前后候选数</strong>（权限过滤吃掉了多少）</td></tr>
+      <tr><td>重排</td><td>重排耗时 P95、<strong>重排前后排名变化</strong>、降级比例</td></tr>
+      <tr><td>注入</td><td><strong>注入块数</strong>、<strong>注入 token 占比</strong>、预算耗尽率</td></tr>
+      <tr><td>质量</td><td><strong>幻觉率</strong>、<strong>误拒率</strong>、引用精确率 / 召回率 / 完整率、<strong>答案质疑率</strong>、<strong>引用点击率</strong></td></tr>
+      <tr><td>权限</td><td>越权召回数、<strong>权限版本落后次数</strong></td></tr>
+      <tr><td>时效</td><td>命中过期块次数、待复核知识占比</td></tr>
+      <tr><td>成本</td><td>单问 token、注入 token、单问成本</td></tr>
+      <tr><td>延迟</td><td>首 token P95、总 P95、各阶段分解</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「过滤前后候选数」是本章特有的必看指标</strong>：它直接告诉你权限过滤吃掉了多少召回预算。如果 top-50 过滤后只剩 12 块，那你的召回质量下降是被权限吃掉的，<strong>而不是检索模型不行</strong>。</p>
+</blockquote>
+<p><strong>压测</strong>：</p>
+<ul>
+<li>峰值 5 倍问答。</li>
+<li><strong>top-50 重排的算力压测</strong>（本章的第二个卡点）。</li>
+<li>全库知识块的一次性重建（换 embedding 模型）。</li>
+<li>ACL 大规模变更（离职 / 转岗 → 批量失效）。</li>
+<li>知识版本冲突（新旧版本同时生效）。</li>
+<li><strong>注入预算超限</strong>（验证是降级而不是截断证据）。</li>
+<li>LLM 不可用（验证「只返回引用块」的降级）。</li>
+<li>越权提问（红队）。</li>
+<li><strong>提示注入</strong>：在文档里埋指令，验证不被当作知识输出。</li>
+</ul>
+
+<h3 id="sec-4.5">2.4.5 护栏清单与上线检查</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>护栏清单给出 18 条并分级，十条 P0 里有六条在检索与注入环节、三条在输出环节、一条是缓存分桶。上线检查 10 问覆盖召回多路、ACL 位置、重排链路、注入预算、引用完整率、双面指标阈值、可行性前置、拒答有用、知识时效三道防线与黄金集三区。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「十个 P0 里有六个是检索与注入环节」这个分布本身就说明了问题：问答 Agent 的质量主要不由生成模型决定，而由检索链路的干净程度决定。所以想提升效果，第一刀不该砍向模型，而该砍向召回与注入。</p>
+</div>
+
+<h4 id="sec-4.5.10" data-toc-skip>规则护栏清单</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">领域</th><th scope="col">护栏</th><th scope="col">优先级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>权限 fail-closed</strong></td><td>权限服务 / ACL 索引不可用 → 拒绝检索；版本落后 → 拒绝</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>ACL 进索引</strong></td><td>检索层过滤，不在生成层声明</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>引用完整率 100%</strong></td><td>每个实质性论断都有可点开的引用</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>引用精确率校验</strong></td><td>代码层逐句校验，不靠模型自觉</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>幻觉率上限</strong></td><td>≤ 5%，超阈值熔断并降级</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>注入预算硬限</strong></td><td>超限即降级，<strong>不截断证据</strong></td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>可行性前置判断</strong></td><td>检索后、重排分低于阈值 → 直接拒答，不进生成</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>多路召回</strong></td><td>向量 + BM25 必做</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>重排必做</strong></td><td>交叉编码；不可用时降级并打标</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>重排日志必落</strong></td><td>否则无法解释「为什么没被引用」</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>缓存按 ACL 分桶</strong></td><td>防止跨权限命中</td><td><strong>P0</strong></td></tr>
+      <tr><td>误拒率单独监控</td><td>与幻觉率一起看</td><td>P1</td></tr>
+      <tr><td>拒答必须有用</td><td>库里没有 + 问谁 + 换什么问法</td><td>P1</td></tr>
+      <tr><td>澄清上限 1 次</td><td>两次仍不确定 → 候选或拒答</td><td>P1</td></tr>
+      <tr><td>知识时效三道防线</td><td>入库必填生效时间、检索只取生效中、答案标截止时点</td><td>P1</td></tr>
+      <tr><td>文档数据包裹</td><td>防提示注入</td><td>P1</td></tr>
+      <tr><td>审计全量留痕</td><td>问 / 召回 / 答 / 引用四段齐全</td><td>P1</td></tr>
+      <tr><td><strong>幻觉成本入账</strong></td><td>把误采信与纠正成本记进成本看板</td><td>P1</td></tr>
+      <tr><td>成本</td><td>单问 token 超预算 120% 触发容量评审</td><td>P2</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>十个 P0 里有六个是「检索与注入环节」</strong>（ACL、多路召回、重排、注入预算、可行性预判、缓存分桶），<strong>三个是「输出环节」</strong>（引用完整、引用精确、幻觉上限）。<strong>这说明问答 Agent 的质量主要不由生成模型决定，而由检索链路的干净程度决定。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.5.11" data-toc-skip>上线检查（10 问）</h4>
+
+<ol>
+<li><strong>召回是否多路</strong>？向量 + BM25 是否都在？<strong>历史问答对这一路有没有做</strong>？</li>
+<li><strong>ACL 是否在检索层过滤</strong>？<strong>过滤前后的候选数是否有监控</strong>？权限版本落后时是否 fail-closed？</li>
+<li><strong>重排是否在链路上</strong>？重排范围多少？<strong>重排不可用时是否降级并打标</strong>？重排日志是否落盘？</li>
+<li><strong>注入预算是否有硬限</strong>？超限时是<strong>降级还是截断证据</strong>？块是否带齐四件套包装？</li>
+<li><strong>引用完整率是否 100%</strong>？<strong>引用是否逐句校验</strong>？引用是否可点开到原文位置？</li>
+<li><strong>幻觉率与误拒率是否分开监控</strong>？阈值是否按<strong>两类错误代价不对称</strong>来定？</li>
+<li><strong>可行性判断是否前置到生成之前</strong>？低分场景是否真的不进生成？</li>
+<li><strong>拒答是否有用</strong>（库里没有 + 问谁 + 换什么问法）？澄清是否限一次？</li>
+<li><strong>知识时效</strong>三道防线是否都在？答案是否标了知识截止时点？</li>
+<li><strong>黄金集是否包含不可答题与越权题</strong>？提示注入红队是否通过？</li>
+</ol>
+
+<h2 id="seg-5">2.5 端到端案例</h2><div class="oc-part-lead"><strong>第五段 · 端到端案例</strong>这一段回答：一个真实的制度问答怎么走完整条链路，以及四个变体分别暴露什么。</div>
+
+<h3 id="sec-5.1">2.5.1 案例：企业制度问答</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>「出差住宿标准是多少」走完整条链路：ACL 上下文带入、事实型走单跳快路径、三路召回去重得 34 块、cross-encoder 重排取 top-10、注入 4000 token、生成带三条引用、Verifier 逐句校验、输出答案加可点开引用加知识截止时点。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这个案例最值得讲的是「如果没做重排会怎样」：把 34 块全注入，上下文 13,600 token（3.4 倍），而答案里会多出一句「餐补每天 80 元」——因为餐补标准块就在上下文里，模型把它综合进来了。这就是幻觉最典型的形态：不是凭空编造，是从真实但不相关的内容里综合错位，比完全编一个数字更难被发现。</p>
+</div>
+
+<h4 id="sec-5.1.1" data-toc-skip>案例：企业制度问答（「出差住宿标准是多少」）</h4>
+
+<p><strong>链路</strong>：</p>
+<ol>
+<li><strong>接入与 ACL</strong>：员工属集团财务部，密级 L2；ACL 上下文带入检索。</li>
+<li><strong>意图路由</strong>：事实型 → <strong>单跳快路径</strong>，不进 Planner。</li>
+<li><strong>多路召回</strong>（宽）：
+<ul>
+  <li>向量召回 22 块（差旅管理办法 4.1、员工手册 12.3、报销系统 FAQ、订酒店操作说明……）</li>
+  <li>BM25 召回 3 块（「住宿标准」精确命中标题「4.1 住宿限额」）</li>
+  <li>历史问答对 2 块（相似问题「出差住酒店能报多少」→ 已确认答案 + 引用）</li>
+  <li>去重后 <strong>34 块</strong></li>
+</ul></li>
+<li><strong>重排</strong>（窄）：cross-encoder 打分 34 对 → 取 top-10。第 1 名是「4.1 住宿限额」，<strong>第 11 名是「餐补标准」</strong>——差一名就被挡在外面。</li>
+<li><strong>上下文构建</strong>：top-10 块 + 四件套包装（标题路径 / 来源 / 版本时效 / 可点开链接）= <strong>4,000 token</strong>。</li>
+<li><strong>生成</strong>：
+<ul>
+  <li>答案：一线城市 600 元/晚、二线 450 元、其他 350 元；需凭发票；不含总监及以上职级。</li>
+  <li>引用 3 条：4.1 住宿限额、4.2 城市分级表、附则 7.2 适用范围。</li>
+  <li>置信度 high，知识截止 2025-03-01。</li>
+</ul></li>
+<li><strong>Verifier（代码层）</strong>：逐句校验 3 条引用 → 全部支持对应论断；幻觉检测 → 无无依据论断。</li>
+<li><strong>输出</strong>：答案 + 3 条可点开引用 + 知识截止时点 + 「不含总监及以上」的提示。</li>
+</ol>
+<blockquote>
+  <p><strong>这个案例最值得讲的是「如果没做重排会怎样」</strong>：把 34 块全注入，上下文 13,600 token（3.4 倍），而答案里会多出一句 <strong>「餐补每天 80 元」</strong>——</p>
+  <p><strong>因为「餐补标准」块就在上下文里，模型把它综合进来了。</strong></p>
+  <p><strong>这就是幻觉最典型的形态：不是凭空编造，是从真实但不相关的内容里综合错位。</strong> 用户看到两个数字，无法判断哪个是住宿标准、哪个是餐补标准——<strong>这比完全编一个数字更难被发现，也更危险。</strong></p>
+</blockquote>
+
+<h3 id="sec-5.2">2.5.2 四个变体：多跳、隔离、版本与取舍</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>四个变体覆盖多跳问题（实体链接加分解加合并一致性校验）、跨租户与密级隔离（ACL 进索引 vs 检索后过滤）、知识过期与版本冲突（冲突摊开而非悄悄裁决）、召回宽度与重排的取舍（先查重排再查召回路数）。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>变体 D 最反直觉：团队提议把注入条数从 top-10 加到 top-50，诊断后发现重排在丢证据，换了重排模型之后把召回范围从 50 收到 30，准确率反而从 85% 升到 88%、幻觉率从 5% 降到 3%、重排算力还省了 40%。召回范围收窄了，质量反而提升——因为证据还有第二道机会。</p>
+</div>
+
+<h4 id="sec-5.2.2" data-toc-skip>变体 A：多跳问题</h4>
+
+<p><strong>问题</strong>：「我们和 X 公司的合同里违约金条款是什么？」</p>
+<ol>
+<li><strong>实体链接</strong>：「X 公司」→ 公司实体 ID；「合同」→ 我方主体 + 合同文档类型。</li>
+<li><strong>拆子问题</strong>：① 我方与 X 公司的合同是哪一份？② 该合同的违约金条款是什么？</li>
+<li><strong>子问题 1</strong>：检索（结构化过滤 + 向量）→ 合同《2024-089 号框架协议》→ 锁定文档。</li>
+<li><strong>子问题 2</strong>：在该合同的块中检索「违约金」→ 命中 3 块（第 8.2 条 + 附件二违约金表）。</li>
+<li><strong>合并一致性校验</strong>：条款版本与合同版本一致 ✓；条款金额与附件表格一致 ✓。</li>
+<li><strong>输出</strong>：答案 + 引用（合同 2024-089 第 8.2 条 + 附件二）+ 合同生效期。</li>
+<li><strong>成本</strong>：3 次 LLM 调用、注入 6,500 token（比单跳多 45%）。</li>
+</ol>
+<blockquote>
+  <p><strong>第 5 步是最容易漏的</strong>：子问题 ① 和 ② 各自都答对了，但<strong>如果合同在检索期间被换成了修订版，② 的答案就来自旧版合同</strong>——<strong>每一步都对，组合是错的</strong>。所以多跳必须做合并一致性校验，尤其是<strong>版本一致性</strong>。</p>
+</blockquote>
+
+<h4 id="sec-5.2.3" data-toc-skip>变体 B：跨租户与密级隔离</h4>
+
+<p><strong>问题</strong>：「我们事业部今年和去年同期的营收对比如何？」（用户仅有本事业部数据权限）</p>
+<p><strong>方案 A（ACL 进索引）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">步骤</th><th scope="col">候选数</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>全库语义召回 top-50</td><td>50</td></tr>
+      <tr><td>其中本事业部相关</td><td>42</td></tr>
+      <tr><td><strong>本事业部相关且在本事业部口径内</strong></td><td><strong>50</strong>（ACL 作为过滤条件参与检索排序）</td></tr>
+  </tbody>
+</table>
+<p><strong>方案 B（先召回后过滤）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">步骤</th><th scope="col">候选数</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>全库语义召回 top-50</td><td>50</td></tr>
+      <tr><td>其中前 20 位是<strong>集团口径与其他事业部</strong>的营收块（语义极近，标题里都有「营收」「同期对比」）</td><td>—</td></tr>
+      <tr><td><strong>过滤后实际可用</strong></td><td><strong>30</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>差异不在安全，在质量</strong>：两种方案都不泄露任何越权内容（<strong>方案 B 同样安全</strong>）。但方案 B 的<strong>有效召回从 50 掉到 30，且排名头部被过滤掉</strong>——黄金集上命中率从 89% 掉到 62%。</p>
+  <p><strong>所以「ACL 过滤放在检索前还是检索后」是质量决策，不是安全决策。</strong> 很多团队把它当安全问题处理，于是选了检索后过滤（因为实现简单），<strong>悄悄损失了 27pp 的召回命中率，然后跑去调 top-k 和换模型——治错了地方</strong>。</p>
+</blockquote>
+<p><strong>输出</strong>：仅本事业部数据，答案带权限范围说明；审计记录「召回了哪些块、过滤掉了哪些块」。</p>
+
+<h4 id="sec-5.2.4" data-toc-skip>变体 C：知识过期与版本冲突</h4>
+
+<p><strong>问题</strong>：「年假政策现在是怎么规定的？」</p>
+<p><strong>库里的三份材料</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">文档</th><th scope="col">版本</th><th scope="col">生效时间</th><th scope="col">状态</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>《员工手册》年假条款</td><td>v5.0</td><td>2023-06-01</td><td><strong>已废止</strong></td></tr>
+      <tr><td>《员工手册》年假条款</td><td>v6.0</td><td>2025-01-01</td><td><strong>生效中</strong></td></tr>
+      <tr><td>《2026 年假补充通知》</td><td>—</td><td>2026-06-01</td><td><strong>生效中</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>处理</strong>：</p>
+<ol>
+<li><strong>检索时按状态过滤</strong>：只召回生效中版本 → v5.0 被挡在召回层。</li>
+<li><strong>冲突检测</strong>：v6.0 与 2026 补充通知在「病假天数」上有出入。</li>
+<li><strong>裁决规则</strong>：以 <code>effective_from</code> 更晚且状态为生效中的为准 → 补充通知优先。</li>
+<li><strong>答案显式说明冲突</strong>：「按 2026-06-01 生效的《2026 年假补充通知》，病假天数为 X；2025-01-01 版《员工手册》v6.0 中为 Y，以新通知为准。」</li>
+</ol>
+<blockquote>
+  <p><strong>第 4 步比「选一个对的」更重要</strong>：<strong>把冲突摊开给用户，比悄悄选一个更可信</strong>。用户能自己判断「公司到底按哪个执行」，而一个被悄悄裁决过的答案，用户只能选择信或不信。</p>
+</blockquote>
+<p><strong>量化这个风险</strong>：不做版本过滤时，这道题有 <strong>43% 的概率召回 v5.0</strong>（向量检索对「年假政策」的语义相似度，两个版本几乎一样）——<strong>用户拿到的可能是已废止一年的规定</strong>。</p>
+
+<h4 id="sec-5.2.5" data-toc-skip>变体 D：召回宽度与重排的取舍</h4>
+
+<p><strong>场景</strong>：团队反馈「召回不准，命中只有 78%」，提议<strong>把注入条数从 top-10 加到 top-50</strong>。</p>
+<p><strong>先查表</strong>（&lt;a href="#sec-3.3.4"&gt;重排&lt;/a&gt;）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">证据命中率</th><th scope="col">准确率</th><th scope="col">幻觉率</th><th scope="col">上下文</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>现状 top-10</td><td>86%</td><td>85%</td><td>5%</td><td>4,000</td></tr>
+      <tr><td><strong>提议 top-50</strong></td><td><strong>97%</strong></td><td><strong>82%</strong></td><td><strong>18%</strong></td><td><strong>20,000</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>诊断</strong>：命中率确实涨了 11pp，但<strong>准确率掉了 3pp、幻觉率涨了 13pp、上下文涨了 5 倍</strong>。<strong>加宽 k 没有解决任何问题，它只是把噪音也一起加了进来。</strong></p>
+<p><strong>正确的三步诊断顺序</strong>：</p>
+<pre><code>召回命中率低
+  → ① 先查重排：召回 top-50 里本来有 97% 的证据，
+              重排后 top-10 只剩 86% → **重排在丢证据**
+  → ② 再查召回路数：只用向量？加 BM25 后 top-10 命中率 71% → 82%，
+                  **成本几乎为零，收益比加宽 k 大得多**
+  → ③ 最后才考虑加宽 k，且必须窄注入</code></pre>
+<p><strong>本案例的实际修复</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">步骤</th><th scope="col">动作</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td>定位到重排在丢证据</td><td>重排后 top-10 命中率 86% vs 召回 97%</td></tr>
+      <tr><td>2</td><td>换重排模型（bge-reranker-v2-m3），范围 top-50 → <strong>top-30</strong></td><td>重排后 top-10 命中率 <strong>92%</strong></td></tr>
+      <tr><td>3</td><td>加 BM25 召回路</td><td>top-10 命中率再加 3pp</td></tr>
+      <tr><td>4</td><td><strong>召回范围从 50 收到 30</strong></td><td><strong>准确率 85% → 88%，幻觉率 5% → 3%，重排算力还省了 40%</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 4 步是本案例最反直觉的地方</strong>：<strong>召回范围收窄了，质量反而提升。</strong></p>
+  <p>原因就是「召回宽、注入窄」这六个字的意思：<strong>宽是为了不漏，但漏掉的证据本该由重排捡回来</strong>。当重排变强之后，召回范围可以往回收——<strong>因为证据还有第二道机会</strong>。</p>
+  <p><strong>反过来说：如果重排没做对，加宽召回就是在给模型喂噪音。</strong> 「召回不够」这个判断，几乎总是应该先怀疑重排，而不是先怀疑召回。</p>
+</blockquote>
+
+<h3 id="sec-5.3">2.5.3 故障兜底、扩容与取舍</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>故障兜底补充三条，其中「降级到没有重排时应同步收紧注入条数」最容易被漏。扩容 10 倍先坏的是重排算力，它是第二大算力消耗，却不在任何 LLM 配额里。取舍复盘列出十条决策与各自的重新评估条件。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>降级不只是换模型，注入参数也要一起降级：没有重排时，注入的每一块都可能是噪音，这时候还按原来的 k 注入，等于降级成了一个「更宽更噪」的版本。另外扩容那一节的第 1 位——重排算力不像 LLM 那样容易横向扩，它会在第一个扩容窗口里炸掉。</p>
+</div>
+
+<h4 id="sec-5.3.6" data-toc-skip>故障与兜底</h4>
+
+<p>降级矩阵以&lt;a href="#sec-4.4.1"&gt;降级矩阵&lt;/a&gt;为准，本例补充三条：</p>
+<table>
+  <thead>
+    <tr><th scope="col">故障</th><th scope="col">影响</th><th scope="col">兜底</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>重排服务不可用</strong></td><td>注入变成宽召回</td><td><strong>退回向量分数排序并打标 <code>degraded</code></strong>；<strong>此时应同步收紧注入条数</strong>（噪音更多，注入更少）</td></tr>
+      <tr><td><strong>Verifier 超时</strong></td><td>答案未校验</td><td><strong>不输出未校验答案，只给引用块</strong></td></tr>
+      <tr><td><strong>知识库整体不可用</strong></td><td>无任何依据</td><td><strong>明确拒答 + 指向人工渠道</strong>，不提供任何无依据内容</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第一条的「同步收紧注入条数」值得单独强调</strong>：降级到没有重排时，注入的每一块都可能是噪音，<strong>这时候还按原来的 k 注入，等于降级成了一个「更宽更噪」的版本</strong>。<strong>降级不只是换模型，注入参数也要一起降级。</strong></p>
+</blockquote>
+
+<h4 id="sec-5.3.7" data-toc-skip>扩容 10 倍，哪里先坏？</h4>
+
+<p>以&lt;a href="#sec-3.6.2"&gt;容量与成本估算&lt;/a&gt;的基准扩容 10 倍（日问答 2,000 万、峰值 1,160 QPS、LLM 调用 1,390 QPS、重排 58,000 对 / 秒、日 token 1,364 亿、日成本 ¥359,200、问答日志 160 GB / 天）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">先坏的点</th><th scope="col">现象</th><th scope="col">触发指标</th><th scope="col">对策</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>重排算力</strong></td><td>重排 P95 超 300ms、开始降级</td><td>重排对数 &gt; 目标 QPS 的 80%</td><td><strong>GPU 扩容、缩小重排范围、批量优化、向量分桶</strong></td></tr>
+      <tr><td>2</td><td><strong>向量 / BM25 检索</strong></td><td>P99 上升</td><td>峰值 &gt; 580 QPS</td><td>分片、Query 缓存</td></tr>
+      <tr><td>3</td><td><strong>LLM 配额</strong></td><td>429</td><td>调用 QPS &gt; 配额 80%</td><td>模型分级、单跳小模型、热门直答</td></tr>
+      <tr><td>4</td><td><strong>注入预算与成本</strong></td><td>账单超支</td><td>单问 token &gt; 预算 120%</td><td>收紧注入、Query 缓存、结果复用</td></tr>
+      <tr><td>5</td><td><strong>问答日志存储</strong></td><td>增长过快</td><td>磁盘水位 &gt; 70%</td><td>分层、采样、只留引用不留全文</td></tr>
+      <tr><td>6</td><td><strong>权限服务</strong></td><td>变慢、版本落后</td><td>权限版本落后次数 &gt; 0</td><td>增量更新 ACL、fail-closed 会自然减少查询</td></tr>
+      <tr><td>7</td><td><strong>知识更新时效</strong></td><td>新知识生效延迟</td><td>索引滞后 &gt; 30min</td><td>增量索引、热点优先刷新</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 1 位是本章最容易被漏掉的卡点</strong>：<strong>重排算力不像 LLM 那样容易横向扩</strong>（GPU 供给有限、单模型显存吃紧），而且它<strong>不在任何 LLM 配额里</strong>，所以不会出现在成本评审的表上——<strong>它会在第一个扩容窗口里炸掉</strong>。</p>
+  <p><strong>第 7 位是本章特有的非线性</strong>：流量涨 10 倍时，如果知识库规模不变，更新频率也不变；但<strong>如果知识库规模同步涨 10 倍，重算与重建的量也涨 10 倍</strong>——<strong>索引重建的耗时会成为新知识的生效延迟</strong>，而新知识生效越慢，「过期知识被反复复用」的放大倍数越大。</p>
+</blockquote>
+
+<h4 id="sec-5.3.8" data-toc-skip>取舍复盘</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">代价</th><th scope="col">收益</th><th scope="col">重新评估条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>宽召回 + 窄注入</strong></td><td>需要重排算力</td><td><strong>质量与成本双赢</strong></td><td>重排算力充足时可放宽</td></tr>
+      <tr><td>多路召回</td><td>检索复杂度</td><td>命中率 +11pp</td><td>术语问题变少后可减路数</td></tr>
+      <tr><td><strong>ACL 进索引</strong></td><td><strong>权限变更要增量更新</strong></td><td><strong>召回不被吃掉 27pp</strong></td><td>——</td></tr>
+      <tr><td>可行性前置判断</td><td>多一次判断</td><td>幻觉源头被掐</td><td>——</td></tr>
+      <tr><td>引用完整率 100%</td><td>生成受限、token 增</td><td>信任基础</td><td><strong>永不放松</strong></td></tr>
+      <tr><td>重排范围可配</td><td>需评测支撑</td><td>成本与延迟可调</td><td>算力富余时放宽</td></tr>
+      <tr><td>历史问答对</td><td>需人工确认机制</td><td>零成本高命中</td><td>——</td></tr>
+      <tr><td><strong>偏向严格的拒答</strong></td><td>误拒率 8%</td><td><strong>信任不崩</strong></td><td>业务容忍度高时可放宽</td></tr>
+      <tr><td><strong>冲突摊开而非悄悄裁决</strong></td><td>答案更长</td><td>用户可自行判断</td><td>内部低风险场景可简化</td></tr>
+      <tr><td>降级时同步收紧注入</td><td>覆盖率下降</td><td>不把噪音喂给模型</td><td>——</td></tr>
+  </tbody>
+</table>
+
+<h2 id="seg-6">2.6 演进、指标与误区</h2><div class="oc-part-lead"><strong>第六段 · 演进与误区</strong>这一段回答：这套系统怎么一步步长大，成熟后看哪几个数，以及哪些坑最贵。</div>
+
+<h3 id="sec-6.1">2.6.1 演进路线与指标体系</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>演进路线 L0 到 L5，L2（混合检索加重排）与 L3（引用与拒答）是两次关键跳跃，且顺序不能颠倒。指标体系七层，其中质量层的幻觉率与误拒率是核心，检索层的「过滤前后候选数」是本章特有的必看项。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>L2 与 L3 的顺序不能颠倒：很多系统跳过 L2 直接上 L3——加了引用机制，但没有重排——结果就是引用齐全、引用准确率却很低。每一句都有引用，但引用的是一堆不相关的块。引用机制会放大召回质量的问题，而不是掩盖它。</p>
+</div>
+
+<h4 id="sec-6.1.1" data-toc-skip>演进路线</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">形态</th><th scope="col">触发条件</th><th scope="col">关键改造</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>L0</td><td>FAQ + 关键词检索</td><td>起步</td><td>倒排、精确匹配</td></tr>
+      <tr><td>L1</td><td>语义检索 + 单轮生成</td><td>泛化需求</td><td>embedding、切分、top-k</td></tr>
+      <tr><td><strong>L2</strong></td><td><strong>混合检索 + 重排</strong></td><td><strong>命中与幻觉问题</strong></td><td><strong>BM25、cross-encoder、窄注入</strong></td></tr>
+      <tr><td><strong>L3</strong></td><td><strong>引用与拒答</strong></td><td><strong>信任问题</strong></td><td><strong>结构化输出、引用校验、拒答策略</strong></td></tr>
+      <tr><td><strong>L4</strong></td><td><strong>权限与知识治理</strong></td><td><strong>规模与合规</strong></td><td><strong>ACL 进索引、版本、时效、审计</strong></td></tr>
+      <tr><td>L5</td><td>多跳与主动服务</td><td>成熟</td><td>实体链接、问题分解、一致性校验、订阅推送</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>L2 与 L3 是本章最关键的两级跳跃，而且顺序不能颠倒</strong>。很多系统跳过 L2 直接上 L3——<strong>加了引用机制，但没有重排</strong>——结果就是<strong>引用齐全、引用准确率却很低</strong>：每一句都有引用，但引用的是一堆不相关的块。<strong>引用机制会放大召回质量的问题，而不是掩盖它。</strong></p>
+</blockquote>
+
+<h4 id="sec-6.1.2" data-toc-skip>指标体系</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">层级</th><th scope="col">指标</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>质量</strong></td><td><strong>幻觉率</strong>、<strong>误拒率</strong>、答案准确率、拒答恰当率</td><td><strong>判断可信度</strong></td></tr>
+      <tr><td><strong>引用</strong></td><td>引用精确率 / 召回率 / 完整率、引用点击率</td><td><strong>判断可核验性</strong></td></tr>
+      <tr><td>检索</td><td>recall@k、各召回路命中率、<strong>过滤前后候选数</strong></td><td>判断检索链路</td></tr>
+      <tr><td>时效</td><td>命中过期块次数、索引滞后</td><td>判断知识治理</td></tr>
+      <tr><td>权限</td><td>越权召回数、权限版本落后次数</td><td>判断安全</td></tr>
+      <tr><td>体验</td><td>首 token P95、追问率、<strong>答案质疑率</strong></td><td>判断可用性</td></tr>
+      <tr><td>成本</td><td>单问 token、<strong>注入 token 占比</strong>、单问成本</td><td>判断可持续</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.2">2.6.2 评测回归与成本优化</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>评测回归的黄金集分三区，标注以引用精确率优先；换 embedding、改切分、改召回权重、改重排、调 k、改拒答阈值——六类变更都要重跑黄金集。成本优化第一刀是重排收敛注入条数，输入 token −72%，第二刀是收窄召回范围。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「只看准确率会把系统调成『什么都不敢答』」——变更回归必须同时看幻觉率与误拒率。这是本章双面指标最实际的用处：两个数一起看才知道阈值往哪边调。成本那一侧，第一行是全部优化的 90%，其余手段都在个位数到十几个百分点。</p>
+</div>
+
+<h4 id="sec-6.2.3" data-toc-skip>评测与回归</h4>
+
+<ul>
+<li><strong>黄金集三个分区</strong>：可答题 / <strong>不可答题</strong> / <strong>越权题</strong>，缺一不可。</li>
+<li>标注以<strong>引用精确率</strong>优先（标注成本低、定位准），答案准确率作为结果指标。</li>
+<li><strong>每周重跑</strong>：换 embedding 模型、改切分、改召回权重、改重排、调整 k 值、改拒答阈值——<strong>六类变更全都要重跑黄金集</strong>，因为它们都直接改变幻觉率与误拒率。</li>
+<li><strong>变更回归要看两个数</strong>：幻觉率与误拒率<strong>同时</strong>看；<strong>只看准确率会把系统调成「什么都不敢答」</strong>。</li>
+<li>线上以<strong>答案质疑率</strong>与<strong>引用点击率</strong>做生产环境的幻觉代理；质疑率上升即回滚。</li>
+<li><strong>重排日志是回归的抓手</strong>：出现一条坏答案，要能回溯到「召回给了什么、重排排成了什么、注入了什么」。</li>
+</ul>
+
+<h4 id="sec-6.2.4" data-toc-skip>成本优化</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">手段</th><th scope="col">收益</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>重排收敛注入条数</strong></td><td><strong>输入 token −72%</strong></td><td><strong>同时提准确率、降幻觉率</strong></td></tr>
+      <tr><td>2</td><td><strong>收窄召回范围</strong>（重排变强后）</td><td>重排算力 −40%</td><td>质量反而提升</td></tr>
+      <tr><td>3</td><td>Query 缓存 / 热门问答直答</td><td>请求 −15%</td><td>无损</td></tr>
+      <tr><td>4</td><td>模型分级（单跳走小模型）</td><td>约 −20%</td><td>简单题不需要大模型</td></tr>
+      <tr><td>5</td><td>引用块去重与裁剪</td><td>注入 −5%</td><td>收益有限</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 1 行是本章全部成本优化的 90%</strong>：<strong>「让更少的 token 承载更可靠的证据」</strong>。其余手段都在个位数到十几个百分点，而第 1 行是 <strong>−72%</strong>。</p>
+</blockquote>
+
+<h3 id="sec-6.3">2.6.3 产品对比与常见误区</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>产品对比把本章形态与企业 Wiki 加搜索、通用 AI 搜索、垂直领域问答、客服知识库、对话式客服、私有化 RAG 平台放在一张表里。常见误区 15 条，其中加粗的四条最贵：召回不够就加宽 k、检索后过滤权限、不做重排、上下文超限就截断证据。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>误区清单里「切分粒度 = 注入粒度」和「召回不够就加宽 k」是两个方向相反的错：前者让召回到也答不对，后者让召回对了也答不对。合起来是同一句话——检索和注入是两个独立的工程问题，各自都要单独设计。</p>
+</div>
+
+<h4 id="sec-6.3.5" data-toc-skip>产品对比</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">产品 / 形态</th><th scope="col">核心</th><th scope="col">关键挑战</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>企业 Wiki + 搜索</td><td>内容 + 倒排</td><td>找到文档但不组织答案</td></tr>
+      <tr><td>通用 AI 搜索</td><td>广域检索 + 生成</td><td>引用弱、内部知识缺失</td></tr>
+      <tr><td><strong>垂直领域问答</strong></td><td><strong>领域切分 + 混合检索 + 重排</strong></td><td><strong>召回精度与引用质量</strong></td></tr>
+      <tr><td>客服知识库</td><td>面向单一场景</td><td>覆盖面窄</td></tr>
+      <tr><td>对话式客服</td><td>多轮 + 转人工</td><td>与本章同构，但重在转人工</td></tr>
+      <tr><td>私有化 RAG 平台</td><td>部署与权限</td><td><strong>ACL 与数据不出域</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章与问数 Agent（第 1 篇）、客服 Agent 是同构的三兄弟</strong>：客服是「答 + 有副作用 + 转人工」，问数是「答 + 可计算 + 有口径」，<strong>本章是「答 + 有引用 + 会拒答」</strong>。<strong>它们共用检索与上下文治理，但各自的核心防线不同</strong>：客服防重复执行，问数防口径错，本章防幻觉。</p>
+</blockquote>
+
+<h4 id="sec-6.3.6" data-toc-skip>常见误区</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">误区</th><th scope="col">问题</th><th scope="col">正确做法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>召回不够就加宽 k</strong></td><td><strong>噪音进上下文，幻觉率翻三倍</strong></td><td><strong>先查重排，再查召回路数，最后才加宽</strong></td></tr>
+      <tr><td><strong>只做向量检索</strong></td><td>型号、编号、专名全漏</td><td><strong>向量 + BM25</strong></td></tr>
+      <tr><td><strong>检索后过滤权限</strong></td><td>悄悄吃掉 27pp 召回</td><td><strong>ACL 进索引</strong></td></tr>
+      <tr><td><strong>不做重排</strong></td><td>宽召回来直接注入 = 喂噪音</td><td><strong>重排是核心环节，不是优化项</strong></td></tr>
+      <tr><td><strong>切分粒度 = 注入粒度</strong></td><td>块被切碎，召回到也答不对</td><td><strong>检索小块 + 注入合并段</strong></td></tr>
+      <tr><td><strong>无引用也输出</strong></td><td>不可核验 = 不可信</td><td><strong>引用完整率 100%，P0</strong></td></tr>
+      <tr><td><strong>只评答案准确率</strong></td><td>定位不到是召回还是重排的锅</td><td><strong>评引用精确率</strong></td></tr>
+      <tr><td><strong>黄金集只有可答题</strong></td><td>拒答能力被训没了</td><td><strong>必须含不可答题与越权题</strong></td></tr>
+      <tr><td><strong>单看拒答率调阈值</strong></td><td>会得出相反结论</td><td><strong>幻觉率与误拒率一起看</strong></td></tr>
+      <tr><td><strong>置信度用模型自报</strong></td><td>不可靠</td><td><strong>重排分 + 分类器头</strong></td></tr>
+      <tr><td><strong>引用与事实混在一起写</strong></td><td>读者分不清哪句是编的</td><td><strong>结构化输出，分开呈现</strong></td></tr>
+      <tr><td><strong>无版本、不过期</strong></td><td>过期知识被规模化复用</td><td><strong>版本 + 生效时间 + 状态</strong></td></tr>
+      <tr><td><strong>上下文超限就截断证据</strong></td><td>引用指向不完整</td><td><strong>降级，不截断</strong></td></tr>
+      <tr><td><strong>只返回生成答案</strong></td><td>模型不可用就完全不可用</td><td><strong>降级时只给引用块</strong></td></tr>
+      <tr><td><strong>多跳不校验合并</strong></td><td>每步都对、合起来错</td><td><strong>合并一致性校验</strong></td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.4">2.6.4 高频追问、答题提纲与一页纸手册</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>高频追问 12 条覆盖减少幻觉、召回与准确率的关系、为什么不用更大上下文、权限过滤放哪层、答案可信的条件、什么时候拒答、如何平衡幻觉与误拒、怎么评估、成本、多跳、知识过期与模型不可用。答题提纲给 10 分钟版与 35 分钟版，一页纸手册按 S0 到 S5 六阶段组织。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>高频追问里第一条「如何减少幻觉」给了三层：重排收敛注入、引用精确率校验、可行性前置判断——三层的成本递减而可靠性递增，第一层还顺带省 72% 的 token。答题提纲里 35 分钟版把「召回放大的倒 U 型曲线推导」「三指标同时改善」「幻觉成本的量化」放在前 14 分钟，因为这三处最能区分背过与算过。</p>
+</div>
+
+<h4 id="sec-6.4.7" data-toc-skip>高频追问</h4>
+
+<ul>
+<li><strong>如何减少幻觉？</strong> → 三层：① <strong>重排收敛注入</strong>（最有效，且同时省 72% token）；② <strong>引用精确率校验</strong>（代码层逐句校验）；③ <strong>可行性前置判断</strong>（检索不到就不进生成）。</li>
+<li><strong>召回和准确率是矛盾的吗？</strong> → 不矛盾，但要<strong>先重排后加宽</strong>：召回宽保证不漏，重排窄保证不噪。<strong>加宽 k 只在重排已经做对之后才安全。</strong></li>
+<li><strong>为什么不直接用更大的上下文？</strong> → 更大的上下文只是把更多噪音塞进去，<strong>准确率在 k=20 之后就下降了</strong>；成本还是线性涨。<strong>上下文不是答案质量的免费午餐。</strong></li>
+<li><strong>权限过滤放哪一层？</strong> → <strong>检索层</strong>。放检索后会吃掉 27pp 召回命中率，<strong>而且不报错，只是变差</strong>。</li>
+<li><strong>如何让答案可信？</strong> → 引用完整率 100% + 引用可点开 + 引用逐句校验 + 标注知识截止时点。<strong>可信度不是靠措辞，是靠可核验。</strong></li>
+<li><strong>什么时候该拒答？</strong> → 检索后最高重排分低于阈值、越权、或歧义无法消解。<strong>拒答必须有用</strong>：说明库里没有 + 问谁 + 换什么问法。</li>
+<li><strong>如何平衡幻觉与误拒？</strong> → 按代价不对称定阈值：<strong>幻觉不可逆、误拒可恢复，所以偏向严格</strong>；且两率必须一起看。</li>
+<li><strong>怎么评估问答 Agent？</strong> → 黄金集含「可答 / 不可答 / 越权」三类；主指标<strong>引用精确率</strong> + 幻觉率 + 误拒率；<strong>recall@k 只是上游指标</strong>。</li>
+<li><strong>如何控成本？</strong> → <strong>第一刀是注入 token</strong>（占输入 73%），重排收敛是唯一量级级别的手段。</li>
+<li><strong>多跳怎么做？</strong> → 实体链接 → 分解 → 逐跳检索重排 → <strong>合并一致性校验</strong>；每跳注入预算要比单跳少。</li>
+<li><strong>知识过期怎么办？</strong> → 入库必填生效时间与 owner、检索只取生效中、答案标截止时点；<strong>冲突要摊开而不是悄悄裁决</strong>。</li>
+<li><strong>模型不可用怎么办？</strong> → <strong>只返回引用块，不生成答案</strong>——把系统从「编答案」拉回「给证据」。</li>
+</ul>
+
+<h4 id="sec-6.4.8" data-toc-skip>答题提纲与练习</h4>
+
+<p><strong>10 分钟版（自述型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–1 min</td><td>澄清：问答量、<strong>知识库规模与块大小</strong>、问题类型、多跳占比、权限模型</td></tr>
+      <tr><td>1–3 min</td><td>容量：QPS、<strong>重排对数 / 秒</strong>、token 与注入占比</td></tr>
+      <tr><td>3–5 min</td><td>架构：路由 → 召回 → <strong>重排</strong> → 上下文 → 生成 → <strong>引用校验</strong> → 拒答</td></tr>
+      <tr><td>5–7 min</td><td>幻觉与误拒、引用、权限</td></tr>
+      <tr><td>7–9 min</td><td>深挖一个点（推荐：召回宽注入窄 / 幻觉与拒答）</td></tr>
+      <tr><td>9–10 min</td><td>护栏、降级、评测</td></tr>
+  </tbody>
+</table>
+<p><strong>35 分钟版（深聊型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–5 min</td><td>澄清与七锚点：规模、<strong>知识规模</strong>、权限、时效、不可逆清单</td></tr>
+      <tr><td>5–14 min</td><td><strong>召回放大的倒 U 型曲线推导 + 重排的三指标同时改善 + 幻觉成本的量化</strong></td></tr>
+      <tr><td>14–22 min</td><td>架构与数据流：路由 / 召回 / 重排 / 上下文 / 生成 / 引用 / 校验 / 拒答 / 反馈</td></tr>
+      <tr><td>22–26 min</td><td>数据模型与 API：知识块四件套、版本、ACL、引用关系、反馈</td></tr>
+      <tr><td>26–34 min</td><td>深挖三个点（各约 3 min）：① 召回宽注入窄与重排诊断顺序 ② 引用与幻觉/误拒的双面权衡 ③ 权限过滤位置与知识时效</td></tr>
+      <tr><td>34–35 min</td><td>演进阈值、护栏清单、评测闭环</td></tr>
+  </tbody>
+</table>
+<p><strong>练习</strong>：</p>
+<ol>
+<li>设计日 200 万问答的知识库问答 Agent，给出分层架构与容量（<strong>必须含重排对数/秒与注入 token 占比</strong>）。</li>
+<li>设计一个 500 万块知识库的切分方案：块大小、重叠、标题路径、表格处理，并说明<strong>检索粒度与注入粒度为何要解耦</strong>。</li>
+<li>给定「召回 top-10 命中率 86%、准确率 85%、幻觉率 5%」和「召回 top-50 命中率 97%」，设计一套「召回不够准」的排查顺序。</li>
+<li>设计引用契约：粒度、可点开、逐句校验、完整率 100% 的落地方式。</li>
+<li>设计幻觉率与误拒率的联合监控与阈值策略，说明<strong>为什么两类错误的代价不对称</strong>。</li>
+<li>设计「权限过滤放在检索前 / 后」的两种实现，并量化召回命中率的差异。</li>
+<li>设计知识版本与时效方案，包含冲突裁决与「过期知识复用放大」的治理。</li>
+<li>设计一个多跳问题的分解与<strong>合并一致性校验</strong>流程。</li>
+<li>计算：日 200 万问答、注入 top-10（4,000 token）、单跳 85% / 多跳 15%、平均 1.2 次调用——每天多少 token、多少钱？若不重排直接注入 top-50 呢？<strong>哪个更贵、省下来的钱和幻觉成本比如何？</strong></li>
+</ol>
+
+<h4 id="sec-6.4.9" data-toc-skip>一页纸作战手册</h4>
+
+<p><strong>S0 定题</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>落七锚点</td><td>唯一事实源是什么？哪几个决策不可逆？</td><td>7 项写下来，事实源 = 知识块 + 版本 + 引用关系 + 反馈记录</td></tr>
+      <tr><td>定优先级</td><td>幻觉、拒答、成本冲突时保谁？</td><td><strong>证据正确 &gt; 依据完整 &gt; 知识有效 &gt; 权限正确 &gt; 体验 &gt; 成本</strong></td></tr>
+      <tr><td><strong>量知识规模</strong></td><td><strong>多少块？块多大？</strong></td><td>各给一个带来源的数值；<strong>它决定检索要多准</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S1 建模</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>分层</td><td>每层只做什么、明确不做什么？</td><td>路由 / 召回 / 重排 / 上下文 / 生成 / 校验 / 拒答 / 反馈八层职责表</td></tr>
+      <tr><td>定切分</td><td>块怎么切？</td><td>标题路径 + 表头携带 + 重叠 10–20%；<strong>检索 200 token、注入合并 600</strong></td></tr>
+      <tr><td>定事实源</td><td>哪些不可重建？</td><td>知识块、版本、引用关系、反馈是事实源；索引与缓存是投影</td></tr>
+  </tbody>
+</table>
+<p><strong>S2 决策</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>选召回路</td><td>召回怎么来？</td><td><strong>向量 + BM25 必做</strong>；历史问答对强烈建议</td></tr>
+      <tr><td><strong>定 k</strong></td><td>注入几条？</td><td><strong>由重排质量倒推</strong>；先按倒 U 型曲线定拐点</td></tr>
+      <tr><td>选拒答阈值</td><td>什么情况不答？</td><td><strong>按幻觉 / 误拒代价不对称定，偏向严格</strong></td></tr>
+      <tr><td>选权限位置</td><td>ACL 在哪层过滤？</td><td><strong>检索层（进索引）</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S3 论证</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>算召回</td><td>证据够不够？</td><td>top-10 命中率 ≥ 86%；<strong>先查重排再查召回路</strong></td></tr>
+      <tr><td>算并发</td><td>扛得住吗？</td><td>峰值 116 QPS、<strong>重排 5,800 对/秒</strong>、LLM 139 QPS</td></tr>
+      <tr><td>算注入</td><td>上下文花在哪？</td><td>注入占输入 <strong>73%</strong>；重排收敛可省 <strong>72%</strong></td></tr>
+      <tr><td>算质量</td><td>怎么知道可信？</td><td>幻觉率 ≤ 5%、误拒率 ≤ 8%、引用完整率 100%</td></tr>
+  </tbody>
+</table>
+<p><strong>S4 兜底</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>写延迟预算</td><td>每一步各多少？</td><td>9 段预算 + 硬限；<strong>校验占 150ms，不可被挤掉</strong></td></tr>
+      <tr><td>写降级矩阵</td><td>每个依赖挂了用户看到什么？</td><td>9 类依赖各有行为；<strong>降级时同步收紧注入</strong></td></tr>
+      <tr><td>定护栏</td><td>安全排第几？</td><td>权限 / ACL / 引用完整 / 引用精确 / 幻觉上限 / 注入预算 / 可行性预判 / 多路召回 / 重排 / 缓存分桶 <strong>十项 P0</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S5 闭环</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>定演进阈值</td><td>涨 10 倍哪里先坏？</td><td><strong>重排算力 → 检索 → LLM 配额</strong>（&lt;a href="#sec-5.3.2"&gt;扩容 10 倍，哪里先坏&lt;/a&gt;）</td></tr>
+      <tr><td>定指标</td><td>技术好了业务就好了吗？</td><td>准确率必须与<strong>幻觉率、误拒率、答案质疑率</strong>合看</td></tr>
+      <tr><td>建复盘闭环</td><td>行动项有负责人吗？</td><td>行动项 → 负责人 → 验证结果</td></tr>
+  </tbody>
+</table>
+<hr>
+
+<h2 id="seg-7">2.7 总结</h2><div class="oc-part-lead"><strong>总结</strong>把这一章收成一页纸：结论、边界，以及下一章要解决什么。</div>
+
+<h3 id="sec-7.1">2.7.1 一句话总结</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>问答 Agent 的可信度不来自更强的模型，而来自一条干净的检索链路：召回宽、注入窄、引用可点开、答不上来敢拒答。再加一条成本真相——幻觉的代价远高于 token 的代价。</p>
+</div>
+
+<h3 id="sec-7.2">2.7.2 本章结论</h3><ol class="oc-points">
+  <li><strong>召回宽、注入窄是第一原则。</strong>召回保证不漏，重排保证不噪。k 从 10 加到 50，命中率涨 11pp 而准确率反降 3pp、幻觉率涨 13pp——多召回的每一条都在为噪音做贡献。</li>
+  <li><strong>「答不上来」是一等公民。</strong>可行性判断要前移到检索之后、生成之前。拒答必须有用：库里没有、问谁、换什么问法、相近制度是什么，一句「无法回答」是最差的拒答。</li>
+  <li><strong>引用完整率是 100%，不是 95%。</strong>引用是非线性的信任指标：100% 与 95% 的差别不是「差 5% 的答案」，而是用户还愿不愿意点开引用。一条无依据的引用会污染整个答案。</li>
+  <li><strong>ACL 必须进索引。</strong>检索后过滤同样安全，却会悄悄吃掉 27pp 的召回命中率。这不只是安全选择，也是质量选择——放错位置的团队会跑去调 top-k 换模型，治错了地方。</li>
+  <li><strong>幻觉的代价大于 token 的代价。</strong>18% 幻觉率若 1% 被采信并纠正，每天 18 万元；而重排这一个动作同时省 72% 的钱、提 3pp 准确率、降 13pp 幻觉率。</li>
+</ol>
+
+<h3 id="sec-7.3">2.7.3 下一章</h3><p>下一章 <strong>第 3 章：营销 AI Agent——从自然语言目标到可归因的触达</strong>：当 Agent 不只读数据，还要对真实用户做动作，防线就要从「不越权」升级成「不打扰、可归因、可撤销」。</p>
+
+<h3 id="sec-7.4">2.7.4 相关阅读</h3><ul>
+  <li><a href="/2026/11/26/agent-design-01-text2sql/"><strong>第 1 篇 · 问数 Agent</strong></a> — 与本章同构的兄弟：读结构化数仓，防线是口径、权限与结果集完整性。</li>
+  <li><a href="/2026/06/10/observable-security-03-01-mitre-attack/"><strong>智能安全运营可观测性 · 参考 03</strong></a> — ATT&CK 框架与情报体系：安全域的知识组织方式，与本章的知识库治理同源。</li>
+  <li><a href="/2026/08/07/ai-agent-engineering/"><strong>AI 编程工程实践 02</strong></a> — 从更上层看 Agent 平台：上下文与工具执行如何被组织成一次可复用的交付。</li>
+</ul>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">2.1 问答 Agent 是什么</a><a class="reading-toc-link level-3" href="#sec-1.1">2.1.1 定义与能力层次</a><a class="reading-toc-link level-3" href="#sec-1.2">2.1.2 用户、场景与相近系统</a><a class="reading-toc-link level-3" href="#sec-1.3">2.1.3 边界、指标与不可逆决策</a><a class="reading-toc-link level-2" href="#seg-2">2.2 核心矛盾与设计原则</a><a class="reading-toc-link level-3" href="#sec-2.1">2.2.1 本质与六条章级原则</a><a class="reading-toc-link level-3" href="#sec-2.2">2.2.2 三个不等式与三个放大器</a><a class="reading-toc-link level-3" href="#sec-2.3">2.2.3 四层正确性与八组关键矛盾</a><a class="reading-toc-link level-3" href="#sec-2.4">2.2.4 失败模式、信任分级与威胁模型</a><a class="reading-toc-link level-3" href="#sec-2.5">2.2.5 成本结构</a><a class="reading-toc-link level-2" href="#seg-3">2.3 理论与方法论</a><a class="reading-toc-link level-3" href="#sec-3.1">2.3.1 S0 前置锚点与 4S 收敛顺序</a><a class="reading-toc-link level-3" href="#sec-3.2">2.3.2 场景、规模与服务边界</a><a class="reading-toc-link level-3" href="#sec-3.3">2.3.3 切分、召回与重排</a><a class="reading-toc-link level-3" href="#sec-3.4">2.3.4 上下文、生成与拒答</a><a class="reading-toc-link level-3" href="#sec-3.5">2.3.5 多跳、权限与知识时效</a><a class="reading-toc-link level-3" href="#sec-3.6">2.3.6 评测、成本与容量</a><a class="reading-toc-link level-2" href="#seg-4">2.4 工程落地与规则护栏</a><a class="reading-toc-link level-3" href="#sec-4.1">2.4.1 端到端链路与意图路由</a><a class="reading-toc-link level-3" href="#sec-4.2">2.4.2 检索、重排与上下文护栏</a><a class="reading-toc-link level-3" href="#sec-4.3">2.4.3 引用、拒答与权限护栏</a><a class="reading-toc-link level-3" href="#sec-4.4">2.4.4 降级、延迟预算与观测</a><a class="reading-toc-link level-3" href="#sec-4.5">2.4.5 护栏清单与上线检查</a><a class="reading-toc-link level-2" href="#seg-5">2.5 端到端案例</a><a class="reading-toc-link level-3" href="#sec-5.1">2.5.1 案例：企业制度问答</a><a class="reading-toc-link level-3" href="#sec-5.2">2.5.2 四个变体：多跳、隔离、版本与取舍</a><a class="reading-toc-link level-3" href="#sec-5.3">2.5.3 故障兜底、扩容与取舍</a><a class="reading-toc-link level-2" href="#seg-6">2.6 演进、指标与误区</a><a class="reading-toc-link level-3" href="#sec-6.1">2.6.1 演进路线与指标体系</a><a class="reading-toc-link level-3" href="#sec-6.2">2.6.2 评测回归与成本优化</a><a class="reading-toc-link level-3" href="#sec-6.3">2.6.3 产品对比与常见误区</a><a class="reading-toc-link level-3" href="#sec-6.4">2.6.4 高频追问、答题提纲与一页纸手册</a><a class="reading-toc-link level-2" href="#seg-7">2.7 总结</a><a class="reading-toc-link level-3" href="#sec-7.1">2.7.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-7.2">2.7.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-7.3">2.7.3 下一章</a><a class="reading-toc-link level-3" href="#sec-7.4">2.7.4 相关阅读</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/26/agent-design-01-text2sql/"><small>← 上一篇</small><span>问数 Agent——从模糊提问到可信结论</span></a></div><div></div><a class="article-series-return" href="/categories/agent-design/">返回AI Agent 系统设计 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=13" defer></script></body>
+</html>
