@@ -285,7 +285,7 @@
 <p>它与问数 Agent 是<strong>同构的兄弟</strong>：两者都是「读 → 推理 → 答」，差别只在数据源——问数读的是<strong>结构化数仓</strong>，问答读的是<strong>非结构化知识库</strong>。这个同构性是本章的骨架：</p>
 <table>
   <thead>
-    <tr><th scope="col">维度</th><th scope="col">问数 Agent（&lt;a href="/2026/11/26/agent-design-01-text2sql/"&gt;第 1 篇&lt;/a&gt;）</th><th scope="col">问答 Agent（本章）</th></tr>
+    <tr><th scope="col">维度</th><th scope="col">问数 Agent（<a href="/2026/11/26/agent-design-01-text2sql/">第 1 篇</a>）</th><th scope="col">问答 Agent（本章）</th></tr>
   </thead>
   <tbody>
       <tr><td>事实源</td><td>语义层 + 数仓</td><td>切分后的知识块 + 版本</td></tr>
@@ -434,7 +434,7 @@
 <p><strong>六条章级原则</strong>（贯穿全章，冲突时以这六条为准）：</p>
 <ol>
 <li><strong>召回宽、注入窄</strong>——召回保证不漏（宽），重排后注入保证不噪（窄）。<strong>这是本章的第一原则</strong>：宽召回 + 窄注入同时成立，两个指标才同时改善。</li>
-<li><strong>没有依据就不作答</strong>——检索不到就明说「知识库里没有」，<strong>宁可拒答，不可流畅地编</strong>。模型的生成能力远强于它的判别能力（&lt;a href="#sec-3.3.4"&gt;重排&lt;/a&gt;）。</li>
+<li><strong>没有依据就不作答</strong>——检索不到就明说「知识库里没有」，<strong>宁可拒答，不可流畅地编</strong>。模型的生成能力远强于它的判别能力（<a href="#sec-3.3.10">重排</a>）。</li>
 <li><strong>答案必须带引用，且引用可点开原文</strong>——不可核验的答案不可信。<strong>每个实质性论断都要有引用</strong>，这是 P0 而非加分项。</li>
 <li><strong>知识有时效，答案要带截止时点</strong>——过期知识不静默使用；答案要说明「基于哪一版知识、截至什么时候」。</li>
 <li><strong>权限在检索层过滤，不在生成层声明</strong>——模型看不到的文档，就不可能被写进答案。<strong>「请不要透露内部制度」是提示，不是防线。</strong></li>
@@ -459,9 +459,9 @@
     <tr><th scope="col">放大器</th><th scope="col">说明</th><th scope="col">后果</th><th scope="col">量化</th></tr>
   </thead>
   <tbody>
-      <tr><td><strong>召回放大（宽度 vs 精度）</strong></td><td>召回集变宽，命中更多、噪声更多</td><td>幻觉率上升，上下文暴涨</td><td>k 从 10 → 50：命中率 +11pp，<strong>准确率反降 3pp，幻觉率涨 13pp</strong>，上下文 +168%（&lt;a href="#sec-3.3.4"&gt;重排&lt;/a&gt;）</td></tr>
-      <tr><td><strong>幻觉放大</strong></td><td>模型的生成能力远强于判别能力</td><td>错误答案比错误检索更贵</td><td>18% 幻觉率 → 若 1% 被采信并纠正，<strong>¥18 万/天，比省下的 token 还多</strong>（&lt;a href="#sec-3.4.3"&gt;拒答、澄清与置信度&lt;/a&gt;）</td></tr>
-      <tr><td><strong>知识复用放大</strong></td><td>一条过期条款被命中一次，就被复用成千上万次</td><td>错误知识被规模化传播</td><td>过期块贡献 3% 的问答 → <strong>6 万次/天基于过期知识作答</strong>（&lt;a href="#sec-3.5.3"&gt;知识时效与版本&lt;/a&gt;）</td></tr>
+      <tr><td><strong>召回放大（宽度 vs 精度）</strong></td><td>召回集变宽，命中更多、噪声更多</td><td>幻觉率上升，上下文暴涨</td><td>k 从 10 → 50：命中率 +11pp，<strong>准确率反降 3pp，幻觉率涨 13pp</strong>，上下文 +168%（<a href="#sec-3.3.10">重排</a>）</td></tr>
+      <tr><td><strong>幻觉放大</strong></td><td>模型的生成能力远强于判别能力</td><td>错误答案比错误检索更贵</td><td>18% 幻觉率 → 若 1% 被采信并纠正，<strong>¥18 万/天，比省下的 token 还多</strong>（<a href="#sec-3.4.13">拒答、澄清与置信度</a>）</td></tr>
+      <tr><td><strong>知识复用放大</strong></td><td>一条过期条款被命中一次，就被复用成千上万次</td><td>错误知识被规模化传播</td><td>过期块贡献 3% 的问答 → <strong>6 万次/天基于过期知识作答</strong>（<a href="#sec-3.5.16">知识时效与版本</a>）</td></tr>
   </tbody>
 </table>
 <blockquote>
@@ -485,7 +485,7 @@
       <tr><td><strong>证据正确</strong></td><td>检索到的块确实支持答案</td><td>多路召回 + 重排 + 引用精确率</td><td>只用向量检索，术语/编号全miss</td></tr>
       <tr><td><strong>依据完整</strong></td><td>每个论断都有依据</td><td>引用完整率 100% + 结构化输出</td><td>答案里混着无依据的「常识」</td></tr>
       <tr><td><strong>知识有效</strong></td><td>依据是当前生效的版本</td><td>版本 / 生效时间过滤</td><td>库里同时存在新旧两版</td></tr>
-      <tr><td><strong>权限正确</strong></td><td>不越权、不泄露</td><td><strong>ACL 进索引 + 检索层过滤</strong></td><td>检索后过滤，悄悄吃掉召回预算（&lt;a href="#sec-3.5.2"&gt;权限与租户隔离&lt;/a&gt;）</td></tr>
+      <tr><td><strong>权限正确</strong></td><td>不越权、不泄露</td><td><strong>ACL 进索引 + 检索层过滤</strong></td><td>检索后过滤，悄悄吃掉召回预算（<a href="#sec-3.5.15">权限与租户隔离</a>）</td></tr>
   </tbody>
 </table>
 <p><strong>八组关键矛盾</strong>：</p>
@@ -606,7 +606,7 @@
       <tr><td>2</td><td><strong>规模量级</strong></td><td>日问答 200 万、峰值 116 QPS、<strong>知识库 500 万块（400 token/块）</strong>、多跳占比 15%</td><td>决定索引规模、注入预算与重排算力</td></tr>
       <tr><td>3</td><td><strong>质量属性优先级</strong></td><td>证据正确 &gt; 依据完整 &gt; 知识有效 &gt; 权限正确 &gt; 体验 &gt; 成本</td><td>决定降级顺序与 fail-closed 边界</td></tr>
       <tr><td>4</td><td><strong>硬约束</strong></td><td>越权召回 0；引用完整率 100%；不输出无依据论断；PII 最小化；<strong>审计覆盖率 100%</strong></td><td>定义可行域</td></tr>
-      <tr><td>5</td><td><strong>不可逆决策清单</strong></td><td>见 &lt;a href="#sec-1.3"&gt;边界、指标与不可逆决策&lt;/a&gt; 的本章七项</td><td>决策流程：多评审 + 原型 + 迁移方案</td></tr>
+      <tr><td>5</td><td><strong>不可逆决策清单</strong></td><td>见 <a href="#sec-1.3">边界、指标与不可逆决策</a> 的本章七项</td><td>决策流程：多评审 + 原型 + 迁移方案</td></tr>
       <tr><td>6</td><td><strong>核心路径与事实源</strong></td><td>核心路径 = 提问 → 路由 → 检索 → 重排 → 上下文 → 生成 → 引用 → 置信度 → 拒答 → 反馈；事实源 = <strong>知识块 + 版本 + 引用关系 + 反馈记录</strong></td><td>决定缓存与对账对象；向量索引与检索缓存全是投影</td></tr>
       <tr><td>7</td><td><strong>竞争与协作边界</strong></td><td>文档系统、权限系统、企业搜索在外部；切分、召回、重排、引用、拒答、评测自建</td><td>决定服务边界与团队成本</td></tr>
   </tbody>
@@ -826,7 +826,7 @@
 
 <h4 id="sec-3.3.9" data-toc-skip>检索：多路召回</h4>
 
-<p><strong>本节是多路召回的权威版</strong>，&lt;a href="#sec-4.2.1"&gt;检索与重排护栏&lt;/a&gt;只引用。</p>
+<p><strong>本节是多路召回的权威版</strong>，<a href="#sec-4.2.3">检索与重排护栏</a>只引用。</p>
 <p><strong>五路召回</strong>：</p>
 <table>
   <thead>
@@ -869,13 +869,13 @@
   </thead>
   <tbody>
       <tr><td><strong>召回要宽</strong></td><td>这一层的唯一目标是「不漏」，精度交给重排</td></tr>
-      <tr><td><strong>召回必须带 ACL 过滤</strong></td><td>过滤放在检索之后会悄悄吃掉召回预算（&lt;a href="#sec-3.5.2"&gt;权限与租户隔离&lt;/a&gt;）</td></tr>
+      <tr><td><strong>召回必须带 ACL 过滤</strong></td><td>过滤放在检索之后会悄悄吃掉召回预算（<a href="#sec-3.5.15">权限与租户隔离</a>）</td></tr>
   </tbody>
 </table>
 
 <h4 id="sec-3.3.10" data-toc-skip>重排：把宽召回收敛成窄注入</h4>
 
-<p><strong>本节是重排的权威版</strong>，&lt;a href="#sec-4.2.1"&gt;检索与重排护栏&lt;/a&gt;只引用。</p>
+<p><strong>本节是重排的权威版</strong>，<a href="#sec-4.2.3">检索与重排护栏</a>只引用。</p>
 <p><strong>为什么必须有重排</strong>：召回是<strong>双塔</strong>结构——query 和 chunk 分别编码再算相似度，快但粗；重排是<strong>交叉编码</strong>结构——query 与 chunk 一起进模型，能判断「这个块是否真的回答了这个问题」，准但慢。<strong>双塔负责不漏，交叉编码负责不噪。</strong></p>
 <p><strong>召回量的倒 U 型曲线</strong>（黄金集回放，注入块数 k 与质量）：</p>
 <table>
@@ -1027,7 +1027,7 @@
 
 <h4 id="sec-3.4.13" data-toc-skip>拒答、澄清与置信度</h4>
 
-<p><strong>本节是拒答决策的权威版</strong>，&lt;a href="#sec-4.3.1"&gt;引用与拒答护栏&lt;/a&gt;只引用。</p>
+<p><strong>本节是拒答决策的权威版</strong>，<a href="#sec-4.3.5">引用与拒答护栏</a>只引用。</p>
 <p><strong>拒答与澄清的三种类型</strong>：</p>
 <table>
   <thead>
@@ -1066,7 +1066,7 @@
   → 宽松（低阈值）：幻觉 14% + 误拒  3% → 综合可用率 86%
   → 严格与宽松的综合可用率接近，但信任代价完全不同
   → 幻觉不可逆，误拒可恢复 → 阈值必须偏向严格</code></pre>
-<p><strong>幻觉的成本量化</strong>（回到&lt;a href="#sec-2.2"&gt;三个不等式与三个放大器&lt;/a&gt;）：</p>
+<p><strong>幻觉的成本量化</strong>（回到<a href="#sec-2.2">三个不等式与三个放大器</a>）：</p>
 <pre><code>日问答 200 万 × 幻觉率 18% = 36 万条无依据答案 / 天
 假设 1% 被用户采信并据此行动，需要人工纠正（每次 ¥50）
 → 1,800 次 × ¥50 = ¥18 万 / 天 ≈ ¥540 万 / 月
@@ -1246,7 +1246,7 @@
 
 <h4 id="sec-3.6.18" data-toc-skip>容量与成本估算</h4>
 
-<p><strong>本节是容量口径的权威版</strong>，&lt;a href="#seg-5"&gt;第 5 段&lt;/a&gt;与&lt;a href="#seg-6"&gt;第 6 段&lt;/a&gt;只引用。</p>
+<p><strong>本节是容量口径的权威版</strong>，<a href="#seg-5">第 5 段</a>与<a href="#seg-6">第 6 段</a>只引用。</p>
 <p><strong>假设</strong>：日问答 200 万，峰值系数 5；单跳 85% / 多跳 15%，平均 1.2 次 LLM 调用；上下文输入 5,500 token（指令 1,000 + 注入 4,000 + 历史 500），输出 600 token；注入 = 重排后 top-10 × 400 token；模型价格输入 ¥2 / 百万、输出 ¥8 / 百万。</p>
 <p><strong>一、流量</strong></p>
 <table>
@@ -1469,7 +1469,7 @@
 
 <h4 id="sec-4.4.7" data-toc-skip>降级矩阵（Fail-Open / Fail-Closed）</h4>
 
-<p><strong>本节是降级的权威版</strong>，&lt;a href="#sec-5.3.1"&gt;故障与兜底&lt;/a&gt;只引用。</p>
+<p><strong>本节是降级的权威版</strong>，<a href="#sec-5.3.6">故障与兜底</a>只引用。</p>
 <p>判据：<strong>依赖失效时，失效的后果是「答不出来」还是「答出错 / 答越权」？</strong></p>
 <table>
   <thead>
@@ -1726,7 +1726,7 @@
 <h4 id="sec-5.2.5" data-toc-skip>变体 D：召回宽度与重排的取舍</h4>
 
 <p><strong>场景</strong>：团队反馈「召回不准，命中只有 78%」，提议<strong>把注入条数从 top-10 加到 top-50</strong>。</p>
-<p><strong>先查表</strong>（&lt;a href="#sec-3.3.4"&gt;重排&lt;/a&gt;）：</p>
+<p><strong>先查表</strong>（<a href="#sec-3.3.10">重排</a>）：</p>
 <table>
   <thead>
     <tr><th scope="col">方案</th><th scope="col">证据命中率</th><th scope="col">准确率</th><th scope="col">幻觉率</th><th scope="col">上下文</th></tr>
@@ -1772,7 +1772,7 @@
 
 <h4 id="sec-5.3.6" data-toc-skip>故障与兜底</h4>
 
-<p>降级矩阵以&lt;a href="#sec-4.4.1"&gt;降级矩阵&lt;/a&gt;为准，本例补充三条：</p>
+<p>降级矩阵以<a href="#sec-4.4.7">降级矩阵</a>为准，本例补充三条：</p>
 <table>
   <thead>
     <tr><th scope="col">故障</th><th scope="col">影响</th><th scope="col">兜底</th></tr>
@@ -1789,7 +1789,7 @@
 
 <h4 id="sec-5.3.7" data-toc-skip>扩容 10 倍，哪里先坏？</h4>
 
-<p>以&lt;a href="#sec-3.6.2"&gt;容量与成本估算&lt;/a&gt;的基准扩容 10 倍（日问答 2,000 万、峰值 1,160 QPS、LLM 调用 1,390 QPS、重排 58,000 对 / 秒、日 token 1,364 亿、日成本 ¥359,200、问答日志 160 GB / 天）：</p>
+<p>以<a href="#sec-3.6.18">容量与成本估算</a>的基准扩容 10 倍（日问答 2,000 万、峰值 1,160 QPS、LLM 调用 1,390 QPS、重排 58,000 对 / 秒、日 token 1,364 亿、日成本 ¥359,200、问答日志 160 GB / 天）：</p>
 <table>
   <thead>
     <tr><th scope="col">顺序</th><th scope="col">先坏的点</th><th scope="col">现象</th><th scope="col">触发指标</th><th scope="col">对策</th></tr>
@@ -2097,7 +2097,7 @@
     <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
   </thead>
   <tbody>
-      <tr><td>定演进阈值</td><td>涨 10 倍哪里先坏？</td><td><strong>重排算力 → 检索 → LLM 配额</strong>（&lt;a href="#sec-5.3.2"&gt;扩容 10 倍，哪里先坏&lt;/a&gt;）</td></tr>
+      <tr><td>定演进阈值</td><td>涨 10 倍哪里先坏？</td><td><strong>重排算力 → 检索 → LLM 配额</strong>（<a href="#sec-5.3.7">扩容 10 倍，哪里先坏</a>）</td></tr>
       <tr><td>定指标</td><td>技术好了业务就好了吗？</td><td>准确率必须与<strong>幻觉率、误拒率、答案质疑率</strong>合看</td></tr>
       <tr><td>建复盘闭环</td><td>行动项有负责人吗？</td><td>行动项 → 负责人 → 验证结果</td></tr>
   </tbody>

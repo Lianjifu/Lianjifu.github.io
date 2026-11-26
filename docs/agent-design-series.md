@@ -1,11 +1,11 @@
 # AI Agent 系统设计 · 系列文档
 
-> 状态：持续维护 · 已发布 02 篇（01 问数、02 问答），规划 10 篇
+> 状态：持续维护 · 已发布 11 篇（01 问数、02 问答、03 客服、04 营销、05 电商、06 文旅、07 运维、08 安全运营、09 合同审查、10 办公写作、11 供应链）
 > 专题页：`/categories/agent-design/`
 
 ## 系列定位
 
-本系列拆解十类 AI Agent 场景的**系统设计**：问数、问答、营销、电商、供应链、文旅、系统运维、安全运营、合同审查。
+本系列拆解十一类 AI Agent 场景的**系统设计**：问数、问答、客服、营销、电商、文旅、系统运维、安全运营、合同审查、办公写作、供应链。
 
 它回答的不是「Agent 能做什么」，而是「**这一类 Agent 怎么设计成一条能上线的链路**」：核心矛盾是什么、方法论落在哪几层、护栏放在执行层的哪一环、容量与成本怎么算、出了事怎么降级。
 
@@ -45,7 +45,7 @@ h2 章.段 总结
 ```
 
 - 层级：h2 段 → h3 小节 → h4 子小节。编号只到 h3（`1.3.6`），h4 不带编号。
-- 侧栏目录只收 h2 与 h3：段为 level-2，小节为 level-3。链接数量必须与 `docs/article-manifest.json` 中该篇的 `headings` 计数一致（01 篇 39 条、02 篇 37 条）。
+- 侧栏目录只收 h2 与 h3：段为 level-2，小节为 level-3。链接数量必须与 `docs/article-manifest.json` 中该篇的 `headings` 计数一致（01 篇 39 条、02 篇 37 条，其余各篇 37–41 条）。
 - 每个小节恰好一个思考笔记，位置固定在小节开头：先本章要点，再思考笔记，再正文。
 
 ## 源稿与转换
@@ -86,17 +86,55 @@ h2 章.段 总结
 - 目录收录全部 h2 与 h3，链接数量必须与 `docs/article-manifest.json` 中该篇的 `headings` 计数一致；h4 标 `data-toc-skip`。
 - 改完正文后运行 `node scripts/update-manifest.cjs --write` 更新基准，再跑 `node scripts/verify-articles.cjs`。
 
+## 生成流水线
+
+十一篇都由 `scripts/agent-design/` 里的生成器产出，不手工写 HTML：
+
+| 文件 | 作用 |
+| --- | --- |
+| `docs/agent-design-source/<源章>.md` | 冻结的源稿快照（总纲对应章），带 sha1 |
+| `scripts/agent-design/series.cjs` | 专题总表：博客篇号 ↔ 总纲章号 ↔ 标题 ↔ URL |
+| `scripts/agent-design/plan-<篇号>.cjs` | 手写内容：导语、引导思考表、全景表、路线图、每段段标、每小节的要点与思考笔记、结尾四小节 |
+| `scripts/agent-design/fixups-<源章号>.cjs` | 源稿编号与跨章引用的改写规则 |
+| `scripts/agent-design/md.cjs` | Markdown → HTML（表格、代码块、引用、列表、行内 HTML） |
+| `scripts/agent-design/build.cjs` | 生成整页 |
+| `scripts/agent-design/check.cjs` | 结构自检：目录条数、面板数量、残留编号 |
+| `scripts/agent-design/audit-links.cjs` | 锚点体检：正文里的 `#…` 链接是否都落到真实 id 上 |
+
+```bash
+node scripts/agent-design/build.cjs 03      # 生成
+node scripts/agent-design/check.cjs 03       # 结构自检
+node scripts/agent-design/audit-links.cjs 03 # 锚点体检
+```
+
+规范细节见 `scripts/agent-design/README.md`，其中「锚点 id 怎么算」一节是本系列最容易踩的坑：
+**标题上印的「章.段.小节」不是锚点 id**，锚点是不含章号的段内局部编号，h4 的第三段取的是
+**源稿编号的最后一段**而非段内序号。手算必错，一律用 `audit-links.cjs` 换算。
+
 ## 新增一篇要动的位置
 
-1. 新建 `2026/MM/DD/<slug>/index.html` —— 完整外壳：head meta/og/canonical、四个 CSS、两个 JS、breadcrumb、`.post-title`、`.post-body.agent-design-body`、`.article-toc-aside` 侧栏目录、`.article-pager` 上下篇、`.article-series-return`。
-2. 正文 Markdown → HTML：表格、代码块、引用、列表全部转义；行内代码与粗体要正确处理。
-3. `docs/article-manifest.json` 加条目 → `node scripts/update-manifest.cjs --write`。
-4. `search.xml` 加 `<url>`，`atom.xml` 加 `<entry>`。
-5. `archives/index.html` 加一行；`categories/agent-design/index.html` 加条目。
-6. 首页 `index.html` 的 `series-count` 改篇数；`archives` 的 `reading-stats` 改篇数。
+1. 冻结源稿到 `docs/agent-design-source/`，记下 sha1。
+2. 在 `scripts/agent-design/series.cjs` 登记篇号、标题、slug、源章。
+3. 写 `scripts/agent-design/plan-<篇号>.cjs`（手写内容）与 `scripts/agent-design/fixups-<源章号>.cjs`（编号改写规则）。
+4. `node scripts/agent-design/build.cjs <篇号>` 生成 `2026/11/26/agent-design-<篇号>-<slug>/index.html`。
+5. `check.cjs` + `audit-links.cjs` 全绿，再浏览器看一眼 1440 / 390。
+6. 全站接线（由主会话统一做）：`categories/agent-design/index.html`、`archives/index.html`、首页篇数、`search.xml`、`atom.xml`、`docs/article-manifest.json`。
+7. `node scripts/update-manifest.cjs --write` 更新正文基准，再跑 `node scripts/verify-articles.cjs` 与浏览器回归。
 
-## 待补的八篇
+## 十一篇的对应关系
 
-按难度从低到高：**客服**（22）· **营销**（25）· **电商**（26）· **供应链**（27）· **文旅**（28）· **系统运维**（29）· **安全运营**（30）· **合同审查**（31）。
+| 博客篇号 | 标题 | 总纲章号 |
+| --- | --- | --- |
+| 01 | 问数 Agent——从模糊提问到可信结论 | 23 |
+| 02 | 问答 Agent——从知识库到可核验答案 | 24 |
+| 03 | 客服 Agent——从答疑到受控代办 | 22 |
+| 04 | 营销 Agent——从自然语言目标到可归因的触达 | 25 |
+| 05 | 电商 Agent——导购、交易与售后的受控编排 | 26 |
+| 06 | 文旅 Agent——行程、资源与动态重排 | 28 |
+| 07 | 运维 Agent——从告警风暴到受控止血 | 29 |
+| 08 | 安全运营 Agent——跨源取证与最小遏制 | 30 |
+| 09 | 合同审查 Agent——逐条可判定的审查结论 | 31 |
+| 10 | 办公写作 Agent——文档、PPT 与周报的生成 | 32 |
+| 11 | 供应链 Agent——预测、补货与履约的约束求解 | 27 |
 
-源稿里 26、29、30 三篇尚未按《章节重构模板》改造（缺 S0 前置锚点、不可逆决策清单、两档答题节奏，跨节 `§` 引用也还没收敛），改造完再上博客才不会把待补的内容一起带进来。
+阅读顺序按博客篇号排，不按总纲章号排。跨篇引用一律用博客篇号 + 站内链接。

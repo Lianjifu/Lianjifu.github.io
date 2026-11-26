@@ -2,18 +2,18 @@
 
 ## 项目概览
 
-这是部署到 [lianjifu.cn](https://lianjifu.cn) 的个人技术博客静态输出仓库。站点由 Hexo 生成，当前页面包含 101 篇文章、5 个专题：AI 编程工程实践（5）、Claude Code 源码笔记（28）、OpenClaw 源码笔记（10）、智能安全运营可观测性（31）、智能系统运维可观测性（27）。
+这是部署到 [lianjifu.cn](https://lianjifu.cn) 的个人技术博客静态输出仓库。站点由 Hexo 生成，当前页面包含 112 篇文章、6 个专题：AI 编程工程实践（5）、Claude Code 源码笔记（28）、OpenClaw 源码笔记（10）、智能安全运营可观测性（31）、智能系统运维可观测性（27）、AI Agent 系统设计（11）。
 
 本仓库不包含 Hexo 源文和构建配置，不要在这里运行生成命令或引入应用依赖。Markdown、模板和 `_config.yml` 位于独立的 Hexo 源仓库；这里的 HTML、CSS、JavaScript 与资源是可部署产物，并包含已同步的页面定制。
 
 ## 目录结构
 
-- `index.html`：首页；`about/`：关于页；`archives/`：四专题完整目录。
-- `categories/ai-agent/`、`categories/claude-code/`、`categories/openclaw/`、`categories/observable-security/`、`categories/observable-ops/`：专题页。`categories/index.html` 当前不存在。
-- `2026/`：101 篇文章，文章清单和正文基准在 `docs/article-manifest.json`。
-- `css/`、`js/`：公共页面、专题页和文章阅读层；`css/openclaw.css` 是 OpenClaw 专题正文专用样式；`images/`、`uploads/`、`lib/`：站点资源。
+- `index.html`：首页；`about/`：关于页；`archives/`：六专题完整目录。
+- `categories/ai-agent/`、`categories/claude-code/`、`categories/openclaw/`、`categories/observable-security/`、`categories/observable-ops/`、`categories/agent-design/`：专题页。`categories/index.html` 当前不存在。
+- `2026/`：112 篇文章，文章清单和正文基准在 `docs/article-manifest.json`。
+- `css/`、`js/`：公共页面、专题页和文章阅读层；`css/openclaw.css` 是 OpenClaw 专题正文专用样式，`css/agent-design.css` 是 AI Agent 系统设计专题正文专用样式；`images/`、`uploads/`、`lib/`：站点资源。
 - `docs/`：页面及系列维护文档；`scripts/`：迁移、正文校验和浏览器检查脚本。
-- `search.xml`：101 条搜索索引；`atom.xml`：订阅文件；`CNAME`：自定义域名。
+- `search.xml`：112 条搜索索引；`atom.xml`：订阅文件；`CNAME`：自定义域名。
 
 首页与主要页面共享 `css/portal.css`、`js/portal.js`。首页的 Three.js 场景在 `js/thought-space.js` 中按需加载，并提供静态图、暂停和减少动态效果降级。文章页使用 `css/article.css`、`js/article-reader.js` 和 `js/article-diagrams.js`，支持目录高亮、移动端折叠、代码复制和 Mermaid 图示；OpenClaw 专题的图示按自然宽度绘制，容器可横向滚动。
 
@@ -78,3 +78,4 @@ npx --yes --package @playwright/cli playwright-cli -s=blog-check run-code --file
 - `docs/article-pages.md`：文章页迁移、正文校验和导航规则。
 - `docs/ai-agent-series.md`：AI 编程工程实践五篇系列的顺序与写作约束。
 - `docs/openclaw-series.md`：OpenClaw 源码笔记十篇系列的顺序、图示与写作约束。
+- `docs/agent-design-series.md`：AI Agent 系统设计十一篇系列的骨架、生成流水线与写作约束。

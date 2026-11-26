@@ -9,8 +9,8 @@
 从问题出发，写清原理、实现路径和验证方法。
 
 [![在线阅读](https://img.shields.io/badge/在线阅读-lianjifu.cn-6366f1?style=flat-square)](https://lianjifu.cn/)
-[![文章](https://img.shields.io/badge/文章-101-0ea5e9?style=flat-square)](https://lianjifu.cn/archives/)
-[![专题](https://img.shields.io/badge/专题-5-f97316?style=flat-square)](https://lianjifu.cn/archives/)
+[![文章](https://img.shields.io/badge/文章-112-0ea5e9?style=flat-square)](https://lianjifu.cn/archives/)
+[![专题](https://img.shields.io/badge/专题-6-f97316?style=flat-square)](https://lianjifu.cn/archives/)
 [![部署](https://img.shields.io/badge/部署-GitHub%20Pages-111827?style=flat-square)](https://github.com/Lianjifu/Lianjifu.github.io)
 [![静态站点](https://img.shields.io/badge/类型-Static%20Site-10b981?style=flat-square)](#-技术实现)
 
@@ -52,7 +52,7 @@
 
 ## ✦ 内容专题
 
-当前文章清单以 [docs/article-manifest.json](./docs/article-manifest.json) 为准，共 101 篇文章、5 个专题。
+当前文章清单以 [docs/article-manifest.json](./docs/article-manifest.json) 为准，共 112 篇文章、6 个专题。
 
 | 专题 | 篇数 | 主要内容 | 在线入口 |
 | --- | ---: | --- | --- |
@@ -61,6 +61,7 @@
 | OpenClaw 源码笔记 | 10 | 网关与信任边界、通道协议、模型与会话、工具与钩子、端到端链路、性能与降级 | [模块目录](https://lianjifu.cn/categories/openclaw/) |
 | 智能安全运营可观测性 | 31 | 安全感知、事件研判、攻击溯源、影响评估与 SOC 运营 | [安全运营专题](https://lianjifu.cn/categories/observable-security/) |
 | 智能系统运维可观测性 | 27 | 拓扑感知、故障诊断、根因分析、决策、自动执行与 SRE Agent | [系统运维专题](https://lianjifu.cn/categories/observable-ops/) |
+| AI Agent 系统设计 | 11 | 问数、问答、客服、营销、电商、文旅、运维、安全运营、合同审查、办公写作、供应链 | [章节目录](https://lianjifu.cn/categories/agent-design/) |
 
 完整阅读入口：
 
@@ -124,7 +125,7 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 ├── index.html                    # 首页
 ├── about/index.html              # 关于页
 ├── archives/                     # 完整目录、年度与月份归档
-├── categories/                   # 五个专题入口
+├── categories/                   # 六个专题入口
 ├── 2026/                         # 101 篇文章页面
 │   ├── 05/21/                    # Claude Code 源码笔记
 │   ├── 06/10/                    # 智能安全运营可观测性
@@ -168,7 +169,7 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 ## ✦ 已知限制
 
 - atom.xml 当前仍有历史 XML 转义问题：`ATT&CK` 未写成 `ATT&amp;CK`，严格 XML 解析会在第 528 行失败。
-- /categories/ 没有分类总览页，请使用五个专题入口或 [/archives/](https://lianjifu.cn/archives/)。
+- /categories/ 没有分类总览页，请使用六个专题入口或 [/archives/](https://lianjifu.cn/archives/)。
 - Mermaid 使用 CDN 优先、本地资源回退，并在图示接近视口时才加载；网络不可用时，页面可能保留 Mermaid 源文本。
 
 ## ✦ 作者

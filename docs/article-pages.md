@@ -1,6 +1,6 @@
 # 文章页维护
 
-103 篇文章采用首页公共导航及页脚，正文使用 `css/article.css`；OpenClaw 十篇另加 `css/openclaw.css`，AI Agent 系统设计两篇另加 `css/agent-design.css`，加载顺序在 `article.css` 之后。文章目录为静态 HTML，`js/article-reader.js` 增强高亮、移动展开、焦点和代码复制。图示及引导表折叠由 `js/article-diagrams.js` 保留原实现。文章页不再加载 NexT 启动脚本、旧侧栏或搜索。
+112 篇文章采用首页公共导航及页脚，正文使用 `css/article.css`；OpenClaw 十篇另加 `css/openclaw.css`，AI Agent 系统设计十一篇另加 `css/agent-design.css`，加载顺序在 `article.css` 之后。文章目录为静态 HTML，`js/article-reader.js` 增强高亮、移动展开、焦点和代码复制。图示及引导表折叠由 `js/article-diagrams.js` 保留原实现。文章页不再加载 NexT 启动脚本、旧侧栏或搜索。
 
 站点 Logo 与 favicon 统一使用 `images/jifu-mark.svg` 的六边形 JL 标记，避免继续显示 NexT 默认 N 图标。
 
@@ -16,7 +16,7 @@
 
 图示改为按需加载后，浏览器检查不再等待图示渲染。要确认图示本身能画出来，需滚动经过图示再统计 `.mermaid svg` 数量：滚动到底后应有 `.mermaid svg` 与 `.mermaid` 数量相等、`.mermaid-error` 为 0。
 
-上一篇和下一篇依照五个专题页中的顺序生成，首尾不跨专题。旧正文中的章节导航保留在原始内容中但隐藏，避免与统一底部导航重复。
+上一篇和下一篇依照六个专题页中的顺序生成，首尾不跨专题。旧正文中的章节导航保留在原始内容中但隐藏，避免与统一底部导航重复。
 
 ## 正文排版口径
 
@@ -25,10 +25,10 @@
 - Claude Code 源码笔记、智能安全运营可观测性、智能系统运维可观测性：由 `css/article.css` 按 `data-series` 统一覆盖。
 - AI 编程工程实践五篇：在页面内联样式里定义，01–03 用 `.post-body > p`，04、05 用 `.post-body .content-block > p`。
 - OpenClaw 十篇：在 `css/openclaw.css` 里定义。
-- AI Agent 系统设计两篇：在 `css/agent-design.css` 里定义。
+- AI Agent 系统设计十一篇：在 `css/agent-design.css` 里定义。
 
 展示性段落用类名排除，不参与缩进：文末的修订说明统一标记为 `note-meta`，AI 编程工程实践的分节摘要为 `section-summary`，OpenClaw 与 AI Agent 系统设计的导语、指标行、提示面板首行分别是 `oc-lead`、`oc-metric`、`oc-callout-lead`。
 
 改动 `css/article.css` 后要同步升文章页里的 `?v=` 参数；改正文 HTML 要重跑 `node scripts/update-manifest.cjs --write`。
 
-浏览器检查：`playwright-cli run-code --filename=scripts/verify-indent-browser.js`。全量核对 101 篇正文段落的首行缩进是否等于两个字符、嵌套段落是否未被缩进，并抽查三个专题一篇的 390/1440px 横向溢出。
+浏览器检查：`playwright-cli run-code --filename=scripts/verify-indent-browser.js`。全量核对 112 篇正文段落的首行缩进是否等于两个字符、嵌套段落是否未被缩进，并抽查三个专题一篇的 390/1440px 横向溢出。
