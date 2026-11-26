@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 11 章：供应链 Agent：供应链 Agent——预测、补货与履约的约束求解 | AI Agent 系统设计</title>
+  <meta name="description" content="供应链 Agent 把自然语言经营目标变成可预测、可补货、可履约、可处置异常的供给闭环。本章拆开牛鞭效应的 16 倍放大、安全库存与缺货成本的量级、产能挤占与三条对账线，给出 200 个补货计划挤在 8 小时窗口内的容量与成本估算。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 11 章：供应链 Agent：供应链 Agent——预测、补货与履约的约束求解">
+  <meta property="og:url" content="https://www.lianjifu.cn/2026/11/26/agent-design-11-supply-chain/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="供应链 Agent 把自然语言经营目标变成可预测、可补货、可履约、可处置异常的供给闭环。本章拆开牛鞭效应的 16 倍放大、安全库存与缺货成本的量级、产能挤占与三条对账线，给出 200 个补货计划挤在 8 小时窗口内的容量与成本估算。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-26T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-26T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="agent-design">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" content="https://www.lianjifu.cn/2026/11/26/agent-design-11-supply-chain/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="/css/2026.css?v=2">
+  <link rel="stylesheet" href="/css/portal.css?v=13">
+  <link rel="stylesheet" href="/css/article.css?v=8">
+  <link rel="stylesheet" href="/css/agent-design.css?v=1">
+  <script src="/js/portal.js?v=7" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="agent-design"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+        <path d="M8 3v4M16 3v4M3.5 10.5h17" />
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24">
+        <path
+          d="M3.5 6.6a2 2 0 0 1 2-2h3.3a2 2 0 0 1 1.5.7l1.3 1.7h6.9a2 2 0 0 1 2 2v8.4a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"
+        />
+      </symbol>
+    </svg>
+<header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/agent-design/"
+                  ><span class="series-dot slate"></span
+                  ><span
+                    ><strong>AI Agent 系统设计</strong
+                    ><small>十类 Agent 的系统设计</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/agent-design/">AI Agent 系统设计</a></div>
+      <span class="article-kicker">第 11 章：供应链 Agent</span>
+      <h1 class="post-title" itemprop="name headline">供应链 Agent——预测、补货与履约的约束求解</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-26T10:00:00+08:00">2026-11-26</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/agent-design/" itemprop="url" rel="index"><span itemprop="name">AI Agent 系统设计</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body agent-design-body" itemprop="articleBody">
+<p class="oc-lead">
+  供应链 AI Agent 接收自然语言经营目标（例如「华东仓未来 4 周要保证不断货，同时把滞销库存压降 20%，预算 200 万」），完成需求预测、缺口推演、补货与调拨建议生成、供应商评估与询价、多级履约调度、异常处置与根因归因。它和其它 Agent 最大的差别在决策周期：一次补货的后果 45 天后才兑现，错单撤不回——货已经在路上，钱已经付了，合同已经签了。难点不在模型算得多准，而在「决策周期长、物理约束硬、多方协同」这三件事叠加之后，怎么在承诺之前把错误拦住。本章围绕需求预测分层与牛鞭效应、安全库存与补货约束、多级履约与异常归因展开。
+</p>
+
+<table class="guide-card collapsed">
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr class="guide-card-header">
+      <td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>供应链的错单撤不回</li>
+          <li>客服答错一句最多伤了一个用户，营销发错一条消息还能撤回一部分</li>
+          <li>供应链一次超量下单会吃掉供应商共享产能，让另外 20 个 SKU 延期</li>
+          <li>所以它的第一性问题不是「怎么做得更准」，而是「错误能在哪一步被拦住」</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>它把一句经营目标变成一次有约束的采购承诺</li>
+          <li>「未来 4 周保证不断货、滞销压降 20%、预算 200 万」要变成预测、缺口、求解、下单</li>
+          <li>每一步都在物理边界内做取舍：MOQ、箱规、仓容、供应商产能、承运商运力</li>
+          <li>模型只能决定「更优」，约束求解层决定「能不能做」</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>它站在供应商、仓库、承运商与门店之间</li>
+          <li>每一级都有自己的目标与承诺，Agent 的动作会外溢到别人身上</li>
+          <li>事实源是库存流水、订单、主数据与供应商履约记录；预测表与建议表全是可重建的投影</li>
+          <li>最贵的量都藏在「逐级放大」里：终端 ±10% 传到原料订单变成 ±160%</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>不可撤销的承诺决定护栏的位置</li>
+          <li>下单就是现金支出、履约义务与产能挤占，三样都收不回来</li>
+          <li>十个 P0 护栏里有七个压在承诺之前</li>
+          <li>账实不符时连补货量都不给——不给数字也是一种输出</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+<div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p><strong>本章回答</strong>：一个决策周期长达 45 天、约束全靠物理世界的供应链 Agent，怎样做到在承诺之前把错误拦住</p>
+  <p><strong>核心机制</strong>：目标解析 → 分位数预测 → 缺口推演 → 约束求解 → 承诺下单 → 多级履约 → 异常处置 → 三线对账 → 审计与校准</p>
+  <p><strong>关键数字</strong>：放大 16 倍 · 安全库存 736→368 件 · 库存总成本降 39% · 产能挤占 1 个错变 20 个错 · 缺口处置 1 : 10 : 27 · 200 个计划挤在 8 小时窗口</p>
+  <p><strong>读完能做什么</strong>：设计一条补货与履约链路，并说清牛鞭系数、安全库存口径、产能分配与降级矩阵各自该怎么算</p>
+</div>
+
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>一个决策周期长达 45 天、约束全靠物理世界的供应链 Agent，怎样做到在承诺之前把错误拦住</td></tr>
+    <tr><td>核心机制</td><td>目标解析 → 分位数预测 → 缺口推演 → 约束求解 → 承诺下单 → 多级履约 → 异常处置 → 三线对账 → 审计与校准</td></tr>
+    <tr><td>关键数字</td><td>放大 16 倍 · 安全库存 736→368 件 · 库存总成本降 39% · 产能挤占 1 个错变 20 个错 · 缺口处置 1 : 10 : 27 · 200 个计划挤在 8 小时窗口</td></tr>
+    <tr><td>读完能做什么</td><td>设计一条补货与履约链路，并说清牛鞭系数、安全库存口径、产能分配与降级矩阵各自该怎么算</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 供应链 Agent 是什么</div>
+    <div>它是什么、给谁用、与 ERP / WMS / TMS 差在哪，以及哪些决策一旦做错就要停机迁移。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 核心矛盾与设计原则</div>
+    <div>逐级放大与不可撤销之间的冲突，以及六条必须坚持的原则。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 理论与方法论</div>
+    <div>从七项前置锚点一路推到容量与成本：牛鞭、安全库存、约束求解、产能分配各怎么治。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · 工程落地与规则护栏</div>
+    <div>把方法论变成链路上的一环一环：十项 P0 护栏与十类依赖的降级行为。</div>
+  </div>
+  <div class="oc-card">
+    <div>第五段 · 端到端案例</div>
+    <div>一次华东仓的断货风险与滞销压降，走完整条链路。</div>
+  </div>
+  <div class="oc-card">
+    <div>第六段 · 演进、指标与误区</div>
+    <div>六级演进路线、八层指标，以及十五条最贵的误区。</div>
+  </div>
+  <div class="oc-card">
+    <div>总结</div>
+    <div>把这一章压成一页纸：结论、边界，以及下一章要解决什么。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">11.1 供应链 Agent 是什么</h2><div class="oc-part-lead"><strong>第一段 · 供应链 Agent 是什么</strong>这一段回答：供应链 Agent 究竟是什么、给谁用、与既有系统差在哪，以及哪些决策一旦做错就要停机迁移。</div>
+
+<h3 id="sec-1.1">11.1.1 定义与三个根本差别</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>供应链 AI Agent 接收自然语言经营目标（例如「华东仓未来 4 周要保证不断货，同时把滞销库存压降 20%，预算 200 万」），完成需求预测、缺口推演、补货与调拨建议生成、供应商评估与询价、多级履约调度、异常处置与根因归因。它与其它 Agent 有三个根本差别：决策周期长，一次补货的后果 45 天后才兑现；物理约束硬，仓容、MOQ、箱规、供应商产能、承运商运力都是硬边界；多方协同，供应商、仓库、承运商、门店各有各的目标与承诺。三个差别合起来决定了本章的架构重心——供应链 Agent 不能像营销 Agent 那样「先做再熔断」，因为营销发错的消息能撤回一部分，供应链的错单不行：货已经在路上，钱已经付了，合同已经签了。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>最容易被低估的是第一个差别。「决策周期长」意味着纠错窗口落在决策点之后而不是之前：45 天前下的单，你只有等到 45 天后才知道错了，那时货已经躺在库里卖不掉。所以这套系统的错误拦截必须发生在下单之前，而不能寄希望于事后调整。这是它与客服、营销两章在工程上分野最大的地方，也是本章所有护栏的位置都压在承诺之前的原因。</p>
+</div>
+
+<p><strong>定义</strong>：供应链 AI Agent 是面向商品供给与履约链路的智能体系统。它接收自然语言的经营目标（如「华东仓未来 4 周要保证不断货，同时把滞销库存压降 20%，预算 200 万」），完成需求预测、缺口推演、补货与调拨建议生成、供应商评估与询价、多级履约调度、异常处置与根因归因。</p>
+<p>它与前面几章的 Agent 有三个根本差别，这三个差别决定了本章的架构：</p>
+<table>
+  <thead>
+    <tr><th scope="col">差别</th><th scope="col">具体含义</th><th scope="col">对设计的影响</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>决策周期长</strong></td><td>一次补货决策的后果在 <strong>45 天后</strong>才兑现</td><td>错误不能靠「马上改」补救，必须在<strong>决策前</strong>拦住</td></tr>
+      <tr><td><strong>物理约束硬</strong></td><td>仓容、MOQ、箱规、供应商产能、承运商运力都是硬边界</td><td>模型输出是<strong>建议</strong>，不是指令；约束求解层不可省</td></tr>
+      <tr><td><strong>多方协同</strong></td><td>供应商、仓库、承运商、门店各有自己的目标与承诺</td><td>Agent 的动作会外溢到别人身上，<strong>必须显式建模承诺与违约</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这三个差别合起来意味着</strong>：供应链 Agent <strong>不能像营销 Agent 那样「先做再熔断」</strong>。营销的错消息能撤回一部分，供应链的错单不行——货已经在路上，钱已经付了，合同已经签了。<strong>所以本章的护栏重心全部压在下单之前。</strong></p>
+</blockquote>
+
+<h3 id="sec-1.2">11.1.2 三个能力层次、用户场景与相近系统</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>能力分三层：L1 执行回答「补多少、发给谁」，决策周期日或周；L2 优化回答「怎么摆、怎么调」，周期周到月；L3 决策回答「换供应商还是换渠道、要不要砍 SKU」，周期季到年。用户面覆盖计划员、采购、仓储、物流与管理层，风险各不相同——计划员要建议可解释且约束可满足，采购怕承诺超产能，物流怕承诺时效兑现不了，管理层只看金额不看风险敞口。与 ERP、WMS、TMS 和传统 MRP/S&OP 的区别在于：ERP 有账无脑，记录发生了什么但不判断该发生什么；WMS 管库位与批次，不管「该进多少货」；TMS 管在途，不管「要不要发这一单」；MRP 规则固定、层级逐级、不看异常。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「有账无脑」四个字划清了 Agent 与 ERP 的边界。供应链 Agent 的产出不是账，是建议与约束求解的结果——账仍然由 ERP 记，但「该发生什么」这个判断得有人来做，而这个判断恰恰是在逐级传递中最容易被放大的地方。这也解释了为什么它不能像 ERP 那样只做记录与执行：记录不放大，判断才放大。</p>
+</div>
+
+<p><strong>三个能力层次</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">回答的问题</th><th scope="col">典型输出</th><th scope="col">决策周期</th><th scope="col">难度</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>L1 执行</strong></td><td>补多少、发给谁</td><td>补货单、调拨单、发货单</td><td>日 / 周</td><td>中</td></tr>
+      <tr><td><strong>L2 优化</strong></td><td>怎么摆、怎么调</td><td>多级库存配置、调拨路径、订单分配</td><td>周 / 月</td><td>较高</td></tr>
+      <tr><td><strong>L3 决策</strong></td><td>换供应商还是换渠道、要不要砍 SKU</td><td>寻源建议、组合优化、供应网络方案</td><td>季 / 年</td><td>高</td></tr>
+  </tbody>
+</table>
+<p><strong>典型用户与场景</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">用户</th><th scope="col">场景</th><th scope="col">关注点</th><th scope="col">主要风险</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>计划员</td><td>周度补货、缺货处理</td><td>建议可解释、约束可满足</td><td>模型建议无法执行</td></tr>
+      <tr><td>采购</td><td>寻源、议价、MOQ 谈判</td><td>价格、账期、产能</td><td>承诺超产能</td></tr>
+      <tr><td>仓储</td><td>仓容、库位、批次分配</td><td>库容周转、效期</td><td>积压与断货并存</td></tr>
+      <tr><td>物流</td><td>承运商分配、路径与时效</td><td>运力、成本、时效</td><td>承诺时效兑现不了</td></tr>
+      <tr><td>管理层</td><td>缺货风险、库存资金、周转</td><td>风险敞口、周转天数</td><td>只看金额不看风险</td></tr>
+  </tbody>
+</table>
+<p><strong>与相近系统的区别</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">系统</th><th scope="col">核心</th><th scope="col">与供应链 Agent 的差异</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>ERP</td><td>记录与执行</td><td>有账无脑：记录发生了什么，不判断该发生什么</td></tr>
+      <tr><td>WMS</td><td>仓库作业</td><td>管库位与批次，不管「该进多少货」</td></tr>
+      <tr><td>TMS</td><td>运输调度</td><td>管在途，不管「要不要发这一单」</td></tr>
+      <tr><td>传统需求计划（MRP / S&amp;OP）</td><td>参数化补货</td><td>规则固定、层级逐级、不看异常</td></tr>
+      <tr><td>电商 Agent</td><td>面向消费者</td><td>供应链 Agent 面向<strong>商品与承诺</strong>，一个决策周期以周计</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-1.3">11.1.3 系统边界、核心指标与不可逆决策</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>范围内是需求预测与预测分层、库存水位与缺口推演、补货与调拨建议生成、供应商评估与寻源建议、履约异常检测与处置建议、库存资金与周转分析；范围外是商品主数据生产、采购合同法律条款、仓库作业与库位管理、实际下单与合同签署、承运商实际运输与财务结算。核心指标覆盖服务、库存、成本、预测、履约、系统六类，其中两个是本章特有：分位数覆盖率衡量预测区间准不准，产能挤占率衡量一个 SKU 的决策吃掉了多少供应商资源，后者是最容易被忽略、后果最严重的一个。SLO 的形态与其它章完全不同——实时性要求低得多，但重复下单 0、对账差异率 ≤ 0.01%、约束违反的建议 0 这三项硬约束更多；本章七项不可逆决策覆盖库存成本核算口径、安全库存公式、预测粒度与层级、库存事实源、主数据主键、订单承诺契约与重规划触发条件。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「重复下单 0」是本章唯一会立刻造成现金损失的失败模式：货订两次，钱付两次，货到两次。对应的护栏是「不重试不落单」——下单写入失败时宁可不写、转人工核销，也不重试。在一个 45 天后才暴露错误的系统里，这种看起来过于保守的做法是唯一能用的选择。另外注意七项不可逆决策的共同点：它们都改变了「每一个数字怎么算」，而不只是改了某个参数，所以做错时要停机迁移加全量回填。</p>
+</div>
+
+<p><strong>系统边界</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">范围内</th><th scope="col">范围外</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>需求预测与预测分层</td><td>商品主数据生产</td></tr>
+      <tr><td>库存水位与缺口推演</td><td>采购合同法律条款</td></tr>
+      <tr><td>补货 / 调拨建议生成</td><td>仓库作业与库位管理</td></tr>
+      <tr><td>供应商评估与寻源建议</td><td>实际下单与合同签署</td></tr>
+      <tr><td>履约异常检测与处置建议</td><td>承运商实际运输</td></tr>
+      <tr><td>库存资金与周转分析</td><td>财务结算</td></tr>
+  </tbody>
+</table>
+<p><strong>核心指标</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>服务</td><td>缺货率、OTIF（按时足量交付率）、订单满足率、缺货时长</td></tr>
+      <tr><td>库存</td><td>库存周转天数、周转次数、滞销占比、呆滞金额、<strong>安全库存占用</strong></td></tr>
+      <tr><td>成本</td><td>持有成本、缺货成本、加急成本、<strong>单位物流成本</strong></td></tr>
+      <tr><td>预测</td><td>WAPE、MAPE、<strong>分位数覆盖率（预测区间命中率）</strong>、偏置（bias）</td></tr>
+      <tr><td>履约</td><td>供应商准时交付率、违约次数、承诺兑现率、<strong>产能挤占率</strong></td></tr>
+      <tr><td>系统</td><td>计划生成耗时、重规划次数、建议采纳率、<strong>重复下单数</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>两个指标是本章特有的</strong>：<strong>分位数覆盖率</strong>衡量预测区间准不准（供应链决策靠的是区间而不是点估计），<strong>产能挤占率</strong>衡量一个 SKU 的决策吃掉了多少供应商资源（<a href="#sec-3.7.10">补货决策与约束求解</a>）——<strong>后者是本章最容易被忽略、后果最严重的指标</strong>。</p>
+</blockquote>
+<p><strong>SLO 示例</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">目标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>库存与可用量查询 P95</td><td>&lt; 200ms</td></tr>
+      <tr><td>异常事件检测延迟</td><td>&lt; 5 min</td></tr>
+      <tr><td>补货计划生成（T+1 批次）</td><td><strong>在下一个补货窗口前完成（8h 内）</strong></td></tr>
+      <tr><td>库存准确率</td><td>≥ 99%</td></tr>
+      <tr><td>缺货率</td><td>≤ 1%</td></tr>
+      <tr><td>OTIF</td><td>≥ 98%</td></tr>
+      <tr><td><strong>重复下单</strong></td><td><strong>0</strong>（硬约束）</td></tr>
+      <tr><td><strong>对账差异率</strong></td><td><strong>≤ 0.01%</strong>（硬约束）</td></tr>
+      <tr><td><strong>约束违反的建议</strong></td><td><strong>0</strong>（硬约束）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章的 SLO 与营销、问数两章形态完全不同</strong>：实时性要求低得多（计划以天为周期），但<strong>准确性、一致性与「不可撤销」三项的硬约束更多</strong>。<strong>这是本章的定位使然——供应链系统的错误不会自己暴露出来，它会安静地在 45 天后变成一批卖不掉的库存。</strong></p>
+</blockquote>
+<p><strong>本章专属不可逆决策清单</strong>（做错了要停机迁移 + 数据回填 + 全量对账，不是发个版本就能改）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">为什么不可逆</th><th scope="col">改动代价</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>库存成本核算口径与成本元素分层</strong>（移动加权 / 批次 / 在途 / 残次 / 冻结）</td><td>库存金额、毛利、周转、安全库存全部建立在这个口径上</td><td>历史库存金额全部作废 + 毛利报表口径断层 + 补货模型输入需全量重算</td></tr>
+      <tr><td><strong>安全库存公式与服务水平分层口径</strong>（z 值来源、lead time 分布怎么取、需求波动怎么估）</td><td>决定每一次补多少</td><td>历史建议无法复现 + 在途订单与新建议口径冲突 + 需全量重排</td></tr>
+      <tr><td><strong>需求预测的粒度与层级</strong>（SKU × 仓 × 日 的预测表结构与模型版本）</td><td>预测是补货的唯一输入，粒度一变全链路重做</td><td>全量预测重算 + 特征与缓存全部失效 + 下游决策不可比</td></tr>
+      <tr><td><strong>库存的唯一事实源与所有权划分</strong>（WMS 实物 / ERP 账面 / 在途 / 平台库存）</td><td>决定「可售量」怎么算；算错就直接缺货或超卖</td><td>全量对账 + 渠道可售量口径需重新同步 + 已下单据需人工核销</td></tr>
+      <tr><td><strong>供应链主数据的主键与标识体系</strong>（SKU / SPU / 仓 / 供应商 / 批次编码规则）</td><td>所有关联、追溯、对账都靠它</td><td>全量数据需重新映射 + 历史关联断裂 + 对账无法自动进行</td></tr>
+      <tr><td><strong>对上游的订单承诺契约</strong>（承诺量、承诺期、承诺窗口、变更与违约条款的 schema）</td><td>一旦下单就是不可撤销的现金支出与履约义务</td><td>在途订单无法自动对账 + 违约判定失效 + 需人工核销全部在途</td></tr>
+      <tr><td><strong>重规划的触发条件与覆盖范围</strong>（哪些事件触发重算、重算覆盖单仓还是全网）</td><td>决定异常时的反应速度与「计划稳定性」</td><td>计划频繁重排 → 执行侧无所适从；覆盖范围改动 → 全网重排一次</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>对照「单向门与双向门」的判据</strong>：这七项属单向门，决策时要多评审、做原型、留迁移方案。其余（预测模型选择、求解器选型、服务水平 z 值数值、批量大小、提前期）是双向门，可以快速试错——但 <strong>z 值与服务水平分层的口径属于「可逆但很贵」</strong>：它们改变每一笔补货量，必须伴随离线回测。</p>
+</blockquote>
+
+<h2 id="seg-2">11.2 核心矛盾与设计原则</h2><div class="oc-part-lead"><strong>第二段 · 核心矛盾与设计原则</strong>这一段回答：逐级放大与不可撤销之间的矛盾到底有多大，以及六条原则在冲突时凭什么说了算。</div>
+
+<h3 id="sec-2.1">11.2.1 本质与六条章级原则</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>核心矛盾是「让每一级都做出最优决策」与「让信息在逐级传递中不失真」之间的冲突——每一级拿到的都不是真实需求，而是上一级被加工过的订单。模型越准，放大的误差越大，因为它更忠实地执行了一个被扭曲的信号。六条章级原则规定了冲突时以谁为准：物理约束优先于模型偏好，预测越接近终端越好，决策周期与数据窗口必须匹配，不确定性必须变成显式缓冲而不是被平均掉，不可撤销的承诺要分级审批，每次重规划都要能解释「为什么变了」。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>六条里最容易被跳过的是第三条「决策周期与数据窗口必须匹配」：日级补货决策如果只用 5 分钟的抖动数据、或者只看 3 年前的历史，再准的模型也没用。它和第四条「不确定性必须变成显式缓冲」是一对：一条管输入的时间尺度，一条管输出的概率形状。第二条「预测越接近终端越好」看着像常识，但它的极端版本——屏蔽上游订单量——反而是反直觉的，那条会在第三段展开。</p>
+</div>
+
+<p><strong>本质</strong>：供应链 Agent 的核心矛盾，是「让每一级都做出最优决策」与「让信息在逐级传递中不失真」之间的冲突。<strong>每一级拿到的都不是真实需求，而是上一级被加工过的订单。</strong> 模型越准，放大的误差越大——因为它更忠实地执行了一个被扭曲的信号。</p>
+<p><strong>六条章级原则</strong>（贯穿全章，冲突时以这六条为准）：</p>
+<ol>
+<li><strong>物理约束优先于模型偏好</strong>——模型说补 5,000 件，但仓容只允许 3,000、MOQ 是 1,000、提前期 45 天、供应商月产能 8,000。<strong>约束求解层永远在模型之上</strong>，模型的输出是<strong>建议</strong>，不是指令。</li>
+<li><strong>预测越接近终端越好</strong>——逐级预测必然放大。<strong>能直接看终端 POS 数据，就不要看上一级的订单。</strong></li>
+<li><strong>决策周期与数据窗口必须匹配</strong>——日级补货决策不能只用 5 分钟的抖动数据，也不能只用 3 年前的历史。<strong>窗口不对，再准的模型也没用。</strong></li>
+<li><strong>不确定性必须变成显式缓冲，而不是被平均掉</strong>——补货决策要的是<strong>分位数</strong>（P50 / P90 / P95），不是点估计。<strong>点估计 + 固定安全库存 = 把风险藏在了一个拍出来的常数里。</strong></li>
+<li><strong>不可撤销的承诺要分级审批</strong>——下单给供应商 = 现金支出 + 履约义务 + 产能挤占。<strong>金额小、量大、品类敏感</strong>三种风险要分别设阈值。</li>
+<li><strong>每次重规划都要能解释「为什么变了」</strong>——补货建议从 5,000 变成 3,000，必须能归因到「销量预测下调」「仓容收紧」「供应商延期」。<strong>不能解释的重规划，执行侧就不敢执行，计划也就废了。</strong></li>
+</ol>
+
+<h3 id="sec-2.2">11.2.2 三个不等式与三个放大器</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>三个不等式划出了本章的物理边界：终端需求的小波动远小于上游订单的大波动（牛鞭效应，逐级放大 16 倍），补货决策的周期远长于纠错能到达的时间（货在 45 天后，错误无法撤回），模型能给的最优远大于物理世界允许的最优（约束求解层不可省）。三个放大器是本章最贵的量：牛鞭放大让终端 ±10% 变成原料订单 ±160%；库存资金放大让预测误差减半对应年库存总成本降 39%；产能挤占放大让 1 个 SKU 的错误变成 20 个 SKU 延期 3 天。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三个放大器里产能挤占最阴险，因为它的暴露是延迟的：超量订单当天所有看板都显示正常，要几天后其它 SKU 陆续延期才看得出来。所以对它的防御不是「更保守」，而是「看得见」——供应商产能视图必须进求解器，按产能做全局分配。逐 SKU 独立求解再汇总，就是产能挤占的系统性来源。</p>
+</div>
+
+<p><strong>三个不等式</strong>：</p>
+<pre><code>终端需求的小波动  &lt;&lt;  上游订单的大波动    → 牛鞭效应：逐级放大 16 倍
+补货决策的周期    &gt;&gt;  纠错能到达的时间    → 货在 45 天后，错误无法撤回
+模型能给的最优    &gt;&gt;  物理世界允许的最优  → 约束求解层不可省</code></pre>
+<p><strong>三个放大器</strong>（本章最贵的量都藏在这里）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">放大器</th><th scope="col">说明</th><th scope="col">后果</th><th scope="col">量化</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>牛鞭放大（信息失真）</strong></td><td>需求信号沿供应链逐级被加工放大</td><td>产能、库存、运力全被推到错误的位置</td><td>终端 ±10% → 原料订单 ±160%，<strong>放大 16 倍</strong>（<a href="#sec-3.5.8">牛鞭效应：信息失真的四类机制</a>）</td></tr>
+      <tr><td><strong>库存资金放大（决策长周期）</strong></td><td>提前期越长、需求波动越大，安全库存越贵</td><td>资金占用与缺货风险同时被放大</td><td>预测误差减半 → 安全库存 736→368 件 → 库存总成本 <strong>降 39%</strong>（<a href="#sec-3.6.9">库存策略：再订货点与安全库存</a>）</td></tr>
+      <tr><td><strong>产能挤占放大</strong></td><td>一个 SKU 的超量订单吃掉供应商共享产能</td><td>1 个 SKU 的错误 → 20 个 SKU 延期</td><td>单次超量到月产能的 125% → 挤占 25% 产能 → 20 个 SKU 延期 3 天（<a href="#sec-3.7.10">补货决策与约束求解</a>）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章与前面各章的放大器方向不同</strong>：<a href="/2026/11/26/agent-design-01-text2sql/">问数</a>放大的是结果集，<a href="/2026/11/26/agent-design-03-customer-service/">客服</a>放大的是上下文，<a href="/2026/11/26/agent-design-04-marketing/">营销</a>放大的是触达。<strong>供应链章的放大器是牛鞭放大</strong>——它是唯一一个「信号本身会变形」的架构：<strong>别的系统错了，是这一级算错；供应链错了，是这一级把上一级的错当成了真相。</strong></p>
+</blockquote>
+
+<h3 id="sec-2.3">11.2.3 四类正确性与八组关键矛盾</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>四类正确性必须分开保证：预测正确要的是需求分布而非点估计，靠分位数预测与区间校准；可执行正确要的是建议满足全部物理约束，靠约束求解与可行性校验；账实正确要的是库存数量与金额对得上，靠幂等事件与全量对账；承诺正确要的是对上下游的承诺可兑现，靠承诺契约与违约监控。八组关键矛盾各配默认策略与反转条件：服务水平对库存资金、集中对分散、安全对灵活、稳定对响应、自营对外包、成本对时效、预测对响应、全局最优对局部最优。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>四类正确性的排序透露了判断：预测正确排在最前，但它的典型漏法是「MAPE 好看却系统性高估」，说明它其实是四类里最好测、也最容易给人虚假安全感的一类。真正需要独立工程投入的是账实正确与承诺正确，它们和模型能力无关，纯粹是幂等、对账与契约的事。把四类混成一类，就会在模型指标全绿时被账实问题打个措手不及。</p>
+</div>
+
+<p><strong>四类正确性</strong>（必须分开保证）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">要求</th><th scope="col">保障手段</th><th scope="col">典型漏法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>预测正确</strong></td><td>需求分布而非点估计</td><td>分位数预测 + 区间校准</td><td>MAPE 好看但系统性高估</td></tr>
+      <tr><td><strong>可执行正确</strong></td><td>建议满足全部物理约束</td><td>约束求解 + 可行性校验</td><td>模型输出直接变成订单</td></tr>
+      <tr><td><strong>账实正确</strong></td><td>库存数量与金额对得上</td><td>幂等事件 + 全量对账</td><td>并发扣减导致超卖</td></tr>
+      <tr><td><strong>承诺正确</strong></td><td>对上游与下游的承诺可兑现</td><td>承诺契约 + 违约监控</td><td>承诺了做不到的时间窗</td></tr>
+  </tbody>
+</table>
+<p><strong>八组关键矛盾</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">矛盾</th><th scope="col">典型表现</th><th scope="col">默认策略</th><th scope="col">何时反转</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>服务水平 vs 库存资金</td><td>备货足则不缺货但压资金</td><td>按 ABC 分层设服务水平</td><td>战略品 / 缺货损失高的品类可提高</td></tr>
+      <tr><td>集中 vs 分散</td><td>集中采购有量价优势，集中库存响应慢</td><td>按 ABC 分层选址</td><td>快消 / 爆品可分散</td></tr>
+      <tr><td>安全 vs 灵活</td><td>备安全库存但会积压</td><td>动态安全库存 + 分位数</td><td>短保质期品类必须收紧</td></tr>
+      <tr><td>稳定 vs 响应</td><td>计划稳定但反应慢</td><td>稳定计划 + 事件触发重规划</td><td>大促、断货等异常事件</td></tr>
+      <tr><td>自营 vs 外包</td><td>自营可控但重，外包轻但不可控</td><td>核心自营 + 边缘外包</td><td>长尾区域可全外包</td></tr>
+      <tr><td>成本 vs 时效</td><td>海运便宜但慢</td><td>分层分仓 + 加急兜底</td><td>高价值商品可空运</td></tr>
+      <tr><td>预测 vs 响应</td><td>预测准但对突发无反应</td><td>预测 + 事件规则双轨</td><td>促销、断货等场景靠规则</td></tr>
+      <tr><td>全局最优 vs 局部最优</td><td>单仓最优加起来不是全局最优</td><td>全网联合求解</td><td>数据与算力足够时用全局</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-2.4">11.2.4 失败模式、信任分级与成本结构</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>八类失败模式各有防线：牛鞭靠共享终端数据与缺货感知，超量靠促销日历与缺货率入模，欠量靠分位数预测与分层服务水平，积压靠动态安全库存与生命周期特征，不可执行靠约束求解与可行性校验，账实不符靠幂等事件与全量对账，产能挤占靠产能分配与违约监控，重复下单靠下单幂等键与计划版本。信任分级给建议标注了四种输出契约：高等级直接给可执行建议，中等级给建议加区间加风险提示，低等级只给数据与风险、明确不给补货量，约束不可满足时明确说清哪条约束挡住了。成本结构里库存持有成本最大，常占收入 15–30%，模型与计算成本可以忽略。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「不给补货量也是一种输出」是这一节里最反直觉但最正确的一条。当库存账实不符时，系统给一个精确的补货数字，等于给了一个精确的错误答案，而执行侧会照单执行，45 天后变成一批错货。这与营销章「宁可不发」的逻辑同源：不产出也是一种合规的产出。反过来看，信任分级里的「拒绝」档是设计出来的一等公民，它要求系统有能力说「我算不了」，而不是硬凑一个数字出来。</p>
+</div>
+
+<p><strong>八类失败模式</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">失败</th><th scope="col">表现</th><th scope="col">根因</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>牛鞭</strong></td><td>上游订单波动是终端的数倍</td><td>逐级预测 + 缺货误读</td><td>共享终端数据 + 缺货感知</td></tr>
+      <tr><td><strong>超量</strong></td><td>一次下太多，货到后滞销</td><td>促销前置 + 配给误读</td><td>促销日历入模 + 缺货率入模</td></tr>
+      <tr><td><strong>欠量</strong></td><td>断货，损失毛利与客户</td><td>预测偏低 + 安全库存不足</td><td>分位数预测 + 分层服务水平</td></tr>
+      <tr><td><strong>积压</strong></td><td>库龄超期，减值</td><td>安全库存固定 + 未按生命周期</td><td>动态安全库存 + 生命周期特征</td></tr>
+      <tr><td><strong>不可执行</strong></td><td>建议违反 MOQ / 仓容</td><td>无约束求解层</td><td>约束求解 + 可行性校验</td></tr>
+      <tr><td><strong>账实不符</strong></td><td>系统有货、实物没有</td><td>并发扣减 / 未对账</td><td>幂等事件 + 全量对账</td></tr>
+      <tr><td><strong>产能挤占</strong></td><td>一个爆款吃掉全月产能</td><td>无产能视图</td><td>产能分配 + 违约监控</td></tr>
+      <tr><td><strong>重复下单</strong></td><td>同一批货订两次</td><td>重试无幂等</td><td>下单幂等键 + 计划版本</td></tr>
+  </tbody>
+</table>
+<p><strong>信任分级</strong>（补货建议的「输出契约」）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">级别</th><th scope="col">条件</th><th scope="col">展示方式</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>高</td><td>需求预测已校准 + 约束全满足 + 库存账实一致 + 无产能挤占</td><td>直接给可执行建议 + 依据</td></tr>
+      <tr><td>中</td><td>预测区间较宽 / 存在库存差异 / 有待确认促销</td><td>给建议 + 区间 + 风险提示</td></tr>
+      <tr><td>低</td><td>预测未校准 / 数据陈旧 / 账实不符</td><td>只给数据与风险，<strong>不给补货量</strong></td></tr>
+      <tr><td>拒绝</td><td>约束不可满足 / 产能已满 / 预算超限</td><td>明确说清哪条约束挡住了</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「不给补货量」也是一种输出</strong>。当库存账实不符时，系统给一个精确的补货数字，等于给了一个精确的错误答案——<strong>执行侧会照单执行，45 天后变成一批错货。</strong></p>
+</blockquote>
+<p><strong>成本结构</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">占比量级</th><th scope="col">优化手段</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>库存持有成本</strong></td><td><strong>最大（常占收入 15–30%）</strong></td><td>预测精度、安全库存优化、ABC 分层</td></tr>
+      <tr><td>缺货成本</td><td>次之但波动极大</td><td>服务水平分层、跨仓调拨优先</td></tr>
+      <tr><td>采购成本</td><td>大（尤其量价与账期）</td><td>订单合并、量价优化、寻源</td></tr>
+      <tr><td>加急物流成本</td><td>中</td><td>调拨替代加急（便宜 10 倍）</td></tr>
+      <tr><td>模型 / 计算成本</td><td>小</td><td>分层预测、离线批处理</td></tr>
+  </tbody>
+</table>
+
+<h2 id="seg-3">11.3 理论与方法论</h2><div class="oc-part-lead"><strong>第三段 · 理论与方法论</strong>这一段回答：从七项前置锚点出发，一步步推到方法论与容量成本；牛鞭、安全库存、约束求解、产能分配各怎么治。</div>
+
+<h3 id="sec-3.1">11.3.1 S0 前置锚点与 4S 收敛顺序</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>七项前置锚点划定可行域：业务目标与成功标准、规模量级、质量属性优先级、硬约束、不可逆决策清单、核心路径与事实源、竞争与协作边界。第 2 项之所以改变答案，是因为供应链的规模参数不只是 QPS，还有补货周期与提前期：同样是 SKU 50 万、日销 200 万件，提前期 45 天还是 5 天，安全库存差约 3 倍（√45/√5），不给提前期分布就算不出安全库存，整个补货模型就无从谈起。4S 收敛顺序是定题、场景、服务、存储、规模。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「不给提前期分布，整个补货模型就无从谈起」点出了供应链系统与传统系统最根本的参数差异。传统系统给 QPS 就能算容量，供应链系统还要给提前期的均值和波动，因为安全库存里同时住着 σ 和 √L 两个变量。而且提前期不能只给均值：从 45 天缩到 30 天安全库存降 18%，但提前期的标准差从 5 天涨到 15 天，安全库存反而要加 30%，只给平均值会系统性低估。</p>
+</div>
+
+<h4 id="sec-3.1.1" data-toc-skip>S0：七项前置锚点</h4>
+
+<p>先落定七件事，它们共同决定<strong>可行域</strong>——不在可行域内的方案不参与讨论。</p>
+<table>
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">锚点</th><th scope="col">本章答案</th><th scope="col">影响</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>业务目标与成功标准</strong></td><td>缺货率 ≤ 1%、OTIF ≥ 98%、库存周转 ≥ 6 次 / 年、重复下单 0、约束违反建议 0</td><td>决定服务水平分层与自动化分级</td></tr>
+      <tr><td>2</td><td><strong>规模量级</strong></td><td>SKU 50 万、仓 200、供应商 300、日销 200 万件、<strong>日补货计划 200 个、补货周期 7 天</strong>、提前期 5–45 天</td><td>决定求解规模、数据量与计划窗口</td></tr>
+      <tr><td>3</td><td><strong>质量属性优先级</strong></td><td>不错货 &gt; 不断货 &gt; 不积压 &gt; 不违约 &gt; 库存成本 &gt; 响应速度</td><td>决定降级顺序与约束优先级</td></tr>
+      <tr><td>4</td><td><strong>硬约束</strong></td><td>仓容、MOQ、箱规、供应商产能与最小起订量、承运商运力、合同价与账期、效期</td><td><strong>定义可行域；物理约束不可用算法折抵</strong></td></tr>
+      <tr><td>5</td><td><strong>不可逆决策清单</strong></td><td>见 <a href="#sec-1.3">系统边界、核心指标与不可逆决策</a> 的本章七项</td><td>决策流程：多评审 + 原型 + 迁移方案</td></tr>
+      <tr><td>6</td><td><strong>核心路径与事实源</strong></td><td>核心路径 = 目标 → 预测 → 缺口推演 → 补货 / 调拨 → 下单 → 收货 → 上架 → 销售 → 反馈；事实源 = <strong>库存流水 + 订单 + 主数据 + 供应商履约记录</strong></td><td>决定缓存与对账对象；预测表与建议表全是投影</td></tr>
+      <tr><td>7</td><td><strong>竞争与协作边界</strong></td><td>ERP / WMS / TMS、供应商门户、承运商 API 在外部；预测、缺口推演、约束求解、异常处置自建</td><td>决定服务边界与团队成本</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 2 项为什么改变答案</strong>：本章的规模参数不只是 QPS，还有<strong>「补货周期」与「提前期」</strong>。同样是 SKU 50 万、日销 200 万件，提前期 45 天还是 5 天，安全库存差 3 倍（√45 / √5 ≈ 3）。<strong>不给提前期分布，就没法算安全库存，整个补货模型就无从谈起。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.1.2" data-toc-skip>4S 收敛顺序</h4>
+
+<pre><code>S0 定题（锚点 + 不可逆清单）
+   → Scenario 定 SKU 数、仓数、提前期、补货周期、服务水平分层、约束清单
+      → Service 定预测、缺口推演、求解、下单、履约、异常处置的边界
+         → Storage 定库存流水、订单、主数据、预测表、履约记录的唯一事实源
+            → Scale 定分层预测、离线批处理、在线异常、约束求解、对账与降级</code></pre>
+
+<h3 id="sec-3.2">11.3.2 场景与规模参数</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>规模给全：在售 SKU 50 万、仓 200、日销 200 万件 / 80 万单、供应商 300 家（主供 30 家）、单次订货成本 ¥2,000、单位库存成本 ¥60 且持有成本率 25%/年（h = ¥15/件/年）。三个决定一切的参数是补货周期（常规 7 天、大促 3 天）、提前期 L（海运 45 天、陆运 7 天、空运 5 天）与服务水平分层（A 类 99%、B 类 97%、C 类 95%），ABC 分层是 A 类 20% 占 80% 销量、B 类 30%、C 类 50%。决策节奏是 T+1 日批加事件驱动重规划，对应「批量轨道 + 在线轨道」两条链路。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>服务水平按 ABC 分层而不是全局一个数，是这一节最实用的一个决定。它的含义是长尾 SKU 主动接受更差的服务水平，把资金让给高价值品类——这与「全线提高服务水平」的直觉相反。所以服务水平的设定不是技术参数，而是资金配置决策：定错了，后面所有成本推导都会跟着错。</p>
+</div>
+
+<h4 id="sec-3.2.3" data-toc-skip>Scenario：场景与规模</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">数值</th><th scope="col">推导与来源</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>在售 SKU</td><td>50 万</td><td>—</td></tr>
+      <tr><td><strong>ABC 分层</strong></td><td>A 类 20%（占 80% 销量）/ B 类 30% / C 类 50%</td><td><strong>决定预测精度投入的分配</strong></td></tr>
+      <tr><td>仓数</td><td>200（中心仓 + 前置仓）</td><td>决定补货计划数与调拨图规模</td></tr>
+      <tr><td>日销</td><td>200 万件 / 80 万单</td><td>—</td></tr>
+      <tr><td><strong>补货周期</strong></td><td>常规 7 天，大促 3 天</td><td><strong>决定安全库存的 √L 与计划窗口</strong></td></tr>
+      <tr><td>供应商</td><td>300 家，主供 30 家</td><td><strong>决定产能挤占风险</strong></td></tr>
+      <tr><td><strong>提前期 L</strong></td><td>海运 45 天、陆运 7 天、空运 5 天</td><td><strong>安全库存与承诺期的主要输入</strong></td></tr>
+      <tr><td>单次订货成本 K</td><td>¥2,000</td><td>决定 EOQ</td></tr>
+      <tr><td>单位库存成本</td><td>¥60，持有成本率 25% / 年（h = ¥15 / 件 / 年）</td><td>决定持有成本</td></tr>
+      <tr><td><strong>服务水平分层</strong></td><td>A 类 99%、B 类 97%、C 类 95%</td><td><strong>按分层设 z 值，不用一个数</strong></td></tr>
+      <tr><td>决策节奏</td><td>T+1 日批 + 事件驱动重规划</td><td>决定「批量轨道 + 在线轨道」两条链路</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「提前期分布」是本章独有的关键参数</strong>。传统系统的容量参数是 QPS，供应链系统还必须给出<strong>提前期及其波动</strong>——因为提前期不只是平均值，还有方差。<strong>提前期从 45 天缩到 30 天，安全库存降 18%；但提前期的标准差从 5 天涨到 15 天，安全库存反而要加 30%。</strong> 只给平均提前期会系统性低估安全库存。</p>
+</blockquote>
+
+<h3 id="sec-3.3">11.3.3 服务、存储与扩展兜底</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>11 个服务分清同步与异步：预测与求解异步离线批，缺口推演同步，承诺下单同步且必须幂等加版本，异常检测同步事件驱动，对账异步批。存储侧的事实源只有四类——库存流水、订单与履约记录、主数据、供应商履约记录，预测表、建议表、可用量缓存与求解任务全是可重建的投影。库存的口径四件套是实物、可用、在途、可售，每个数字都必须说清是哪一种；库存流水的不可变性是地基，因为库存是派生量，只能由事件累加得到，任何直接改写库存的接口都必须被禁止。扩展与兜底六个维度：预测用 ABC 分层，计划用 T+1 批加事件驱动增量重规划，求解用分区与启发式加精确混合，库存用事件流加增量聚合，异常用规则优先，依赖故障时降级到规则补货并冻结下单。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「库存只能由事件累加得到」是本章最硬也最容易被实现绕过的存储原则。库存看起来像一列可以 UPDATE 的数字，但一旦允许直接改写，并发扣减、超卖与账实不符就都变得无法复现与追责。所以入库必须写成事件、查询时再聚合。这条纪律还顺带解决了「快照与流水对不上」这类最贵的排查问题——因为快照本身只是投影，不是事实。</p>
+</div>
+
+<h4 id="sec-3.3.4" data-toc-skip>Service：服务与接口</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">服务</th><th scope="col">职责</th><th scope="col">同步 / 异步</th><th scope="col">关键点</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Goal Parser</td><td>经营目标解析</td><td>同步</td><td>结构化、缺字段必追问</td></tr>
+      <tr><td>Forecast Service</td><td>分位数需求预测</td><td><strong>异步（离线批）</strong></td><td>按 ABC 分层、版本化、校准</td></tr>
+      <tr><td>Inventory Service</td><td>可用量、账实、在途</td><td>同步</td><td><strong>唯一事实源读取</strong></td></tr>
+      <tr><td>Gap Engine</td><td>缺口推演（安全库存 + 提前期 + 在途）</td><td>同步</td><td>口径与 <a href="#sec-3.6.9">库存策略：再订货点与安全库存</a> 一致</td></tr>
+      <tr><td>Constraint Solver</td><td>补货 / 调拨的可行解</td><td>异步（批）</td><td><strong>MOQ / 箱规 / 仓容 / 产能</strong></td></tr>
+      <tr><td>Sourcing Service</td><td>供应商评估、询价、比价</td><td>异步</td><td>产能与履约记录</td></tr>
+      <tr><td>Commitment Service</td><td>下单与承诺契约</td><td>同步</td><td><strong>幂等 + 版本 + 不可撤销</strong></td></tr>
+      <tr><td>Fulfilment Service</td><td>履约调度、多级路由</td><td>异步</td><td>运力约束</td></tr>
+      <tr><td>Exception Service</td><td>异常检测与处置建议</td><td>同步（事件驱动）</td><td><strong>缺货、延迟、破损</strong></td></tr>
+      <tr><td>Reconcile Service</td><td>账实与在途对账</td><td>异步（批）</td><td><strong>差异率硬约束</strong></td></tr>
+      <tr><td>Audit Service</td><td>全链路审计</td><td>异步</td><td>不可篡改</td></tr>
+  </tbody>
+</table>
+<p><strong>核心 API</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方法</th><th scope="col">路径</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>POST</td><td><code>/api/v1/plans</code></td><td>创建补货 / 调拨计划（自然语言目标）</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/plans/{id}</code></td><td>计划、约束校验结果、建议明细</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/plans/{id}/approve</code></td><td>审批并下发</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/inventory/{sku}</code></td><td>可用量、账实、在途、安全库存</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/forecast</code></td><td>触发预测（按分层与版本）</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/exceptions</code></td><td>异常列表与处置建议</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.3.5" data-toc-skip>Storage：数据模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">数据</th><th scope="col">存储</th><th scope="col">关键设计</th><th scope="col">是事实源吗</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>库存流水</strong></td><td>数仓 / 事件库</td><td>每次出入库一条不可变记录</td><td><strong>是</strong></td></tr>
+      <tr><td><strong>订单与履约记录</strong></td><td>数仓</td><td>下单、承诺、收货、取消</td><td><strong>是</strong></td></tr>
+      <tr><td><strong>主数据</strong></td><td>主数据服务</td><td>SKU / SPU / 仓 / 供应商 / 批次</td><td><strong>是</strong></td></tr>
+      <tr><td><strong>供应商履约记录</strong></td><td>数仓</td><td>准时率、违约、短交</td><td><strong>是</strong></td></tr>
+      <tr><td>预测表</td><td>数仓</td><td>SKU × 仓 × 日 × 分位数 × 模型版本</td><td>否（可重建）</td></tr>
+      <tr><td>建议表</td><td>DB</td><td>建议量、约束余量、采纳与否</td><td>否（可重建）</td></tr>
+      <tr><td>可用量缓存</td><td>Redis</td><td>短 TTL</td><td>否（<strong>必须可重建</strong>）</td></tr>
+      <tr><td>求解任务</td><td>队列</td><td>批任务 + 版本</td><td>否</td></tr>
+      <tr><td>审计</td><td>不可篡改存储</td><td>谁、何时、基于什么预测、给了什么建议</td><td><strong>是</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>库存流水的不可变性是本章的地基</strong>。库存是一个<strong>派生量</strong>：它由一连串出入库事件累加得到。如果库存是「可以被直接改写的当前值」，那么并发扣减、超卖与账实不符都无法复现与追责。<strong>本章的第一条存储原则：库存只能由事件累加得到，任何「直接改库存」的接口都必须被禁止。</strong></p>
+</blockquote>
+<p><strong>库存的口径四件套</strong>（每个数字必须说清是哪一种）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">口径</th><th scope="col">定义</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>实物库存</td><td>仓库里实际有多少</td><td>对账基准</td></tr>
+      <tr><td>可用库存</td><td>实物 − 已分配 − 冻结 − 残次</td><td><strong>能不能卖</strong></td></tr>
+      <tr><td>在途库存</td><td>已下单未收货</td><td><strong>补货决策必须扣减它</strong></td></tr>
+      <tr><td>可售库存</td><td>可用 + 在途（按 ETA 计入）</td><td>渠道售卖口径</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.3.6" data-toc-skip>Scale：扩展与兜底</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">手段</th><th scope="col">触发条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>预测</td><td>ABC 分层、A 类精细 / C 类类目均值</td><td>算力或时间不够</td></tr>
+      <tr><td>计划</td><td>T+1 批 + 事件驱动增量重规划</td><td>计划窗口紧张</td></tr>
+      <tr><td>求解</td><td>分区求解、启发式 + 精确混合</td><td>求解超时</td></tr>
+      <tr><td>库存</td><td>事件流 + 增量聚合</td><td>查询压力大</td></tr>
+      <tr><td>异常</td><td>规则优先 + 模型兜底</td><td>误报率高</td></tr>
+      <tr><td>降级</td><td>规则补货 + 冻结下单</td><td>依赖故障</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.4">11.3.4 需求预测与预测分层</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>预测必须输出分位数而不是点估计：P50 用于常规补货基线，P90 对应 A 类高服务水平，P95 与 P99 用于极端场景与加急预案。ABC 分层对应三套粒度：A 类 20% 的 SKU 承担 80% 销量，做 SKU × 仓 × 日、60 天窗口的融合模型加促销特征；B 类做 SKU × 大区 × 日、30 天；C 类 50% 的 SKU 只占 5% 销量，做类目 × 日、14 天，并给类目均值加人工兜底。预测不只要准，还要校准：评测主指标是区间覆盖率与偏置，WAPE 只是辅助；特征清单里必须有的四项是终端 POS、促销日历、缺货率与生命周期阶段。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「C 类不做个体预测不是偷懒，是正确的资源分配」——但后面那句「但必须给兜底值」才是重点：用类目均值必须是一个写进模型的明确规则，而不是「预测不出来就填 0」。填 0 会让 C 类全部断货，这是把「省资源」变成「造事故」的典型路径。另外「WAPE 好看但区间不校准是最危险的组合」值得记：点估计误差会互相抵消，而安全库存是按分位数算的，点准而区间偏，安全库存照样系统性错。</p>
+</div>
+
+<h4 id="sec-3.4.7" data-toc-skip>需求预测与预测分层</h4>
+
+<p><strong>预测要输出分位数，不是点估计</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">输出</th><th scope="col">用途</th><th scope="col">为什么必须有</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>P50</td><td>常规补货、基线</td><td>期望值参考</td></tr>
+      <tr><td>P90</td><td>A 类高服务水平</td><td>服务水平 99% 对应更高分位</td></tr>
+      <tr><td>P95 / P99</td><td>极端场景、加急预案</td><td>缺货风险的上尾</td></tr>
+  </tbody>
+</table>
+<p><strong>ABC 分层与预测投入</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">分层</th><th scope="col">SKU 占比</th><th scope="col">销量占比</th><th scope="col">预测粒度</th><th scope="col">预测窗口</th><th scope="col">方法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>A</td><td>20%</td><td>80%</td><td>SKU × 仓 × 日</td><td>60 天</td><td>融合模型 + 促销特征</td></tr>
+      <tr><td>B</td><td>30%</td><td>15%</td><td>SKU × 大区 × 日</td><td>30 天</td><td>层级模型</td></tr>
+      <tr><td>C</td><td>50%</td><td>5%</td><td>类目 × 日</td><td>14 天</td><td><strong>类目均值 + 人工兜底</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>C 类不做个体预测不是偷懒，是正确的资源分配</strong>：C 类占 50% 的 SKU 但只占 5% 的销量，为它做精细预测会吃掉一半算力，而预测准确率的边际收益接近零。<strong>但 C 类必须给兜底值</strong>——「用类目均值」必须是一个明确写进模型的规则，而不是「预测不出来就填 0」。填 0 会让 C 类全部断货。</p>
+</blockquote>
+<p><strong>预测必须校准，不只是准</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">校准项</th><th scope="col">含义</th><th scope="col">不合格的后果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>区间覆盖率</strong></td><td>实际落进 P90 区间的比例应 ≈ 90%</td><td>区间太宽 → 安全库存虚高；太窄 → 缺货</td></tr>
+      <tr><td><strong>偏置（bias）</strong></td><td>预测均值与实际均值的系统性差</td><td>系统性高估 → 全网积压；低估 → 全网缺货</td></tr>
+      <tr><td>分层误差</td><td>A / B / C 各自的 WAPE</td><td>用总体 WAPE 掩盖了 C 类的离谱误差</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>WAPE 好看但区间不校准，是最危险的组合</strong>。点估计误差可以互相抵消，但安全库存是按分位数算的——<strong>点估计准但区间偏了，安全库存就会系统性错</strong>。所以本章的评测主指标是<strong>区间覆盖率 + 偏置</strong>，WAPE 只是辅助。</p>
+</blockquote>
+<p><strong>特征清单里必须有的四项</strong>（缺一项，牛鞭就会被引入）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">特征</th><th scope="col">为什么必须有</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>终端 POS / 销售流水</strong></td><td>直接预测终端需求，而不是预测上游订单</td></tr>
+      <tr><td><strong>促销日历</strong></td><td>促销把未来需求前置，不入模就是超量</td></tr>
+      <tr><td><strong>缺货 / 缺货率</strong></td><td>区分「没下单」与「没货可买」</td></tr>
+      <tr><td><strong>生命周期阶段</strong></td><td>新品爬坡、成熟、衰退的基线完全不同</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.5">11.3.5 牛鞭效应：信息失真的四类机制</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>牛鞭效应指终端需求的小幅波动沿供应链逐级被放大：终端 ±10% 依次变成零售商 ±20%、批发商 ±40%、制造商 ±80%、原料 ±160%，放大 16 倍。四类机制分别是预测逐级叠加、订单批量、价格促销与缺货配给，其中只有第一类是 Agent 直接放大的——批量与促销是商务政策、配给是缺货的后果，Agent 只能在设计里补偿。治牛鞭的四条落地动作是特征层屏蔽上游订单量只保留终端销售、促销日历进特征、缺货率进特征并对缺货期需求做还原、需求信号按周建模而非按日。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一节最反直觉也最重要的一条是「放弃一部分信息」：上游订单量明明是最丰富的特征，屏蔽它看起来像自缚手脚，但它正是牛鞭的第一机制。在逐级预测的架构里，「看得更近」比「看得更多」重要。一个用了最先进模型、却只在上一级订单上预测的 Agent，比一个用移动平均、但直接看终端销售的 Agent 更糟——因为它会把扭曲的信号忠实地放大 16 倍。</p>
+</div>
+
+<h4 id="sec-3.5.8" data-toc-skip>牛鞭效应：信息失真的四类机制</h4>
+
+<p><strong>本节是牛鞭效应的权威版</strong>，<a href="#sec-3.4.7">需求预测与预测分层</a>、<a href="#sec-5.3.5">变体 D：跨仓调拨替代补货</a>与<a href="#sec-5.3.7">扩容 10 倍，哪里先坏</a>只引用。</p>
+<p><strong>现象</strong>：终端需求的小幅波动，沿供应链逐级传递时被放大成越来越大的订单波动。</p>
+<pre><code>终端需求 ±10%
+  → 零售商订单 ±20%    放大 2×
+  → 批发商订单 ±40%    放大 4×
+  → 制造商订单 ±80%    放大 8×
+  → 原料订单 ±160%     放大 16×</code></pre>
+<table>
+  <thead>
+    <tr><th scope="col">环节</th><th scope="col">终端需求波动</th><th scope="col">该级订单波动</th><th scope="col">放大系数</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>终端（消费者）</td><td>±10%</td><td>±10%</td><td><strong>1.0</strong></td></tr>
+      <tr><td>零售商</td><td>±10%</td><td>±20%</td><td><strong>2.0</strong></td></tr>
+      <tr><td>批发商</td><td>±10%</td><td>±40%</td><td><strong>4.0</strong></td></tr>
+      <tr><td>制造商</td><td>±10%</td><td>±80%</td><td><strong>8.0</strong></td></tr>
+      <tr><td>原材料供应商</td><td>±10%</td><td>±160%</td><td><strong>16.0</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>四类机制与各自的治本 / 治标手段</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">机制</th><th scope="col">根因</th><th scope="col">治本手段</th><th scope="col">治标手段（信息层）</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>预测逐级叠加</strong></td><td>每一级都在<strong>上一级的订单</strong>上做预测</td><td><strong>共享终端 POS 数据，各级直接预测终端需求</strong></td><td>特征里<strong>只用终端需求，不用上游订单</strong></td></tr>
+      <tr><td><strong>订单批量（batching）</strong></td><td>小订单成本高，攒批下单</td><td>量价优化、订单合并与拼单</td><td>需求信号按<strong>周需求</strong>而非日需求建模；把批次大小显式写入信号</td></tr>
+      <tr><td><strong>价格促销</strong></td><td>促销把未来需求前置</td><td>促销日历在链上共享</td><td><strong>促销日历作为特征进入每一级预测</strong></td></tr>
+      <tr><td><strong>缺货与配给</strong></td><td>缺货期客户下单量 <strong>&gt;</strong> 实际需求</td><td>提高服务水平</td><td><strong>把缺货率作为预测输入</strong>，区分「没买」与「没货」</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>四个机制里，只有「预测逐级叠加」是 Agent 直接放大的。</strong> 批量与促销是商务政策，Agent 改不了，只能在设计里补偿；配给是缺货的后果，Agent 若不能及时感知缺货，就会把「被压抑的需求」误读为「需求激增」，从而加倍下单——<strong>这是最隐蔽的一个方向性错误</strong>。</p>
+  <p><strong>所以本章的第一条方法论是：Agent 越聪明，越要确认它的输入是不是终端真相。</strong> 一个用了最先进模型、却只在上一级订单上预测的 Agent，<strong>比一个用移动平均、但直接看终端销售的 Agent 更糟</strong>——因为它会把扭曲的信号忠实地放大 16 倍。</p>
+</blockquote>
+<p><strong>治牛鞭的四条落地动作</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">动作</th><th scope="col">作用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td>特征层<strong>屏蔽上游订单量</strong>，只保留终端销售</td><td>直接切断「预测逐级叠加」</td></tr>
+      <tr><td>2</td><td>促销日历进特征</td><td>消除「促销前置」造成的假峰</td></tr>
+      <tr><td>3</td><td>缺货率进特征，缺货期需求做<strong>还原</strong></td><td>消除「配给」的方向性错误</td></tr>
+      <tr><td>4</td><td>需求信号按<strong>周</strong>建模而非按日</td><td>削弱「订单批量」的影响</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 1 条是最关键也最反直觉的</strong>：它意味着<strong>放弃一部分信息</strong>（上游订单是有用的信号）来换取信号保真。<strong>在逐级预测的架构里，「看得更近」比「看得更多」重要。</strong></p>
+</blockquote>
+
+<h3 id="sec-3.6">11.3.6 库存策略：再订货点与安全库存</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>再订货点模型是 ROP = d̄ × L + SS，其中 SS = z × σ_daily × √L，z 按 ABC 分层取 2.33、1.88、1.645。把基准值代进去：日均需求 1,000 件、σ 200 件、提前期 5 天、缺货成本 ¥80/件时，安全库存 736 件、年缺货成本约 ¥24.6 万、年持有成本约 ¥8.5 万、年库存总成本约 ¥33.1 万——缺货成本是持有成本的 2.9 倍。Agent 的价值体现在把预测误差减半：σ 从 200 降到 100，安全库存 736 变 368 件，总成本降 39%（省 ¥12.8 万）。动态安全库存的三个输入是需求波动 σ、提前期 L 与服务水平 z，全部要从静态常数改成动态估计。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「Agent 的价值不在预测得更准本身」是全章的核心结论，准只是手段，它兑现的路径是安全库存减半——而安全库存之所以能减半，是因为 SS 与 σ 成正比、σ 又与预测精度同向。但要注意反向陷阱：SS 与 √L 成正比，缩短提前期看着更省，可提前期波动的那部分不受这个折扣保护。缩短提前期是最有效的降库存手段，但它要动供应链本身，不是模型能替代的。</p>
+</div>
+
+<h4 id="sec-3.6.9" data-toc-skip>库存策略：再订货点与安全库存</h4>
+
+<p><strong>本节是库存策略的权威版</strong>，<a href="#sec-3.7.10">补货决策与约束求解</a>与<a href="#sec-5.1.1">案例：华东仓断货风险与滞销压降</a>只引用。</p>
+<p><strong>再订货点（ROP）模型</strong>：</p>
+<pre><code>ROP = 提前期内的期望需求 + 安全库存
+    = d̄ × L + SS
+SS  = z × σ_daily × √L</code></pre>
+<table>
+  <thead>
+    <tr><th scope="col">符号</th><th scope="col">含义</th><th scope="col">本章基准值</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>d̄</code></td><td>日均需求</td><td>1,000 件</td></tr>
+      <tr><td><code>L</code></td><td>提前期（天）</td><td>5 天</td></tr>
+      <tr><td><code>σ_daily</code></td><td>日需求标准差</td><td>200 件（CV = 20%）</td></tr>
+      <tr><td><code>z</code></td><td>服务水平对应的标准正态分位</td><td>A 类 99% → 2.33；B 类 97% → 1.88；C 类 95% → 1.645</td></tr>
+      <tr><td><code>h</code></td><td>单位年持有成本</td><td>¥15 / 件 / 年</td></tr>
+      <tr><td><code>K</code></td><td>单次订货成本</td><td>¥2,000</td></tr>
+  </tbody>
+</table>
+<p><strong>经济订货量（EOQ）</strong>：</p>
+<pre><code>Q* = √(2 × D × K / h)
+   = √(2 × 365,000 × 2,000 / 15)
+   ≈ 9,865 件
+年订货次数 = D / Q* = 365,000 / 9,865 ≈ 37 次</code></pre>
+<p><strong>把三个数代进去，看清安全库存值多少钱</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>安全库存 SS</td><td>1.645 × 200 × √5</td><td><strong>736 件</strong></td></tr>
+      <tr><td>ROP</td><td>1,000 × 5 + 736</td><td>5,736 件</td></tr>
+      <tr><td>提前期需求的标准差</td><td>200 × √5</td><td>447 件</td></tr>
+      <tr><td>单周期期望缺货量</td><td>447 × L(z)，L(−1.645) = 0.1854</td><td>82.9 件</td></tr>
+      <tr><td>年缺货量</td><td>82.9 × 37</td><td>≈ <strong>3,070 件</strong></td></tr>
+      <tr><td>平均库存</td><td>Q*/2 + SS = 4,933 + 736</td><td>5,669 件</td></tr>
+      <tr><td><strong>年持有成本</strong></td><td>5,669 × ¥15</td><td><strong>≈ ¥8.5 万</strong></td></tr>
+      <tr><td><strong>年缺货成本</strong></td><td>3,070 × ¥80</td><td><strong>≈ ¥24.6 万</strong></td></tr>
+      <tr><td><strong>年库存总成本</strong></td><td>—</td><td><strong>≈ ¥33.1 万</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>注意缺货成本是持有成本的 2.9 倍</strong>。这解释了为什么供应链系统里「服务水平」不是一个可以随便设的数：<strong>它直接决定年成本的几倍量级</strong>。也解释了为什么<strong>跨仓调拨</strong>（<a href="#sec-3.8.12">多级履约与调拨</a>）在本章如此重要——它把一次缺货从「¥24.6 万的年化缺货成本」里捞回来。</p>
+</blockquote>
+<p><strong>Agent 的价值：把预测误差减半</strong>（σ_daily 从 200 降到 100）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">σ = 200</th><th scope="col">σ = 100</th><th scope="col">变化</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>安全库存 SS</td><td>736 件</td><td><strong>368 件</strong></td><td><strong>−50%</strong></td></tr>
+      <tr><td>年持有成本</td><td>¥8.5 万</td><td>¥8.0 万</td><td>−¥0.6 万</td></tr>
+      <tr><td>年缺货量</td><td>3,070 件</td><td>1,534 件</td><td>−50%</td></tr>
+      <tr><td>年缺货成本</td><td>¥24.6 万</td><td>¥12.3 万</td><td>−¥12.3 万</td></tr>
+      <tr><td><strong>年库存总成本</strong></td><td><strong>¥33.1 万</strong></td><td><strong>¥20.2 万</strong></td><td><strong>−39%（省 ¥12.8 万）</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这条是本章的核心结论</strong>：Agent 的价值<strong>不在「预测得更准」本身</strong>——准是一个手段。它体现在<strong>安全库存减半</strong>，进而<strong>同时省下持有成本与缺货成本</strong>。安全库存减半之所以成立，是因为 <code>SS ∝ σ</code>，而 <strong>σ 是与预测精度同向的量</strong>。</p>
+  <p><strong>但要注意反向的陷阱</strong>：<code>SS ∝ √L</code>。如果为了「响应更快」把提前期从 45 天压到 20 天，安全库存会降到 √(20/45) = 67%，看起来省了 33%——<strong>但提前期的波动也会变，而提前期波动的那一部分不受这个折扣保护</strong>。<strong>缩短提前期是最有效的降库存手段，但它需要动供应链本身，不是模型能替代的。</strong></p>
+</blockquote>
+<p><strong>动态安全库存的三个输入</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">输入</th><th scope="col">静态取法</th><th scope="col">动态取法</th><th scope="col">影响</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>需求波动 σ</td><td>用历史平均 CV</td><td>按 SKU × 仓 × 生命周期分别估</td><td>大促期与常态期分开</td></tr>
+      <tr><td>提前期 L</td><td>用均值</td><td>用分布的 P90</td><td>供应商不稳定时必须用高分位</td></tr>
+      <tr><td>服务水平 z</td><td>全局一个值</td><td>按 ABC 分层</td><td>高价值品类更高</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.7">11.3.7 补货决策与约束求解</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>补货量不是「缺口」，而是「约束下的最优」：名义缺口等于目标库存减可售库存，实际补货量是在约束下最接近名义缺口且可行的量。约束清单分硬软：MOQ、箱规、仓容、供应商月产能、承运商周运力、合同价与量价阶梯是硬约束，持有上限与效期、预算上限、服务水平偏差是软约束。产能挤占是最容易被忽略的硬约束：一次超量下单 10,000 件而供应商月产能只有 8,000 件，就吃掉 125% 的月产能、挤占另外 25%，让其它 20 个 SKU 平均延期 3 天。求解器三层策略是规则补货、启发式加局部调整、精确求解。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「逐 SKU 独立求解是产能挤占的系统性来源」这句话值得贴在墙上，它揭示了一种常见的架构惰性：每个 SKU 各自算各自的最优，汇总起来就超出了供应商的真实产能，而且当期看板完全看不出来。所以产能视图必须进求解器，按产能做全局分配。另外三层求解器的定位是「先进兜底落后」而不是「先进替代落后」——求解器超时或数据缺失时必须能退回规则层继续出计划，「规则补货是永远可跑的最后一层」是硬性架构约束，不是可选项。</p>
+</div>
+
+<h4 id="sec-3.7.10" data-toc-skip>补货决策与约束求解</h4>
+
+<p><strong>补货量不是「缺口」，是「约束下的最优」</strong>：</p>
+<pre><code>名义缺口 = 目标库存（ROP + Q*/2） − 可售库存（可用 + 在途）
+实际补货量 = 在约束下最接近名义缺口且可行的量</code></pre>
+<p><strong>约束清单（求解器必须全部满足）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">约束</th><th scope="col">类型</th><th scope="col">违反后果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>供应商 MOQ（最小起订量）</td><td>硬</td><td>供应商拒单</td></tr>
+      <tr><td>箱规 / 包装规格</td><td>硬</td><td>无法发货</td></tr>
+      <tr><td>仓库容量与库位</td><td>硬</td><td>货到无处放</td></tr>
+      <tr><td>供应商月产能</td><td>硬（共享）</td><td><strong>挤占其他 SKU</strong></td></tr>
+      <tr><td>承运商周运力</td><td>硬</td><td>排队或拒运</td></tr>
+      <tr><td>合同价与量价阶梯</td><td>硬</td><td>违反合同价</td></tr>
+      <tr><td>库存持有上限 / 效期</td><td>软（可带惩罚）</td><td>积压与减值</td></tr>
+      <tr><td>预算上限</td><td>软</td><td>超支</td></tr>
+      <tr><td>服务水平偏差</td><td>软</td><td>缺货或积压</td></tr>
+  </tbody>
+</table>
+<p><strong>产能挤占是本章最容易被忽略的约束</strong>：</p>
+<pre><code>一次超量下单 10,000 件，供应商月产能 8,000 件
+→ 该 SKU 占掉月产能的 125%
+→ 挤占另外 25% 的产能
+→ 供应商其它 20 个 SKU 平均延期 3 天
+→ 缺货成本 = 20 SKU × 3 天 × 日销 × 毛利</code></pre>
+<blockquote>
+  <p><strong>一次错误决策的影响面从 1 个 SKU 变成了 20 个 SKU。</strong> 而且这 20 个 SKU 的延期是<strong>在几天后才暴露的</strong>——当期所有看板都显示正常。<strong>这就是「产能挤占放大」：它是唯一一个会把 1 个错误变成 N 个错误、且延迟暴露的机制。</strong></p>
+  <p><strong>对策不是「更保守」，而是「看得见」</strong>：供应商产能视图必须进入补货求解器，<strong>求解时按产能做全局分配</strong>，而不是每个 SKU 各自算完再汇总。<strong>逐 SKU 独立求解，是产能挤占的系统性来源。</strong></p>
+</blockquote>
+<p><strong>求解器的三层策略</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">方法</th><th scope="col">适用</th><th scope="col">特点</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td>规则补货（ROP + EOQ）</td><td>兜底、C 类 SKU</td><td>毫秒级、永远可跑</td></tr>
+      <tr><td>2</td><td>启发式 + 局部调整</td><td>B 类、大部分场景</td><td>快、可解释</td></tr>
+      <tr><td>3</td><td>精确求解（整数规划 / CP）</td><td>A 类、跨仓调拨、新品首发</td><td>慢，但全局最优</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>三层不是「先进替代落后」，而是「先进兜底落后」</strong>。求解器超时、算力不够、数据缺失时，<strong>必须能退回规则层继续出计划</strong>——而不是整个计划失败。<strong>「规则补货是永远可跑的最后一层」是本章的一个硬性架构约束。</strong></p>
+</blockquote>
+
+<h3 id="sec-3.8">11.3.8 供应商选择与履约调拨</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>供应商评估五个维度是履约、质量、产能、商务与集中度，其中产能维度决定「能不能挤占别人」，集中度过高则是单点风险。寻源建议必须给出替代方案，并按可替代性分层转移比例：完全可替代转移 80%，部分可替代（认证、模具、包材限制）转移 20%，不可替代只能加急或降级供应。多级履约的三个决策是库存配置、履约路由与调拨；缺货的三级处置是跨仓调拨（¥3/件、1 天）、供应商加急空运（¥30/件、5 天）、放弃销售（毛利损失 ¥80/件），成本比 1 : 10 : 27。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「不可替代」这一档的存在，是供应链与其它 Agent 的重要差别：营销可以随便换一个渠道，供应链很多物料换个供应商要 3 个月认证。所以替代方案不是一个建议，是一道必须提前回答的问题——主供明天就断，备选是谁、能不能接、多久能接上。同样值得记的是那句操作原则：先找库存，而不是先找货。若默认动作是「催供应商加急」，那是在花 10 倍的钱买 4 天的速度。</p>
+</div>
+
+<h4 id="sec-3.8.11" data-toc-skip>供应商选择与寻源</h4>
+
+<p><strong>供应商评估的五个维度</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">指标</th><th scope="col">为什么重要</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>履约</td><td>准时交付率、短交率、违约次数</td><td>决定提前期可信度</td></tr>
+      <tr><td>质量</td><td>批次合格率、退货率</td><td>决定实际可用率</td></tr>
+      <tr><td>产能</td><td>月产能、可用产能窗口</td><td><strong>决定能不能挤占别人</strong></td></tr>
+      <tr><td>商务</td><td>价格、量价阶梯、账期</td><td>决定现金流</td></tr>
+      <tr><td>集中度</td><td>该供应商占该品类采购额比</td><td><strong>过高则单点风险</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>寻源建议必须给出「替代方案」</strong>：换供应商不是把量全给新供应商，而是<strong>按可替代性分层</strong>：完全可替代 → 转移 80%；部分可替代（认证、模具、包材限制） → 转移 20%；不可替代 → 只能加急或降级供应。</p>
+<blockquote>
+  <p><strong>「不可替代」这一档的存在，是供应链与其它 Agent 的重要差别</strong>：营销可以随便换一个渠道，供应链的很多物料<strong>换个供应商要 3 个月认证</strong>。<strong>所以「替代方案」不是一个建议，它是一道必须提前回答的问题</strong>——如果主供明天就断，备选是谁、能不能接、多久能接上。</p>
+</blockquote>
+
+<h4 id="sec-3.8.12" data-toc-skip>多级履约与调拨</h4>
+
+<p><strong>多级库存的三个决策</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">问题</th><th scope="col">关键约束</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>库存配置</td><td>每层放多少</td><td>仓容、成本、服务水平</td></tr>
+      <tr><td>履约路由</td><td>从哪个仓发</td><td>库存可用性、时效、成本</td></tr>
+      <tr><td>调拨</td><td>何时从 A 仓调 B 仓</td><td>调拨成本 vs 缺货成本</td></tr>
+  </tbody>
+</table>
+<p><strong>缺货三级处置决策树</strong>（本章最实用的一张图）：</p>
+<pre><code>缺货发生
+  → 第一步：跨仓调拨（¥3/件，1 天到）
+  → 第二步：供应商加急空运（¥30/件，5 天到）
+  → 第三步：放弃销售（毛利损失 ¥80/件 + 客户流失）
+  → 成本比 调拨 : 加急 : 放弃 = 1 : 10 : 27</code></pre>
+<p><strong>调拨不是万能的</strong>：它受<strong>调拨仓自身库存</strong>约束（把 A 仓调给 B，B 的销量要靠 C 补上，C 又可能没有——<strong>调拨只是把缺口往后挪，不一定消除它</strong>），而且受<strong>调拨本身的物流成本与时效</strong>约束。<strong>所以调拨决策必须看全网库存，不能只看两个仓。</strong></p>
+<blockquote>
+  <p><strong>「先找库存，而不是先找货」是本章的核心操作原则。</strong> 一次 1,000 件的缺口：调拨花 ¥3,000、加急花 ¥30,000、放弃损失 ¥80,000。<strong>调拨比加急便宜 10 倍，比放弃便宜 27 倍。</strong> 大多数系统的默认动作是「催供应商加急」，那是在花 10 倍的钱买 4 天的速度。</p>
+</blockquote>
+
+<h3 id="sec-3.9">11.3.9 异常归因、对账、评测与容量成本</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>异常处置分四类：缺货、延迟、超量积压、质量异常，各自的检测信号、根因方向与处置动作都不同；归因必须区分需求侧、供给侧、物流侧与数据侧，其中数据侧的账实不符必须先修账再谈补货。对账有三条线：账实对账日/周、差异 ≤ 0.1%，在途对账日、差异 ≤ 0.01%，订单对账日、差异必须为 0；差异超阈值即冻结对应范围的自动补货。评测侧，离线主指标是区间覆盖率、偏置与牛鞭系数（上游订单波动除以终端需求波动，可逐层测，被称为供应链系统的「体温」），在线指标是缺货率、OTIF、建议采纳率与修改率；回测三条纪律是回放完整策略、包含促销与缺货期样本、使用当时的库存状态。容量侧，本章的容量单位不是 QPS 而是「一个补货窗口内能算完多少计划」：峰值只有约 56 个 SKU 决策/秒、在线轨道峰值约 1,400 QPS，但单次精确求解要 30–120 秒，200 个计划不可能串行跑完，批量轨道全链路硬限 8 小时。成本侧的结论是钱主要花在库存持有与缺货上，模型成本可忽略，杠杆排序是降 σ 与降 L。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「牛鞭系数是本章的体温计」这个说法能解释很多现场现象：WAPE 变差说明模型不准了，牛鞭系数变差说明架构里某处的信息在失真——后者是架构问题，改模型没用。对账那三行里最容易漏的是在途对账：系统显示已下单 10,000 件而供应商只确认了 8,000 件，这 2,000 件的缺口从那一刻起就存在，却没有任何看板会显示它，直到货期到了才发现到不了。成本杠杆的排序同样值得留意：降 σ 和降 L 都作用在同一个公式 SS ∝ σ × √L 上，其余手段都不在这两个变量上，天花板很低。</p>
+</div>
+
+<h4 id="sec-3.9.13" data-toc-skip>异常处置与根因归因</h4>
+
+<p><strong>四类异常与各自的处置方向</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">异常</th><th scope="col">检测信号</th><th scope="col">根因方向</th><th scope="col">处置</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>缺货</td><td>可用库存 &lt; 安全库存</td><td>预测偏低 / 提前期变长 / 需求突增</td><td>调拨 → 加急 → 补货计划修正</td></tr>
+      <tr><td><strong>延迟</strong></td><td>供应商未按承诺期到货</td><td>供应商产能 / 物流 / 清关</td><td>改承诺期、切备供、通知下游</td></tr>
+      <tr><td><strong>超量 / 积压</strong></td><td>库龄超阈值、库存周转掉档</td><td>预测偏高 / 促销取消 / 提前期变短</td><td>停单、去化、跨渠道清货</td></tr>
+      <tr><td><strong>质量异常</strong></td><td>退货率 / 批次不合格率上升</td><td>批次问题 / 供应商工艺</td><td>拦截批次、索赔、换供</td></tr>
+  </tbody>
+</table>
+<p><strong>归因要区分「共同原因」与「责任原因」</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">归因方向</th><th scope="col">例子</th><th scope="col">处置</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>需求侧</td><td>需求突增、促销拉动</td><td>补货</td></tr>
+      <tr><td>供给侧</td><td>供应商减产、产能挤占</td><td>切备供、加急</td></tr>
+      <tr><td>物流侧</td><td>运力紧张、港口拥堵</td><td>改路由、改承诺期</td></tr>
+      <tr><td><strong>数据侧</strong></td><td><strong>库存账实不符、订单重复</strong></td><td><strong>先修账，再谈补货</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>最后一档是本章特有的高频陷阱</strong>：很多「缺货」其实是账实不符。<strong>在账实不符被修复之前，任何补货决策都是在给一个假缺口补货。</strong> 所以异常处置的第一步永远是<strong>先校验账实，再判断根因</strong>。</p>
+</blockquote>
+<p><strong>承诺兑现率</strong>是本章特有的过程指标：</p>
+<pre><code>承诺兑现率 = 按承诺期到货的订单量 / 承诺订单量</code></pre>
+<p>它同时衡量供应商履约、内部承诺管理与异常响应的质量。<strong>低于阈值时，下游的可售量承诺就不该继续往下游传</strong>——否则缺货会从供应商一路传导到渠道，形成断货的连锁反应。</p>
+
+<h4 id="sec-3.9.14" data-toc-skip>库存与调拨的对账</h4>
+
+<p><strong>三条对账线</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">对账线</th><th scope="col">比什么</th><th scope="col">频率</th><th scope="col">差异容忍</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>账实对账</td><td>系统库存 vs 实物盘点</td><td>日 / 周</td><td>≤ 0.1%</td></tr>
+      <tr><td><strong>在途对账</strong></td><td><strong>已下单未收货 vs 供应商在途</strong></td><td><strong>日</strong></td><td><strong>≤ 0.01%</strong></td></tr>
+      <tr><td>订单对账</td><td>下单量 vs 供应商确认量</td><td>日</td><td>0（必须一致）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>在途对账是本章最容易漏掉的一条</strong>。系统里显示「已下单 10,000 件」，如果供应商只确认了 8,000 件，那么<strong>这 2,000 件的缺口从这一刻起就存在，但没有任何看板会显示它</strong>——直到货期到了才发现到不了。<strong>在途库存是补货决策的输入，它错了，缺口推演就全错。</strong></p>
+</blockquote>
+<p><strong>对账差异的处理</strong>：差异 &gt; 阈值 → <strong>冻结该 SKU 的自动补货</strong>，转人工核对。<strong>在对账修复前自动补货，只会把一个账面问题变成一批真实的错货。</strong></p>
+
+<h4 id="sec-3.9.15" data-toc-skip>评测方法</h4>
+
+<p><strong>离线评测</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">定义</th><th scope="col">局限</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>WAPE</td><td>Σ\</td><td>实际−预测\</td><td>/ Σ实际</td><td>分母大的 SKU 主导</td></tr>
+      <tr><td><strong>区间覆盖率</strong></td><td>实际落入预测区间的比例</td><td><strong>只说覆盖不说宽度，需与「区间宽度」一起看</strong></td></tr>
+      <tr><td><strong>偏置（bias）</strong></td><td>预测均值 − 实际均值</td><td><strong>系统性高估最致命，必须单列</strong></td></tr>
+      <tr><td>缺货率回放</td><td>用历史实际需求回放补货策略</td><td>需要重放完整策略</td></tr>
+      <tr><td><strong>牛鞭系数</strong></td><td>上游订单波动 / 终端需求波动</td><td><strong>本层可测，是本章的核心健康指标</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>牛鞭系数是可以逐层测的</strong>：把本级订单序列与终端销售序列做相关与波动比。<strong>这个比值应该被当作供应链系统的「体温」</strong>——它比 WAPE 更早、更直接地反映信号失真。</p>
+</blockquote>
+<p><strong>在线评测</strong>：缺货率、OTIF、库存周转天数、建议采纳率、建议修改率、约束违反数、重复下单数、对账差异率、承诺兑现率。</p>
+<p><strong>离线回测的三条纪律</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">纪律</th><th scope="col">为什么</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>必须回放完整策略</strong>（含安全库存与提前期）</td><td>只回放预测精度会系统性高估收益</td></tr>
+      <tr><td><strong>必须包含促销与缺货期样本</strong></td><td>否则模型在最重要的样本上没被评测</td></tr>
+      <tr><td><strong>必须用当时的库存状态</strong></td><td>用今天的库存回放历史，会消除缺货本身</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.9.16" data-toc-skip>容量与成本估算</h4>
+
+<p><strong>本节是容量口径的权威版</strong>，<a href="#seg-5">第 5 段</a>与<a href="#seg-6">第 6 段</a>只引用。</p>
+<p><strong>假设</strong>：SKU 50 万、仓 200、日销 200 万件 / 80 万单、日补货计划 200 个、每仓候选 SKU 2,000、补货窗口集中在 20:00–22:00（峰值系数 3）、仅 10% 的 SKU 需要 LLM 参与（异常项）、供应商 300 家。</p>
+<p><strong>一、批量轨道（T+1 日批）</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>日补货计划数</td><td>200 仓 × 1 次</td><td><strong>200</strong></td></tr>
+      <tr><td><strong>SKU 级决策点 / 天</strong></td><td>200 × 2,000</td><td><strong>40 万</strong></td></tr>
+      <tr><td><strong>峰值 SKU 决策 / 秒</strong></td><td>40 万 ÷ 7,200s × 3</td><td><strong>≈ 56</strong></td></tr>
+      <tr><td>峰值计划并发</td><td>200 计划 ÷ 7,200s</td><td>≈ 0.03（批任务，同时在跑 ≤ 20）</td></tr>
+      <tr><td><strong>峰值 LLM 调用</strong></td><td>4 万次 ÷ 7,200s</td><td><strong>≈ 5.6 QPS</strong></td></tr>
+      <tr><td>单计划求解耗时（精确求解）</td><td>2,000 SKU × 整数规划</td><td>30–120s</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这一行是本章的容量特征：QPS 极低，但单次计算很重。</strong> 供应链 Agent 的资源瓶颈是<strong>单个批任务的算力与时间窗口</strong>，不是并发。<strong>因此容量规划的单位是「一个补货窗口内能算完多少个计划」，不是「每秒多少请求」。</strong></p>
+</blockquote>
+<p><strong>二、在线轨道</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>平均库存查询 QPS</td><td>200 万库存记录 × 20 次 / 天 ÷ 86400</td><td>≈ 463</td></tr>
+      <tr><td><strong>峰值库存查询 QPS</strong></td><td>463 × 3</td><td><strong>≈ 1,400</strong></td></tr>
+      <tr><td>峰值异常检测 QPS</td><td>事件流驱动</td><td>≈ 200</td></tr>
+      <tr><td>峰值下单 QPS</td><td>200 计划 × 500 SKU ÷ 7,200s</td><td>≈ 14</td></tr>
+  </tbody>
+</table>
+<p><strong>三、数据量</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">数据</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>库存记录</td><td>50 万 SKU × 平均 4 仓</td><td>200 万条（≈ 400 MB）</td></tr>
+      <tr><td>销售明细</td><td>200 万行 / 天 × 120B</td><td>≈ 240 MB / 天</td></tr>
+      <tr><td>库存流水</td><td>1,000 万条 / 天 × 80B</td><td>≈ 800 MB / 天</td></tr>
+      <tr><td>订单履约</td><td>80 万单 / 天 × 600B</td><td>≈ 48 MB / 天</td></tr>
+      <tr><td><strong>预测记录日增</strong></td><td>A 类 80 万 + B 类 60 万 + C 类 25 万 = 165 万 (SKU×仓) 组合</td><td>≈ <strong>165 万行 / 天（≈ 165 MB / 天）</strong></td></tr>
+      <tr><td>预测记录存量</td><td>80万×60 + 60万×30 + 25万×14</td><td>≈ <strong>6,950 万条</strong></td></tr>
+      <tr><td>合计日增</td><td>240 + 800 + 48 + 165 MB</td><td>≈ <strong>1.25 GB / 天</strong></td></tr>
+      <tr><td>合计年增</td><td>—</td><td>≈ <strong>0.46 TB / 年</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>四、成本</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">年成本量级</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>库存持有成本</strong></td><td><strong>最大</strong></td><td>与 <a href="#sec-3.6.9">库存策略：再订货点与安全库存</a> 的口径一致（SKU 数 × 均值）</td></tr>
+      <tr><td>缺货成本</td><td>次之、波动极大</td><td>毛利损失 + 加急 + 客户流失</td></tr>
+      <tr><td>模型 / 计算成本</td><td>小</td><td>峰值 5.6 QPS 的 LLM 调用，月成本通常在千元级</td></tr>
+  </tbody>
+</table>
+<p><strong>五、结论</strong></p>
+<ol>
+<li><strong>本章的容量单位不是 QPS，是「补货窗口内能算完多少个计划」</strong>——峰值 56 SKU 决策 / 秒看起来很轻，但单个精确求解要 30–120s，<strong>200 个计划不可能串行跑完</strong>。必须并行 + 分层降级。</li>
+<li><strong>预测数据年增约 60 GB（存量 6,950 万条），比流水小一个量级</strong>——分层预测的价值正在于此：C 类不做个体预测，直接省掉了大头。</li>
+<li><strong>在线轨道只有 1,400 QPS，是全书最轻的 Agent 链路之一</strong>——<strong>本章的工程量在离线批处理与数据质量，不在实时服务</strong>。</li>
+<li><strong>必须先量提前期分布与需求波动</strong>——它们决定安全库存，进而决定年持有成本（<a href="#sec-3.6.9">库存策略：再订货点与安全库存</a>）。</li>
+<li><strong>成本大头在库存持有，不在模型</strong>——<strong>优化预测精度的收益要通过「减少安全库存」这条路径兑现</strong>，而不是直接体现在账单上。</li>
+</ol>
+
+<h4 id="sec-3.9.17" data-toc-skip>成本模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">量级</th><th scope="col">优化手段</th><th scope="col">本章收益量级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>库存持有成本</strong></td><td><strong>最大</strong></td><td>分位数预测、分层服务水平、缩短提前期</td><td><strong>安全库存减半 → 总库存成本降 39%</strong></td></tr>
+      <tr><td>缺货成本</td><td>次之但波动大</td><td><strong>跨仓调拨优先于加急</strong></td><td>单次缺口成本降 27 倍</td></tr>
+      <tr><td>采购成本</td><td>大</td><td>订单合并、量价阶梯、寻源</td><td>量价优化</td></tr>
+      <tr><td>加急物流成本</td><td>中</td><td>调拨替代、仓网布局</td><td>比加急便宜 10 倍</td></tr>
+      <tr><td>滞销与减值</td><td>隐性但会突然出现</td><td>生命周期特征、动态安全库存、停单规则</td><td>—</td></tr>
+      <tr><td>模型 / 计算成本</td><td>小</td><td>分层预测、离线批处理</td><td>可忽略</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章成本优化的杠杆排序与其他章完全不同</strong>：库存持有与缺货占了绝大部分，而它们都由<strong>同一件事</strong>驱动——<strong>需求波动 σ 与提前期 L</strong>。所以本章最有效的两招是：<strong>① 把预测做准（降 σ）；② 把供应链缩短（降 L）</strong>。第二招收益更大但周期更长，也更不在软件团队手里。</p>
+</blockquote>
+
+<h2 id="seg-4">11.4 工程落地与规则护栏</h2><div class="oc-part-lead"><strong>第四段 · 工程落地与规则护栏</strong>这一段回答：方法论怎么变成链路上的一环一环——哪些依赖必须 fail-closed，哪些可以降级，降级时打什么标。</div>
+
+<h3 id="sec-4.1">11.4.1 端到端链路与目标解析护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>端到端链路十一站，从自然语言目标、目标解析、预测、库存、缺口推演、约束求解、寻源与承诺、履约、异常、对账到审计与校准；两条轨道分别是 T+1 批量轨道（8 小时内必须完成，否则错过下一个补货窗口）与毫秒级在线轨道，另有事件驱动重规划与规则兜底层。目标解析护栏五条：输出结构化 JSON 且缺字段必须追问，必须显式确认服务水平目标、预算上限、约束清单、可接受提前期与不可动物料，必须解析出「缺口口径」（按可售还是实物、按本级需求还是终端需求），高风险目标强制审批，解析结果可回放可审计。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「缺口口径不问清，后面所有数字都是空的」是这一节的核心。同一句「未来 4 周要保证不断货」，按可售库存还是按实物库存算、按本级需求还是按终端需求算，缺口可以从 18,600 件变成另一个数，而求解、采购与预算全都建在这个数上。所以目标解析阶段的追问不是流程上的客气，它是这一章里唯一一次能低成本纠正口径的机会。</p>
+</div>
+
+<h4 id="sec-4.1.1" data-toc-skip>端到端链路</h4>
+
+<pre><code>自然语言经营目标
+  → Goal Parser（结构化 + 追问 + 人均/服务水平提示）
+  → Forecast Service（T+1 批：ABC 分层 + 分位数预测 + 区间校准）
+  → Inventory Service（可用 / 在途 / 账实 / 安全库存，口径统一）
+  → Gap Engine（缺口推演：ROP + SS − 可售）
+  → Constraint Solver（MOQ / 箱规 / 仓容 / 产能 / 运力 / 预算）
+  → Sourcing &amp; Commitment（供应商比选 → 承诺契约 → 下单，幂等）
+  → Fulfilment（多级路由、批次分配、效期先出）
+  → Exception Service（缺货 / 延迟 / 超量 / 质量 → 局部重规划）
+  → Reconcile Service（账实对账 + 在途对账 + 订单对账）
+  → Audit &amp; Calibration（决策留痕 + 牛鞭系数监控 + 模型回放）</code></pre>
+<p><strong>两条轨道</strong>：</p>
+<pre><code>T+1 批量轨道
+  → 数据清洗 → 特征 → 分位数预测 → 缺口推演 → 约束求解 → 审批
+  → 8h 内必须完成，否则错过下一个补货窗口
+
+在线轨道
+  → 库存查询 / 异常检测 / 下单写入 / 承诺下发（毫秒级）
+  → 决策 P95 &lt; 200ms
+
+事件驱动重规划
+  → 缺货 / 延迟 / 超量 / 质量异常 → 只重算受影响的 SKU × 仓
+  → 全网重排会让执行侧无所适从
+
+规则兜底层
+  → ROP + EOQ 规则补货：永远可跑，求解器超时也出得了计划</code></pre>
+<blockquote>
+  <p><strong>这张图里有三条「不可省」的线</strong>：<strong>约束求解</strong>（模型只是建议）、<strong>规则兜底层</strong>（永远能出计划）、<strong>对账</strong>（账实不符时不能补货）。前两条决定系统能不能跑，第三条决定它跑出来的东西是不是真的。</p>
+</blockquote>
+
+<h4 id="sec-4.1.2" data-toc-skip>目标解析护栏</h4>
+
+<ul>
+<li>输出结构化 JSON，字段缺失必须追问。</li>
+<li><strong>必须显式确认：服务水平目标、预算上限、约束清单、可接受的提前期、不可动的物料（认证 / 模具限制）。</strong></li>
+<li><strong>必须解析出「缺口口径」</strong>：按可售库存还是按实物库存？按本级需求还是终端需求？<strong>口径不问清，后面所有数字都是空的。</strong></li>
+<li>高风险目标（全网大额、动认证物料、单一供应商超集中）强制审批。</li>
+<li>解析结果可回放、可审计。</li>
+</ul>
+
+<h3 id="sec-4.2">11.4.2 预测护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>预测护栏七条：ABC 三层各自的粒度与窗口不可混用且 C 类必须给类目均值兜底值，区间覆盖率与偏置必须独立监控而 WAPE 只作辅助，禁止把上游订单量作为预测特征，终端 POS、促销日历、缺货率与生命周期四项必备特征缺一即降级并标注，数据超过窗口即标记陈旧并降低信任级别，每条预测绑定模型版本且建议必须引用具体预测版本，单日需求超出历史 P99 时不直接入模而转人工复核。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「禁止把上游订单量作为预测特征」是全章最反直觉也最重要的一条护栏，它要求主动放弃信息。在「上游订单是最丰富特征」的直觉下，这条看起来像自缚手脚——但它正是牛鞭的第一机制，而且顺便回答了「模型越准越糟」这个悖论：模型越强，越会忠实地放大一个已经被扭曲的信号。护栏在这里的作用不是限制模型，而是限制模型能看见什么。</p>
+</div>
+
+<h4 id="sec-4.2.3" data-toc-skip>预测护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>分层强制</strong></td><td>A / B / C 三层各自的粒度与窗口不可混用；C 类必须给类目均值兜底值</td></tr>
+      <tr><td><strong>区间校准</strong></td><td>区间覆盖率与偏置必须独立监控，WAPE 只作辅助</td></tr>
+      <tr><td><strong>特征禁令</strong></td><td><strong>禁止把上游订单量作为预测特征</strong>（切断牛鞭的第一机制）</td></tr>
+      <tr><td><strong>必备特征</strong></td><td>终端 POS、促销日历、缺货率、生命周期阶段，缺一即降级并标注</td></tr>
+      <tr><td><strong>陈旧标记</strong></td><td>数据超过窗口即标记陈旧，降低信任级别</td></tr>
+      <tr><td><strong>版本绑定</strong></td><td>每条预测绑定模型版本；建议必须引用具体预测版本</td></tr>
+      <tr><td><strong>异常值钳制</strong></td><td>单日需求超出历史 P99 时不直接入模，转人工复核</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「禁止把上游订单量作为预测特征」是本章最反直觉也最重要的一条护栏</strong>。它要求<strong>主动放弃信息</strong>。在一个「上游订单是最丰富特征」的直觉下，这条护栏看起来像自缚手脚——但它正是牛鞭效应的第一机制。<strong>在逐级预测的架构里，看得更近比看得更多重要。</strong></p>
+</blockquote>
+
+<h3 id="sec-4.3">11.4.3 补货、履约与审计护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>补货与约束护栏十条，P0 有七条：约束不可违反（违反数为 0）、产能可见（禁止逐 SKU 独立求解后汇总）、不可逆承诺分级审批、重复下单为 0（计划版本加幂等键，写入失败不重试不落单）、单 SKU 与单供应商补货量上限、生效范围不得超过最大仓容与最大库龄。履约与异常护栏强调下发前复核承诺的量、期、价、批次四项锁定，承运商运力与时效承诺必须来自合同能力声明而非模型估计，承诺兑现率低于阈值即停止向下游继续承诺，异常检测必须区分需求侧、供给侧、物流侧与数据侧，且数据侧的账实不符必须先修账再谈补货。审计与对账护栏给出三条对账线（账实 ≤ 0.1%、在途 ≤ 0.01%、订单差异必须为 0）与超阈值即冻结对应范围自动补货。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「建议被采纳后改了多少」是这一节里最有价值的一个审计字段，因为它衡量的是模型与计划员的真实分歧。长期分歧大，说明要么模型不准、要么约束口径没对齐，两者都需要修，而不是让计划员每次手工覆盖。这也解释了为什么不能只看采纳率：采纳率高可能只是大家懒得改，修改率才是分歧的诚实读数。另一个必须记住的是订单对账差异必须为 0，它比另外两条严得多，因为另外两条只影响账，订单差异直接等于重复下单。</p>
+</div>
+
+<h4 id="sec-4.3.4" data-toc-skip>补货与约束护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">领域</th><th scope="col">护栏</th><th scope="col">优先级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>约束不可违反</strong></td><td>MOQ / 箱规 / 仓容 / 产能 / 运力 / 合同价，违反数为 <strong>0</strong></td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>产能可见</strong></td><td>求解器必须读供应商产能视图，<strong>禁止逐 SKU 独立求解后汇总</strong></td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>不可逆承诺审批</strong></td><td>下单按金额 / 量 / 品类敏感度分级审批</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>重复下单为 0</strong></td><td>计划版本 + 幂等键；下单写入失败<strong>不重试不落单</strong></td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>上限护栏</strong></td><td>单 SKU / 单供应商 / 单仓的补货量上限与库存持有上限</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>生效范围</strong></td><td>补货量不得超过该 SKU 的最大仓容与最大库龄</td><td><strong>P0</strong></td></tr>
+      <tr><td>求解器降级</td><td>精确 → 启发式 → 规则，三级自动降级并标注</td><td>P1</td></tr>
+      <tr><td>建议可解释</td><td>每条建议附预测、约束余量、依据与置信</td><td>P1</td></tr>
+      <tr><td>效期先出</td><td>同 SKU 多批次按效期先出（FEFO）</td><td>P1</td></tr>
+      <tr><td>跨仓调拨优先</td><td>缺口处置顺序固定为调拨 → 加急 → 放弃</td><td>P1</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-4.3.5" data-toc-skip>履约与异常护栏</h4>
+
+<ul>
+<li>下发前复核承诺参数：<strong>量、期、价、批次</strong>四项锁定，不允许静默改动。</li>
+<li>承运商运力与时效承诺必须来自合同能力声明，不来自模型估计。</li>
+<li><strong>承诺兑现率是过程指标</strong>，低于阈值时停止向下游继续承诺。</li>
+<li>异常检测必须区分「需求侧 / 供给侧 / 物流侧 / <strong>数据侧</strong>」。</li>
+<li><strong>数据侧异常（账实不符）必须先修账再谈补货。</strong></li>
+<li>事件驱动重规划<strong>只覆盖受影响的 SKU × 仓</strong>，全网重排需人工批准。</li>
+<li>重规划必须输出「变了什么、为什么变」，并保留上一版以供对比。</li>
+</ul>
+
+<h4 id="sec-4.3.6" data-toc-skip>审计与对账护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">对账线</th><th scope="col">频率</th><th scope="col">差异容忍</th><th scope="col">超阈值动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>账实对账</td><td>日 / 周</td><td>≤ 0.1%</td><td>冻结该仓自动补货</td></tr>
+      <tr><td><strong>在途对账</strong></td><td><strong>日</strong></td><td><strong>≤ 0.01%</strong></td><td><strong>冻结该供应商自动补货</strong></td></tr>
+      <tr><td>订单对账</td><td>日</td><td><strong>0</strong></td><td>转人工，<strong>禁止重试下单</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「订单对账差异必须为 0」比其它两条严得多</strong>，因为它直接对应「重复下单」——而重复下单是本章唯一会立刻造成现金损失的失败（货订两次，钱付两次，货到两次）。</p>
+</blockquote>
+<p><strong>审计必录字段</strong>：谁、基于哪个预测版本、建议量、约束余量、审批人、是否被采纳、采纳后是否修改、改成多少、最终下单量与建议量的差异。</p>
+<blockquote>
+  <p><strong>「建议被采纳后改了多少」是本章最有价值的一个审计字段</strong>——它衡量的是<strong>模型与计划员的真实分歧</strong>。长期分歧大，说明要么模型不准、要么约束口径没对齐，<strong>两者都需要修</strong>，而不是让计划员每次手工覆盖。</p>
+</blockquote>
+
+<h3 id="sec-4.4">11.4.4 降级矩阵与延迟预算</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>降级的判据只有一条：依赖失效时，失效的后果是「少补一点」还是「多买一批 / 少卖一单」。据此，库存账实、在途确认、供应商主数据与价格、ERP/WMS 写入、主数据映射全部 Fail-Closed；供应商产能视图按上次已知产能打折 50% 分配；预测退回类目均值加移动平均；求解器三级降级到规则补货；承运商运力按历史均值估算并下调时效承诺；促销日历缺失时按无促销预测并标记高风险批次。延迟预算分在线与批量两条轨道：在线下单写入硬限 2 秒且 Fail-Closed，批量轨道从拉数清洗到审批下发全链路硬限 8 小时。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「不重试不落单」是降级矩阵的第一原则：重试一次下单就是多买一批货，而重试恰恰是超时场景里最自然的下意识动作。它和营销章的「不重试」是同一个道理，但供应链的下场更重——营销重试最多多发一条消息，供应链重试多出的是一整车货。另一处要点是 8 小时硬限：别的系统超时是「慢一点」，本章超时是「这一轮计划废了」，所以求解必须分层降级，审批必须顺延而不是无限等。</p>
+</div>
+
+<h4 id="sec-4.4.7" data-toc-skip>降级矩阵（Fail-Open / Fail-Closed）</h4>
+
+<p><strong>本节是降级的权威版</strong>，<a href="#sec-5.3.6">故障与兜底</a>只引用。</p>
+<p>判据：<strong>依赖失效时，失效的后果是「少补一点」还是「多买一批 / 少卖一单」？</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">依赖 / 环节</th><th scope="col">典型故障</th><th scope="col">策略</th><th scope="col">降级动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>库存账实数据</strong></td><td>超时 / 差异超阈值</td><td><strong>Fail-Closed</strong></td><td>冻结该 SKU 自动补货，转人工核对</td></tr>
+      <tr><td><strong>在途确认</strong></td><td>超时 / 与供应商不一致</td><td><strong>Fail-Closed</strong></td><td>冻结该供应商自动补货（否则会重复下单）</td></tr>
+      <tr><td><strong>供应商主数据 / 价格</strong></td><td>超时</td><td><strong>Fail-Closed</strong></td><td>不下单（不知道 MOQ 与合同价）</td></tr>
+      <tr><td><strong>供应商产能视图</strong></td><td>超时</td><td><strong>Fail-Closed（保守）</strong></td><td>按上次已知产能打折 50% 分配</td></tr>
+      <tr><td><strong>ERP / WMS 写入</strong></td><td>超时 / 冲突</td><td><strong>Fail-Closed</strong></td><td><strong>不重试不落单</strong>；错误码返回，人工核销</td></tr>
+      <tr><td><strong>主数据映射缺失</strong></td><td>SKU 未映射</td><td><strong>Fail-Closed</strong></td><td>跳过该 SKU，<strong>绝不猜映射</strong></td></tr>
+      <tr><td><strong>需求预测</strong></td><td>模型失败 / 超时</td><td>降级</td><td>退回类目均值 + 移动平均，<strong>计划照出</strong>，标注低置信</td></tr>
+      <tr><td><strong>约束求解器</strong></td><td>超时</td><td>降级</td><td>精确 → 启发式 → <strong>规则补货</strong></td></tr>
+      <tr><td><strong>承运商运力</strong></td><td>超时</td><td>降级</td><td>按历史均值估算，<strong>并下调时效承诺</strong></td></tr>
+      <tr><td><strong>促销日历</strong></td><td>数据缺失</td><td>降级</td><td>按无促销预测，<strong>该批次标记高风险</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>治理要点</strong>：</p>
+<ul>
+<li>每次降级打标 <code>degraded</code> + <code>fallback_mode</code> + <code>reason_code</code>，避免把降级效果误算成模型效果。</li>
+<li>高频抖动依赖配置熔断器，触发后快速失败。</li>
+<li>降级比例、原因码分布进入监控与告警。</li>
+<li><strong>「不重试不落单」是本章降级矩阵的第一原则</strong>——重试一次下单，就是多买一批货。</li>
+</ul>
+
+<h4 id="sec-4.4.8" data-toc-skip>延迟预算与超时降级</h4>
+
+<p><strong>本表是唯一的延迟口径来源</strong>，其他小节只引用。</p>
+<p><strong>在线轨道（毫秒级）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>库存与可用量查询</td><td>80ms</td><td>300ms</td><td>读缓存快照；快照过期则拒答</td></tr>
+      <tr><td>异常事件检测</td><td>200ms</td><td>1s</td><td>跳过该事件，转入批量扫描</td></tr>
+      <tr><td>供应商与产能查询</td><td>100ms</td><td>400ms</td><td>用 T−1 产能快照，<strong>标记为陈旧</strong></td></tr>
+      <tr><td>运力查询</td><td>100ms</td><td>400ms</td><td>按历史均值估算，降低置信度</td></tr>
+      <tr><td><strong>下单写入 ERP</strong></td><td><strong>300ms</strong></td><td><strong>2s</strong></td><td><strong>Fail-Closed：不重试不落单</strong></td></tr>
+      <tr><td>承诺下发</td><td>150ms</td><td>600ms</td><td>重试一次，仍失败转人工</td></tr>
+      <tr><td>在途确认对账</td><td>—</td><td>30min</td><td>冻结该供应商的自动补货</td></tr>
+  </tbody>
+</table>
+<p><strong>批量轨道（T+1）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>数据拉取与清洗</td><td>1h</td><td>2h</td><td>用上一版数据，<strong>标注陈旧</strong></td></tr>
+      <tr><td>特征与分位数预测</td><td>1h</td><td>2h</td><td>退回类目均值 / 移动平均</td></tr>
+      <tr><td>缺口推演</td><td>10min</td><td>30min</td><td>用简化安全库存口径</td></tr>
+      <tr><td><strong>约束求解（精确）</strong></td><td><strong>30min</strong></td><td><strong>60min</strong></td><td><strong>降级到启发式 → 规则补货</strong></td></tr>
+      <tr><td>审批与下发</td><td>2h</td><td>4h</td><td>顺延到下一个窗口并告警</td></tr>
+      <tr><td><strong>全链路合计</strong></td><td>—</td><td><strong>8h</strong></td><td><strong>必须早于下一个补货窗口</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章的延迟预算与前面所有章都不同：它有两条轨道，而且批量轨道有一条硬约束——「8h 内必须完成，否则错过下一个补货窗口」。</strong> 这条约束决定了两件事：<strong>一是求解必须分层降级</strong>（精确求解跑不完就降级，不能等），<strong>二是审批必须在预算内</strong>（审批超时要顺延到下一个窗口，而不是无限等）。<strong>别的系统超时是「慢一点」，本章超时是「这一轮计划废了」。</strong></p>
+</blockquote>
+
+<h3 id="sec-4.5">11.4.5 观测压测、护栏清单与上线检查</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>观测分八类，其中两个是本章特有的健康指标：牛鞭系数（订单波动比终端需求波动）与产能挤占率；决策类里的建议采纳率与建议修改率要一起看。压测九项覆盖单窗口 200 个计划并发、单计划 2,000 SKU 精确求解超时、提前期从 45 天跳到 90 天、供应商产能骤降 50%、库存流水重复事件、在途确认接口超时与 ERP 写入超时。规则护栏清单 18 条，其中十项 P0，七项是「下单之前」的检查。另有上线检查 10 问，其中第 2 问直接问「预测特征里是否有上游订单量」，第 10 问问「牛鞭系数是否被逐层测量」。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>本章的十个 P0 里有七个压在「承诺之前」，这不是过度设计：营销发错的消息能撤回一部分，供应链发错的订单撤不回——货已经在路上，钱已经付了，合同已经签了，供应商产能已经被占。所以这套系统的护栏重心与其它章同源，但位置更极端，几乎全部集中在承诺之前这一个点上。上线检查那 10 问其实是一份验收清单，可以直接当上线评审的提问顺序。</p>
+</div>
+
+<h4 id="sec-4.5.9" data-toc-skip>观测与压测</h4>
+
+<p><strong>观测</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>预测</td><td>WAPE、<strong>区间覆盖率</strong>、<strong>偏置</strong>、分位数分层的 P90 命中率</td></tr>
+      <tr><td><strong>信号保真</strong></td><td><strong>牛鞭系数（订单波动 / 终端需求波动）</strong>、缺货期下单比</td></tr>
+      <tr><td>库存</td><td>周转天数、滞销占比、呆滞金额、安全库存占用</td></tr>
+      <tr><td>服务</td><td>缺货率、OTIF、缺货时长、承诺兑现率</td></tr>
+      <tr><td>产能</td><td><strong>产能挤占率</strong>、单供应商集中度、延期 SKU 数</td></tr>
+      <tr><td>决策</td><td>计划生成耗时、<strong>建议采纳率</strong>、<strong>建议修改率</strong>、约束违反数、重复下单数</td></tr>
+      <tr><td>对账</td><td>账实差异率、在途差异率、订单差异数</td></tr>
+      <tr><td>降级</td><td>降级比例、原因码分布、规则补货占比</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「牛鞭系数」是本章的体温计</strong>：它比 WAPE 更早、更直接地反映信号失真。<strong>WAPE 变差说明模型不准了；牛鞭系数变差说明架构里某处的信息在失真</strong>——后者是架构问题，改模型没用。</p>
+</blockquote>
+<p><strong>压测</strong>：</p>
+<ul>
+<li><strong>单个补货窗口内 200 个计划并发</strong>（验证求解资源与降级路径）。</li>
+<li>单计划 2,000 SKU 的精确求解超时（验证降级到规则）。</li>
+<li>提前期从 45 天跳到 90 天（验证安全库存重算与在途暴露）。</li>
+<li>供应商产能骤降 50%（验证产能挤占保护与违约监控）。</li>
+<li>库存流水重复事件（验证幂等与账实一致性）。</li>
+<li>在途确认接口超时（验证 Fail-Closed 与重复下单防护）。</li>
+<li>ERP 写入超时（验证<strong>不重试不落单</strong>）。</li>
+<li>促销日历缺失（验证降级标记与高风险批次）。</li>
+<li>大促流量（预测与缺货同时爆发）。</li>
+</ul>
+
+<h4 id="sec-4.5.10" data-toc-skip>规则护栏清单</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">领域</th><th scope="col">护栏</th><th scope="col">优先级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>约束不可违反</strong></td><td>MOQ / 箱规 / 仓容 / 产能 / 运力 / 合同价，违反数为 0</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>重复下单为 0</strong></td><td>计划版本 + 幂等键；<strong>下单失败绝不重试</strong></td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>库存只能由事件累加</strong></td><td>禁止任何直接改写库存的接口</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>账实与在途对账</strong></td><td>差异超阈值即冻结对应范围的自动补货</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>不可逆承诺分级审批</strong></td><td>金额 / 量 / 品类敏感度三档阈值</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>产能可见</strong></td><td>求解器必须读产能视图，禁止逐 SKU 独立汇总</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>账实不符不给建议</strong></td><td>信任级别降为「低」，只给数据不给补货量</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>建议可解释</strong></td><td>每条建议附预测版本、约束余量、依据与置信</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>审计不可篡改</strong></td><td>含「建议被采纳后改了多少」</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>规则兜底永远可跑</strong></td><td>求解器 / 模型全挂时仍能出计划</td><td><strong>P0</strong></td></tr>
+      <tr><td>特征禁令</td><td>禁止把上游订单量作为预测特征</td><td>P1</td></tr>
+      <tr><td>分层与校准</td><td>ABC 分层强制；区间覆盖率与偏置独立监控</td><td>P1</td></tr>
+      <tr><td>重规划范围</td><td>只重算受影响的 SKU × 仓</td><td>P1</td></tr>
+      <tr><td>调拨优先</td><td>缺口处置顺序：调拨 → 加急 → 放弃</td><td>P1</td></tr>
+      <tr><td>承诺兑现监控</td><td>低于阈值即停止向下游继续承诺</td><td>P1</td></tr>
+      <tr><td>牛鞭系数监控</td><td>逐层测量，作为架构健康信号</td><td>P1</td></tr>
+      <tr><td>回放纪律</td><td>回放完整策略、含促销与缺货期、用当时库存</td><td>P2</td></tr>
+      <tr><td>成本</td><td>持有成本 / 缺货成本 / 加急成本看板</td><td>P2</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章的十个 P0 里有七个是「下单之前」的检查</strong>。原因与营销章一样，但更极端：<strong>营销发错的消息能撤回一部分，供应链发错的订单撤不回</strong>——货已经在路上，钱已经付了，合同已经签了，供应商产能已经被占。<strong>所以本章的 P0 几乎全部集中在「承诺之前」这一个位置上。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.5.11" data-toc-skip>上线检查（10 问）</h4>
+
+<ol>
+<li>目标解析是否结构化并可确认？<strong>缺口口径（可售 vs 实物、本级需求 vs 终端需求）是否已明确？</strong></li>
+<li><strong>预测特征里是否有上游订单量？</strong> 若有，是否已按牛鞭机制评估过其影响？</li>
+<li>预测是否输出<strong>分位数</strong>？区间覆盖率与偏置是否独立监控，而不是只看 WAPE？</li>
+<li><strong>安全库存口径是否全网统一</strong>（z 值分层、提前期取均值还是 P90、σ 怎么估）？</li>
+<li>约束求解器是否读<strong>供应商产能视图</strong>？是否仍存在逐 SKU 独立求解后汇总的路径？</li>
+<li>建议发出前是否通过<strong>可行性校验</strong>（MOQ / 箱规 / 仓容 / 运力 / 合同价）？违反数是否为 0？</li>
+<li><strong>下单是否幂等？写入失败是否「不重试不落单」？</strong> 是否有任何路径会重复下单？</li>
+<li>账实 / 在途 / 订单三条对账线是否都已上线？<strong>差异超阈值是否真的会冻结自动补货？</strong></li>
+<li>降级矩阵是否演练过？<strong>求解器超时是否能退回规则层出计划？</strong> 降级是否打了 <code>degraded</code> + 原因码？</li>
+<li><strong>牛鞭系数是否被逐层测量并监控？</strong> 建议采纳率与修改率是否有看板？</li>
+</ol>
+
+<h2 id="seg-5">11.5 端到端案例</h2><div class="oc-part-lead"><strong>第五段 · 端到端案例</strong>这一段回答：一个真实的补货与滞销压降目标怎么走完整条链路，以及四个变体分别暴露什么。</div>
+
+<h3 id="sec-5.1">11.5.1 案例：华东仓断货风险与滞销压降</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>目标是「华东仓未来 4 周要保证不断货，同时把滞销库存压降 20%，预算 200 万」。链路十步里最关键的是第一步：系统主动追问「在途是否计入」，缺口口径定为 P90 需求（4 周）减可售库存，得出的缺口是 120 个风险 SKU 合计 18,600 件。约束求解后直接补货只能覆盖 76 个 SKU、13,200 件；调拨覆盖 31 个 SKU、4,100 件花 ¥12,300；剩余 9 个 SKU 走空运加急 ¥30,000；4 个 SKU、300 件因毛利低于加急成本而主动接受缺货；18,300 件采购花 ¥109.8 万，低于 ¥200 万预算。滞销压降释放 ¥720 万，比补货预算还多 3.6 倍。牛鞭验证给出全章最硬的一组对比：用上游订单量做特征 WAPE 18%、牛鞭系数 2.4，改用终端 POS 加促销日历加缺货率后 WAPE 15%、牛鞭系数 1.3。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这个案例最该带走的是两个数字的对比：WAPE 只降了 3 个点，牛鞭系数却降了 46%。如果只看 WAPE，会得出「提升有限、不值得投」的结论——而真正该看的指标是牛鞭系数，它从 2.4 降到 1.3 意味着上游订单的波动从终端的 2.4 倍回到 1.3 倍，产能、库存与运力不再被推到错误的位置上。另一个数字是滞销压降释放 ¥720 万远大于补货预算 ¥200 万：「砍库存」和「补库存」是同一笔钱的两个方向，压降指标不是需求侧的附属项，它就是补货预算的来源。</p>
+</div>
+
+<h4 id="sec-5.1.1" data-toc-skip>案例：华东仓断货风险与滞销压降</h4>
+
+<p><strong>目标</strong>：「华东仓未来 4 周要保证不断货，同时把滞销库存压降 20%，预算 200 万。」</p>
+<p><strong>S0 落锚点</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">锚点</th><th scope="col">本案例答案</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td>成功标准</td><td>断货 SKU 数 0、A 类缺货率 ≤ 1%、滞销金额降 20%、OTIF ≥ 98%</td></tr>
+      <tr><td>2</td><td>规模</td><td>华东 3 仓、A 类 SKU 4,000 个、风险 SKU 120 个、滞销 SKU 860 个</td></tr>
+      <tr><td>3</td><td>质量优先级</td><td>不断货 &gt; 不积压 &gt; 不违约 &gt; 资金成本 &gt; 响应速度</td></tr>
+      <tr><td>4</td><td>硬约束</td><td>仓容 12,000 m³、主供商本月产能已用 62%、预算 ¥200 万、MOQ 与箱规</td></tr>
+      <tr><td>5</td><td>不可逆清单</td><td>库存成本口径、安全库存口径、预测粒度、账实归属、主数据标识、承诺契约、重规划范围</td></tr>
+      <tr><td>6</td><td>事实源</td><td>库存流水 + 订单 + 主数据 + 供应商履约记录</td></tr>
+      <tr><td>7</td><td>边界</td><td>ERP / WMS / TMS 与供应商门户在外部；预测、缺口推演、求解、异常处置自建</td></tr>
+  </tbody>
+</table>
+<p><strong>链路</strong>：</p>
+<ol>
+<li><strong>目标解析</strong>：确认<strong>缺口口径 = P90 需求（4 周）− 可售库存（可用 + 在途，按 ETA 计入）</strong>，服务水平 A 类 99%；「滞销」定义为库龄 &gt; 90 天且近 8 周无动销。<strong>系统主动追问「在途是否计入」</strong>——这一条决定了后面 18,600 件里有多少是真实缺口。</li>
+<li><strong>预测</strong>（T+1 批）：A 类 SKU × 仓 × 日 × P50/P90/P95；<strong>特征 = 终端 POS + 促销日历 + 缺货率 + 生命周期，不含上游订单量</strong>。</li>
+<li><strong>缺口推演</strong>：120 个风险 SKU，合计缺口 <strong>18,600 件</strong>；按提前期分组：陆运 7 天 7,200 件、海运 45 天 11,400 件。</li>
+<li><strong>约束求解</strong>（精确 + 产能视图）：受 MOQ / 箱规 / 仓容 / <strong>主供商剩余产能 38%</strong> / 预算约束，<strong>直接补货只能覆盖 76 个 SKU、13,200 件</strong>。</li>
+<li><strong>调拨</strong>：华东三仓互调 + 相邻华中仓调入，覆盖 <strong>31 个 SKU、4,100 件</strong>，物流 ¥3/件 = <strong>¥12,300</strong>。</li>
+<li><strong>加急与取舍</strong>：剩余 9 个 SKU 走空运加急（1,000 件，¥30/件 = <strong>¥30,000</strong>）；4 个 SKU、300 件因毛利低于加急成本而<strong>主动接受缺货</strong>。</li>
+<li><strong>采购与预算</strong>：18,300 件 × ¥60 采购成本 = <strong>¥109.8 万</strong> &lt; ¥200 万预算，余额 ¥90.2 万。</li>
+<li><strong>滞销压降</strong>：860 个 SKU、占用资金 ¥3,600 万；压降 20% = <strong>释放 ¥720 万</strong>——<strong>比补货预算还多 3.6 倍</strong>。</li>
+<li><strong>下单</strong>：带计划版本与幂等键写入 ERP，落承诺契约（量 / 期 / 价 / 批次四项锁定）。</li>
+<li><strong>对账</strong>：日账实 + 日在途；差异超阈值即冻结对应范围自动补货。</li>
+</ol>
+<p><strong>本案例最重要的一个数字</strong>：</p>
+<pre><code>滞销压降释放资金 ¥720 万  ≫  补货预算 ¥200 万</code></pre>
+<blockquote>
+  <p><strong>「砍库存」和「补库存」是同一笔钱的两个方向。</strong> 一个只看补货需求的系统，会把「缺货」和「积压」当成两个独立问题分别要预算；<strong>真正有效的做法是先算「滞销释放的资金」，再决定补货能力</strong>。本章的「压降 20%」不是需求侧的附属指标，<strong>它就是补货预算的来源</strong>。</p>
+</blockquote>
+<p><strong>牛鞭验证（本案例的核心实测）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">预测 WAPE</th><th scope="col"><strong>牛鞭系数</strong></th><th scope="col">结论</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>用上游订单量做特征</td><td>18%</td><td><strong>2.4</strong></td><td>信号被放大，产能与库存被推到错误位置</td></tr>
+      <tr><td><strong>用终端 POS + 促销日历 + 缺货率</strong></td><td>15%</td><td><strong>1.3</strong></td><td>信号基本保真</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>WAPE 只降了 3 个点，牛鞭系数却降了 46%。</strong> 这个对比是本章论点的最好证明：<strong>Agent 的价值不在「预测得更准」，而在「让信号不失真」。</strong> 如果只看 WAPE，会得出「提升有限、不值得投」的结论；<strong>但真正该看的指标是牛鞭系数</strong>——它从 2.4 降到 1.3，意味着上游订单的波动从「终端的 2.4 倍」回到「终端的 1.3 倍」，<strong>产能、库存、运力不再被推到错误的位置上</strong>。</p>
+</blockquote>
+
+<h3 id="sec-5.2">11.5.2 变体：周度补货、新品首发与供应商违约</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>变体 A 常规周度补货周期 7 天、SKU 多量大，以规则补货层为主只对异常 SKU 走模型层，计划在补货窗口前 8 小时完成，建议必须附约束余量（离 MOQ、离仓容、离产能各还有多少）。变体 B 新品首发无历史数据，不做点估计只做分位数铺货：首批取 P50，试销期按 P90 追单，首批受 MOQ 约束时取 MOQ，并在上市后第 7、14、30 天强制复盘点。变体 C 供应商延迟与违约处置，下发前复核承诺的量、期、价、批次四项锁定，承诺兑现率低于阈值即停止向下游继续承诺，违约处置走延迟、改承诺期、部分切备供、全切备供的分级切换，不可替代物料必须提前登记。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>新品是这一章里唯一一个「模型主动说不知道」的合法场景，此时正确的输出不是「建议铺 1,000 件」，而是「P50 铺 600 件、P90 追 1,400 件，首批受 MOQ 约束取 1,000 件，7 天后按实际曲线决定是否追单」——把不确定性显式交给后续决策，而不是藏在一个点估计里。这个例子说明了一条通用原则：当输入最不可靠时，系统最有价值的输出是分层的选项加一个明确的复核点，而不是一个假装确定的数字。</p>
+</div>
+
+<h4 id="sec-5.2.2" data-toc-skip>变体 A：常规周度补货</h4>
+
+<p><strong>特点</strong>：周期 7 天、SKU 多、量大、时效宽松。</p>
+<p><strong>额外护栏</strong>：</p>
+<ul>
+<li>走<strong>规则补货层</strong>为主（ROP + EOQ），只对异常 SKU 走模型层。</li>
+<li>计划在补货窗口前 <strong>8h</strong> 完成；求解超时自动降级到规则层。</li>
+<li>建议必须附<strong>约束余量</strong>（离 MOQ、离仓容、离产能各还有多少）。</li>
+<li>建议采纳率与修改率进看板——<strong>分歧大说明模型或口径要修，不是让计划员每次手工覆盖</strong>。</li>
+</ul>
+
+<h4 id="sec-5.2.3" data-toc-skip>变体 B：新品首发铺货</h4>
+
+<p><strong>特点</strong>：无历史数据、预测最不可靠、错误成本高（首批压太多就滞销，压太少就断货）。</p>
+<p><strong>额外护栏</strong>：</p>
+<ul>
+<li><strong>不做点估计，只做分位数铺货</strong>：首批 = P50，试销期再按 P90 追单。</li>
+<li>必须有人工审批（新品是决策，不是执行）。</li>
+<li><strong>首单必须考虑供应商 MOQ 与最小起订量</strong>——很多新品的合理首批量就是 MOQ，此时「多备一点」不是失误而是约束。</li>
+<li>试销期设<strong>强制复盘点</strong>：上市后第 7 / 14 / 30 天各复核一次销量曲线，偏差超阈值即调整追单。</li>
+</ul>
+<blockquote>
+  <p><strong>新品是本章唯一一个「模型主动说不知道」的合法场景</strong>。此时正确的输出不是「建议铺 1,000 件」，而是「<strong>P50 铺 600 件、P90 追 1,400 件，首批受 MOQ 约束取 1,000 件；7 天后按实际曲线决定是否追单</strong>」——<strong>把不确定性显式地交给后续决策，而不是藏在一个点估计里。</strong></p>
+</blockquote>
+
+<h4 id="sec-5.2.4" data-toc-skip>变体 C：供应商延迟与违约处置</h4>
+
+<p><strong>特点</strong>：标的时效强，承诺不可兑现。</p>
+<p><strong>额外护栏</strong>：</p>
+<ul>
+<li>下发前复核承诺参数：量、期、价、批次四项锁定。</li>
+<li><strong>承诺兑现率低于阈值时，停止向下游继续承诺</strong>（否则缺货会沿链传导）。</li>
+<li>供应商评估五维中，<strong>产能维度必须进补货求解器</strong>——否则下一个超量订单会挤占产能。</li>
+<li>违约处置走<strong>分级切换</strong>：延迟 → 改承诺期 → 部分切备供 → 全切备供。</li>
+<li><strong>不可替代物料必须提前登记</strong>，其主供中断时直接进入「加急 / 降级供应」路径，而不是走常规寻源（认证要 3 个月，来不及）。</li>
+</ul>
+
+<h3 id="sec-5.3">11.5.3 调拨替代、故障兜底、扩容与取舍</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>变体 D 跨仓调拨替代补货给出三级处置的成本比 1 : 10 : 27，并强调调拨的隐性成本：调走 A 仓的 1,000 件，A 仓自己的缺口要靠下一轮补货填上，所以真实成本等于物流成本加下一轮补货量的增加，但即便如此通常仍划算，因为下一轮补货是计划内的便宜货，而这一轮缺货是计划外的贵货。故障与兜底补两条：下单接口超时不重试不落单、转人工核销；预测与人工判断冲突不视为模型失败，但必须记录修改量并回流。扩容 10 倍的先坏顺序是批量轨道的求解窗口、预测计算、库存查询、在途对账、产能视图、事件链路、库存持有成本。取舍复盘用九条决策记录各自的代价、收益与重新评估条件。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「计划外的贵 vs 计划内的便宜」是这一段的核心成本直觉，它解释了为什么调拨即使有隐性成本也通常划算。扩容那一段的提醒更刺人：先坏的不是 QPS 而是「一个补货窗口内算不计算得完」，因为它的 QPS 峰值只有 1,400 很轻，但每个计划是 30–120 秒的精确求解，2,000 个计划挤在同一个窗口里——所以扩容的第一件事是「让计划滚动起来」，而不是加机器。最后一位的结论反直觉：新增 SKU 多半是长尾，给长尾提高服务水平的边际毛利小于它带来的持有成本，所以扩容第一个该动的不是把预测做得更好，而是收紧长尾的服务水平。</p>
+</div>
+
+<h4 id="sec-5.3.5" data-toc-skip>变体 D：跨仓调拨替代补货</h4>
+
+<p><strong>场景</strong>：华南某 A 类 SKU 缺 1,000 件，5 天后断货。</p>
+<p><strong>三级处置对比</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">单价</th><th scope="col">到货</th><th scope="col">成本</th><th scope="col">备注</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>跨仓调拨</strong></td><td>¥3 / 件</td><td>1 天</td><td><strong>¥3,000</strong></td><td><strong>最优先</strong></td></tr>
+      <tr><td>供应商加急空运</td><td>¥30 / 件</td><td>5 天</td><td>¥30,000</td><td>比调拨贵 10 倍</td></tr>
+      <tr><td>放弃销售</td><td>毛利损失 ¥80 / 件</td><td>—</td><td>¥80,000</td><td>比调拨贵 27 倍</td></tr>
+  </tbody>
+</table>
+<p><strong>调拨的决策顺序</strong>：</p>
+<pre><code>1. 查全网可用库存（含相邻大区）——不是只看相邻两仓
+2. 评估调出仓的代价：调走后它自己的缺口由谁补？
+3. 比对物流时效与成本（调拨也可能来不及）
+4. 都不行才加急；加急仍不划算才接受缺货</code></pre>
+<blockquote>
+  <p><strong>调拨的隐性成本必须算进去</strong>：调走 A 仓的 1,000 件，A 仓自己的缺口只能靠下一轮补货填上。<strong>所以调拨的真实成本 = 物流成本（¥3,000）+ 下一轮补货量的增加</strong>。很多系统只比了物流成本，就以为调拨「免费」——<strong>它其实是把缺口从这一轮挪到了下一轮</strong>。</p>
+  <p><strong>但即便如此，它通常仍然划算</strong>：因为下一轮的补货是<strong>计划内的</strong>（可以被提前安排、可以和其它 SKU 合并下单、可以用海运），而这一轮的缺货是<strong>计划外的</strong>（只能加急、只能放弃）。<strong>「计划外的贵 vs 计划内的便宜」是本章的核心成本直觉。</strong></p>
+</blockquote>
+
+<h4 id="sec-5.3.6" data-toc-skip>故障与兜底</h4>
+
+<p>降级矩阵以 <a href="#sec-4.4.7">降级矩阵（Fail-Open / Fail-Closed）</a> 为准，本例补充两条：</p>
+<table>
+  <thead>
+    <tr><th scope="col">故障</th><th scope="col">影响</th><th scope="col">兜底</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>下单接口超时</strong></td><td><strong>不知是否已落单</strong></td><td><strong>不重试、不落单，转人工核销</strong>——重试即重复下单</td></tr>
+      <tr><td><strong>预测结果与人工判断冲突</strong></td><td>建议被大面积覆盖</td><td><strong>不视为模型失败，但必须记录修改量并回流</strong>——长期分歧大说明口径或模型有问题</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-5.3.7" data-toc-skip>扩容 10 倍，哪里先坏？</h4>
+
+<p>以 <a href="#sec-3.9.16">容量与成本估算</a> 的基准扩容（SKU ×4 → 200 万、仓 ×10 → 2,000、日销 ×4 → 800 万件、日补货计划 200 → 2,000 个）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">先坏的点</th><th scope="col">现象</th><th scope="col">触发指标</th><th scope="col">对策</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>批量轨道的求解窗口</strong></td><td>计划跑不完，错过补货窗口</td><td>单计划求解 &gt; 30min，或 2,000 计划未在 8h 内完成</td><td>求解分区并行；A 类精确 / B、C 走规则；<strong>滚动计算</strong>（提前算下一窗口）</td></tr>
+      <tr><td>2</td><td><strong>预测计算</strong></td><td>预测任务积压</td><td>预测完成时间 &gt; 2h</td><td>C 类不上模型；增量特征；特征缓存</td></tr>
+      <tr><td>3</td><td><strong>库存查询</strong></td><td>P99 上升</td><td>峰值 &gt; 1,400 QPS</td><td>读缓存、物化可用量视图、分区</td></tr>
+      <tr><td>4</td><td><strong>在途对账</strong></td><td>对账窗口放不下</td><td>对账耗时 &gt; 30min</td><td>按供应商并行；增量对账</td></tr>
+      <tr><td>5</td><td><strong>供应商产能视图</strong></td><td>产能分配变慢</td><td>分配耗时 &gt; 60s</td><td>产能离线预分配、增量更新</td></tr>
+      <tr><td>6</td><td>事件链路</td><td>积压</td><td>lag &gt; 100 万</td><td>扩分区、批量</td></tr>
+      <tr><td>7</td><td><strong>库存持有成本（非线性）</strong></td><td>持有成本随 SKU 数增长</td><td>持有成本 &gt; 预算</td><td><strong>先收紧长尾的服务水平，而不是全线提高</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 1 位是本章特有的</strong>：别的系统扩容先坏的是 QPS 与存储，<strong>供应链 Agent 扩容先坏的是「一个补货窗口内算不计算得完」</strong>。因为它的 QPS 峰值只有 1,400（很轻），但每个计划是一个 30–120s 的精确求解，2,000 个计划挤在同一个窗口里。<strong>扩容供应链 Agent 的第一件事是「让计划滚动起来」，而不是加机器。</strong></p>
+  <p><strong>第 7 位也值得单独记</strong>：新增的 SKU 多半是长尾，<strong>给长尾提高服务水平的边际毛利，小于它带来的持有成本</strong>。所以扩容时第一个该动的不是「预测做得更好」，而是<strong>收紧长尾的服务水平</strong>——这是本章少见的「扩容要往回收」的 counterintuitive 结论。</p>
+</blockquote>
+
+<h4 id="sec-5.3.8" data-toc-skip>取舍复盘</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">代价</th><th scope="col">收益</th><th scope="col">重新评估条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>终端数据优先于上游订单</strong></td><td>放弃上游订单这个特征</td><td>牛鞭系数 2.4 → 1.3</td><td>架构改为单层预测时可放开</td></tr>
+      <tr><td><strong>调拨优先于加急</strong></td><td>占用调出仓额度</td><td>缺口成本降 27 倍</td><td>全网库存紧张时</td></tr>
+      <tr><td>精确求解优先</td><td>算力成本</td><td>A 类全局最优</td><td>算力充足时扩大覆盖</td></tr>
+      <tr><td><strong>规则兜底常备</strong></td><td>建议质量下降</td><td>永远出得了计划</td><td>——</td></tr>
+      <tr><td>账实不符冻结补货</td><td>少补货</td><td>不买错货</td><td>对账能力提升后缩短冻结窗口</td></tr>
+      <tr><td>分层服务水平</td><td>长尾服务差</td><td>资金用在刀刃上</td><td>缺货损失结构变化时</td></tr>
+      <tr><td>事件驱动重规划</td><td>计划不稳定</td><td>响应快</td><td>波动小时降频</td></tr>
+      <tr><td><strong>模型给建议不给指令</strong></td><td>采纳率受限</td><td>约束不被绕过</td><td>计划员高度信任模型后可放宽</td></tr>
+      <tr><td><strong>滞销与补货同账核算</strong></td><td>需要打通资金与库存口径</td><td>释放资金反哺补货</td><td>口径统一后可进一步合并</td></tr>
+  </tbody>
+</table>
+
+<h2 id="seg-6">11.6 演进、指标与误区</h2><div class="oc-part-lead"><strong>第六段 · 演进、指标与误区</strong>这一段回答：这套系统怎么一步步长大，成熟后看哪几个数，以及哪些坑最贵。</div>
+
+<h3 id="sec-6.1">11.6.1 演进路线与指标体系</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>演进六级：L0 人工加 Excel、L1 MRP 固定参数补货、L2 统计预测加分层服务水平、L3 约束求解加产能可见、L4 信号保真（牛鞭治理）、L5 供应网络联合决策。L4 是最容易被跳过也最不该跳过的一层，很多系统从 L1 直接跳到 L3，但只要信息还在逐级失真，求解器越精确放大的误差就越大，它会把「算得更准」变成「把错的算得更精确」。指标体系八层：预测、信号、库存、服务、产能、决策、对账、成本，其中信号层的牛鞭系数与缺货期下单比专门用来判断架构是否失真。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>L4 的关键是数据链路而不是模型，这解释了为什么它最容易被跳过：模型升级有明确的技术指标和收益故事，而接通终端数据是一件脏活。但跳过它的后果是 L3 的精确求解器会把被扭曲的信号算得更精确。所以演进顺序不是「从简单到高级」，而是「从没有失真到不失真，再到不失真地优化」。</p>
+</div>
+
+<h4 id="sec-6.1.1" data-toc-skip>演进路线</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">形态</th><th scope="col">触发条件</th><th scope="col">关键改造</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>L0</td><td>人工 + Excel 补货</td><td>起步</td><td>经验规则</td></tr>
+      <tr><td>L1</td><td>MRP / 固定参数补货</td><td>SKU 变多</td><td>批量计算、ROP + EOQ</td></tr>
+      <tr><td>L2</td><td>统计预测 + 分层服务水平</td><td>精度要求</td><td>ABC 分层、动态安全库存</td></tr>
+      <tr><td>L3</td><td>约束求解 + 产能可见</td><td>约束冲突频发</td><td>求解器、产能视图、可行性校验</td></tr>
+      <tr><td><strong>L4</strong></td><td><strong>信号保真（牛鞭治理）</strong></td><td><strong>上游波动大、缺货与积压并存</strong></td><td><strong>终端数据直连、特征禁令、缺货率入模</strong></td></tr>
+      <tr><td>L5</td><td>供应网络联合决策</td><td>成熟</td><td>多级库存、寻源、跨仓联合求解、跨期优化</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>L4 是本章最容易被跳过、也最不该跳过的一层</strong>。很多系统从 L1 直接跳到 L3（上了求解器和预测模型），但<strong>只要信息还在逐级失真，求解器越精确，放大的误差就越大</strong>——<strong>它会把「算得更准」变成「把错的算得更精确」</strong>。L4 的关键是数据链路，不是模型。</p>
+</blockquote>
+
+<h4 id="sec-6.1.2" data-toc-skip>指标体系</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">层级</th><th scope="col">指标</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>预测</td><td>WAPE、<strong>区间覆盖率</strong>、<strong>偏置</strong></td><td>判断预测质量</td></tr>
+      <tr><td><strong>信号</strong></td><td><strong>牛鞭系数</strong>、缺货期下单比</td><td><strong>判断架构是否失真</strong></td></tr>
+      <tr><td>库存</td><td>周转天数、滞销占比、呆滞金额、<strong>安全库存占用</strong></td><td>判断资金效率</td></tr>
+      <tr><td>服务</td><td>缺货率、OTIF、缺货时长、承诺兑现率</td><td>判断服务水平</td></tr>
+      <tr><td>产能</td><td><strong>产能挤占率</strong>、供应商集中度、延期 SKU 数</td><td>判断供应风险</td></tr>
+      <tr><td>决策</td><td>计划生成耗时、建议采纳率、<strong>建议修改率</strong>、约束违反数、重复下单数</td><td>判断系统可用性</td></tr>
+      <tr><td>对账</td><td>账实差异率、在途差异率、订单差异数</td><td>判断账目健康</td></tr>
+      <tr><td>成本</td><td>持有成本、缺货成本、加急成本</td><td>判断可持续</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.2">11.6.2 评测回归与成本优化</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>回放三纪律是最容易作弊的地方：回放完整策略（含安全库存、提前期、MOQ 约束）否则会系统性高估收益，包含促销期与缺货期样本否则模型在最重要的样本上从未被评测，使用当时的库存状态否则缺货本身被消除。变更与回归对应四类：预测模型与特征变更要回归区间覆盖率、偏置与牛鞭系数，安全库存口径变更要回归全量 SKU 的补货量与库存金额，约束规则变更要回归可行性与计划稳定性，主数据变更要回归对账与异常率。成本优化按杠杆排序：把预测做准（降 σ）让安全库存减半、总成本降 39%，缩短提前期（降 L）让安全库存降 29%，缺口处置先调拨后加急降 27 倍，分层服务水平把资金从长尾挪到高价值品类。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「建议修改率是变更回归里最灵敏的指标」这句值得记：模型换了一版，如果计划员的修改率从 5% 涨到 20%，说明新模型与人的判断分歧变大了，即使所有离线指标都变好了。因为离线指标衡量的是「预测准不准」，修改率衡量的是「这个建议能不能被执行」。成本那一段给出一个很克制的结论：前两条杠杆都作用在同一个公式上，其余手段天花板很低，所以别把资源投在更复杂的求解器上。</p>
+</div>
+
+<h4 id="sec-6.2.3" data-toc-skip>评测与回归</h4>
+
+<p><strong>回放三纪律</strong>（本章最容易作弊的地方）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">纪律</th><th scope="col">不遵守的后果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>回放<strong>完整策略</strong>（含安全库存、提前期、MOQ 约束）</td><td><strong>系统性高估收益</strong>——只回放预测精度，会算出「预测准了就能省钱」的假结论</td></tr>
+      <tr><td>包含<strong>促销期与缺货期</strong>样本</td><td>模型在最重要的样本上从未被评测</td></tr>
+      <tr><td>使用<strong>当时的库存状态</strong></td><td>用今天的库存回放历史，缺货本身被消除，结论失真</td></tr>
+  </tbody>
+</table>
+<p><strong>变更与回归</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">变更类型</th><th scope="col">必须回归什么</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>预测模型 / 特征变更</td><td>区间覆盖率、偏置、<strong>牛鞭系数</strong></td></tr>
+      <tr><td>安全库存口径变更</td><td>全量 SKU 的补货量、库存金额、缺货率回放</td></tr>
+      <tr><td>约束规则变更</td><td>求解可行性、产能占用、计划稳定性</td></tr>
+      <tr><td>主数据 / 映射变更</td><td>对账、异常率</td></tr>
+      <tr><td>求解器或算法变更</td><td>建议采纳率、建议修改率</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>建议修改率是变更回归里最灵敏的指标</strong>：模型换了一版，如果计划员的修改率从 5% 涨到 20%，说明<strong>新模型与人的判断分歧变大了</strong>——即使所有离线指标都变好了。<strong>因为离线指标衡量的只是「预测准不准」，而修改率衡量的是「这个建议能不能被执行」。</strong></p>
+</blockquote>
+
+<h4 id="sec-6.2.4" data-toc-skip>成本优化</h4>
+
+<p><strong>按杠杆排序</strong>（不是按实现难度）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">手段</th><th scope="col">收益量级</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>把预测做准（降 σ）</strong></td><td><strong>安全库存减半 → 库存总成本降 39%</strong></td><td><strong>本章最大杠杆</strong></td></tr>
+      <tr><td>2</td><td><strong>缩短提前期（降 L）</strong></td><td>安全库存 ∝ √L，L 降一半 → 降 29%</td><td>收益更大但周期更长，<strong>不靠软件</strong></td></tr>
+      <tr><td>3</td><td><strong>缺口处置先调拨后加急</strong></td><td>单次缺口成本降 27 倍</td><td>运营与仓网布局</td></tr>
+      <tr><td>4</td><td><strong>分层服务水平</strong></td><td>资金从长尾挪到高价值品类</td><td>与「全线提高」相反</td></tr>
+      <tr><td>5</td><td>滞销与补货同账核算</td><td>释放资金反哺补货</td><td><a href="#sec-5.1.1">案例：华东仓断货风险与滞销压降</a></td></tr>
+      <tr><td>6</td><td>求解器分层（精确 / 启发式 / 规则）</td><td>算力成本降</td><td>质量略降</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 1、2 两条都作用在同一个公式上</strong>：<code>SS ∝ σ × √L</code>。<strong>这两个变量是本章的全部杠杆</strong>——预测精度是软件能做的，提前期是供应链本身能做的。<strong>其余手段（模型更复杂、求解更精确）都不在这两个变量上，天花板很低。</strong></p>
+</blockquote>
+
+<h3 id="sec-6.3">11.6.3 产品对比与常见误区</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>产品对比覆盖快消品补货、电商大促备货、生鲜、工业品与 MRO、跨境电商、医药器械六种场景，各自有核心矛盾与关键护栏。常见误区 15 条，最贵的是用上游订单做预测特征（放大牛鞭，越准越糟）、逐 SKU 独立求解后汇总（产能挤占，1 个错变 20 个错）、下单失败重试（重复下单等于超买）、忽略调拨的隐性成本，以及把模型建议当指令（绕过约束，错误被放大）。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这 15 条误区其实是一份自检清单，每一条后面都跟着一句可验证的反面表述。其中「把模型建议当指令」最能概括全章：模型给建议，约束做决定。这条和前面反复出现的「模型负责更优，规则负责不出事」是同一句话的不同说法，只是放在供应链语境里更硬——因为这里的建议一旦变成指令，货就已经在路上了。</p>
+</div>
+
+<h4 id="sec-6.3.5" data-toc-skip>产品对比</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">场景</th><th scope="col">核心矛盾</th><th scope="col">关键护栏</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>快消品补货</td><td>高频小批量 vs 提前期长</td><td>MOQ、箱规、多级库存</td></tr>
+      <tr><td>电商大促备货</td><td>预测难、峰值高、时效紧</td><td>促销日历、提前锁定产能、分批</td></tr>
+      <tr><td>生鲜</td><td>保质期短、损耗高</td><td>FEFO、安全库存压到极低</td></tr>
+      <tr><td>工业品 / MRO</td><td>需求离散、提前期极长</td><td>呆滞管理、锁单、锁价</td></tr>
+      <tr><td>跨境电商</td><td>多币种、多税、时效不稳</td><td>承诺期保守、在途对账</td></tr>
+      <tr><td>医药器械</td><td>合规追溯、批号</td><td>批号级追溯、效期先出</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-6.3.6" data-toc-skip>常见误区</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">误区</th><th scope="col">问题</th><th scope="col">正确做法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>用上游订单做预测特征</strong></td><td><strong>放大牛鞭，越准越糟</strong></td><td><strong>终端数据直连 + 特征禁令</strong></td></tr>
+      <tr><td>只看 WAPE</td><td>区间偏了照样错</td><td>区间覆盖率 + 偏置独立看</td></tr>
+      <tr><td>安全库存用固定值</td><td>波动变化时全错</td><td>动态 SS：σ × √L × z</td></tr>
+      <tr><td>模型输出直接变订单</td><td>违反 MOQ / 仓容 / 产能</td><td>约束求解层 + 可行性校验</td></tr>
+      <tr><td><strong>逐 SKU 独立求解后汇总</strong></td><td><strong>产能挤占，1 个错变 20 个错</strong></td><td><strong>按产能做全局分配</strong></td></tr>
+      <tr><td>用点估计补货</td><td>不确定性被平均掉</td><td>分位数预测 + 显式安全库存</td></tr>
+      <tr><td>下单失败重试</td><td><strong>重复下单 = 超买</strong></td><td><strong>不重试不落单，转人工核销</strong></td></tr>
+      <tr><td>只对账实物，不对在途</td><td>缺口被隐藏</td><td>三条对账线，订单差异必须为 0</td></tr>
+      <tr><td>缺货一律加急</td><td>花 10 倍的钱买 4 天</td><td><strong>调拨 → 加急 → 放弃</strong></td></tr>
+      <tr><td>忽略上游波动</td><td>产能与库存被推到错位置</td><td>逐层测牛鞭系数</td></tr>
+      <tr><td>新品也用点估计</td><td>首批压错就滞销</td><td>新品用分位数铺货 + 人工审批</td></tr>
+      <tr><td>扩容只看 QPS 与存储</td><td>算不完计划，窗口错过</td><td>看「一个窗口内能算完多少计划」</td></tr>
+      <tr><td>忽略调拨的隐性成本</td><td>把缺口挪到下一轮</td><td>把下一轮补货量算进调拨成本</td></tr>
+      <tr><td><strong>把模型建议当指令</strong></td><td>绕过约束，错误被放大</td><td><strong>模型给建议，约束做决定</strong></td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.4">11.6.4 高频追问、答题提纲与一页纸手册</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>高频追问 12 条覆盖牛鞭四机制、安全库存公式、为什么模型不能直接输出补货量、产能挤占、缺货先做什么、下单超时怎么办、账实不符还能不能补货、新品为什么用分位数铺货、扩容先坏哪里。答题提纲给 10 分钟版与 35 分钟版两套。一页纸作战手册按 S0 定题、S1 建模、S2 决策、S3 论证、S4 兜底、S5 闭环六阶段组织，每阶段配动作、自检问题与合格线，其中 S3 的合格线直接写死了几个数：200 计划 / 8 小时、峰值 56 SKU 决策/秒、σ 取 200 时 SS 736 件、σ 取 100 时 368 件且总成本降 39%、牛鞭系数目标低于 1.5。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>高频追问的最后一条可以当成本章的验收标准：「Agent 在这里最大的价值是什么」——答案不是预测更准，是让信号不失真：WAPE 只降 3 个点，牛鞭系数却降 46%。这句话把整章的技术细节收回到一个可复述的判断上。一页纸手册则相反，它是唯一可以背下来的部分：每一步都有自检问题和合格线，适合照着填。</p>
+</div>
+
+<h4 id="sec-6.4.7" data-toc-skip>高频追问</h4>
+
+<ul>
+<li><strong>为什么用上游订单做预测特征是错的？</strong> → 那是逐级预测，误差逐级叠加，放大 16 倍；<strong>预测越准，放大越狠</strong>。要用终端 POS。</li>
+<li><strong>牛鞭效应的四个机制是什么？</strong> → 预测逐级叠加、订单批量、价格促销、缺货配给；<strong>只有第一个是 Agent 直接放大的</strong>。</li>
+<li><strong>怎么定安全库存？</strong> → <code>SS = z × σ_daily × √L</code>；z 按 ABC 分层，σ 按生命周期分档，L 取分布的 P90 而非均值。</li>
+<li><strong>为什么模型不能直接输出补货量？</strong> → MOQ、箱规、仓容、供应商产能、承运商运力都是硬约束；<strong>模型只能给建议，约束求解层给结果</strong>。</li>
+<li><strong>什么是产能挤占？</strong> → 一个 SKU 的超量订单吃掉供应商共享产能，<strong>影响其它 20 个 SKU</strong>；必须把产能视图放进求解器，按产能全局分配。</li>
+<li><strong>缺货了先做什么？</strong> → <strong>先查全网库存做调拨</strong>（¥3/件），再考虑加急（¥30/件），最后才放弃（毛利 ¥80/件）。</li>
+<li><strong>下单接口超时怎么办？</strong> → <strong>不重试、不落单</strong>，转人工核销；重试就是重复下单。</li>
+<li><strong>账实不符还能补货吗？</strong> → <strong>不能</strong>；冻结该 SKU 自动补货并转人工，先修账再谈补货。</li>
+<li><strong>怎么评估补货 Agent？</strong> → 完整策略回放（含安全库存、提前期、约束），<strong>不是只回放预测精度</strong>；主指标是区间覆盖率、偏置与牛鞭系数。</li>
+<li><strong>为什么新品要用分位数铺货？</strong> → 没有历史数据，点估计最不可靠；P50 首批 + P90 追单 + 强制复盘点，把不确定性交给后续决策。</li>
+<li><strong>扩容先坏哪里？</strong> → <strong>不是 QPS，是「一个补货窗口内算不计算得完」</strong>；要让计划滚动起来。</li>
+<li><strong>Agent 在这里最大的价值是什么？</strong> → <strong>不是预测更准，是让信号不失真</strong>：WAPE 只降 3 个点，牛鞭系数却降 46%。</li>
+</ul>
+
+<h4 id="sec-6.4.8" data-toc-skip>答题提纲与练习</h4>
+
+<p><strong>10 分钟版（自述型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–1 min</td><td>澄清：SKU 数、仓数、<strong>提前期分布</strong>、补货周期、服务水平、约束清单</td></tr>
+      <tr><td>1–3 min</td><td>容量：<strong>批量轨道（窗口内算完多少计划）</strong> + 在线轨道 QPS + 数据量</td></tr>
+      <tr><td>3–5 min</td><td>架构：预测 → 缺口 → 约束求解 → 承诺 → 履约 → 异常 → 对账</td></tr>
+      <tr><td>5–7 min</td><td>牛鞭与安全库存、产能挤占、顺序与幂等</td></tr>
+      <tr><td>7–9 min</td><td>深挖一个点（推荐：牛鞭 / 安全库存）</td></tr>
+      <tr><td>9–10 min</td><td>护栏、降级、对账、评测</td></tr>
+  </tbody>
+</table>
+<p><strong>35 分钟版（深聊型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–5 min</td><td>澄清与七锚点：规模、提前期、约束、不可逆清单</td></tr>
+      <tr><td>5–14 min</td><td><strong>牛鞭四机制 + 16 倍推导 + 治理手段；安全库存公式与总成本推导</strong></td></tr>
+      <tr><td>14–22 min</td><td>架构与数据流：分层预测 / 缺口推演 / 约束求解 / 产能分配 / 承诺 / 履约 / 异常 / 对账</td></tr>
+      <tr><td>22–26 min</td><td>数据模型与 API：库存事件流、预测表、承诺契约、对账三条线</td></tr>
+      <tr><td>26–34 min</td><td>深挖三个点（各约 3 min）：① 牛鞭与信号保真 ② 安全库存与成本权衡 ③ 产能挤占与不可逆承诺</td></tr>
+      <tr><td>34–35 min</td><td>演进阈值、护栏清单、评测闭环</td></tr>
+  </tbody>
+</table>
+<p><strong>练习</strong>：</p>
+<ol>
+<li>设计 SKU 50 万、仓 200 的补货 Agent，给出两条轨道（批量 / 在线）与容量（<strong>必须含「一个窗口内算完多少计划」</strong>）。</li>
+<li>计算：日均需求 1,000 件、σ_daily = 200 件、提前期 5 天、z = 1.645、缺货成本 ¥80/件、持有成本 ¥15/件/年、订货成本 ¥2,000、单价 ¥60——安全库存是多少？年缺货成本？年库存总成本？<strong>若把 σ 降到 100，总成本降多少？</strong></li>
+<li>计算：提前期从 45 天降到 20 天，安全库存降多少？<strong>但提前期的标准差从 5 天涨到 15 天时该怎么处理？</strong></li>
+<li>设计终端需求 ±10%、零售 ±20%、批发 ±40%、制造 ±80%、原料 ±160% 的四机制拆解，并给出四条治理动作。</li>
+<li>设计一个「重复下单零容忍」的下单链路，说明超时、部分成功、供应商拒单三种情况怎么处理。</li>
+<li>设计跨仓调拨的决策流程，并说明<strong>调拨的隐性成本</strong>如何计入。</li>
+<li>计算：SKU ×4、仓 ×10 的扩容下，精确求解是否来得及？给出三条降级路径。</li>
+<li>设计「预测指标全绿但上线后被大面积人工覆盖」的排查路径。</li>
+</ol>
+
+<h4 id="sec-6.4.9" data-toc-skip>一页纸作战手册</h4>
+
+<p><strong>S0 定题</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>落七锚点</td><td>唯一事实源是什么？哪几个决策不可逆？</td><td>7 项写下来，事实源 = 库存流水 + 订单 + 主数据 + 供应商履约记录</td></tr>
+      <tr><td>定优先级</td><td>缺货、积压、违约冲突时保谁？</td><td>不断货 &gt; 不积压 &gt; 不违约 &gt; 资金成本 &gt; 响应速度</td></tr>
+      <tr><td><strong>量提前期</strong></td><td>L 的均值与标准差各是多少？</td><td>各给一个带来源的数值；<strong>L 用 P90 而不是均值</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S1 建模</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>分层</td><td>每层只做什么、明确不做什么？</td><td>预测 / 缺口 / 求解 / 承诺 / 履约 / 异常 / 对账七层职责表</td></tr>
+      <tr><td>定口径</td><td>可售怎么算？安全库存怎么算？</td><td>可用 + 在途（按 ETA）；SS = z × σ × √L，z 按 ABC 分层</td></tr>
+      <tr><td>定事实源</td><td>哪些不可重建？</td><td>库存流水、订单、主数据、履约记录是事实源；预测与建议是投影</td></tr>
+  </tbody>
+</table>
+<p><strong>S2 决策</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>选预测粒度</td><td>每类 SKU 怎么做？</td><td>A 精细 / B 层级 / C 类目均值 + 兜底值</td></tr>
+      <tr><td><strong>选特征</strong></td><td>有没有上游订单量？</td><td><strong>没有</strong>；终端 POS + 促销日历 + 缺货率 + 生命周期</td></tr>
+      <tr><td>选求解策略</td><td>哪些用精确解？</td><td>A 类精确 / B 启发式 / <strong>C 规则兜底</strong></td></tr>
+      <tr><td>选缺口处置</td><td>缺货先做什么？</td><td><strong>调拨 → 加急 → 放弃</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S3 论证</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>算窗口</td><td>一个补货窗口算得完吗？</td><td>200 计划 / 8h；峰值 56 SKU 决策 / 秒；<strong>超时降级到规则层</strong></td></tr>
+      <tr><td>算库存</td><td>要压多少安全库存？</td><td>σ=200 → SS 736 件；σ=100 → 368 件，<strong>总成本降 39%</strong></td></tr>
+      <tr><td>算信号</td><td>会放大吗？</td><td>逐层测牛鞭系数；<strong>目标 &lt; 1.5</strong></td></tr>
+      <tr><td>算成本</td><td>钱省在哪？</td><td>持有与缺货是大头；<strong>模型成本可忽略</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S4 兜底</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>写延迟预算</td><td>两条轨道各多少？</td><td>在线 7 段 + 批量 6 段，<strong>批量全链路 8h 硬限</strong></td></tr>
+      <tr><td>写降级矩阵</td><td>每个依赖挂了怎么办？</td><td>10 类依赖各有行为；<strong>账实 / 在途 / 写入一律 Fail-Closed</strong></td></tr>
+      <tr><td>定护栏</td><td>安全排第几？</td><td>约束 / 重复下单 / 库存事件化 / 对账 / 审批 / 产能 / 账实 / 可解释 / 审计 / 兜底 <strong>十项 P0</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S5 闭环</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>定演进阈值</td><td>涨 10 倍哪里先坏？</td><td><strong>求解窗口 → 预测计算 → 库存查询</strong>（<a href="#sec-5.3.7">扩容 10 倍，哪里先坏</a>）</td></tr>
+      <tr><td>定指标</td><td>技术好了业务就好了吗？</td><td>WAPE 必须与<strong>牛鞭系数</strong>、<strong>建议修改率</strong>合看</td></tr>
+      <tr><td>建复盘闭环</td><td>行动项有负责人吗？</td><td>行动项 → 负责人 → 验证结果</td></tr>
+  </tbody>
+</table>
+<hr>
+
+<h2 id="seg-7">11.7 总结</h2><div class="oc-part-lead"><strong>总结</strong>把这一章收成一页纸：结论、边界，以及下一章要解决什么。</div>
+
+<h3 id="sec-7.1">11.7.1 一句话总结</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>供应链 Agent 的价值不在预测得更准，而在让信号不失真：把每一级的输入换成终端真相、把每一次不确定性变成显式的分位数与缓冲、把每一个不可撤销的承诺压到约束求解之后——剩下的才算模型能优化的空间。</p>
+</div>
+
+<h3 id="sec-7.2">11.7.2 本章结论</h3><ol class="oc-points">
+  <li><strong>错单撤不回，所以护栏必须压在承诺之前。</strong>决策周期 45 天、货已上路、钱已付、合同已签，本章十个 P0 里有七个是下单之前的检查。这与其它章同源，但位置更极端。</li>
+  <li><strong>先算放大倍数，再谈模型。</strong>牛鞭 16 倍、产能挤占 1 个错变 20 个错、缺口处置 1 : 10 : 27，这三个数比任何模型指标都更早决定架构成败。</li>
+  <li><strong>预测要区间，不要点估计；安全库存要动态，不要常数。</strong>SS = z × σ × √L，z 按 ABC 分层、σ 按生命周期分档、L 取分布的 P90。预测误差减半对应库存总成本降 39%，而点估计误差会互相抵消，区间偏差不会。</li>
+  <li><strong>模型给建议，约束做决定。</strong>MOQ、箱规、仓容、产能、运力都是硬约束，逐 SKU 独立求解是产能挤占的系统性来源。求解器必须读产能视图并按产能全局分配，且三层降级里规则层永远可跑。</li>
+  <li><strong>先把账对上，再谈补货。</strong>账实、在途、订单三条对账线，订单差异必须为 0。在账实不符被修复之前，任何补货决策都是在给一个假缺口补货。</li>
+</ol>
+
+<h3 id="sec-7.3">11.7.3 下一章</h3><p>这一篇是「AI Agent 系统设计」专题的收尾。<strong>全系列十一篇到此走完</strong>：从问数与问答的「把自然语言翻译成可信结论」，到客服、营销、电商与文旅的「在有副作用的链路上做受控编排」，再到运维、安全运营、合同审查与办公写作的「在合规与流程约束下推进」，最后落到供应链的「决策周期长、物理约束硬、多方协同」。回看这条路，十一篇的答案可以归结为同一句话：<strong>模型负责更优，规则负责不出事；副作用越大，护栏越要压在动作之前</strong>。往后的延伸不再是新的一章，而是把这套结构用到你自己的业务上——先算放大倍数，再列不可逆清单，最后才轮到选模型。</p>
+
+<h3 id="sec-7.4">11.7.4 相关阅读</h3><ul>
+  <li><a href="/2026/11/26/agent-design-01-text2sql/"><strong>第 1 章 · 问数 Agent</strong></a> — 同系列的起点：一条只读的推理链路如何把模糊提问变成可信结论，以及口径必须先问清这件事。</li>
+  <li><a href="/2026/11/26/agent-design-04-marketing/"><strong>第 4 章 · 营销 Agent</strong></a> — 另一个「不可撤销」的对照：发错的消息能撤回一部分，发错的订单撤不回——两章护栏位置的差别就在这里。</li>
+  <li><a href="/2026/08/08/llm-agent-principles/"><strong>AI 编程工程实践 02 · Agent 平台原理</strong></a> — 从更上层看一次交付如何发生：上下文、工具与检查点如何被组织成可复用的能力。</li>
+  <li><a href="/2026/06/10/observable-security-03-08-soc-operations/"><strong>智能安全运营可观测性 · 参考 08 · SOC 运营体系</strong></a> — 与本章「先修账再谈处置」同源：数据不可信时，先修数据。</li>
+</ul>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">11.1 供应链 Agent 是什么</a><a class="reading-toc-link level-3" href="#sec-1.1">11.1.1 定义与三个根本差别</a><a class="reading-toc-link level-3" href="#sec-1.2">11.1.2 三个能力层次、用户场景与相近系统</a><a class="reading-toc-link level-3" href="#sec-1.3">11.1.3 系统边界、核心指标与不可逆决策</a><a class="reading-toc-link level-2" href="#seg-2">11.2 核心矛盾与设计原则</a><a class="reading-toc-link level-3" href="#sec-2.1">11.2.1 本质与六条章级原则</a><a class="reading-toc-link level-3" href="#sec-2.2">11.2.2 三个不等式与三个放大器</a><a class="reading-toc-link level-3" href="#sec-2.3">11.2.3 四类正确性与八组关键矛盾</a><a class="reading-toc-link level-3" href="#sec-2.4">11.2.4 失败模式、信任分级与成本结构</a><a class="reading-toc-link level-2" href="#seg-3">11.3 理论与方法论</a><a class="reading-toc-link level-3" href="#sec-3.1">11.3.1 S0 前置锚点与 4S 收敛顺序</a><a class="reading-toc-link level-3" href="#sec-3.2">11.3.2 场景与规模参数</a><a class="reading-toc-link level-3" href="#sec-3.3">11.3.3 服务、存储与扩展兜底</a><a class="reading-toc-link level-3" href="#sec-3.4">11.3.4 需求预测与预测分层</a><a class="reading-toc-link level-3" href="#sec-3.5">11.3.5 牛鞭效应：信息失真的四类机制</a><a class="reading-toc-link level-3" href="#sec-3.6">11.3.6 库存策略：再订货点与安全库存</a><a class="reading-toc-link level-3" href="#sec-3.7">11.3.7 补货决策与约束求解</a><a class="reading-toc-link level-3" href="#sec-3.8">11.3.8 供应商选择与履约调拨</a><a class="reading-toc-link level-3" href="#sec-3.9">11.3.9 异常归因、对账、评测与容量成本</a><a class="reading-toc-link level-2" href="#seg-4">11.4 工程落地与规则护栏</a><a class="reading-toc-link level-3" href="#sec-4.1">11.4.1 端到端链路与目标解析护栏</a><a class="reading-toc-link level-3" href="#sec-4.2">11.4.2 预测护栏</a><a class="reading-toc-link level-3" href="#sec-4.3">11.4.3 补货、履约与审计护栏</a><a class="reading-toc-link level-3" href="#sec-4.4">11.4.4 降级矩阵与延迟预算</a><a class="reading-toc-link level-3" href="#sec-4.5">11.4.5 观测压测、护栏清单与上线检查</a><a class="reading-toc-link level-2" href="#seg-5">11.5 端到端案例</a><a class="reading-toc-link level-3" href="#sec-5.1">11.5.1 案例：华东仓断货风险与滞销压降</a><a class="reading-toc-link level-3" href="#sec-5.2">11.5.2 变体：周度补货、新品首发与供应商违约</a><a class="reading-toc-link level-3" href="#sec-5.3">11.5.3 调拨替代、故障兜底、扩容与取舍</a><a class="reading-toc-link level-2" href="#seg-6">11.6 演进、指标与误区</a><a class="reading-toc-link level-3" href="#sec-6.1">11.6.1 演进路线与指标体系</a><a class="reading-toc-link level-3" href="#sec-6.2">11.6.2 评测回归与成本优化</a><a class="reading-toc-link level-3" href="#sec-6.3">11.6.3 产品对比与常见误区</a><a class="reading-toc-link level-3" href="#sec-6.4">11.6.4 高频追问、答题提纲与一页纸手册</a><a class="reading-toc-link level-2" href="#seg-7">11.7 总结</a><a class="reading-toc-link level-3" href="#sec-7.1">11.7.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-7.2">11.7.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-7.3">11.7.3 下一章</a><a class="reading-toc-link level-3" href="#sec-7.4">11.7.4 相关阅读</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/26/agent-design-10-office-writing/"><small>← 上一篇</small><span>办公写作 Agent——文档、PPT 与周报的生成</span></a></div><div></div><a class="article-series-return" href="/categories/agent-design/">返回AI Agent 系统设计 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=13" defer></script></body>
+</html>

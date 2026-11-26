@@ -1,0 +1,2170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 3 章：客服 Agent：客服 Agent——从答疑到受控代办 | AI Agent 系统设计</title>
+  <meta name="description" content="客服 Agent 把工单理解、检索、工具调用与人工协同串成一条受控流水线。本章拆开状态机与 Checkpoint、幂等与 HITL、三层记忆与上下文放大、工具防注入，给出日 100 万工单的容量与成本估算。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 3 章：客服 Agent：客服 Agent——从答疑到受控代办">
+  <meta property="og:url" content="https://www.lianjifu.cn/2026/11/26/agent-design-03-customer-service/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="客服 Agent 把工单理解、检索、工具调用与人工协同串成一条受控流水线。本章拆开状态机与 Checkpoint、幂等与 HITL、三层记忆与上下文放大、工具防注入，给出日 100 万工单的容量与成本估算。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-26T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-26T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="agent-design">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" content="https://www.lianjifu.cn/2026/11/26/agent-design-03-customer-service/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="/css/2026.css?v=2">
+  <link rel="stylesheet" href="/css/portal.css?v=13">
+  <link rel="stylesheet" href="/css/article.css?v=8">
+  <link rel="stylesheet" href="/css/agent-design.css?v=1">
+  <script src="/js/portal.js?v=7" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="agent-design"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+        <path d="M8 3v4M16 3v4M3.5 10.5h17" />
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24">
+        <path
+          d="M3.5 6.6a2 2 0 0 1 2-2h3.3a2 2 0 0 1 1.5.7l1.3 1.7h6.9a2 2 0 0 1 2 2v8.4a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"
+        />
+      </symbol>
+    </svg>
+<header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/agent-design/"
+                  ><span class="series-dot slate"></span
+                  ><span
+                    ><strong>AI Agent 系统设计</strong
+                    ><small>十类 Agent 的系统设计</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/agent-design/">AI Agent 系统设计</a></div>
+      <span class="article-kicker">第 3 章：客服 Agent</span>
+      <h1 class="post-title" itemprop="name headline">客服 Agent——从答疑到受控代办</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-26T10:00:00+08:00">2026-11-26</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/agent-design/" itemprop="url" rel="index"><span itemprop="name">AI Agent 系统设计</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body agent-design-body" itemprop="articleBody">
+<p class="oc-lead">
+  客服 AI Agent 不只是「会聊天的机器人」，而是能执行业务动作、可审计、可回滚、可人工接管的服务系统：它接收多渠道工单，完成意图识别、知识检索、工具调用与回复生成，在不确定或高风险时转人工。核心工程挑战是「同一个意图不能执行两次、执行到一半崩了要能恢复」。本章围绕 Agent 架构与队列 Worker、状态机与 Checkpoint、幂等与 HITL、三层记忆与上下文放大、工具防注入展开。
+</p>
+
+<table class="guide-card collapsed">
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr class="guide-card-header">
+      <td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>客服是响应式服务，用户先来，系统再答</li>
+          <li>所以客服 Agent 的风险是「答错一句」还是「做错一次」，完全取决于它有没有下游动作</li>
+          <li>一旦能调退款、改地址、发邮件，它就从聊天机器人变成了一个要背账的系统</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>它解决的是「把请求变成一次可撤销、可审计的执行」</li>
+          <li>不只是回答问题，而是把问题变成订单查询、审批通过、状态回写这些有副作用的动作</li>
+          <li>难点不在生成，在于同一个意图不能执行两次，执行到一半崩了要能恢复</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>它站在业务系统之上、工单与审批之下</li>
+          <li>接入、编排、队列、执行、工具、人工协同六层自建，支付渠道与订单主数据在外部</li>
+          <li>事实源只有三样：工单表、工具调用记录、审批记录，其余全是可重建的投影</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>路由优先，Agent 循环是最后手段</li>
+          <li>咨询走 RAG 直答，订单查询走固定只读流程，退款走固定流程加人工审批</li>
+          <li>客服意图高度集中，用流程覆盖高频动作、用 Agent 处理长尾，比「全部走 Agent」便宜一个数量级</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+<div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p><strong>本章回答</strong>：一个带副作用的客服 Agent 怎样做到不重复执行、执行到一半能恢复、且没人被它重复打扰</p>
+  <p><strong>核心机制</strong>：意图路由 → 上下文组装（三层记忆 + 预算）→ RAG 与引用 → 工具调用（白名单 + Schema + 幂等）→ 高风险挂起审批 → 状态机与 Checkpoint 恢复 → 审计与降级</p>
+  <p><strong>关键数字</strong>：日工单 100 万 · 峰值 58 QPS · 峰值 LLM 调用 232 QPS · 上下文 424 亿 token/天 · 模型成本约 9.9 万元/天</p>
+  <p><strong>读完能做什么</strong>：设计一条带副作用的客服链路，并说清幂等、挂起、恢复、降级各自该守在哪一层</p>
+</div>
+
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>一个带副作用的客服 Agent 怎样做到不重复执行、执行到一半能恢复、且没人被它重复打扰</td></tr>
+    <tr><td>核心机制</td><td>意图路由 → 上下文组装（三层记忆 + 预算）→ RAG 与引用 → 工具调用（白名单 + Schema + 幂等）→ 高风险挂起审批 → 状态机与 Checkpoint 恢复 → 审计与降级</td></tr>
+    <tr><td>关键数字</td><td>日工单 100 万 · 峰值 58 QPS · 峰值 LLM 调用 232 QPS · 上下文 424 亿 token/天 · 模型成本约 9.9 万元/天</td></tr>
+    <tr><td>读完能做什么</td><td>设计一条带副作用的客服链路，并说清幂等、挂起、恢复、降级各自该守在哪一层</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 客服 Agent 是什么</div>
+    <div>它是什么、给谁用、与规则机器人和 RPA 差在哪，以及哪些决策一旦做错就要停机迁移。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 核心矛盾</div>
+    <div>概率输出与确定性动作之间的冲突，以及六条必须坚持的原则。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 理论与方法论</div>
+    <div>从七项前置锚点一路推到容量与成本：状态机、幂等、挂起、上下文各怎么治。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · 工程落地与护栏</div>
+    <div>把方法论变成链路上的一环一环：护栏清单、降级矩阵与延迟预算。</div>
+  </div>
+  <div class="oc-card">
+    <div>第五段 · 端到端案例</div>
+    <div>一笔 500 元的电商退款工单，走完整条链路。</div>
+  </div>
+  <div class="oc-card">
+    <div>第六段 · 演进与误区</div>
+    <div>六级演进路线、六个指标层，以及十九条最贵的误区。</div>
+  </div>
+  <div class="oc-card">
+    <div>总结</div>
+    <div>把这一章压成一页纸：结论、边界、下一章。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">3.1 客服 Agent 是什么</h2><div class="oc-part-lead"><strong>第一段 · 客服 Agent 是什么</strong>这一段回答：客服 Agent 究竟是什么、给谁用、边界划在哪里，以及哪些决策一旦做错就要停机迁移。</div>
+
+<h3 id="sec-1.1">3.1.1 定义与三类能力</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>客服 AI Agent 是面向客户服务场景的智能体系统：接收多渠道工单，完成意图识别、知识检索、工具调用与回复生成，并在不确定或高风险时转人工。它不只是「会聊天的机器人」，而是能执行业务动作、可审计、可回滚、可人工接管的服务系统。能力分三层——问答靠知识库、事务靠业务工具、协同靠人与审批，风险依次递增：幻觉与过期知识、误操作与越权、上下文丢失与重复劳动。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「三类能力」这张表真正的分界线是「有没有副作用」：问答错了是一句错话，事务错了是真金白银。后面的所有架构选择——幂等、审批、审计、恢复——都只是在为「事务」这一层买单。如果一个团队说自己在做客服 Agent 却说不清哪些动作属于事务，那它做的其实只是 FAQ 机器人。</p>
+</div>
+
+<p><strong>定义</strong>：客服 AI Agent 是面向客户服务场景的智能体系统。它接收多渠道工单，完成意图识别、知识检索、工具调用、回复生成，并在不确定或高风险时转人工。它不只是「会聊天的机器人」，而是<strong>能执行业务动作、可审计、可回滚、可人工接管</strong>的服务系统。</p>
+<p><strong>三类能力</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">能力</th><th scope="col">说明</th><th scope="col">典型动作</th><th scope="col">风险</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>问答</td><td>基于知识库回答</td><td>FAQ、政策解释、产品咨询</td><td>幻觉、过期知识</td></tr>
+      <tr><td>事务</td><td>调用业务工具</td><td>查订单、改地址、退款、开票</td><td>误操作、越权</td></tr>
+      <tr><td>协同</td><td>与人协作</td><td>转人工、审批、补充信息</td><td>上下文丢失、重复劳动</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-1.2">3.1.2 与相近系统的区别与业务价值</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>规则机器人覆盖窄、维护贵，但确定性强；RPA 跑固定流程，没有自然语言理解且异常处理弱；通用聊天助手能生成回答，却无业务工具、无工单状态、无审计；人工客服判断力强，但成本高、时效不稳定。业务价值有四层：拦截常见问题降本，7×24 小时秒级首响提效，政策口径统一，全量结构化对话反哺产品与知识库。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>与人工客服的差别值得多想一层：模型强在量大、判断确定，人强在罕见、模糊、需要担责。所以分工不该是「简单的给模型、难的给人」，而应是「模型先接住所有能靠规则闭环的，剩下的带着完整上下文交给人」——交接质量才是关键指标，转人工率本身不是。</p>
+</div>
+
+<p><strong>与相近系统的区别</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">系统</th><th scope="col">核心</th><th scope="col">与客服 Agent 的差异</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>规则机器人</td><td>决策树/关键词</td><td>覆盖窄、维护贵，但确定性强</td></tr>
+      <tr><td>RPA</td><td>固定流程自动化</td><td>无自然语言理解，异常处理弱</td></tr>
+      <tr><td>通用聊天助手</td><td>生成回答</td><td>无业务工具、无工单状态、无审计</td></tr>
+      <tr><td>客服 Agent</td><td>理解 + 检索 + 工具 + 人机协同</td><td>有副作用、强一致、强审计</td></tr>
+      <tr><td>人工客服</td><td>人处理</td><td>成本高、时效不稳定，但判断力强</td></tr>
+  </tbody>
+</table>
+<p><strong>业务价值</strong>：</p>
+<ul>
+<li>降本：拦截常见问题，减少人工坐席。</li>
+<li>提效：7×24 小时、秒级首响、并行处理。</li>
+<li>一致性：政策口径统一，减少人为差异。</li>
+<li>可分析：全量对话结构化，反哺产品与知识库。</li>
+</ul>
+
+<h3 id="sec-1.3">3.1.3 系统边界、核心指标与不可逆决策</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>范围内是工单接入与渠道归一、意图识别与路由、知识检索、工具编排与执行、人工转接与审批、会话状态与审计；范围外是呼叫中心话务、订单主数据、支付渠道本身、知识库内容生产与坐席排班。核心指标分效果、正确、效率、成本、安全五类，SLO 里有两条是硬约束：错误退款为 0、审计覆盖率 100%。本章七项不可逆决策——状态机语义、幂等键构造、Checkpoint schema、工具契约、上下文治理策略、RAG 分块与索引 schema、自动化分级阈值——做错了要停机迁移加数据回填。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>判断一个决策是不是单向门，看它改动之后「历史数据还能不能解释」。幂等键规则一改，历史上已经发生的重复退款就再也认不出来，只能人工对账；工具契约一改，存量 Checkpoint 里的旧调用无法重放。相比之下模型选择、批大小、top-k、K 值都可以快速试错——但 K 值属于「可逆但很贵」，改了必须跑全量回归。</p>
+</div>
+
+<p><strong>系统边界</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">范围内</th><th scope="col">范围外</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>工单接入与渠道归一</td><td>呼叫中心底层话务</td></tr>
+      <tr><td>意图识别与路由</td><td>业务订单主数据</td></tr>
+      <tr><td>知识检索（RAG）</td><td>知识库内容生产</td></tr>
+      <tr><td>工具编排与执行</td><td>支付渠道本身</td></tr>
+      <tr><td>人工转接与审批</td><td>坐席排班与绩效</td></tr>
+      <tr><td>会话状态与审计</td><td>全站风控</td></tr>
+  </tbody>
+</table>
+<p><strong>核心指标</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>效果</td><td>一次解决率、自助解决率、转人工率、CSAT</td></tr>
+      <tr><td>正确</td><td>意图准确率、工具选择准确率、参数准确率、政策违规率</td></tr>
+      <tr><td>效率</td><td>首响时延、平均处理时长、并发工单数</td></tr>
+      <tr><td>成本</td><td>单工单 token 成本、单工单人工成本</td></tr>
+      <tr><td>安全</td><td>越权拦截率、注入拦截率、PII 泄露数</td></tr>
+  </tbody>
+</table>
+<p><strong>SLO 示例</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">目标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>工单接入 P99</td><td>&lt; 200ms</td></tr>
+      <tr><td>首响 P95</td><td>&lt; 3s</td></tr>
+      <tr><td>异步任务完成 P95</td><td>&lt; 2min</td></tr>
+      <tr><td>转人工时延</td><td>&lt; 30s</td></tr>
+      <tr><td>可用性</td><td>99.9%</td></tr>
+      <tr><td>错误退款</td><td><strong>0</strong>（硬约束，不用百分比衡量）</td></tr>
+      <tr><td>审计覆盖率</td><td><strong>100%</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>本章专属不可逆决策清单</strong>（做错了要停机迁移 + 数据回填 + 全量对账，不是发个版本就能改）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">为什么不可逆</th><th scope="col">改动代价</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>工单状态机的状态与跃迁语义</strong></td><td>状态机、Checkpoint、审批、恢复、超时全部依赖同一套语义</td><td>全部恢复逻辑重写 + 存量工单状态迁移 + 在途任务全部人工接管</td></tr>
+      <tr><td><strong>幂等键的构造规则</strong>（<code>ticket_id + action + step</code>）</td><td>所有写工具、去重表、回调校验共用它</td><td>存量幂等记录失效 → <strong>已发生的重复退款无法自动识别</strong>，需人工对账</td></tr>
+      <tr><td><strong>Checkpoint 的 schema 与存储选型</strong></td><td>恢复逻辑、版本兼容、跨版本迁移全建立在它上面</td><td>全量 schema 迁移 + 存量任务无法恢复 + 回滚窗口关闭</td></tr>
+      <tr><td><strong>工具契约</strong>（工具名 + JSON Schema + 权限模型）</td><td>Agent 的行为由工具描述决定；改了描述等于改了行为</td><td>模型行为不可复现 + 存量 Checkpoint 里的旧调用无法重放 + 全量回归</td></tr>
+      <tr><td><strong>上下文治理策略</strong>（三层记忆的字段与裁剪规则）</td><td>决定 token 成本与事实保真度</td><td>同一问题在不同版本得到不同答案 + 成本模型全部作废 + 全量重跑评测</td></tr>
+      <tr><td><strong>RAG 的分块策略与索引 schema（含 ACL 字段）</strong></td><td>召回质量与权限过滤都建立在它上面</td><td>全量重建索引 + 召回结果突变 + 权限过滤出现历史越权窗口</td></tr>
+      <tr><td><strong>自动化分级与审批阈值</strong>（金额/风险的 HITL 边界）</td><td>决定人工成本与错误率的平衡点</td><td>一旦对外承诺过 SLA 很难改；调整等于悄悄改变风险偏好</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>对照「单向门与双向门」的判据</strong>：这七项属单向门，决策时要多评审、做原型、留迁移方案。其余（模型选择、批大小、top-k、K 值、工具超时、Worker 并发）都是双向门，可以快速试错——但 <strong>K 值（保留轮数）与 top-k 属于「可逆但很贵」</strong>：调它们会改变全部历史工单的回答质量，必须伴随评测回归。</p>
+</blockquote>
+
+<h2 id="seg-2">3.2 核心矛盾与设计原则</h2><div class="oc-part-lead"><strong>第二段 · 核心矛盾</strong>这一段回答：概率输出与确定性动作之间到底隔着什么，为什么这六条原则在冲突时说了算。</div>
+
+<h3 id="sec-2.1">3.2.1 本质与六条章级原则</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>本质矛盾是 LLM 的概率性输出与业务动作的确定性要求之间的冲突——模型可以猜，退款不能猜。六条章级原则规定冲突时以谁为准：概率负责决策、确定性负责执行；有副作用的动作必须可幂等、可审计、可补偿；规则在代码层，不在 Prompt 里；上下文是预算不是容器；不确定就交出去；每一步都要能重放。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>第一条原则的落地方式是那句硬话：未经校验的模型输出永远不是「已完成」。它把「模型说它做完了」和「系统确认它做完了」分成两件事——后者需要状态机、幂等表和快照来支撑。也正因如此，客服 Agent 的失败往往不表现为报错，而表现为「看起来完成了，其实是半成品」。</p>
+</div>
+
+<p><strong>本质</strong>：客服 Agent 的核心矛盾，是「LLM 的概率性输出」与「业务动作的确定性要求」之间的冲突。模型可以猜，退款不能猜。</p>
+<p><strong>六条章级原则</strong>（贯穿全章，冲突时以这六条为准）：</p>
+<ol>
+<li><strong>概率负责决策，确定性负责执行</strong>——模型的输出必须经过确定性校验（Schema、阈值、状态机）才能变成动作。<strong>未经校验的模型输出永远不是「已完成」</strong>。</li>
+<li><strong>有副作用的动作必须可幂等、可审计、可补偿</strong>——退款、发邮件、改地址，缺一个都不能上线。</li>
+<li><strong>规则在代码层，不在 Prompt 里</strong>——Prompt 可以被注入内容覆盖或诱导；安全规则、金额阈值、审批权限必须落在代码/策略层。</li>
+<li><strong>上下文是预算，不是容器</strong>——每次注入都要算钱。上下文成本随轮数二次增长，裁剪把它压回线性（<a href="#sec-3.6.14">上下文治理与上下文放大</a>）。</li>
+<li><strong>不确定就交出去</strong>——置信度不足、连续失败、政策未命中，宁可转人工也不要编。<strong>「不知道」必须能被识别，不能被润色掉。</strong></li>
+<li><strong>每一步都要能重放</strong>——事件、Checkpoint、审计三者齐全，任何动作都能回答「当时基于什么、谁批准、为什么」。</li>
+</ol>
+
+<h3 id="sec-2.2">3.2.2 三个不等式与三个放大器</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>三个不等式划定了边界：LLM 自由度远大于业务动作容错度，工单轮数远大于上下文窗口能装的轮数，用户能接受的等待远小于 Agent 深度推理耗时——首响必须快，长任务必须异步。三个放大器量化了代价：上下文放大让 token 成本随轮数二次增长，副作用放大让一次误判等于真金白银，信任放大让工具结果里藏的指令变成一次越权。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三个放大器里只有上下文放大是本章独有的，也最容易被当成「优化项」而不是「架构约束」。客服是唯一一个「用户多聊两句，成本就翻倍」的架构——别的系统放大的是数据量，客服放大的是对话本身。所以上下文预算必须和幂等、审批写在同一份方案里，而不是留给性能优化阶段。</p>
+</div>
+
+<p><strong>三个不等式</strong>：</p>
+<pre><code>LLM 的自由度  &gt;&gt;  业务动作的容错度     → 模型可以猜，退款不能猜
+工单轮数      &gt;&gt;  上下文窗口能装的轮数   → 不裁剪则成本按 O(n²) 爆炸
+用户能接受的等待  &lt;&lt;  Agent 深度推理耗时  → 首响必须快，长任务必须异步</code></pre>
+<p><strong>三个放大器</strong>（本章最贵的量都藏在这里）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">放大器</th><th scope="col">说明</th><th scope="col">后果</th><th scope="col">量化</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>上下文放大</strong></td><td>每轮把历史与工具结果重新注入</td><td>token 成本随轮数二次增长</td><td>无裁剪 O(n²)、裁剪后 O(n)；20 轮工单比 4 轮贵 17 倍（<a href="#sec-3.6.14">上下文治理与上下文放大</a>）</td></tr>
+      <tr><td><strong>副作用放大</strong></td><td>一句话可能触发退款、改址、开票</td><td>一次误判 = 真金白银</td><td>幂等键 + 审批 + 快照三层兜</td></tr>
+      <tr><td><strong>信任放大</strong></td><td>模型把工具结果当指令执行</td><td>一次注入 = 一次越权</td><td>外部数据不可信 + 规则在代码层</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章的放大器方向值得单独记</strong>：别的系统放大的是数据量，客服章的放大器是上下文——<strong>它是唯一一个「用户多聊两句，成本就翻倍」的架构</strong>。</p>
+</blockquote>
+
+<h3 id="sec-2.3">3.2.3 三层正确性与八组关键矛盾</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>三层正确性必须分开保证：答案正确靠 RAG、引用、自省与人工兜底；动作正确靠 JSON Schema、幂等键与状态机；权限正确靠代码层策略、审批与租户隔离。八组关键矛盾各配了默认策略与反转条件，比如「自动化 vs 正确性」默认风险分级、高风险走人工确认，低风险场景才可全自动。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>把正确性拆成三层，最直接的好处是能定位问题究竟出在哪一层。「答错了」是答案层，「退款金额错了」是动作层，「退到了别人的款」是权限层——三者的排查路径、修复位置和上线阻塞程度完全不同。混在一起谈「准确率」，最后往往会得到「再加一道审批吧」这种既贵又没打到点上的方案。</p>
+</div>
+
+<p><strong>三层正确性</strong>（必须分开保证）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">要求</th><th scope="col">保障手段</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>答案正确</td><td>事实、政策、引用准确</td><td>RAG + 引用 + 自省 + 人工兜底</td></tr>
+      <tr><td>动作正确</td><td>工具选对、参数对、只执行一次</td><td>JSON Schema + 幂等键 + 状态机</td></tr>
+      <tr><td>权限正确</td><td>不越权、不绕过审批</td><td>代码层策略 + 审批 + 租户隔离</td></tr>
+  </tbody>
+</table>
+<p><strong>八组关键矛盾</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">矛盾</th><th scope="col">典型表现</th><th scope="col">默认策略</th><th scope="col">何时反转</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>自动化 vs 正确性</td><td>全自动省人但风险高</td><td>风险分级，高风险 HITL</td><td>低风险场景可全自动</td></tr>
+      <tr><td>延迟 vs 推理深度</td><td>多步推理慢</td><td>首响快、长任务异步</td><td>复杂工单可接受分钟级</td></tr>
+      <tr><td>上下文完整 vs 成本</td><td>全量历史贵</td><td>三层记忆 + 裁剪</td><td>短会话可全量</td></tr>
+      <tr><td>自治 vs 可控</td><td>Agent 自主但可能越权</td><td>工具白名单 + 审批</td><td>只读工具可放宽</td></tr>
+      <tr><td>一致 vs 并发</td><td>多 Worker 同时推进</td><td>按 ticket 串行 + 版本号</td><td>不同工单可并行</td></tr>
+      <tr><td>知识时效 vs 索引成本</td><td>频繁重建贵</td><td>增量索引 + 版本化</td><td>小知识库可全量</td></tr>
+      <tr><td>安全 vs 体验</td><td>验证多则摩擦</td><td>风险分级</td><td>高价值操作强制</td></tr>
+      <tr><td>通用 vs 领域</td><td>通用模型泛化好但不准</td><td>领域 Prompt + 工具 + RAG</td><td>通用问答可放宽</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-2.4">3.2.4 失败模式、自动化分级与成本结构</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>七类失败模式各有防线：幻觉靠强制引用与低置信转人工，工具误选靠工具白名单与评测，参数错误靠 Schema 与二次确认，越权靠代码层策略，提示注入靠数据包裹与来源标注，死循环靠最大步数与超时，上下文污染靠版本号与恢复前校验。自动化分 L0 到 L4 五级，L2 半自动是主流生产形态。成本结构里 LLM token 排第一，向量检索与工具调用次之，存储最小，人工兜底视转人工率而定。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>七类失败里最值得单独记住的是「上下文污染：用旧参数执行新动作」。它不会像越权那样报错，因为参数格式完全合法——只是取的是第 3 轮之前那个已经过期的订单号。这类错误只有靠版本号和恢复前重校验才能拦住，靠模型自觉基本无望。</p>
+</div>
+
+<p><strong>七类失败模式</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">失败</th><th scope="col">表现</th><th scope="col">根因</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>幻觉</td><td>编造政策/订单状态</td><td>无依据生成</td><td>强制引用、低置信转人工</td></tr>
+      <tr><td>工具误选</td><td>该查订单却调退款</td><td>意图/工具描述不清</td><td>工具白名单、少样本、评测</td></tr>
+      <tr><td>参数错误</td><td>退款金额/订单号错</td><td>抽取错误、未校验</td><td>JSON Schema、二次确认</td></tr>
+      <tr><td>越权</td><td>绕过审批直接退款</td><td>Prompt 被绕过</td><td>代码层策略，不靠 Prompt</td></tr>
+      <tr><td>提示注入</td><td>工具结果里藏指令</td><td>外部数据不可信</td><td>数据包裹、来源标注</td></tr>
+      <tr><td>死循环</td><td>反复调用同一工具</td><td>无终止条件</td><td>最大步数、token 预算、超时</td></tr>
+      <tr><td>上下文污染</td><td>用旧参数执行新动作</td><td>状态过期</td><td>版本号、恢复前校验</td></tr>
+  </tbody>
+</table>
+<p><strong>自动化分级</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">级别</th><th scope="col">说明</th><th scope="col">人工参与</th><th scope="col">适用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>L0</td><td>纯人工</td><td>全部</td><td>法律、投诉、高危</td></tr>
+      <tr><td>L1</td><td>辅助推荐</td><td>人工确认后发送</td><td>新人坐席、复杂问题</td></tr>
+      <tr><td>L2</td><td>半自动</td><td>低风险自动，高风险确认</td><td>主流生产形态</td></tr>
+      <tr><td>L3</td><td>自动 + 抽检</td><td>仅异常介入</td><td>成熟场景</td></tr>
+      <tr><td>L4</td><td>全自动</td><td>事后审计</td><td>极低风险、标准化</td></tr>
+  </tbody>
+</table>
+<p><strong>为什么「把规则写进 Prompt」不够</strong>（章级原则 3 的完整论证）：</p>
+<ul>
+<li>Prompt 可以被注入内容覆盖或诱导。</li>
+<li>模型输出不稳定，同一输入可能不同结果。</li>
+<li>审计需要确定性证据，不能依赖「模型说它遵守了」。</li>
+<li>结论：<strong>安全规则、金额阈值、审批权限必须落在代码/策略层，Prompt 只做提示</strong>。</li>
+</ul>
+<p><strong>成本结构</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">占比量级</th><th scope="col">优化手段</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>LLM token</td><td>最大</td><td>模型分级、缓存、上下文裁剪</td></tr>
+      <tr><td>向量检索/重排</td><td>中</td><td>候选集控制、缓存</td></tr>
+      <tr><td>工具调用</td><td>中</td><td>并发、结果缓存</td></tr>
+      <tr><td>存储与日志</td><td>小</td><td>分层、TTL</td></tr>
+      <tr><td>人工兜底</td><td>视转人工率</td><td>提升自助率、知识质量</td></tr>
+  </tbody>
+</table>
+
+<h2 id="seg-3">3.3 理论与方法论</h2><div class="oc-part-lead"><strong>第三段 · 理论与方法论</strong>这一段回答：从七项前置锚点出发，一步步推到方法论与容量成本；状态机、幂等、上下文、护栏各怎么治。</div>
+
+<h3 id="sec-3.1">3.3.1 S0 前置锚点与 4S 收敛顺序</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>七项锚点划定可行域：业务目标与成功标准、规模量级、质量属性优先级、硬约束、不可逆决策清单、核心路径与事实源、竞争与协作边界。第 2 项之所以改变答案，是因为客服的规模参数不只有 QPS，还有会话长度分布——它决定成本曲线是线性还是二次。4S 收敛顺序是定题、场景、服务、存储、规模。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「50 万个「我的订单到哪了」和 50 万个「把这三个月所有订单导出并按月汇总」，是两个完全不同的系统」。只给日工单量这一个数，容量与成本都算不出来，因为长工单占比每上升一个百分点，日上下文 token 就多烧一大截。</p>
+</div>
+
+<h4 id="sec-3.1.1" data-toc-skip>S0：七项前置锚点</h4>
+
+<p>先落定七件事，它们共同决定<strong>可行域</strong>——不在可行域内的方案不参与讨论。</p>
+<table>
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">锚点</th><th scope="col">本章答案</th><th scope="col">影响</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>业务目标与成功标准</strong></td><td>自助解决率 60%、转人工率 &lt; 25%、错误退款 0</td><td>决定自动化分级与 HITL 边界</td></tr>
+      <tr><td>2</td><td><strong>规模量级</strong></td><td>日工单 100 万、峰值 58 QPS、平均 6 轮对话、每工单 4 次 LLM 调用</td><td>决定队列、Worker 数、模型配额与 token 预算</td></tr>
+      <tr><td>3</td><td><strong>质量属性优先级</strong></td><td>不越权 &gt; 不重复执行 &gt; 不超支 &gt; 体验 &gt; 成本</td><td>决定降级顺序与 fail-closed 边界</td></tr>
+      <tr><td>4</td><td><strong>硬约束</strong></td><td>退款等有副作用动作须可审计可回滚；PII 最小化与留存期；多租户隔离；录音与对话留存</td><td>定义可行域；合规要求不可用技术折抵</td></tr>
+      <tr><td>5</td><td><strong>不可逆决策清单</strong></td><td>见 <a href="#sec-1.3">系统边界、核心指标与不可逆决策</a> 的本章七项</td><td>决策流程：多评审 + 原型 + 迁移方案</td></tr>
+      <tr><td>6</td><td><strong>核心路径与事实源</strong></td><td>核心路径 = 接入 → 编排 → 执行 → 审批 → 执行 → 通知；事实源 = <strong>工单表 + 工具调用记录 + 审批记录</strong></td><td>决定缓存与对账对象；Checkpoint 与知识索引全是投影</td></tr>
+      <tr><td>7</td><td><strong>竞争与协作边界</strong></td><td>支付渠道、订单主数据、知识内容生产在外部；接入、编排、执行、工具、审批、审计自建</td><td>决定服务边界与团队成本</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 2 项为什么改变答案</strong>：1 万工单/天时，「全量上下文塞进 Prompt」毫无成本；100 万工单/天、平均 6 轮对话时，同一个做法每天烧掉 400 亿输入 token。<strong>Agent 的规模参数不只是并发，还有「会话长度」——后者决定成本曲线是线性还是二次。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.1.2" data-toc-skip>4S 收敛顺序</h4>
+
+<pre><code>S0 定题（锚点 + 不可逆清单）
+   → Scenario 定工单量、轮数分布、风险等级、自动化目标
+      → Service 定接入、编排、执行、人工协同的边界
+         → Storage 定工单、Checkpoint、审批、知识索引的唯一事实源
+            → Scale 定队列、并发、模型配额、上下文预算、降级</code></pre>
+
+<h3 id="sec-3.2">3.3.2 场景、规模、服务与存储模型</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>规模给全：日工单 100 万、平均 11.6 QPS、峰值 58 QPS（峰值系数 5）、意图分布为咨询 60%／订单 25%／退款 10%／投诉 5%，会话长度分布为 4 轮 60%／8 轮 30%／20 轮 10%，每工单平均 4 次 LLM 调用。服务表把 10 个服务分清同步与异步，判断标准是「用户在等吗、失败能补偿吗、会不会产生副作用」。数据模型里工单、消息、工具调用记录、审批记录、审计日志是事实源，任务、Checkpoint、上下文缓存与知识索引是投影。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>两个判断值得单独拎出来。第一，会话长度分布是本章独有的关键参数：只给平均 6 轮，token 成本只能算平均数，而平均数会系统性低估长尾工单的代价——长尾工单恰恰也是最容易出错的那批。第二，Checkpoint 虽是投影，却不能当缓存对待：它有独立保留期、独立容量规划与独立监控，丢了任务就恢复不了。</p>
+</div>
+
+<h4 id="sec-3.2.3" data-toc-skip>Scenario：场景与规模</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">数值</th><th scope="col">推导与来源</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>日工单量</td><td>100 万</td><td>—</td></tr>
+      <tr><td>平均工单 QPS</td><td>100 万 ÷ 86400</td><td>≈ <strong>11.6</strong></td></tr>
+      <tr><td><strong>峰值工单 QPS</strong></td><td>11.6 × 5</td><td><strong>58</strong>（峰值系数 5：晚高峰 3 小时承载当日 45%，叠加营销活动脉冲）</td></tr>
+      <tr><td>渠道</td><td>网页、App、IM、邮件、电话转写</td><td>渠道数决定适配器与归一成本</td></tr>
+      <tr><td>意图分布</td><td>咨询 60%、订单 25%、退款 10%、投诉 5%</td><td><strong>风险不均：15% 的工单要 HITL</strong></td></tr>
+      <tr><td>会话长度分布</td><td>4 轮 60% / 8 轮 30% / 20 轮 10%</td><td><strong>直接决定 token 成本曲线（<a href="#sec-3.6.14">上下文治理与上下文放大</a>）</strong></td></tr>
+      <tr><td>每工单 LLM 调用</td><td>平均 4 次</td><td>分类 + 规划 + 生成 + 反思</td></tr>
+      <tr><td>自动化目标</td><td>自助解决率 60%，转人工率 &lt; 25%</td><td>决定 L2 半自动为主流形态</td></tr>
+      <tr><td>风险等级</td><td>退款/改址为高风险，需审批</td><td>决定 HITL 阈值</td></tr>
+      <tr><td>语言</td><td>中英，后续多语言</td><td>每加一门语言，工具与知识库各翻一倍</td></tr>
+      <tr><td>合规</td><td>录音/对话留存、PII 保护、多租户隔离</td><td>—</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「会话长度分布」是本章独有的关键参数</strong>。传统系统的容量参数是 QPS，Agent 系统还必须给出<strong>轮数分布</strong>——否则 token 成本只能算平均值，而平均值会系统性低估长尾工单的代价。</p>
+</blockquote>
+
+<h4 id="sec-3.2.4" data-toc-skip>Service：服务与接口</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">服务</th><th scope="col">职责</th><th scope="col">同步/异步</th><th scope="col">关键点</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Channel Adapter</td><td>渠道归一、协议适配</td><td>同步</td><td>幂等接入</td></tr>
+      <tr><td>Ticket Service</td><td>工单创建、状态、分配</td><td>同步</td><td><code>ticket_id</code>、唯一索引</td></tr>
+      <tr><td>Orchestrator</td><td>鉴权、限流、意图路由</td><td>同步</td><td>快速返回，不跑 Agent</td></tr>
+      <tr><td>Task Queue</td><td>任务排队、优先级</td><td>异步</td><td>分区、可见性超时</td></tr>
+      <tr><td>Agent Worker</td><td>执行 Agent 循环</td><td>异步</td><td>无状态、Checkpoint</td></tr>
+      <tr><td>Tool Gateway</td><td>工具注册、鉴权、限流</td><td>同步</td><td>白名单、Schema、幂等</td></tr>
+      <tr><td>RAG Service</td><td>检索、重排、引用</td><td>同步</td><td>ACL、混合召回</td></tr>
+      <tr><td>HITL Service</td><td>审批、转人工</td><td>异步</td><td>挂起/恢复、快照</td></tr>
+      <tr><td>Audit Service</td><td>全链路审计</td><td>异步</td><td>不可篡改</td></tr>
+      <tr><td>Budget Service</td><td>token / 步数 / 时长预算</td><td>同步</td><td>超预算即降级</td></tr>
+  </tbody>
+</table>
+<p><strong>同步/异步边界</strong>：</p>
+<ul>
+<li>同步：接入、鉴权、意图路由、只读工具、审批提交。</li>
+<li>异步：Agent 循环、生成回复、通知、审计、报表。</li>
+<li>判断标准：用户在等吗？失败能补偿吗？会不会产生副作用？</li>
+</ul>
+<p><strong>核心 API</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方法</th><th scope="col">路径</th><th scope="col">说明</th><th scope="col">幂等</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>POST</td><td><code>/api/v1/tickets</code></td><td>接入工单，返回 <code>ticket_id</code></td><td>是（<code>source + external_id</code>）</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/tickets/{id}</code></td><td>查询状态</td><td>只读</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/tickets/{id}/messages</code></td><td>追加用户消息</td><td>是（<code>message_id</code>）</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/approvals/{id}/approve</code></td><td>审批通过</td><td>是（幂等键 + 快照）</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/approvals/{id}/reject</code></td><td>审批驳回</td><td>是</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/tickets/{id}/handoff</code></td><td>转人工</td><td>是</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/tickets/{id}/resume</code></td><td>审批后恢复执行</td><td>是（校验 <code>state_version</code>）</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.2.5" data-toc-skip>Storage：数据模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">数据</th><th scope="col">存储</th><th scope="col">事实源 / 投影</th><th scope="col">关键设计</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>工单</td><td>MySQL</td><td><strong>事实源</strong></td><td><code>ticket_id</code> 主键，<code>(source, external_id)</code> 唯一</td></tr>
+      <tr><td>消息</td><td>MySQL / 文档库</td><td><strong>事实源</strong></td><td>按 <code>ticket_id</code> 分区，时间序</td></tr>
+      <tr><td>工具调用记录</td><td>MySQL</td><td><strong>事实源</strong></td><td><code>tool_call_id</code> 唯一，含参数与结果</td></tr>
+      <tr><td>审批记录</td><td>MySQL</td><td><strong>事实源</strong></td><td><code>approval_id</code>、参数快照、状态、批注</td></tr>
+      <tr><td>审计日志</td><td>日志 / 数仓</td><td><strong>事实源</strong></td><td>不可篡改，保留 180 天+</td></tr>
+      <tr><td>任务</td><td>MySQL / Redis</td><td>投影</td><td><code>task_id</code>、状态、优先级</td></tr>
+      <tr><td>Checkpoint</td><td>PostgreSQL / Redis / 对象存储</td><td>投影（可重建但代价高）</td><td>每步快照，带 <code>state_version</code></td></tr>
+      <tr><td>Refresh 后的会话上下文</td><td>Redis</td><td>投影</td><td>短期缓存，丢则重算</td></tr>
+      <tr><td>知识索引</td><td>向量库 + 倒排</td><td>投影</td><td>文档块 + ACL 元数据</td></tr>
+      <tr><td>队列消息</td><td>Kafka / RabbitMQ</td><td>投影</td><td>可重放</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>Checkpoint 是投影但不是「随便丢」的那种投影</strong>——它丢了任务就恢复不了，只能人工接管。所以它有独立保留期、独立容量规划与独立监控，不能当缓存对待。</p>
+</blockquote>
+<p><strong>任务三级模型</strong>：</p>
+<pre><code>Ticket（工单：一个用户诉求的完整生命周期）
+  └→ Task（一次处理请求：一次「读懂 + 规划 + 执行」）
+       └→ Step（最小可重试单元：一次 LLM 决策 或 一次工具调用）</code></pre>
+<blockquote>
+  <p><strong>三级模型是幂等与恢复的基石</strong>：幂等键要落在 Step 级（<code>ticket_id + step_id + tool_call_id</code>），Checkpoint 落在 Task 级，审计落在 Step 级。粒度错了，重复执行与恢复就都做不对。</p>
+</blockquote>
+<p><strong>工单表</strong>：</p>
+<pre><code class="language-sql">CREATE TABLE tickets (
+  ticket_id    BIGINT PRIMARY KEY,
+  source       VARCHAR(16) NOT NULL,
+  external_id  VARCHAR(128) NOT NULL,
+  user_id      BIGINT NOT NULL,
+  channel      VARCHAR(16) NOT NULL,
+  status       TINYINT NOT NULL DEFAULT 0,
+  priority     TINYINT NOT NULL DEFAULT 0,
+  risk_level   TINYINT NOT NULL DEFAULT 0,   -- 0 低 1 中 2 高（高风险必审批）
+  tenant_id    BIGINT NOT NULL,
+  created_at   BIGINT NOT NULL,
+  UNIQUE KEY uk_source_external (source, external_id),
+  KEY idx_tenant_status (tenant_id, status)
+);</code></pre>
+
+<h4 id="sec-3.2.6" data-toc-skip>Scale：扩展与兜底</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">手段</th><th scope="col">触发条件（量化）</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>接入</td><td>无状态网关、水平扩容</td><td>入口 P99 &gt; 200ms 或 CPU &gt; 60%</td></tr>
+      <tr><td>执行</td><td>Worker 池、分区消费</td><td>队列等待 &gt; 30s</td></tr>
+      <tr><td>隔离</td><td>按租户/优先级分队列</td><td>单租户占比 &gt; 20% 或其等待 &gt; 其他租户 3 倍</td></tr>
+      <tr><td>限流</td><td>令牌桶、并发上限</td><td>队列深度 &gt; 10000 或 LLM 调用超配额</td></tr>
+      <tr><td>成本</td><td>模型分级、缓存、上下文裁剪</td><td>单工单 token &gt; 预算 120%</td></tr>
+      <tr><td>预算</td><td>每工单最大步数/token/时长</td><td>超预算即降级</td></tr>
+      <tr><td>降级</td><td>模板回复、转人工、只读</td><td>模型/工具/队列故障</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.3">3.3.3 架构模式、工单接入与队列 Worker</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>五种架构模式里 ReAct 最灵活但步数多成本高，Workflow 最可控可审计却灵活性低，Router 先分类再分派最简单最快。生产建议是 Router 优先：FAQ 走 RAG 直答、订单查询走固定只读流程、退款改址走固定流程加人工审批、投诉与低置信转人工。接入层只做校验、落库、返回工单号，不在请求线程里跑 Agent；去重用来源加外部编号的幂等键。Worker 无状态可水平扩容，靠可见性超时、启动扫描与 Checkpoint 三重兜底防崩溃。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「越少用 Agent 循环越好」是这一节最值钱的一句。客服意图分布高度集中，咨询占六成，用固定流程覆盖高频标准动作、用 Agent 只处理长尾，比「全部走 Agent」便宜一个数量级且更可控。判断标准也很简单：这个动作的标准流程能不能写成确定步骤？能就别交给模型循环。</p>
+</div>
+
+<h4 id="sec-3.3.7" data-toc-skip>Agent 架构模式</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">模式</th><th scope="col">做法</th><th scope="col">优点</th><th scope="col">缺点</th><th scope="col">适用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>ReAct</td><td>思考 → 行动 → 观察循环</td><td>灵活、可解释</td><td>步数多、成本高</td><td>工具型任务</td></tr>
+      <tr><td>Plan-Execute</td><td>先规划再执行</td><td>全局视角</td><td>计划可能过期</td><td>多步复杂任务</td></tr>
+      <tr><td>Router</td><td>先分类再分派</td><td>简单、快</td><td>覆盖有限</td><td>意图清晰场景</td></tr>
+      <tr><td>Workflow</td><td>预定义流程 + LLM 填参</td><td>可控、可审计</td><td>灵活性低</td><td><strong>高风险标准流程</strong></td></tr>
+      <tr><td>Multi-Agent</td><td>多角色协作</td><td>分工专业</td><td>协调复杂、成本翻倍</td><td>大型复杂场景</td></tr>
+  </tbody>
+</table>
+<p><strong>生产建议</strong>（本章的默认形态）：</p>
+<pre><code>Router（意图分流）
+  ├─ FAQ/咨询      → RAG 直答（不进入 Agent 循环）
+  ├─ 订单/物流查询 → Workflow（固定只读工具，最稳最省）
+  ├─ 退款/改址    → Workflow + HITL（高风险，动作固定）
+  └─ 投诉/复杂/低置信 → 转人工</code></pre>
+<blockquote>
+  <p><strong>越少用 Agent 循环越好</strong>。ReAct 的灵活性和成本都是线性甚至二次的增长，而客服场景的意图分布高度集中（咨询 60%），用 Workflow 覆盖高频标准动作、用 Agent 处理长尾，比「全部走 Agent」便宜一个数量级且更可控。</p>
+</blockquote>
+
+<h4 id="sec-3.3.8" data-toc-skip>工单接入与异步任务</h4>
+
+<ul>
+<li><strong>接入方式</strong>：Webhook 推送（实时）、API 轮询（兼容老系统）、消息队列订阅。</li>
+<li><strong>同步 vs 异步</strong>：接入层只做校验、落库、返回 <code>ticket_id</code>，<strong>不在请求线程里跑 Agent</strong>；耗时任务全部异步化。</li>
+<li><strong>去重</strong>：<code>source + external_id</code> 幂等键，重复消息直接返回已有工单。</li>
+<li><strong>优先级</strong>：VIP、投诉、超时工单优先；按租户隔离队列。</li>
+<li><strong>接入不做业务判断</strong>：渠道适配器只负责把五种渠道归一成统一消息模型（channel、user_id、content、attachments、locale、priority），不解析意图、不查订单。</li>
+</ul>
+
+<h4 id="sec-3.3.9" data-toc-skip>队列与 Worker</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">队列</th><th scope="col">特点</th><th scope="col">适用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Kafka</td><td>高吞吐、可回放</td><td>事件流、审计</td></tr>
+      <tr><td>RabbitMQ</td><td>路由灵活、延迟低</td><td>任务分发</td></tr>
+      <tr><td>Redis Stream</td><td>轻量、易部署</td><td>中小规模</td></tr>
+      <tr><td>SQS</td><td>云托管</td><td>云上</td></tr>
+  </tbody>
+</table>
+<p><strong>Worker 设计</strong>：</p>
+<ul>
+<li>无状态，水平扩容；按租户/优先级分队列。</li>
+<li>心跳 + 可见性超时，防止消息被重复消费。</li>
+<li>长任务拆 Step，每步落 Checkpoint。</li>
+<li>消费成功后 ack；失败重试；超次数进死信。</li>
+</ul>
+<p><strong>Worker 崩溃的三重兜底</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">兜底</th><th scope="col">机制</th><th scope="col">兜住什么</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>可见性超时</td><td>消息超时未 ack 自动重投</td><td>进程被 kill -9</td></tr>
+      <tr><td>启动扫描</td><td>启动时扫 <code>RUNNING</code> 超时任务</td><td>宕机后卡住的任务</td></tr>
+      <tr><td>Checkpoint</td><td>从最后一步恢复</td><td>重跑代价（不重复副作用）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p>三层缺一不可：只有可见性超时，重投的消息可能从第 1 步重跑；只有启动扫描，进程内的消息会永久卡住；只有 Checkpoint，重投时无法知道做到哪一步。<strong>Checkpoint 是唯一保证「不重复副作用」的那一层。</strong></p>
+</blockquote>
+
+<h3 id="sec-3.4">3.3.4 状态机、Checkpoint 与恢复</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>状态机从待处理到已解决，中间挂起等待人工，失败进死信；每次状态变更写库带版本号，重试用指数退避加随机抖动，并区分可重试与不可重试。Checkpoint 每步落一次，含步骤号、状态版本、工具调用计划、已完成结果、待审批项、消息、事实槽位与 token 累计。恢复时三条硬规则：先重新校验外部状态、一律先查幂等表、版本不匹配就停并转人工。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「版本不匹配就停，绝不以最新的为准强行继续」是最反直觉也最正确的一条。听起来「以最新状态为准继续执行」更聪明，但那等于让一个旧快照授权一个新动作——用户上周同意的退款，不代表他今天还同意。这条规则的代价是一次人工介入，收益是不会把一次不确定执行变成一次不可撤销的资金动作。</p>
+</div>
+
+<h4 id="sec-3.4.10" data-toc-skip>状态机、Checkpoint 与恢复</h4>
+
+<p><strong>状态机</strong>：</p>
+<pre><code>PENDING → RUNNING → WAITING_TOOL → RUNNING → RESOLVED
+              ↓            ↓
+           RETRYING     WAITING_HUMAN → RESOLVED / CLOSED
+              ↓
+           FAILED → DEAD_LETTER</code></pre>
+<ul>
+<li>每次状态变更写库（带 <code>version</code>），支持断点续跑。</li>
+<li>重试：指数退避 + 随机抖动，区分可重试（超时/限流）与不可重试（参数/权限）。</li>
+<li>超过最大次数进 DLQ，人工介入或补偿。</li>
+<li>Worker 崩溃靠可见性超时重新投递；启动时扫描 <code>RUNNING</code> 超时任务。</li>
+</ul>
+<p><strong>重试公式</strong>：</p>
+<pre><code>delay = min(cap, base × 2^attempt) + random_jitter</code></pre>
+<p><strong>Checkpoint 结构</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">字段</th><th scope="col">作用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>step_id</code></td><td>当前步骤</td></tr>
+      <tr><td><code>state_version</code></td><td>全局单调递增，防并发覆盖</td></tr>
+      <tr><td><code>tool_calls_plan</code></td><td>每个工具的状态</td></tr>
+      <tr><td><code>completed_results</code></td><td>按 <code>tool_call_id</code> 索引的结果快照</td></tr>
+      <tr><td><code>pending_approvals</code></td><td>待人工处理项</td></tr>
+      <tr><td><code>messages</code></td><td>上下文消息</td></tr>
+      <tr><td><code>fact_slots</code></td><td>结构化事实槽位</td></tr>
+      <tr><td><code>token_usage</code></td><td>成本累计</td></tr>
+  </tbody>
+</table>
+<p><strong>工具状态</strong>：PENDING / WAITING_APPROVAL / APPROVED / REJECTED / RUNNING / SUCCEEDED / FAILED / COMPENSATED。</p>
+<p>任何审批回调、工具完成回调或超时事件更新 Checkpoint 时，都必须校验 <code>state_version</code> 或按 <code>ticket_id</code> 串行；只有 <code>pending_approvals</code> 全部清空，任务才回到完整的 <code>RUNNING</code> 循环。</p>
+<p><strong>恢复时的三条硬规则</strong>：</p>
+<ol>
+<li><strong>恢复前重新校验状态</strong>：从 Checkpoint 恢复时，先校验外部世界有没有变（订单是否已退款、政策是否已改、库存是否还在），而不是直接信任快照。</li>
+<li><strong>副作用动作一律先查幂等表</strong>：恢复时如果 <code>executed_actions</code> 里已有该 <code>tool_call_id</code>，直接复用结果，不重发。</li>
+<li><strong>版本不匹配就停</strong>：Checkpoint 的 <code>state_version</code> 与库里的当前版本不一致时，<strong>停止执行并转人工</strong>，绝不「以最新的为准」强行继续。</li>
+</ol>
+
+<h3 id="sec-3.5">3.3.5 幂等、并发与部分挂起</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>幂等三件套是幂等键、唯一索引或去重表、状态机条件更新。幂等键的正确粒度是工单号加步骤号加调用号——同一工单、同一步骤、同一个调用意图三者齐一才算重复。并发上同一工单串行、不同工单并行，用乐观锁版本号、分区消费和工单粒度的分布式锁。高风险动作进待审批列表，绑定调用号、幂等键与审批快照，任务挂起并释放 Worker，依赖它的下游动作延后。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>幂等键粒度是本章最容易做错的一处，两个方向都会翻车：键只到工单号，同一工单的两次合法退款（先退部分、后退剩余）会被误判成重复而丢掉；键只到调用号而它每次重试都新生成，幂等等于完全没做。正确粒度是把「意图」也放进键里，而不是把「调用次数」当唯一标识。</p>
+</div>
+
+<h4 id="sec-3.5.11" data-toc-skip>幂等与并发</h4>
+
+<p><strong>幂等三件套</strong>：</p>
+<ol>
+<li>幂等键（<code>ticket_id + action + step</code>，工具级用 <code>ticket_id + step_id + tool_call_id</code>）。</li>
+<li>唯一索引 / 去重表。</li>
+<li>状态机条件更新（<code>UPDATE ... WHERE status = 'PENDING'</code>）。</li>
+</ol>
+<p><strong>并发控制</strong>：</p>
+<ul>
+<li>同一工单串行、不同工单并行。</li>
+<li>乐观锁 <code>version</code>，冲突重试。</li>
+<li>分布式锁按 <code>ticket_id</code> 粒度，注意锁超时与归属校验。</li>
+<li>分区消费保证同一工单落到同一分区。</li>
+</ul>
+<blockquote>
+  <p><strong>幂等键的粒度是本章最容易做错的一处</strong>。若键只到 <code>ticket_id</code>，同一工单里的两次合法退款（先退部分、后退剩余）会被误判为重复；若键只到 <code>tool_call_id</code> 而 <code>tool_call_id</code> 每次重试都新生成，则幂等完全失效。<strong>正确粒度是 <code>ticket_id + step_id + tool_call_id</code>——同一工单、同一步骤、同一个调用意图，三者齐一才判定为重复。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.5.12" data-toc-skip>HITL、部分挂起与 DAG</h4>
+
+<p><strong>工具分类</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">示例</th><th scope="col">策略</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>SAFE_AUTO</code></td><td>查询订单、查物流、查政策</td><td>直接执行</td></tr>
+      <tr><td><code>HIGH_RISK_APPROVAL</code></td><td>退款、改地址、发邮件、改权限</td><td>挂起审批</td></tr>
+  </tbody>
+</table>
+<p><strong>部分挂起流程</strong>：</p>
+<ol>
+<li>安全动作先行：只读/低风险工具执行，结果写入 <code>completed_results</code>。</li>
+<li>高风险动作进 <code>pending_approvals</code>，绑定 <code>tool_call_id</code>、<code>idempotency_key</code>、<code>approval_id</code>。</li>
+<li>任务置 <code>WAITING_FOR_HUMAN</code>，释放 Worker。</li>
+<li>依赖高风险结果的下游动作延后。</li>
+<li>审批完成后回填结果，唤醒 Agent 继续。</li>
+</ol>
+<p><strong>依赖顺序</strong>：</p>
+<ul>
+<li><strong>阶段门禁</strong>：Stage 1 只读探测 → Stage 2 风险评估/审批挂起 → Stage 3 副作用执行与通知。</li>
+<li><strong>DAG/拓扑顺序</strong>：<code>depends_on</code> 或参数占位；前置未完成/未获批时，下游保持 <code>BLOCKED/PENDING</code>，绝不越级执行。</li>
+<li><strong>审批快照</strong>：涉及资金/权限的参数以审批时快照为准，防「审批看 A 参数、执行变 B 参数」。</li>
+</ul>
+<p><strong>失败补偿（Saga）</strong>：</p>
+<ul>
+<li>高风险工具失败：带原 <code>idempotency_key</code> 退避重试；仍失败则回填错误、状态 <code>FAILED</code> 或转人工，不静默当作成功。</li>
+<li>前半成功、后半失败：为可逆写操作定义补偿工具（<code>cancel_freeze</code>/<code>reverse_action</code>），按逆序补偿并记录审计。</li>
+<li>不可逆动作（已发邮件、已打款）记录异常交人工/对账，不能假装回滚完成。</li>
+<li>部分审批通过/驳回：逐条记录 <code>tool_call_id</code> 的审批状态与批注，写回 Checkpoint。</li>
+</ul>
+<p><strong>挂起不是阻塞</strong>：任务挂起时必须<strong>释放 Worker</strong>，否则一个待审批工单会长期占住一个执行槽位，在审批高峰期直接打满 Worker 池。挂起 = 状态落库 + 队列消息移除，恢复 = 审批回调重新入队。</p>
+
+<h3 id="sec-3.6">3.3.6 工具契约与上下文治理</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>工具契约七项要求：描述清晰、Schema 严格、权限白名单、写操作接受幂等键、独立超时、返回精简且含错误码、全量审计；敏感工具如退款、改地址、外发邮件、改权限必须二次确认，而工具改名等于换模型，变更要走与 Prompt 同级的回归流程。上下文治理用三层记忆：结构化事实槽位锁死硬状态、增量滚动摘要保留推理脉络、近期 K 轮完整交互保住工具链细节。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>两处最容易踩的坑互为镜像。工具侧：描述写清楚了不等于约束生效，模型仍可能选错工具，所以 Schema 校验与二次确认才是硬约束。上下文侧：三层记忆里最值钱的是结构化事实槽位，尤其是已执行动作那一栏——它直接决定「同一个动作会不会被执行两次」，这是防重复退款的最后一道上下文级防线。</p>
+</div>
+
+<h4 id="sec-3.6.13" data-toc-skip>工具契约与设计</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">要求</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>描述</td><td>清晰说明用途、参数、限制、示例（描述本身就是模型的说明书）</td></tr>
+      <tr><td>Schema</td><td>JSON Schema 严格校验，枚举/范围/格式</td></tr>
+      <tr><td>权限</td><td>工具白名单、按角色/租户授权、按金额阈值</td></tr>
+      <tr><td>幂等</td><td>写操作必须接受 <code>idempotency_key</code></td></tr>
+      <tr><td>超时</td><td>每个工具独立超时，避免拖垮链路</td></tr>
+      <tr><td>返回</td><td>结构化、精简、含错误码</td></tr>
+      <tr><td>审计</td><td>参数、结果、耗时、调用者全记录</td></tr>
+  </tbody>
+</table>
+<p><strong>敏感工具二次确认</strong>：退款、改地址、发送外部邮件、修改权限。</p>
+<p><strong>工具契约的版本演进</strong>（不可逆决策，见 <a href="#sec-1.3">系统边界、核心指标与不可逆决策</a>）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">变更类型</th><th scope="col">是否兼容</th><th scope="col">处理</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>新增可选字段</td><td>兼容</td><td>直接上线</td></tr>
+      <tr><td>新增必填字段</td><td><strong>不兼容</strong></td><td>双版本共存，老调用补默认值</td></tr>
+      <tr><td>改字段语义</td><td><strong>不兼容</strong></td><td>视为新工具名，旧工具保留一个版本周期</td></tr>
+      <tr><td>删字段</td><td><strong>不兼容</strong></td><td>先停止写入、观察、再删</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>工具改名等于换模型</strong>。工具名与描述是模型选择工具的主要依据，改名或改描述会让模型的行为发生难以预测的变化。<strong>因此工具契约变更必须走与 Prompt 变更同级的回归流程</strong>（<a href="#sec-3.8.19">评估方法</a>、<a href="#sec-6.2.3">评测、回归与发布</a>），而不是当作普通发版。</p>
+</blockquote>
+
+<h4 id="sec-3.6.14" data-toc-skip>上下文治理：三层记忆与上下文放大</h4>
+
+<p><strong>本节是上下文治理的权威版</strong>，<a href="#sec-4.3.7">上下文裁剪落地</a>与<a href="#sec-5.3.4">上下文超限与成本失控</a>只引用。</p>
+<p><strong>三层记忆</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">内容</th><th scope="col">作用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>结构化事实槽位</td><td>已确认订单号、金额、政策、已执行动作、待办</td><td>锁定硬状态，防旧值污染</td></tr>
+      <tr><td>增量滚动摘要</td><td>滑出窗口的早期轮次压缩</td><td>保留推理脉络与诉求演进</td></tr>
+      <tr><td>近期完整交互</td><td>最近 K 轮完整 user/assistant/tool</td><td>保证当前工具链细节完整</td></tr>
+  </tbody>
+</table>
+<p><strong>事实槽位字段</strong>：</p>
+<ul>
+<li><code>entities</code>：订单号、用户 ID、工单号、金额、商品/账户标识。</li>
+<li><code>confirmed_constraints</code>：已核实规则（「7 天无理由已过」「余额 120 元」）。</li>
+<li><code>executed_actions</code>：已生效副作用（「已提交退款单号 RF-882」），防止重复调用。</li>
+<li><code>open_issues / pending_items</code>：未闭环问题。</li>
+</ul>
+<p><strong>触发与更新</strong>：</p>
+<ul>
+<li>触发：窗口溢出（超过 K 轮）或 Token 达到预算 75%–80%。</li>
+<li>顺序：先裁剪超长 tool 结果 → 仍超限再压缩早期轮次。</li>
+<li>增量：只把新滑出的 <code>delta_turns</code> 与当前 <code>fact_slots + rolling_summary</code> 做增量合并。</li>
+<li>槽位：新事实写入；可信新值覆盖并记录变更；<code>executed_actions</code> 高保护；失效假设及时清理。</li>
+<li>摘要：200–400 token，记录「做了什么尝试、遇到什么阻碍、推进到哪一步」。</li>
+</ul>
+<p><strong>三种方案对比</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">滑动窗口</th><th scope="col">纯滚动摘要</th><th scope="col">事实槽位 + 增量摘要</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>精确 ID/金额/状态</td><td>滑出即丢</td><td>易被改写</td><td>高（结构化锁定）</td></tr>
+      <tr><td>多步排查脉络</td><td>较弱</td><td>较好</td><td>好</td></tr>
+      <tr><td>防重复调用</td><td>较差</td><td>一般</td><td>强</td></tr>
+      <tr><td>Token 成本</td><td>最低</td><td>中</td><td>中低</td></tr>
+  </tbody>
+</table>
+<p><strong>注入方式</strong>：放在 System Prompt 之后、近期对话之前，用 JSON/分隔区块标记，并声明「以下为历史状态，仅作参考；高风险操作仍须遵循系统规则与当前最新输入」。</p>
+<hr>
+<p><strong>上下文放大：Agent 系统最贵的那个量</strong></p>
+<p>设每次 LLM 调用的输入 = 固定部分 C（system prompt 800 + 事实槽位 300 = 1100）+ 已发生轮次 × 每轮新增 L（user 80 + assistant 200 + tool 结果 1200 = <strong>1480</strong>）。</p>
+<table>
+  <thead>
+    <tr><th scope="col">策略</th><th scope="col">第 i 次调用的输入</th><th scope="col">一个 n 轮工单的总输入</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>不裁剪</strong></td><td>C + i·L</td><td><code>n·C + L·n(n+1)/2</code> → <strong>O(n²)</strong></td></tr>
+      <tr><td><strong>裁剪（保留 K=4 轮）</strong></td><td>C + min(i, K)·L（+ 滚动摘要 400）</td><td><strong>O(n)</strong>，常数被 K 锁住</td></tr>
+  </tbody>
+</table>
+<p>代入实际数字：</p>
+<pre><code>无裁剪：第 i 次输入 = C + i·L          →  n 轮总输入 = O(n²)
+  n=4    19,200
+  n=12  128,640
+  n=20  332,800
+
+裁剪（保留 K=4）：第 i 次输入 = C + min(i,K)·L   →  n 轮总输入 = O(n)
+  n=4    19,200   ← 没超过 K，裁剪白做
+  n=12   78,560   ← 省 39%
+  n=20  137,920   ← 省 59%</code></pre>
+<table>
+  <thead>
+    <tr><th scope="col">工单轮数 n</th><th scope="col">不裁剪输入 token</th><th scope="col">裁剪后（K=4）</th><th scope="col">节省</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>4</td><td>19,200</td><td>19,200</td><td>0%（没超过 K，裁剪白做）</td></tr>
+      <tr><td>8</td><td>62,080</td><td>48,880</td><td><strong>21%</strong></td></tr>
+      <tr><td>12</td><td>128,640</td><td>78,560</td><td><strong>39%</strong></td></tr>
+      <tr><td>20</td><td>332,800</td><td>137,920</td><td><strong>59%</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>两个必须写进方案的结论</strong>：</p>
+  <ol>
+  <li><strong>不裁剪时，第 20 轮的工单比第 4 轮的贵 17.3 倍；裁剪后只贵 7.2 倍。</strong> 裁剪的价值不是「更便宜」，而是<strong>让成本与轮数解耦</strong>——它把一条会失控的二次曲线压成直线。</li>
+  <li><strong>K 值是有代价的</strong>：K=4 在 n=4 的短工单上完全没收益（19,200 = 19,200），只在 n &gt; K 后才开始生效。所以 K 的取值应当按<strong>实际轮数分布</strong>定，而不是拍脑袋。<strong>先量分布，再定 K。</strong></li>
+  </ol>
+</blockquote>
+<p><strong>上下文的另外两处冗余</strong>（与轮次无关，但同样在烧钱）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">冗余来源</th><th scope="col">现状</th><th scope="col">优化</th><th scope="col">收益</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>工具结果冗余</td><td>一次工具返回 10KB（≈2500 token），模型实际只用 3 个字段</td><td>按字段裁剪 + 摘要</td><td>每工单省 ≈5200 token（占输入 13%）</td></tr>
+      <tr><td>检索候选冗余</td><td>top-20 候选 × 300 token = 6000 token 全进上下文，实际只有 5 份进答案</td><td>收敛到 top-5 后再注入</td><td>每工单省 ≈4500 token</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>三条冗余的共同判据</strong>：<strong>进入上下文的 token 必须能被最终答案用到</strong>。凡是「模型看不到也照样能答对」的内容，就不该进上下文——这是比任何调参都有效的一刀。</p>
+</blockquote>
+
+<h3 id="sec-3.7">3.3.7 防注入与 RAG 检索链路</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>每个调用号都必须有对应的工具消息回填，失败与跳过也要回填错误码，否则模型会报错或死循环。防注入分三层纵深：输入层把外部数据标注为不可信并与指令分区，判定层把危险动作的判定放在代码层，处置层检测到注入特征就丢弃结果并转人工。检索侧给出混合分块（语义分块加父子索引，基线 300–800 token 带 10%–20% 重叠）、混合召回（稠密向量、稀疏 BM25 与知识图谱，RRF 融合）、交叉编码器重排（Top-50 精排为 Top-5 至 Top-8）与强制引用。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三层纵深里真正的安全底线是判定层，因为它与模型无关：输入层的标注可能被模型忽略，处置层只是事后补救，判定层挡住的却是「模型被说服去调用一个合法但不该调的工具」。检索侧同理，先 ACL 过滤再召回重排的顺序不能反——反了就是先召回再过滤，白费算力还留下泄漏窗口。</p>
+</div>
+
+<h4 id="sec-3.7.15" data-toc-skip>工具结果回填与防注入</h4>
+
+<p><strong>回填规则</strong>：</p>
+<ul>
+<li>每个 <code>tool_call_id</code> 必须有对应的 <code>tool</code> 消息，即使失败/超时/被跳过，也要回填错误码与原因，否则部分模型 API 会报错或死循环。</li>
+<li>回填内容含 <code>tool_call_id</code>、<code>tool_name</code>、执行状态（success/error/skipped）与精简结构化数据。</li>
+<li>区分「查到空结果」与「接口报错」。</li>
+</ul>
+<p><strong>防注入</strong>：</p>
+<ul>
+<li>外部数据不可信：工单内容、网页抓取、第三方接口、用户备注可能含对抗指令。</li>
+<li>工具结果作为数据载荷包裹或标注来源。</li>
+<li>核心规则与审批权限判定放在代码/策略层，不能依赖 Prompt 劝导模型。</li>
+<li>敏感信息脱敏：手机号、身份证、完整卡号、内部 Token。</li>
+</ul>
+<p><strong>防注入的三层纵深</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">手段</th><th scope="col">挡住什么</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>输入层</td><td>用户内容与工具结果一律标为「不可信数据」，与指令分区</td><td>直接注入</td></tr>
+      <tr><td>判定层</td><td>危险动作的判定在代码层做（金额、账号、资源归属）</td><td>绕过模型的越权</td></tr>
+      <tr><td>处置层</td><td>检测到注入特征 → 丢弃该结果 + 转人工 + 告警</td><td>未知形态的注入</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>任何一层单独都不够</strong>：输入层的标注可能被模型忽略，判定层挡不住「模型被说服去调用一个合法但不该调的工具」，处置层只是事后补救。<strong>真正的安全底线是判定层——它与模型无关。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.7.16" data-toc-skip>RAG 数据管道</h4>
+
+<p><strong>版面分析与多模态</strong>：</p>
+<ul>
+<li>复杂 PDF/PPT/扫描件需要版面检测、表格结构还原（行列合并、表头继承）与公式识别，输出带 H1–H3 层级和页码/章节锚点的结构化文本。</li>
+<li>内嵌图表可生成「结构化摘要 + 原图链接」，支持图文联合检索。</li>
+<li>增量更新：基于内容哈希增量重切分，避免全量重建。</li>
+<li>权限继承：同步文档级 ACL 到索引元数据，检索阶段按用户权限过滤。</li>
+</ul>
+<p><strong>混合分块</strong>：</p>
+<ul>
+<li>语义分块：按主题/语义断点切分，避免硬截断。</li>
+<li>父子索引：子块 150–300 token 用于精确召回；命中后回溯父块 800–1500 token 送入 LLM。</li>
+<li>基线：固定窗口 300–800 token + 10%–20% overlap、按标题层级切分、表格/代码单独处理。</li>
+</ul>
+<p><strong>摄入流水线</strong>：</p>
+<pre><code>数据源 → 连接器（增量/ACL）→ 解析（版面/OCR/表格/公式）
+      → 清洗/脱敏 → 分块（父子）→ 向量化/索引
+      → 元数据（来源、版本、ACL、页码/锚点）</code></pre>
+<p><strong>常见坑</strong>：OCR 错误、表格跨页、标题层级丢失、权限不同步、重复文档、版本冲突。</p>
+
+<h4 id="sec-3.7.17" data-toc-skip>混合检索与重排</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">召回</th><th scope="col">擅长</th><th scope="col">短板</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>稠密向量</td><td>同义、语义相似</td><td>精确型号/错误码易漂移</td></tr>
+      <tr><td>稀疏 BM25</td><td>专有名词、编号、短语</td><td>语义泛化弱</td></tr>
+      <tr><td>知识图谱</td><td>多跳关系、全局主题</td><td>构建成本高</td></tr>
+  </tbody>
+</table>
+<p><strong>融合</strong>：RRF（Reciprocal Rank Fusion）。</p>
+<pre><code>score(d) = Σ 1 / (k + rank_i(d)),  k 常取 60</code></pre>
+<p><strong>重排</strong>：</p>
+<ul>
+<li>Bi-Encoder 大规模粗筛。</li>
+<li>Cross-Encoder 对 <code>(Query, Candidate)</code> 细粒度打分，Top-50 精排为 Top-5~8。</li>
+<li>计算量大，只对候选集使用；高频 Query 可缓存。</li>
+</ul>
+<p><strong>指标与权限</strong>：Recall@K、MRR、NDCG、引用准确率；<strong>先 ACL 过滤再检索/重排</strong>（顺序反了会先召回再过滤，白费算力且有泄漏风险）。</p>
+
+<h4 id="sec-3.7.18" data-toc-skip>Agentic RAG 闭环</h4>
+
+<p><strong>查询改写与路由</strong>：</p>
+<ul>
+<li>模糊/多意图问题做查询扩展或子问题拆解。</li>
+<li>路由到对应知识域（财务制度、SRE 手册、产品文档），避免跨库噪声。</li>
+<li>多轮对话结合历史改写指代。</li>
+</ul>
+<p><strong>自省与纠错（Self-Reflection / CRAG）</strong>：</p>
+<ul>
+<li>检索后评估证据充分性与相关性。</li>
+<li>命中为空或不足时，触发改写重检、补充检索，或明确告知「知识库无足够依据」，严禁编造。</li>
+<li>评分维度：相关性、覆盖度、矛盾检测。</li>
+<li>设置最大改写次数，仍失败转人工。</li>
+</ul>
+<p><strong>强制引用</strong>：</p>
+<ul>
+<li>核心断言绑定文档 ID + 片段 ID + 页码/锚点。</li>
+<li>前端支持点击跳转原文。</li>
+<li>用引用覆盖率、引用准确率评测。</li>
+<li>无引用/低置信度回答降级为「建议转人工」。</li>
+</ul>
+<pre><code>Query → 改写/路由 → 混合召回 → Rerank → 证据评估
+   ↑                                         │ 不足
+   └──────────── 改写/补检 ←─────────────────┘
+                                             │ 充分
+                                生成 + 引用 → 用户反馈 → 知识库更新</code></pre>
+
+<h3 id="sec-3.8">3.3.8 评估方法与容量成本模型</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>离线评测用 500 条黄金集，指标有意图、工具选择、参数、任务完成、幻觉与政策违规率；黄金集必须按意图、风险等级、渠道、轮数分桶，否则六成咨询类会把退款类的失败淹没。容量口径给出：峰值 LLM 调用 232 QPS、并发任务约 3480、Worker 约 348、平均输入约 4 万 token 每工单，输入 400 亿 token 每天、输出 24 亿、合计 424 亿，模型成本约 9.9 万元每天，模型分级可再省 45%。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这一段推翻了原版最关键的一个估算：按「100 万乘 4 次乘 3600 token」算出 144 亿每天，等于假设每次调用的输入恒定在 3000，而第二次调用的输入已经包含了第一轮的全部对话与工具结果——输入是随轮次增长的。正确的量是 424 亿每天，接近原文的三倍，账单从「几万元每天」变成「近 10 万元每天」。</p>
+</div>
+
+<h4 id="sec-3.8.19" data-toc-skip>评估方法</h4>
+
+<p><strong>离线评测</strong>：</p>
+<ul>
+<li>黄金集：500 条历史工单，标注意图、应调工具、关键参数、期望答案/政策。</li>
+<li>指标：意图准确率、工具选择准确率、参数准确率、任务完成率、幻觉率、政策违规率。</li>
+<li>回归：每次 Prompt/模型/工具变更跑一遍。</li>
+</ul>
+<p><strong>在线评测</strong>：</p>
+<ul>
+<li>一次解决率、转人工率、CSAT、平均处理时长、关键动作成功率、单工单成本。</li>
+<li>A/B：按租户/流量分桶；护栏指标（投诉率、违规率）。</li>
+</ul>
+<p><strong>安全评测</strong>：提示词注入、越权退款、PII 泄露、恶意链接；红队测试。</p>
+<p><strong>黄金集怎么建</strong>：不是人工标 500 条就完事——<strong>要先按意图、风险等级、渠道、轮数分桶</strong>，否则 60% 的咨询类工单会把退款类的失败完全淹没。<strong>分层指标（每桶单独看）比总体准确率有用得多。</strong></p>
+
+<h4 id="sec-3.8.20" data-toc-skip>容量与成本模型</h4>
+
+<p><strong>本节是容量口径的权威版</strong>，<a href="#seg-5">第 5 段</a>与<a href="#seg-6">第 6 段</a>只引用。</p>
+<p><strong>假设</strong>：日工单 100 万，峰值系数 5，平均每工单 4 次 LLM 调用；system prompt 800 token、事实槽位 300 token、滚动摘要 400 token；每轮新增 1480 token（user 80 + assistant 200 + tool 结果 1200）；单次输出 600 token；保留 K=4 轮；模型价格输入 ¥2/百万 token、输出 ¥8/百万 token（示例价，需按实际模型替换）；轮数分布 4 轮 60% / 8 轮 30% / 20 轮 10%。</p>
+<p><strong>一、流量与并发</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>平均工单 QPS</td><td>100 万 ÷ 86400</td><td>≈ 11.6</td></tr>
+      <tr><td><strong>峰值工单 QPS</strong></td><td>11.6 × 5</td><td><strong>58</strong></td></tr>
+      <tr><td><strong>峰值 LLM 调用 QPS</strong></td><td>58 × 4</td><td><strong>232</strong></td></tr>
+      <tr><td>并发任务数</td><td>58 QPS × 平均处理 60s</td><td>≈ 3480</td></tr>
+      <tr><td>Worker 数（每 Worker 10 并发）</td><td>3480 ÷ 10</td><td>≈ <strong>348</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>二、上下文与 token</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>平均输入 token/工单</td><td>0.6×19,200 + 0.3×48,880 + 0.1×137,920</td><td>≈ <strong>4 万</strong></td></tr>
+      <tr><td><strong>输入 token/天</strong></td><td>4 万 × 100 万</td><td><strong>400 亿</strong></td></tr>
+      <tr><td>输出 token/天</td><td>2,400 × 100 万</td><td><strong>24 亿</strong></td></tr>
+      <tr><td><strong>合计 token/天</strong></td><td>—</td><td><strong>424 亿</strong></td></tr>
+      <tr><td><strong>LLM 成本/天</strong></td><td>400亿/1e6×2 + 24亿/1e6×8</td><td><strong>≈ 9.9 万元</strong>（约 90 万元/月）</td></tr>
+      <tr><td>模型分级后成本/天</td><td>60% 走小模型（¥0.5/¥2）</td><td>≈ 5.5 万元，<strong>省 45%</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>原文的 token 估算是错的</strong>：按「100 万 × 4 次 × 3600 token」算出 144 亿/天，等于假设每次调用的输入恒定在 3000。<strong>但第 2 次调用的输入已经包含第 1 轮的全部对话与工具结果</strong>——输入是随轮次增长的。正确的量是 <strong>424 亿/天，接近原文的 3 倍</strong>，且成本从「几万元」变成「近 10 万元/天」。<strong>这是本章最重要的一个估算修正。</strong></p>
+</blockquote>
+<p><strong>三、存储</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>消息存储</td><td>100 万 × 10KB</td><td>≈ 10GB/天</td></tr>
+      <tr><td>Checkpoint 热数据</td><td>100 万 × 20KB × 7 天</td><td>≈ 140GB</td></tr>
+      <tr><td>向量索引</td><td>500 万块 × 1.5KB</td><td>≈ 7.5GB</td></tr>
+  </tbody>
+</table>
+<p><strong>四、结论</strong></p>
+<ol>
+<li><strong>瓶颈在 LLM 配额与 token 成本，不在存储</strong>——10GB/天的消息相比 9.9 万元/天的模型成本可以忽略。</li>
+<li><strong>成本的第一杠杆是上下文裁剪</strong>（O(n²) → O(n)，59%），第二是模型分级（45%），第三才是缓存。</li>
+<li><strong>232 QPS 的 LLM 调用峰值决定了采购量</strong>：按每模型实例 10 QPS 计，需 24 个实例并留 50% 余量 → 36 个。</li>
+<li><strong>348 个 Worker 的并发是排队决定的，不是算力决定的</strong>：算力瓶颈在模型侧，Worker 主要耗在等待上，因此 Worker 可以远少于「58 QPS × 60s」这个直觉数字所暗示的规模（348 已含 10 并发/Worker）。</li>
+<li><strong>必须先量轮数分布</strong>——它决定成本曲线的形状，也决定 K 值怎么取。</li>
+</ol>
+
+<h3 id="sec-3.9">3.3.9 不确定性与安全合规</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>不确定性的四个来源各有阈值：意图置信度低于 0.7、检索覆盖度低于 0.6、工具选择前两名分差小于 0.15、参数校验失败或跨字段矛盾。模型自报的置信度不可靠，更稳的是用分类器头输出置信度，或同一输入采样三次看一致性。转人工有七个触发条件，触发时必须带上完整对话上下文、事实槽位与已执行动作、已尝试的路径、触发原因与置信度、以及 Agent 的建议。安全侧覆盖提示注入、越权、PII 泄露、恶意参数、知识库投毒与模型窃取，越权要三道闸同时成立，多租户隔离有五个面。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>转人工率是双面指标，单看它会得出相反的结论：太低说明 Agent 在硬答，是幻觉与错误投诉的先行指标；太高说明自动化没做起来。它必须与一次解决率、CSAT、投诉率放在一起看。更有价值的是「转人工时带上了什么」——不带上下文和已执行动作，用户就得重新描述一遍，CSAT 会直接崩，而这恰恰是最容易被忽略的转人工质量问题。</p>
+</div>
+
+<h4 id="sec-3.9.21" data-toc-skip>不确定性管理与转人工决策</h4>
+
+<p><strong>不确定性的四个来源</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">来源</th><th scope="col">信号</th><th scope="col">阈值参考</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>意图识别</td><td>分类器置信度</td><td>&lt; 0.7 → 不路由，走澄清或转人工</td></tr>
+      <tr><td>检索充分性</td><td>证据覆盖度、自省评分</td><td>&lt; 0.6 或无命中 → 补检或转人工</td></tr>
+      <tr><td>工具选择</td><td>多次采样一致性</td><td>Top-1 与 Top-2 分差 &lt; 0.15 → 降级</td></tr>
+      <tr><td>参数抽取</td><td>Schema 校验 + 交叉校验</td><td>校验失败或跨字段矛盾 → 二次确认</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>模型自报的置信度不可靠</strong>。更稳的做法：用<strong>分类器头</strong>输出置信度，或<strong>多次采样看一致性</strong>（同一输入采样 3 次，工具选择不一致就降级）。把「模型说它有 95% 把握」当成置信度，是评测与线上表现脱节的主要来源。</p>
+</blockquote>
+<p><strong>转人工的七个触发条件</strong>：</p>
+<pre><code>意图置信度 &lt; 0.7 ─┐
+检索无依据       ──┤
+参数校验失败     ──┤→ 澄清一次 ──仍不确定──→ 转人工（带完整上下文）
+同工具同参 ×3    ──┤
+用户明确要求     ──┤
+情绪/合规命中    ──┘</code></pre>
+<table>
+  <thead>
+    <tr><th scope="col">触发</th><th scope="col">判定</th><th scope="col">动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>意图不明</td><td>置信度 &lt; 0.7</td><td>先问一句澄清，仍不明则转人工</td></tr>
+      <tr><td>知识无依据</td><td>检索无命中或覆盖度低</td><td>明确告知无依据 → 转人工</td></tr>
+      <tr><td>参数校验失败</td><td>Schema 失败或跨字段矛盾</td><td>二次确认 → 仍失败转人工</td></tr>
+      <tr><td>循环迹象</td><td>同工具同参重复 ≥ 3 次</td><td>立即中断并转人工</td></tr>
+      <tr><td>用户要求</td><td>关键词或显式按钮</td><td>立即转人工</td></tr>
+      <tr><td>高风险动作</td><td>金额/资源命中高风险</td><td>挂起审批（非转人工）</td></tr>
+      <tr><td>情绪与合规</td><td>投诉、监管、法律词</td><td>直接转人工，不尝试自动处理</td></tr>
+  </tbody>
+</table>
+<p><strong>转人工时必须带上什么</strong>（否则用户要重复描述，CSAT 直接崩）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">必带</th><th scope="col">作用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>完整对话上下文</td><td>坐席知道已经说过什么</td></tr>
+      <tr><td><code>fact_slots</code> 与 <code>executed_actions</code></td><td>坐席知道已经做了什么、哪些别重复</td></tr>
+      <tr><td>已尝试的工具与路径</td><td>坐席知道哪条路走不通</td></tr>
+      <tr><td>触发转人工的具体原因与置信度</td><td>坐席知道该看哪里</td></tr>
+      <tr><td>Agent 的建议与下一步</td><td>缩短处理时间</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>转人工率是双面指标</strong>。转人工率过低，往往意味着 Agent 在硬答（幻觉与错误投诉的先行指标）；转人工率过高，说明自动化没做起来。<strong>必须与一次解决率、CSAT、投诉率一起看</strong>，单看转人工率会得出相反的结论。</p>
+</blockquote>
+
+<h4 id="sec-3.9.22" data-toc-skip>安全与合规</h4>
+
+<p><strong>威胁模型</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">威胁</th><th scope="col">路径</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>提示注入</td><td>工单内容/工具结果</td><td>数据包裹、规则在代码层</td></tr>
+      <tr><td>越权操作</td><td>冒充他人/绕过审批</td><td>身份校验、资源级鉴权</td></tr>
+      <tr><td>PII 泄露</td><td>上下文/日志/回复</td><td>脱敏、最小化、审计</td></tr>
+      <tr><td>恶意工具参数</td><td>构造订单号/金额</td><td>Schema、范围校验、二次确认</td></tr>
+      <tr><td>知识库投毒</td><td>写入错误文档</td><td>入库审核、来源可信度</td></tr>
+      <tr><td>模型窃取</td><td>大量试探</td><td>限流、异常检测</td></tr>
+  </tbody>
+</table>
+<p><strong>越权的三道闸</strong>（必须同时成立）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">闸</th><th scope="col">检查</th><th scope="col">失败动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>身份</td><td>调用者是不是该工单的用户 / 该租户</td><td>拒绝</td></tr>
+      <tr><td>资源归属</td><td>该订单/该资源是不是这个用户的</td><td>拒绝</td></tr>
+      <tr><td>金额与风险阈值</td><td>金额、动作类型、累计次数是否越线</td><td>挂起审批或拒绝</td></tr>
+  </tbody>
+</table>
+<p><strong>PII 处理的五点</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">点</th><th scope="col">做法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>采集即最小化</td><td>不收集就不用；位置、通讯录、设备指纹不进业务库</td></tr>
+      <tr><td>脱敏优先</td><td>入上下文与日志前脱敏（手机号、证件、卡号、地址）</td></tr>
+      <tr><td>留存有期限</td><td>对话与录音 180 天，衍生画像更短，到期物理删除</td></tr>
+      <tr><td>导出与删除</td><td>用户可导出、可删除；删除要穿透到向量索引、缓存与归档（<a href="#sec-3.7.16">RAG 数据管道</a>的 ACL 元数据也要清）</td></tr>
+      <tr><td>访问留痕</td><td>谁在什么时候看了哪个用户的对话</td></tr>
+  </tbody>
+</table>
+<p><strong>多租户隔离的五个面</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">面</th><th scope="col">隔离方式</th><th scope="col">漏掉的后果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>知识库</td><td>索引元数据带 <code>tenant_id</code>，检索前过滤</td><td>跨租户召回他人文档</td></tr>
+      <tr><td>工具</td><td>按租户授权 + 资源归属校验</td><td>跨租户调用业务接口</td></tr>
+      <tr><td>队列</td><td>分队列或分区键含租户</td><td>大租户挤占其他租户</td></tr>
+      <tr><td>配额</td><td>按租户的 token/并发配额</td><td>一个租户烧光全量额度</td></tr>
+      <tr><td>审计</td><td>日志带租户，审计查询按租户过滤</td><td>审计本身越权</td></tr>
+  </tbody>
+</table>
+<p><strong>合规底线</strong>：对话与录音留存期、跨境传输评估、审计不可篡改、错误退款为零、审批快照可举证。这五条不满足，Agent 就不该上线。</p>
+
+<h2 id="seg-4">3.4 工程落地与规则护栏</h2><div class="oc-part-lead"><strong>第四段 · 工程落地与护栏</strong>这一段回答：方法论怎么变成链路上的一环一环——哪些环节必须 fail-closed，哪些可以降级，降级时用户看到什么。</div>
+
+<h3 id="sec-4.1">3.4.1 端到端链路与接入、编排护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>端到端链路 13 步，从渠道适配器到审计服务，中间是编排器、任务队列、Agent Worker 与上下文组装、检索、模型规划、工具网关、人工审批与 Checkpoint。接入层护栏有幂等键、鉴权、限流、内容安全与快速返回五条。编排层负责意图路由、三条转人工触发、租户隔离与单工单三重预算。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>链路图里最该盯的是「预算检查」的位置：它必须在上下文组装之前跑，而不是组装完才发现超限——否则超限那一刻的 token 已经付掉了。一个很实用的自检：如果超限是靠事后统计发现的，那它就不是预算，只是账单。</p>
+</div>
+
+<h4 id="sec-4.1.1" data-toc-skip>端到端链路</h4>
+
+<pre><code>用户（网页/App/IM/邮件/电话）
+  → 渠道适配器（归一化）
+  → 工单接入（幂等、落库、返回 ticket_id）
+  → Orchestrator（鉴权、限流、意图路由）
+  → 任务队列（优先级、分区、租户隔离）
+  → Agent Worker
+      ├→ 上下文组装（三层记忆 + 预算检查）
+      ├→ RAG（召回 → 重排 → 引用）
+      ├→ LLM 规划（回复 / 工具 / 转人工）
+      ├→ Tool Gateway（白名单、Schema、幂等、归属校验）
+      ├→ HITL（挂起 / 审批 / 恢复）
+      └→ Checkpoint（每步持久化）
+  → 工单状态更新 / 回复 / 通知
+  → 审计与指标</code></pre>
+<blockquote>
+  <p><strong>图里最重要的一行是「预算检查」</strong>。它必须在上下文组装之前跑，而不是组装之后才发现超限——否则超限那一刻的 token 已经付掉了。</p>
+</blockquote>
+
+<h4 id="sec-4.1.2" data-toc-skip>接入层护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>幂等键</td><td><code>source + external_id</code> 唯一索引</td></tr>
+      <tr><td>鉴权</td><td>渠道签名、租户校验</td></tr>
+      <tr><td>限流</td><td>按渠道/租户/用户三维</td></tr>
+      <tr><td>内容安全</td><td>敏感词、附件病毒扫描</td></tr>
+      <tr><td>快速返回</td><td>只落库，不同步跑 Agent</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-4.1.3" data-toc-skip>编排层护栏</h4>
+
+<ul>
+<li>意图路由：FAQ → RAG；订单/退款 → 业务 Agent；投诉/法律 → 人工。</li>
+<li>低置信度、连续失败、用户主动要求 → 转人工（触发条件见 <a href="#sec-3.9.21">不确定性管理与转人工决策</a>）。</li>
+<li>租户隔离：知识库、工具、配额按租户隔离。</li>
+<li>预算：单工单最大步数、token、时长（<a href="#sec-4.4.10">延迟预算与超时降级</a>）。</li>
+</ul>
+
+<h3 id="sec-4.2">3.4.2 执行循环与工具层护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>执行循环护栏给了建议值：最大步数 8 到 12、单步模型超时 10 秒、单次工具超时 3 秒、单工单总时长 2 分钟（不含审批等待）、工具并发 3 到 5、重复调用检测同工具同参，以及挂起即释放 Worker。工具层七条：白名单、严格 Schema、代码层归属校验、写操作带幂等键、敏感工具人工确认、全量审计、超时与熔断。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「单工单总时长 2 分钟」与「审批等待 24 小时」是两个数，前者是后台完成时间，后者是挂起上限，混在一起算 SLA 就把审批排队也算进了系统延迟。另外注意工具超时比模型超时短得多：工具超时的后果是链路失败，而模型超时的后果只是这一步重来。</p>
+</div>
+
+<h4 id="sec-4.2.4" data-toc-skip>执行循环护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">限制</th><th scope="col">建议值</th><th scope="col">作用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>最大步数</td><td>8–12</td><td>防死循环</td></tr>
+      <tr><td>单步 LLM 超时</td><td>10s</td><td>防卡死</td></tr>
+      <tr><td>单次工具超时</td><td>3s</td><td>防拖垮链路</td></tr>
+      <tr><td><strong>单工单总时长</strong></td><td><strong>2min（不含审批等待）</strong></td><td>与 SLO「异步任务完成 P95 &lt; 2min」对齐</td></tr>
+      <tr><td>Token 预算</td><td>按模型定（超 120% 告警）</td><td>控成本</td></tr>
+      <tr><td>工具并发</td><td>3–5</td><td>防下游压力</td></tr>
+      <tr><td>重复调用检测</td><td>同工具同参</td><td>防循环</td></tr>
+      <tr><td><strong>挂起即释放 Worker</strong></td><td>—</td><td>防审批高峰打满 Worker 池</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-4.2.5" data-toc-skip>工具层护栏</h4>
+
+<ul>
+<li>白名单：只暴露必要工具。</li>
+<li>Schema：严格校验类型、范围、格式。</li>
+<li>权限：按角色/租户/金额阈值；<strong>归属校验在代码层</strong>。</li>
+<li>幂等：写操作必须带 <code>idempotency_key</code>。</li>
+<li>二次确认：敏感工具必须 HITL。</li>
+<li>审计：参数、结果、耗时、调用者。</li>
+<li>超时与熔断：下游故障快速失败。</li>
+</ul>
+
+<h3 id="sec-4.3">3.4.3 回填注入防护与上下文裁剪落地</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>回填与注入防护四条：每个调用号都要回填，失败也回填错误码；工具结果包裹为不可信数据并标注来源；规则与审批在代码层强制执行；脱敏后再进上下文；检测到注入特征就丢弃该结果并转人工。上下文裁剪落地给出五步执行顺序：估算 token 并预留输出、裁剪工具输出、折叠早期轮次进增量摘要、仍超限则重置或转人工，最后记录裁剪原因与影响。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>第 5 步最常被省略，而它是唯一能解释「为什么同一个问题两次答案不同」的线索。没有裁剪记录，线上这类问题只能靠猜——而它恰恰是客服场景里最容易被用户投诉却又最难复现的一类。</p>
+</div>
+
+<h4 id="sec-4.3.6" data-toc-skip>回填与注入防护</h4>
+
+<ul>
+<li>每个 <code>tool_call_id</code> 都有回填，失败也要回填错误码。</li>
+<li>工具结果包裹为不可信数据，标注来源。</li>
+<li>规则与审批在代码层强制执行。</li>
+<li>脱敏后再进上下文。</li>
+<li>检测到注入特征时，丢弃该结果并转人工。</li>
+</ul>
+
+<h4 id="sec-4.3.7" data-toc-skip>上下文裁剪落地</h4>
+
+<p>方案见<a href="#sec-3.6.14">上下文治理与上下文放大</a>，本节只列执行步骤：</p>
+<table>
+  <thead>
+    <tr><th scope="col">步骤</th><th scope="col">动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td>估算 token，预留输出与余量</td></tr>
+      <tr><td>2</td><td>裁剪工具输出（字段/摘要/截断）</td></tr>
+      <tr><td>3</td><td>折叠早期轮次进增量摘要</td></tr>
+      <tr><td>4</td><td>仍超限 → 重置上下文或转人工</td></tr>
+      <tr><td>5</td><td><strong>记录裁剪原因与影响</strong>（哪次调用被裁了、丢了什么）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p>第 5 步常被省略，但它是<strong>唯一能解释「为什么同一个问题两次答案不同」的线索</strong>。没有裁剪记录，线上问题只能靠猜。</p>
+</blockquote>
+
+<h3 id="sec-4.4">3.4.4 人工协同、降级矩阵与延迟预算</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>人工协同要求审批队列按风险、金额、等待时长排序，审批视图给出订单、政策、金额快照与 Agent 建议，审批超时后回到 Agent 或转人工。降级矩阵覆盖九类故障，每类都写清影响、降级动作与用户看到什么，其中工具下游故障必须「只读加转人工，不假装成功」。延迟预算表是唯一口径：接入 50ms、鉴权与路由 80ms、首响生成目标 800ms 硬限 3 秒、单工单总时长 2 分钟、审批等待 24 小时。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「不假装成功」是降级的第一原则。工具超时后回答「已经为您退款」，是最恶劣的失败模式——用户拿到一句假话，财务拿到一次对不上的账。所以降级路径必须明确区分成功、失败、进行中三种状态，而不是笼统地回一句「处理中」。另外预算与超时是两个数，必须满足超时大于等于预算。</p>
+</div>
+
+<h4 id="sec-4.4.8" data-toc-skip>人工协同</h4>
+
+<ul>
+<li>审批队列：按风险、金额、等待时长排序。</li>
+<li>审批视图：订单、政策、金额快照、Agent 建议。</li>
+<li>审批超时：过期后回到 Agent 或转人工。</li>
+<li>转人工：携带完整上下文与已执行动作，避免用户重复描述（清单见 <a href="#sec-3.9.21">不确定性管理与转人工决策</a>）。</li>
+</ul>
+
+<h4 id="sec-4.4.9" data-toc-skip>降级矩阵</h4>
+
+<p><strong>本节是降级的权威版</strong>，<a href="#sec-5.3.5">故障与兜底</a>只引用。</p>
+<table>
+  <thead>
+    <tr><th scope="col">故障</th><th scope="col">影响</th><th scope="col">降级</th><th scope="col">用户看到什么</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>LLM 不可用</td><td>无法生成</td><td>模板回复 + 转人工</td><td>收到固定话术或被转人工</td></tr>
+      <tr><td>LLM 限流</td><td>排队变长</td><td>降级到小模型 + 排队上限</td><td>首响变慢，但不至于无响应</td></tr>
+      <tr><td>向量库不可用</td><td>无法检索</td><td>关键词检索 / FAQ 兜底</td><td>回答变泛或明确说「暂时查不到」</td></tr>
+      <tr><td>工具下游故障</td><td>无法执行</td><td>只读 + 转人工，<strong>不假装成功</strong></td><td>明确告知处理中或转人工</td></tr>
+      <tr><td>队列积压</td><td>处理延迟</td><td>扩容消费者、优先级调度</td><td>首响变慢</td></tr>
+      <tr><td>审批系统故障</td><td>高风险阻塞</td><td>暂停高风险动作，保留只读</td><td>高风险请求排队等待</td></tr>
+      <tr><td>Checkpoint 存储故障</td><td>无法恢复</td><td>停止长任务，短任务内存执行</td><td>短任务照常，长任务转人工</td></tr>
+      <tr><td>上下文超限</td><td>任务失败</td><td>裁剪 → 摘要 → 重置 → 转人工</td><td>可能收到较简略的回答</td></tr>
+      <tr><td>预算耗尽</td><td>成本失控</td><td>停止本工单并转人工</td><td>转人工，不静默截断</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「不假装成功」是本章降级的第一原则</strong>。工具超时后回答「已经为您退款」是本章最恶劣的失败模式——用户拿到一句假话，财务拿到一次对不上的账。<strong>降级路径必须明确区分「成功」「失败」「进行中」三种状态。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.4.10" data-toc-skip>延迟预算与超时降级</h4>
+
+<p><strong>本表是唯一的延迟口径来源</strong>，其他小节只引用。</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>接入与渠道归一</td><td>50ms</td><td>200ms</td><td>429 / 落库失败提示</td></tr>
+      <tr><td>鉴权与意图路由</td><td>80ms</td><td>300ms</td><td>低置信 → 转人工</td></tr>
+      <tr><td>队列等待</td><td>—</td><td>30s</td><td>超过上限 → 直接转人工，不无限排队</td></tr>
+      <tr><td><strong>首响生成（首轮回复）</strong></td><td><strong>800ms</strong></td><td><strong>3s</strong></td><td>模板回复兜底</td></tr>
+      <tr><td>单步 LLM 调用</td><td>1.5s</td><td>10s</td><td>中止本步</td></tr>
+      <tr><td>单次工具调用</td><td>500ms</td><td>3s</td><td>返回错误码，走补偿路径</td></tr>
+      <tr><td>单工单总时长（不含审批）</td><td>—</td><td>2min</td><td>转人工</td></tr>
+      <tr><td>审批等待</td><td>—</td><td>24h</td><td>过期 → 回到 Agent 或转人工</td></tr>
+      <tr><td>含审批的总墙钟</td><td>—</td><td>10min</td><td>转人工</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>预算与超时是两个数</strong>：预算是正常情况下希望花多少，超时是超过就触发降级的硬限。两者必须满足「超时 ≥ 预算」。<strong>「首响 3s」是用户可感知的承诺，「单工单 2min」是后台完成时间，两者不是同一个数</strong>——原文把它们混在一起，是本章要修正的一处口径。</p>
+</blockquote>
+
+<h3 id="sec-4.5">3.4.5 观测压测、护栏清单与上线检查</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>观测有八类指标，其中「每工单平均轮数」与「裁剪触发率」是客服 Agent 特有的必看项：轮数分布右移意味着成本要涨，裁剪触发率上升意味着质量要掉。压测八项包含峰值 5 倍、模型限流与超时、工具下游故障、Worker 崩溃恢复、重复消息与重复审批、长工单压测与注入越权红队。护栏清单 13 条，其中七条 P0：副作用安全、审批与额度、越权防护、注入防护、PII 与隐私、多租户隔离、审计。上线检查 10 问覆盖幂等、状态机、人工确认、回填、预算、注入、转人工上下文、审计与变更流程。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「token 总量是结果，平均轮数是原因」这句话值得抄下来：token 掉了可能是模型降价了，平均轮数掉了才是真的在省；反过来，token 涨了先看轮数分布，往往不用查代码就能定位——是用户行为变了，还是政策变了。七条 P0 里有一半与副作用相关，正是因为客服是那种「错了不报错、只是钱没了」的系统。</p>
+</div>
+
+<h4 id="sec-4.5.11" data-toc-skip>观测与压测</h4>
+
+<p><strong>指标</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>接入</td><td>QPS、去重率、失败率</td></tr>
+      <tr><td>队列</td><td>积压、等待时长、死信数</td></tr>
+      <tr><td>执行</td><td>步数分布、工具成功率、超时率、恢复次数</td></tr>
+      <tr><td>上下文</td><td>输入 token 分布、裁剪触发率、<strong>每工单平均轮数</strong></td></tr>
+      <tr><td>RAG</td><td>召回率、重排耗时、引用率</td></tr>
+      <tr><td>人工</td><td>转人工率、审批时长、驳回率</td></tr>
+      <tr><td>成本</td><td>单工单 token、单工单耗时、模型费</td></tr>
+      <tr><td>安全</td><td>注入拦截、越权拦截、PII 泄露</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「每工单平均轮数」与「裁剪触发率」是 Agent 章特有的两个必看指标</strong>：轮数分布右移意味着成本要涨，裁剪触发率上升意味着质量要掉。<strong>它们比「token 总量」更能提前发现问题</strong>——token 总量是结果，平均轮数是原因。</p>
+</blockquote>
+<p><strong>压测</strong>：</p>
+<ul>
+<li>峰值 5 倍工单。</li>
+<li>LLM 限流与超时。</li>
+<li>工具下游故障。</li>
+<li>队列积压恢复。</li>
+<li>Worker 崩溃与恢复（验证 Checkpoint 与幂等）。</li>
+<li>重复消息与重复审批。</li>
+<li><strong>长工单压测</strong>（20 轮 + 大工具结果，验证上下文预算与裁剪）。</li>
+<li><strong>注入与越权红队</strong>。</li>
+</ul>
+
+<h4 id="sec-4.5.12" data-toc-skip>规则护栏清单</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">领域</th><th scope="col">护栏</th><th scope="col">优先级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>副作用安全</strong></td><td>写操作必须幂等键 + 唯一索引 + 可补偿；<strong>错误退款必须为 0</strong>；工具失败不得回报成功</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>审批与额度</strong></td><td>高风险动作强制 HITL；金额阈值与审批快照；阈值变更需审批</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>越权防护</strong></td><td>身份 + 资源归属 + 金额阈值三道闸在代码层，模型无权绕过</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>注入防护</strong></td><td>外部数据标注为不可信；危险判定在代码层；命中注入特征即丢弃并转人工</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>PII 与隐私</strong></td><td>最小化采集、入上下文与日志前脱敏、留存期与到期删除、访问留痕</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>多租户隔离</strong></td><td>知识库 / 工具 / 队列 / 配额 / 审计五面隔离</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>审计</strong></td><td>决策与动作全量留痕、不可篡改、含参数快照与调用者</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>幂等与恢复</strong></td><td>Step 级幂等键；每步落 Checkpoint；恢复前重校验外部状态；版本不匹配即停</td><td>P1</td></tr>
+      <tr><td><strong>上下文预算</strong></td><td>每工单步数 / token / 时长三重预算；超预算即降级，不硬扛</td><td>P1</td></tr>
+      <tr><td><strong>工具契约</strong></td><td>不兼容变更双版本共存；改名与改描述走回归流程</td><td>P1</td></tr>
+      <tr><td><strong>不确定性处置</strong></td><td>置信度阈值与七类转人工触发；转人工携带完整上下文</td><td>P1</td></tr>
+      <tr><td><strong>评测</strong></td><td>分层黄金集 + 每次变更回归 + 红队</td><td>P1</td></tr>
+      <tr><td>成本</td><td>单工单 token 超预算 120% 触发容量评审</td><td>P2</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>客服 Agent 的护栏几乎全是 P0</strong>，因为它的失败模式直接落在「钱」和「隐私」上：一条越权退款是真金白银，一次 PII 泄露是合规事故。<strong>这类护栏不存在「先上后补」的空间。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.5.13" data-toc-skip>上线检查（10 问）</h4>
+
+<ol>
+<li><code>source + external_id</code> 唯一索引是否生效？写工具是否全部带 Step 级幂等键？</li>
+<li>状态机与 Checkpoint 是否覆盖所有跃迁？<strong>恢复前是否重新校验外部状态</strong>？</li>
+<li>高风险工具是否强制 HITL？审批是否锁定参数快照？</li>
+<li>工具结果是否全部回填（含失败与跳过）？</li>
+<li>上下文是否设了三重预算？<strong>裁剪触发是否留痕</strong>？K 值是否按实测轮数分布定的？</li>
+<li>注入防护是否在代码层？归属校验与金额阈值是否绕过不了模型？</li>
+<li>转人工是否携带完整上下文、已执行动作与触发原因？</li>
+<li>审计是否覆盖决策与动作，且不可篡改？PII 是否在入库与入上下文前脱敏？</li>
+<li>降级路径是否演练过？<strong>工具超时后是否确实回报失败而不是成功</strong>？</li>
+<li>变更流程是否包含回归、影子与灰度？工具改名是否走了与 Prompt 同级的评审？</li>
+</ol>
+
+<h2 id="seg-5">3.5 端到端案例</h2><div class="oc-part-lead"><strong>第五段 · 端到端案例</strong>这一段回答：一个真实的退款工单怎么走完整条链路，以及四个变体分别暴露什么。</div>
+
+<h3 id="sec-5.1">3.5.1 案例：电商退款工单</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>一笔实付 500 元、已签收、理由为商品破损的订单走完整条链路：接入靠来源加外部编号幂等，编排识别为高风险退款，只读动作先行（查订单、查政策），500 元超过 300 元阈值，退款调用进待审批并绑定幂等键与金额快照，任务挂起并释放 Worker；审批通过后从 Checkpoint 恢复，先重校验订单是否已被其它渠道退款，再带幂等键执行，返回退款单号，最后才通知。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这个案例里最值得学的是「恢复时先重校验」这一步：审批到执行之间可能隔了几分钟，这期间用户可能在另一个渠道已经退过款。如果直接信任快照，就会退两次。整条链路的安全性不来自模型，而来自三件工程事——幂等键、审批快照、恢复前重校验，三者缺一都可能出现重复退款。</p>
+</div>
+
+<h4 id="sec-5.1.1" data-toc-skip>案例：电商退款工单</h4>
+
+<p><strong>场景</strong>：用户对订单 #12345（实付 500 元、已签收、理由「商品破损」）发起退款。</p>
+<pre><code>用户 → 网页/IM/邮件 → 渠道适配器 → 工单接入
+                                      │ 幂等键 source + external_id
+                                      ▼
+                                  工单库 ticket_id
+                                      │
+                                      ▼
+                         Orchestrator（鉴权/限流/意图路由）
+                                      │
+                                      ▼
+                              任务队列 → Agent Worker
+                                      │
+                     Observe → Think → Act 循环
+                     ├─ get_order_detail（只读）
+                     ├─ check_refund_policy（只读）
+                     ├─ issue_refund（高风险，挂起审批）
+                     └─ send_notification（依赖退款结果）
+                                      │
+                                      ▼
+                          人工审批 → 恢复 → 执行退款 → 通知</code></pre>
+<p><strong>时序</strong>：</p>
+<ol>
+<li><strong>接入</strong>：webhook 带 <code>source=web</code>、<code>external_id</code>；唯一索引防重复，重复请求返回已有 <code>ticket_id</code>。</li>
+<li><strong>编排</strong>：意图 <code>refund_request</code>，置信度 0.92；按租户/优先级入队；风险等级判定为「高」（涉及资金）。</li>
+<li><strong>执行</strong>：Worker 加载 Checkpoint；<code>get_order_detail</code> 返回已签收、实付 500、可退；<code>check_refund_policy</code> 返回符合条件，但金额 &gt; 300 需人工审批。</li>
+<li><strong>部分挂起</strong>：只读结果写 <code>completed_results</code>；<code>issue_refund</code> 进 <code>pending_approvals</code>，绑定 <code>tool_call_id</code>、<code>idempotency_key</code>、金额快照 500；任务置 <code>WAITING_FOR_HUMAN</code>，<strong>释放 Worker</strong>。</li>
+<li><strong>审批</strong>：客服看到订单、政策、金额快照；通过后触发恢复事件。</li>
+<li><strong>执行</strong>：Worker 从 Checkpoint 恢复，<strong>先重校验订单状态</strong>（是否已被其他渠道退款），再带幂等键调用退款，返回 <code>refund_id=RF-882</code>；写回结果与 <code>executed_actions</code>。</li>
+<li><strong>通知</strong>：仅在退款成功后执行 <code>send_notification</code>；失败重试，不阻塞主状态。</li>
+<li><strong>完成</strong>：工单 <code>RESOLVED</code>，记录审计与耗时。</li>
+</ol>
+<p><strong>异常路径</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">异常</th><th scope="col">处理</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>重复 webhook</td><td><code>(source, external_id)</code> 唯一索引，返回已有工单</td></tr>
+      <tr><td>Worker 崩溃</td><td>Checkpoint 恢复；退款幂等，不重复扣款</td></tr>
+      <tr><td>退款接口超时</td><td>带原幂等键退避重试；仍失败转人工/对账，<strong>绝不回报成功</strong></td></tr>
+      <tr><td>审批超时</td><td>审批项过期，任务回到 Agent 或转人工</td></tr>
+      <tr><td>审批后政策变化</td><td>资金参数以审批快照为准；重大变化需重新审批</td></tr>
+      <tr><td>通知失败</td><td>重试/降级站内信，不影响退款结果</td></tr>
+      <tr><td>恢复时订单已被人工退款</td><td>重校验发现状态已变 → 停止并转人工，不重复退款</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-5.2">3.5.2 多渠道客服与单轮多工具案例</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>多渠道案例给的是归一与路由：邮件、网页表单、IM 与电话转写统一成同一套消息模型，FAQ 走检索、订单退款走业务工具、投诉法律直接转人工，知识闭环是已解决工单提炼 FAQ、审核入库、重新索引。单轮多工具案例给的是编排：只读先行并写入已完成结果，高风险挂起并释放 Worker，依赖项延后，审批后按 DAG 继续，部分通过则逐条记录状态与批注。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>多渠道案例里那句「重排后只注入前五条」是零风险的纯收益优化：前二十条候选全进上下文约 6000 token，其中只有五份会进答案，其余全是噪音。知识闭环那一段则提醒了一件事——客服 Agent 的知识库不是一次性工程，它的质量会随工单积累持续变化，这条链没打通，前面所有检索优化都会被陈旧的 FAQ 拖住。</p>
+</div>
+
+<h4 id="sec-5.2.2" data-toc-skip>案例：多渠道客服与知识库 RAG</h4>
+
+<p><strong>渠道归一</strong>：邮件、网页表单、在线 IM、电话转写 → 统一内部消息模型（channel、user_id、content、attachments、locale、priority）。</p>
+<p><strong>意图路由</strong>：</p>
+<ul>
+<li>FAQ/产品咨询 → RAG 回答。</li>
+<li>订单/退款/物流 → 业务 Agent + 工具。</li>
+<li>投诉/法律/高危 → 直接转人工。</li>
+<li>低置信度/连续失败 → 转人工。</li>
+</ul>
+<p><strong>RAG 链路</strong>：切分 300–800 token、重叠 10%–20% → embedding → top-k（5–20）→ rerank → 生成带引用回答；知识库版本化、增量索引。</p>
+<blockquote>
+  <p><strong>top-k 的注入量要收敛</strong>：top-20 候选全进上下文约 6000 token，其中只有 5 份会进答案。<strong>应当 rerank 后只注入 top-5</strong>，这是零风险的纯收益优化（<a href="#sec-3.6.14">上下文治理与上下文放大</a>）。</p>
+</blockquote>
+<p><strong>权限与安全</strong>：按租户/角色过滤知识库；PII 脱敏；外部文档不可信，防注入。</p>
+<p><strong>转人工策略</strong>：VIP、负面情绪、敏感词、金额阈值、用户主动要求。</p>
+<p><strong>知识闭环</strong>：已解决工单 → 提炼 FAQ → 审核入库 → 重新索引；差评/纠错反馈。</p>
+<p><strong>指标</strong>：检索命中率、回答准确率、引用率、自助解决率、转人工率。</p>
+
+<h4 id="sec-5.2.3" data-toc-skip>案例：单轮多工具与审批</h4>
+
+<p><strong>问题</strong>：一轮里同时有只读查询、写操作、人工审批，怎么编排？</p>
+<p><strong>方案</strong>：</p>
+<ol>
+<li>分类：<code>SAFE_AUTO</code> vs <code>HIGH_RISK_APPROVAL</code>。</li>
+<li>只读先行，结果落 <code>completed_results</code>。</li>
+<li>高风险进 <code>pending_approvals</code>，任务挂起并释放 Worker。</li>
+<li>依赖高风险结果的下游动作延后。</li>
+<li>审批后按 DAG 继续；失败走补偿。</li>
+</ol>
+<p><strong>关键点</strong>：</p>
+<ul>
+<li>审批快照锁定参数，防执行时被改。</li>
+<li>部分审批通过时，逐条记录状态。</li>
+<li><code>executed_actions</code> 防重复调用。</li>
+</ul>
+
+<h3 id="sec-5.3">3.5.3 上下文超限、故障兜底与扩容取舍</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>上下文超限的排查有固定顺序：先看轮数分布是否右移，再看工具结果是否变长、检索候选是否放大、K 值是否过小、模型是否被换成更贵的；处置上先治理工具结果冗余与检索候选冗余这两项零质量损失项，再调 K 并配回归。故障兜底补两条：Checkpoint 版本不兼容就停止转人工，不得强行按新版本解析旧快照；工具契约变更后老工单未完成，按旧版本处理或直接转人工。扩容 10 倍的先坏顺序是模型配额、队列、工具下游、向量检索、审批人力、存储，最后是成本——而成本这一位是非线性的。取舍复盘用八条决策记录了各自的代价、收益与重新评估条件。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>扩容那一段有本章特有的非线性：大促期间复杂退款与投诉占比上升，20 轮工单占比若从 10% 涨到 15%，平均输入 token 从 4 万涨到 4.44 万，总 token 就涨 11 倍而不是 10 倍。所以容量评审必须按「轮数分布右移」后的口径算，只乘 10 的评审会在第一个大促把模型配额和账单一起打爆。</p>
+</div>
+
+<h4 id="sec-5.3.4" data-toc-skip>变体：上下文超限与成本失控</h4>
+
+<p><strong>症状</strong>：某天模型账单翻倍；部分长工单的回答开始丢事实（订单号说错、金额说错）。</p>
+<p><strong>定位顺序</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">检查</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>轮数分布是否右移</strong></td><td>平均轮数上升 = 用户行为或政策变化，不是代码问题</td></tr>
+      <tr><td>2</td><td>工具结果是否变长</td><td>某个工具改了返回结构，多带了字段</td></tr>
+      <tr><td>3</td><td>检索候选是否放大</td><td>top-k 被调大了</td></tr>
+      <tr><td>4</td><td>K 值是否过小</td><td>裁剪过早 → 质量下降</td></tr>
+      <tr><td>5</td><td>模型是否被换成了更贵的</td><td>路由改动导致大模型占比上升</td></tr>
+  </tbody>
+</table>
+<p><strong>处置</strong>：</p>
+<ul>
+<li>先治理<strong>工具结果冗余</strong>与<strong>检索候选冗余</strong>——这两项零质量损失。</li>
+<li>再调整 K，但<strong>必须配回归</strong>：K 变小会丢事实，K 变大要钱。</li>
+<li>模型分级：按意图路由，咨询类走低成本的分类 + 小模型。</li>
+<li>兜底：单工单 token 预算，超预算即降级（转人工或简化回答），<strong>而不是静默截断</strong>。</li>
+</ul>
+<p><strong>护栏</strong>：单工单 token 预算 + 裁剪触发记录 + 按意图分层的成本看板。</p>
+<blockquote>
+  <p><strong>「成本涨了」与「质量掉了」经常是同一个原因</strong>：为了省成本把 K 调小，结果长工单丢事实、错误率上升，转人工率反而涨。<strong>所以 K 不是一个可以单独调的旋钮</strong>——它必须与「每工单平均轮数」「裁剪触发率」「转人工率」放在同一张看板上。</p>
+</blockquote>
+
+<h4 id="sec-5.3.5" data-toc-skip>故障与兜底</h4>
+
+<p>降级矩阵以<a href="#sec-4.4.9">降级矩阵</a>为准，本例补充两条：</p>
+<table>
+  <thead>
+    <tr><th scope="col">故障</th><th scope="col">影响</th><th scope="col">兜底</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Checkpoint 版本不兼容</td><td>无法恢复</td><td>停止该工单并转人工；<strong>不得强行按新版本解析旧快照</strong></td></tr>
+      <tr><td>工具契约变更后老工单未完成</td><td>老 <code>tool_call_id</code> 找不到</td><td>双版本共存期内按旧版本处理，或直接转人工</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-5.3.6" data-toc-skip>扩容 10 倍，哪里先坏？</h4>
+
+<p>以<a href="#sec-3.8.20">容量与成本模型</a>的基准放大 10 倍（日 1000 万工单、峰值 580 QPS、LLM 调用 2320 QPS）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">先坏的点</th><th scope="col">现象</th><th scope="col">触发指标</th><th scope="col">对策</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>LLM 配额</strong></td><td>429、排队、延迟飙升</td><td>调用 QPS &gt; 配额 80%</td><td>模型分级、缓存、跨供应商、限流</td></tr>
+      <tr><td>2</td><td><strong>队列</strong></td><td>积压、首响变慢</td><td>等待 &gt; 30s</td><td>扩分区、扩 Worker、优先级调度</td></tr>
+      <tr><td>3</td><td><strong>工具下游</strong></td><td>超时、限流</td><td>工具 P99 &gt; 3s</td><td>并发控制、结果缓存、熔断</td></tr>
+      <tr><td>4</td><td><strong>向量检索</strong></td><td>P99 上升</td><td>检索 P99 &gt; 500ms</td><td>索引分片、候选集收敛、缓存高频 Query</td></tr>
+      <tr><td>5</td><td><strong>审批人力</strong></td><td>审批排队</td><td>审批等待 &gt; 4h</td><td>提高自动化率、优化金额阈值</td></tr>
+      <tr><td>6</td><td><strong>存储</strong></td><td>日志 / Checkpoint 增长</td><td>磁盘水位 &gt; 70%</td><td>TTL、分层、归档</td></tr>
+      <tr><td>7</td><td><strong>成本（非线性）</strong></td><td>账单涨幅 &gt; 流量涨幅</td><td>单工单 token &gt; 预算 120%</td><td>治理轮数分布、K 值、模型分级</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 7 位是本章特有的非线性</strong>：流量涨 10 倍，token <strong>不是</strong>涨 10 倍。大促期间复杂退款与投诉占比上升，长工单（20 轮）占比若从 10% 涨到 15%，平均输入 token 从 4 万涨到 4.44 万（+11%），于是总 token 涨 <strong>11 倍而非 10 倍</strong>。<strong>容量评审必须按「轮数分布右移」后的口径算，而不是简单乘 10。</strong></p>
+</blockquote>
+
+<h4 id="sec-5.3.7" data-toc-skip>取舍复盘</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">代价</th><th scope="col">收益</th><th scope="col">重新评估条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>异步执行</td><td>结果非实时</td><td>不占连接、可重试</td><td>极简问答可同步</td></tr>
+      <tr><td>高风险 HITL</td><td>人工成本</td><td>防止错误退款</td><td>风控成熟后可放宽</td></tr>
+      <tr><td>三层记忆</td><td>实现复杂</td><td>控 token、防污染</td><td>短会话可简化</td></tr>
+      <tr><td>混合检索</td><td>复杂度</td><td>召回更准</td><td>单一召回足够时可简化</td></tr>
+      <tr><td>强制引用</td><td>生成受限</td><td>可追溯、降幻觉</td><td>闲聊场景可放宽</td></tr>
+      <tr><td>模型分级</td><td>路由复杂</td><td>成本大幅下降</td><td>模型价格变化</td></tr>
+      <tr><td><strong>Router 优先于 Agent</strong></td><td>覆盖度受限</td><td>高频场景更稳更省</td><td>长尾意图占比显著上升时扩大 Agent 覆盖</td></tr>
+      <tr><td><strong>裁剪（K 值）</strong></td><td>短工单无收益、长工单可能丢事实</td><td>把成本从 O(n²) 压回 O(n)</td><td>轮数分布变化时重估 K</td></tr>
+  </tbody>
+</table>
+
+<h2 id="seg-6">3.6 演进、指标与误区</h2><div class="oc-part-lead"><strong>第六段 · 演进与误区</strong>这一段回答：这套系统怎么一步步长大，成熟后看哪几个数，以及哪些坑最贵。</div>
+
+<h3 id="sec-6.1">3.6.1 演进路线与指标体系</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>演进路线 L0 到 L5：纯人工加 FAQ、推荐回复、半自动、自动加抽检、全自动、多 Agent 跨域，每一级都有量化的触发条件。指标体系六层：业务、正确、效率、成本、安全，加上三组信号层——转人工率与投诉率的相关性、低置信工单占比的周环比、回归通过率。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>信号层里最有用的一条是「转人工率与投诉率的相关性」：两者同步上升，说明 Agent 在硬答，这比单看任一指标都更早暴露问题。它揭示了一个容易被掩盖的机制——自助解决率从 40% 升到 60% 但 CSAT 下降，意味着转人工率被压下去了，但错误没减少，只是从「被坐席发现」变成了「被用户发现」。</p>
+</div>
+
+<h4 id="sec-6.1.1" data-toc-skip>演进路线</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">形态</th><th scope="col">触发条件（量化）</th><th scope="col">关键改造</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>L0</td><td>纯人工 + FAQ</td><td>起步：工单 &lt; 1 万/天</td><td>知识库、工单系统</td></tr>
+      <tr><td>L1</td><td>推荐回复</td><td>坐席效率瓶颈：人均处理 &gt; 8 单/天</td><td>RAG、话术推荐</td></tr>
+      <tr><td>L2</td><td>半自动</td><td>常见问题量大：咨询类占比 &gt; 50%</td><td>意图路由、工具、HITL</td></tr>
+      <tr><td>L3</td><td>自动 + 抽检</td><td>自助解决率 &gt; 50% 且违规率 &lt; 0.1%</td><td>评测、护栏、成本优化</td></tr>
+      <tr><td>L4</td><td>全自动</td><td>极低风险场景且转人工率 &lt; 10%</td><td>审计、异常检测</td></tr>
+      <tr><td>L5</td><td>多 Agent / 跨域</td><td>单域意图覆盖 &gt; 80% 且编排复杂度可控</td><td>工具复用、跨域路由</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-6.1.2" data-toc-skip>指标体系</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">层级</th><th scope="col">指标</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>业务</td><td>自助解决率、转人工率、一次解决率、CSAT</td><td>判断价值</td></tr>
+      <tr><td>正确</td><td>意图/工具/参数准确率（<strong>按意图与风险分层看</strong>）、幻觉率、政策违规率</td><td>判断质量</td></tr>
+      <tr><td>效率</td><td>首响 P95、处理时长、并发工单、队列等待</td><td>判断体验</td></tr>
+      <tr><td>成本</td><td>单工单 token、单工单模型费、单工单人工成本</td><td>判断可持续</td></tr>
+      <tr><td>安全</td><td>注入拦截、越权拦截、PII 泄露、<strong>错误退款数</strong></td><td>判断风险</td></tr>
+      <tr><td><strong>信号</strong></td><td><strong>转人工率与投诉率的相关性</strong></td><td>两者同步上升 = Agent 在硬答，比单看任一指标更早暴露</td></tr>
+      <tr><td><strong>信号</strong></td><td><strong>低置信工单占比的周环比</strong></td><td>模型/知识/输入分布变化的先行指标</td></tr>
+      <tr><td><strong>信号</strong></td><td><strong>回归通过率（每次 Prompt/模型/工具变更）</strong></td><td>判断变更能否安全上线的唯一硬指标</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>技术达标但业务未改善 = 没解决</strong>。自助解决率从 40% 升到 60% 但 CSAT 下降，说明 Agent 答得更快却没答对——<strong>转人工率被压下去了，错误没减少，只是从「被坐席发现」变成了「被用户发现」</strong>。这类问题只看自助解决率会得出完全相反的结论。</p>
+  <p><strong>「转人工率」必须与投诉率、一次解决率一起看</strong>：转人工率低不等于好，可能是硬答。</p>
+</blockquote>
+
+<h3 id="sec-6.2">3.6.2 评测回归与成本优化</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>离线评测用分桶黄金集，每次 Prompt、模型、工具变更都要跑回归并比较分桶指标。发布流程是离线回归、影子流量、1% 灰度、10%、50%、全量，每一步都有回滚开关；回滚能力按变更类型区分，Prompt 可配置热切、模型可路由热切，但工具契约只能双版本共存。成本优化按收益排序：上下文裁剪省 59% 居首，模型分级 45% 次之，工具结果瘦身 13%、检索候选收敛 11%，缓存排第五。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这张成本表的顺序与直觉相反，最容易被想到的「缓存」排在第五位，因为客服 Agent 的成本大头不是重复调用，而是上下文长度——先治长度，再治重复。还有一个反直觉但重要的前提：裁剪省下的 59% 是以「必须配回归」为代价的，K 值调小会丢事实，而丢事实造成的质量下降不会出现在成本表上，只会在投诉率上。</p>
+</div>
+
+<h4 id="sec-6.2.3" data-toc-skip>评测、回归与发布</h4>
+
+<p><strong>离线评测</strong>：</p>
+<ul>
+<li>黄金集 500 条，<strong>按意图、风险等级、渠道、轮数分桶</strong>（<a href="#sec-3.8.19">评估方法</a>）。</li>
+<li>每次 Prompt/模型/工具变更跑回归，比较<strong>分桶指标</strong>而非总体准确率。</li>
+</ul>
+<p><strong>发布流程</strong>：</p>
+<pre><code>Prompt/模型/工具变更
+  → 离线回归（黄金集分桶指标全部不退化才进下一步）
+  → 影子流量（新版本并行跑，不执行动作，只比对）
+  → 1% 灰度（看护栏指标：错误退款、投诉率、转人工率、单工单 token）
+  → 10% → 50% → 全量
+  → 每一步都有回滚开关</code></pre>
+<p><strong>回滚能力</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">变更类型</th><th scope="col">回滚方式</th><th scope="col">注意</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Prompt</td><td>配置热切，秒级</td><td>需保留旧版本配置</td></tr>
+      <tr><td>模型</td><td>路由配置热切</td><td>需确认降级模型可用</td></tr>
+      <tr><td>工具契约</td><td><strong>双版本共存</strong>，不能瞬时回滚</td><td>因此工具变更必须预留一个版本周期</td></tr>
+      <tr><td>知识库</td><td>索引版本切换</td><td>需保留旧索引直到新索引验证通过</td></tr>
+  </tbody>
+</table>
+<p><strong>在线 A/B</strong>：按租户/流量分桶；护栏指标优先（错误退款 &gt; 投诉率 &gt; 转人工率 &gt; 自助解决率）。</p>
+<p><strong>复盘模板</strong>：</p>
+<pre><code>目标 → 实际量级（工单数 / 轮数分布 / token）
+     → 瓶颈点（哪一层）→ 故障与止损 → 数据偏差
+     → 根因 → 改进项 → 负责人 → 验证结果 → 下次演练验证</code></pre>
+<blockquote>
+  <p>模板末尾必须有「行动项 → 负责人 → 验证结果」。对 Agent 尤其如此——<strong>「优化 Prompt」不是行动项，「意图分类的 Prompt 加上版本字段，3 月 5 日回归验证咨询类准确率从 88% 提升到 93% 且退款类不退化」才是</strong>。</p>
+</blockquote>
+
+<h4 id="sec-6.2.4" data-toc-skip>成本优化</h4>
+
+<p>优先级（按收益排序，详见<a href="#sec-3.6.14">上下文治理与上下文放大</a>与<a href="#sec-3.8.20">容量与成本模型</a>）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">手段</th><th scope="col">收益</th><th scope="col">代价</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>上下文裁剪（K 值）</strong></td><td>20 轮工单省 59%</td><td>需回归验证不掉事实</td></tr>
+      <tr><td><strong>模型分级</strong></td><td>约 45%</td><td>路由复杂，分类错误要能降级</td></tr>
+      <tr><td>工具结果瘦身</td><td>每工单约 13%</td><td>需按字段裁剪，可能丢信息</td></tr>
+      <tr><td>检索候选收敛（top-20→top-5）</td><td>每工单约 11%</td><td>召回率可能下降，需看 Recall@5</td></tr>
+      <tr><td>缓存（FAQ、前缀、工具结果）</td><td>视重复率</td><td>缓存失效策略</td></tr>
+      <tr><td>早停</td><td>高置信度不跑满步数</td><td>早停过早会漏动作</td></tr>
+      <tr><td>批处理</td><td>离线评测/摘要</td><td>不适用在线链路</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>注意这张表的顺序与直觉相反</strong>：最容易被想到的「缓存」排在第五位。<strong>因为 Agent 的成本主要不是重复调用，而是上下文长度</strong>——先治长度，再治重复。</p>
+</blockquote>
+
+<h3 id="sec-6.3">3.6.3 产品对比与常见误区</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>产品对比按电商客服、SaaS 支持、银行客服、电信客服、内部 IT 支持与出海客服六种形态列出各自的关键挑战。常见误区 19 条，其中最贵的几条是：把规则写进 Prompt、不做人工兜底、工具结果不回填、上下文全量塞、不记录已执行动作、审批不看快照、失败当成功，以及按平均值估 token、只按工单数估模型调用、把模型自报置信度当真、只做端到端准确率、裁剪后不回归。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>误区里最值得警惕的是「把模型自报置信度当真」——它会同时污染两处：线上把不确定的活硬答下去，离线评测又拿模型自己的分数当标签，于是系统在自己制造的幻觉里越学越自信。同类的还有「只做端到端准确率」：六成咨询类会把一成退款类的失败完全淹没，这类总分会让人误以为一切正常。</p>
+</div>
+
+<h4 id="sec-6.3.5" data-toc-skip>产品对比</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">产品/场景</th><th scope="col">形态</th><th scope="col">关键能力</th><th scope="col">主要挑战</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>电商客服</td><td>退款/物流/售后</td><td>工单 + 工具 + 审批</td><td>资金安全、重复退款</td></tr>
+      <tr><td>SaaS 支持</td><td>工单 + 知识库</td><td>RAG + 多租户</td><td>权限隔离、知识时效</td></tr>
+      <tr><td>银行客服</td><td>高合规</td><td>MFA + 人工</td><td>合规、审计</td></tr>
+      <tr><td>电信客服</td><td>套餐/账单</td><td>业务工具</td><td>系统集成复杂</td></tr>
+      <tr><td>内部 IT 支持</td><td>工单 + 自助</td><td>知识库 + 自动化</td><td>长尾问题</td></tr>
+      <tr><td>出海客服</td><td>多语言</td><td>翻译 + 本地知识</td><td>语言质量、合规</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-6.3.6" data-toc-skip>常见误区</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">误区</th><th scope="col">问题</th><th scope="col">正确做法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>只画 LLM 不讲队列</td><td>无法落地</td><td>接入/队列/状态机完整</td></tr>
+      <tr><td>同步跑 Agent</td><td>请求超时、无法重试</td><td>异步 + <code>ticket_id</code></td></tr>
+      <tr><td>没有幂等</td><td>重复退款/重复通知</td><td>幂等键 + 唯一索引 + 状态机</td></tr>
+      <tr><td>把规则写进 Prompt</td><td>可被注入绕过</td><td>规则在代码/策略层</td></tr>
+      <tr><td>不做人工兜底</td><td>低置信度硬答</td><td>阈值 + 转人工</td></tr>
+      <tr><td>工具结果不回填</td><td>模型报错/死循环</td><td>每个 <code>tool_call_id</code> 都回填</td></tr>
+      <tr><td>上下文全量塞</td><td>成本高、污染</td><td>三层记忆 + 裁剪</td></tr>
+      <tr><td>不记录已执行动作</td><td>重复调用</td><td><code>executed_actions</code></td></tr>
+      <tr><td>审批不看快照</td><td>执行参数被改</td><td>审批快照</td></tr>
+      <tr><td>失败当成功</td><td>数据不一致</td><td>明确错误 + 补偿</td></tr>
+      <tr><td>不做评测</td><td>无法判断变好</td><td>黄金集 + 在线指标 + 红队</td></tr>
+      <tr><td>忽略知识库 ACL</td><td>越权召回</td><td>检索前过滤</td></tr>
+      <tr><td><strong>按平均值估 token</strong></td><td>漏掉 O(n²) 的上下文增长，长工单成本被严重低估</td><td>按轮数分布算（<a href="#sec-3.8.20">容量与成本模型</a>）</td></tr>
+      <tr><td><strong>只按工单数估 LLM 调用</strong></td><td>每工单平均 4 次调用，实际是工单数的 4 倍</td><td>调用峰值 = 峰值工单 × 每工单调用数</td></tr>
+      <tr><td><strong>把模型自报置信度当真</strong></td><td>模型说 95% 把握不代表准</td><td>分类器头或多次采样一致性（<a href="#sec-3.9.21">不确定性管理与转人工决策</a>）</td></tr>
+      <tr><td><strong>转人工率越低越好</strong></td><td>硬答会压低转人工率却推高投诉率</td><td>与投诉率、一次解决率合看</td></tr>
+      <tr><td><strong>工具改名当普通发版</strong></td><td>工具名与描述就是模型的说明书，改了等于换模型</td><td>走回归 + 双版本共存（<a href="#sec-3.6.13">工具契约与设计</a>）</td></tr>
+      <tr><td><strong>只做端到端准确率</strong></td><td>60% 咨询类会把 10% 退款类的失败淹没</td><td>分层指标（<a href="#sec-3.8.19">评估方法</a>）</td></tr>
+      <tr><td><strong>裁剪后不回归</strong></td><td>K 值调小丢事实，质量下降被当成成本优化</td><td>裁剪变更必须配回归（<a href="#sec-6.2.3">评测、回归与发布</a>）</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.4">3.6.4 高频追问、答题提纲与一页纸手册</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>高频追问 17 条覆盖防重复退款、崩溃恢复、单轮多工具、注入防护、token 成本、上下文裁剪、评测方法、检索排查、上下文超限、多租户隔离、审批超时、下游故障、越权防护、置信度可信度、转人工率合理值、Prompt 变更与十万并发设计。答题提纲给 10 分钟版与 35 分钟版，一页纸作战手册按 S0 到 S5 六阶段组织，每阶段都配动作、自检问题与合格线。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>答题提纲的设计值得注意：10 分钟版强调先给框架，35 分钟版把「上下文成本推导」「幂等与恢复」「不确定性与转人工」放在深挖环节，因为这三处最能区分「背过」与「算过」。手册里每一步都带合格线，比如「落七锚点」的合格线是写出 7 项并指明事实源是工单加工具调用加审批记录——这种可自检的表述比原则更好用。</p>
+</div>
+
+<h4 id="sec-6.4.7" data-toc-skip>高频追问</h4>
+
+<ul>
+<li><strong>如何防止重复退款？</strong> → 幂等键（<code>ticket_id + step_id + tool_call_id</code>）+ 唯一索引 + 状态机条件更新 + 审批快照 + 全链路审计。</li>
+<li><strong>Agent 卡住/崩溃怎么办？</strong> → Checkpoint + 可见性超时 + 启动扫描 + 幂等重试；恢复前重校验外部状态。</li>
+<li><strong>单轮既有只读又有人工审批怎么执行？</strong> → 分类，只读先行，高风险挂起（<strong>释放 Worker</strong>），依赖项延后，审批后按 DAG 继续。</li>
+<li><strong>如何防止工具结果注入？</strong> → 结果作为不可信数据包裹，规则与审批在代码层，脱敏与检测；命中注入即丢弃并转人工。</li>
+<li><strong>如何控制 token 成本？</strong> → 先治上下文长度（裁剪 O(n²)→O(n)），再模型分级（45%），再工具/检索冗余，最后才是缓存。</li>
+<li><strong>上下文怎么裁？成本怎么算？</strong> → 三层记忆；不裁剪输入 token 按 O(n²) 增长，20 轮工单比 4 轮贵 17 倍；裁剪后只贵 7 倍，省 59%。</li>
+<li><strong>如何评估 Agent 是否变好？</strong> → 分层黄金集回归 + 影子流量 + 灰度 + 护栏指标 + 红队。</li>
+<li><strong>RAG 答不准怎么排查？</strong> → 召回 → 切片 → 重排 → 生成逐段定位；引用为空是检索问题，有引用但答案是错的是生成问题。</li>
+<li><strong>上下文超限丢什么？</strong> → 先裁工具输出，再折叠早期轮次，保留事实槽位与最近 K 轮；并记录裁剪原因。</li>
+<li><strong>如何做多租户隔离？</strong> → 知识库、工具、队列、配额、审计五面隔离。</li>
+<li><strong>审批超时怎么办？</strong> → 过期回到 Agent 或转人工，不自动放行高风险动作。</li>
+<li><strong>工具下游挂了怎么办？</strong> → 重试 + 熔断 + 转人工，<strong>绝不回报成功</strong>。</li>
+<li><strong>如何防止越权？</strong> → 身份 + 资源归属 + 金额阈值三道闸在代码层 + 审批 + 审计。</li>
+<li><strong>模型返回的置信度可信吗？</strong> → 不可信；用分类器头或多次采样一致性判断。</li>
+<li><strong>转人工率多少算合理？</strong> → 没有绝对值，必须与投诉率、一次解决率、CSAT 合看。</li>
+<li><strong>Prompt 改了怎么保证不退化？</strong> → 分层黄金集回归 → 影子流量 → 1% 灰度 → 逐步放量，每步都有回滚开关。</li>
+<li><strong>10 万并发怎么设计？</strong> → 接入无状态 + 队列削峰 + Worker 无状态可扩 + Step 级幂等 + 挂起释放 Worker + 多级降级。</li>
+</ul>
+
+<h4 id="sec-6.4.8" data-toc-skip>答题提纲与练习</h4>
+
+<p><strong>10 分钟版（自述型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–1 min</td><td>澄清：工单量、渠道、意图分布、风险等级、自动化目标、<strong>轮数分布</strong></td></tr>
+      <tr><td>1–3 min</td><td>容量：QPS、并发 Worker、LLM 调用峰值、<strong>上下文 token 与成本</strong></td></tr>
+      <tr><td>3–5 min</td><td>架构：接入 → 编排 → 队列 → Worker → 工具/人工</td></tr>
+      <tr><td>5–7 min</td><td>状态机、Checkpoint、幂等、HITL</td></tr>
+      <tr><td>7–9 min</td><td>深挖一个点（推荐：上下文成本 / 重复退款防护）</td></tr>
+      <tr><td>9–10 min</td><td>安全护栏、降级、评测</td></tr>
+  </tbody>
+</table>
+<p><strong>35 分钟版（深聊型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–5 min</td><td>澄清与七锚点：规模、轮数分布、风险、不可逆清单</td></tr>
+      <tr><td>5–14 min</td><td>容量与成本（含 O(n²) vs O(n) 的推导与模型分级收益）</td></tr>
+      <tr><td>14–22 min</td><td>架构与数据流：接入/编排/队列/Worker/工具/人工，分层与预算</td></tr>
+      <tr><td>22–26 min</td><td>数据模型与 API：工单、Checkpoint、幂等键、审批快照</td></tr>
+      <tr><td>26–34 min</td><td>深挖三个点（各约 3 min）：① 幂等与恢复 ② 上下文治理与成本 ③ 不确定性与转人工</td></tr>
+      <tr><td>34–35 min</td><td>演进阈值、安全护栏、评测闭环</td></tr>
+  </tbody>
+</table>
+<p><strong>练习</strong>：</p>
+<ol>
+<li>设计日 100 万工单的客服 Agent，给出异步链路、状态机与容量（<strong>含 token 与成本</strong>）。</li>
+<li>设计退款场景的幂等与审批方案，要求不重复扣款。</li>
+<li>设计单轮多工具的 DAG 与部分挂起流程，说明挂起时为什么要释放 Worker。</li>
+<li>设计三层记忆的触发与更新规则，并估算 20 轮工单相对 4 轮工单的成本倍数。</li>
+<li>设计 RAG 评估方案，覆盖召回、重排、引用与分层准确率。</li>
+<li>计算：日 100 万工单、平均 6 轮、每轮 1 次调用、每次输出 600 token，输入 ¥2/百万、输出 ¥8/百万——每天多少 token、多少钱？若不做上下文裁剪呢？</li>
+<li>设计「转人工率下降但投诉率上升」的排查路径。</li>
+</ol>
+
+<h4 id="sec-6.4.9" data-toc-skip>一页纸作战手册</h4>
+
+<p><strong>S0 定题</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>落七锚点</td><td>唯一事实源是什么？哪几个决策不可逆？</td><td>7 项写下来，事实源 = 工单 + 工具调用 + 审批记录</td></tr>
+      <tr><td>定优先级</td><td>越权、超卖（超支）、体验冲突时保谁？</td><td>不越权 &gt; 不重复执行 &gt; 不超支 &gt; 体验 &gt; 成本</td></tr>
+  </tbody>
+</table>
+<p><strong>S1 建模</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>分层</td><td>每层只做什么、明确不做什么？</td><td>接入/编排/队列/Worker/工具/人工六层职责表</td></tr>
+      <tr><td>定粒度</td><td>幂等键落在哪一层？</td><td>Step 级（<code>ticket_id + step_id + tool_call_id</code>）</td></tr>
+      <tr><td>定状态</td><td>崩溃后从哪恢复？</td><td>状态机 + 每步 Checkpoint + 恢复前重校验</td></tr>
+  </tbody>
+</table>
+<p><strong>S2 决策</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>选架构模式</td><td>哪些走 Workflow、哪些走 Agent？</td><td>Router 优先；高风险走 Workflow + HITL</td></tr>
+      <tr><td>选上下文</td><td>K 值怎么定？</td><td>先量轮数分布，再定 K（<a href="#sec-3.6.14">上下文治理与上下文放大</a>）</td></tr>
+      <tr><td>选自动化级别</td><td>哪些动作免审批？</td><td>金额阈值 + 风险分级，阈值变更需审批</td></tr>
+  </tbody>
+</table>
+<p><strong>S3 论证</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>算并发</td><td>Worker 要多少？</td><td>峰值工单 58 QPS → 348 Worker</td></tr>
+      <tr><td>算 token</td><td>上下文怎么算？</td><td>按轮数分布；424 亿 token/天、约 9.9 万元/天</td></tr>
+      <tr><td>算质量</td><td>怎么知道变好了？</td><td>分层黄金集 + 回归通过率</td></tr>
+  </tbody>
+</table>
+<p><strong>S4 兜底</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>写延迟预算</td><td>首响与总时长各是多少？</td><td>首响 3s、总时长 2min、审批 24h（<a href="#sec-4.4.10">延迟预算与超时降级</a>）</td></tr>
+      <tr><td>写降级矩阵</td><td>每个依赖挂了用户看到什么？</td><td>8 类故障各有行为；工具失败不得回报成功</td></tr>
+      <tr><td>定护栏</td><td>安全排第几？</td><td>副作用、审批、越权、注入、隐私、多租户、审计 <strong>七项 P0</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S5 闭环</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>定演进阈值</td><td>涨 10 倍哪里先坏？</td><td>LLM 配额 → 队列 → 工具下游（<a href="#sec-5.3.6">扩容 10 倍，哪里先坏</a>）</td></tr>
+      <tr><td>定指标</td><td>技术好了业务就好了吗？</td><td>转人工率必须与投诉率合看</td></tr>
+      <tr><td>建复盘闭环</td><td>行动项有负责人吗？</td><td>行动项 → 负责人 → 验证结果</td></tr>
+  </tbody>
+</table>
+<hr>
+
+<h2 id="seg-7">3.7 总结</h2><div class="oc-part-lead"><strong>总结</strong>把这一章收成一页纸：结论、边界，以及下一章要解决什么。</div>
+
+<h3 id="sec-7.1">3.7.1 一句话总结</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>客服 Agent 的可信度不来自更强的模型，而来自三件工程事：幂等键保证同一个意图只执行一次，Checkpoint 与审批挂起保证执行到一半能恢复，代码层规则保证它不能越权。</p>
+</div>
+
+<h3 id="sec-7.2">3.7.2 本章结论</h3><ol class="oc-points">
+  <li><strong>概率负责决策，确定性负责执行。</strong>未经校验的模型输出永远不是「已完成」。答案正确、动作正确、权限正确是三层叠加，混在一起谈准确率只会得到「再加一道审批」这种没打到点上的方案。</li>
+  <li><strong>幂等键的粒度决定这套系统会不会重复退款。</strong>正确粒度是工单号加步骤号加调用号：同一工单、同一步骤、同一个调用意图三者齐一才算重复。只到工单号会丢掉合法的部分退款，只到调用号则幂等完全失效。</li>
+  <li><strong>上下文是本章最贵的量。</strong>不裁剪时输入 token 按轮数二次增长，20 轮工单比 4 轮贵 17 倍；裁剪后只贵 7 倍并省 59%。正确的量是 424 亿 token 每天、约 9.9 万元每天，而不是按平均值估出来的 144 亿。</li>
+  <li><strong>挂起要释放 Worker，恢复前要重新校验。</strong>挂起时释放执行槽位，否则审批高峰会打满 Worker 池；恢复前先重校验外部状态、版本不匹配就停并转人工，否则一次不确定执行就会变成一次不可撤销的资金动作。</li>
+  <li><strong>降级的第一原则是不假装成功。</strong>工具超时后回答「已经为您退款」，用户拿到一句假话，财务拿到一次对不上的账。降级路径必须区分成功、失败与进行中三种状态，转人工则必须带上完整上下文与已执行动作。</li>
+</ol>
+
+<h3 id="sec-7.3">3.7.3 下一章</h3><p>下一章 <strong>第 4 章：营销 Agent——从自然语言目标到可归因的触达</strong>：客服是被动应答，一个用户的错误最多伤一个人；营销是主动打扰，一次决策的误判会复制到几百万人的手机里，防线必须从「不越权」升级成「不打扰、可归因、不可撤销」。</p>
+
+<h3 id="sec-7.4">3.7.4 相关阅读</h3><ul>
+  <li><a href="/2026/11/26/agent-design-01-text2sql/"><strong>第 1 章 · 问数 Agent</strong></a> — 与本章同构的兄弟：读结构化数仓，防线落在口径、权限与结果集完整性上。</li>
+  <li><a href="/2026/11/26/agent-design-02-rag/"><strong>第 2 章 · 问答 Agent</strong></a> — 与本章共享检索链路与引用规范，差别只在答案之后有没有副作用。</li>
+  <li><a href="/2026/08/06/ai-programming-engineering/"><strong>AI 编程工程实践 01</strong></a> — 从更上层看 Agent 平台：一次交付如何被组织成可复用的能力。</li>
+  <li><a href="/2026/06/13/observable-ops-03-04-sre-agents/"><strong>智能系统运维可观测性 · 参考 04</strong></a> — 同一套「先降噪、再调查、后执行」的思路，落在运维域的另一种形态。</li>
+</ul>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">3.1 客服 Agent 是什么</a><a class="reading-toc-link level-3" href="#sec-1.1">3.1.1 定义与三类能力</a><a class="reading-toc-link level-3" href="#sec-1.2">3.1.2 与相近系统的区别与业务价值</a><a class="reading-toc-link level-3" href="#sec-1.3">3.1.3 系统边界、核心指标与不可逆决策</a><a class="reading-toc-link level-2" href="#seg-2">3.2 核心矛盾与设计原则</a><a class="reading-toc-link level-3" href="#sec-2.1">3.2.1 本质与六条章级原则</a><a class="reading-toc-link level-3" href="#sec-2.2">3.2.2 三个不等式与三个放大器</a><a class="reading-toc-link level-3" href="#sec-2.3">3.2.3 三层正确性与八组关键矛盾</a><a class="reading-toc-link level-3" href="#sec-2.4">3.2.4 失败模式、自动化分级与成本结构</a><a class="reading-toc-link level-2" href="#seg-3">3.3 理论与方法论</a><a class="reading-toc-link level-3" href="#sec-3.1">3.3.1 S0 前置锚点与 4S 收敛顺序</a><a class="reading-toc-link level-3" href="#sec-3.2">3.3.2 场景、规模、服务与存储模型</a><a class="reading-toc-link level-3" href="#sec-3.3">3.3.3 架构模式、工单接入与队列 Worker</a><a class="reading-toc-link level-3" href="#sec-3.4">3.3.4 状态机、Checkpoint 与恢复</a><a class="reading-toc-link level-3" href="#sec-3.5">3.3.5 幂等、并发与部分挂起</a><a class="reading-toc-link level-3" href="#sec-3.6">3.3.6 工具契约与上下文治理</a><a class="reading-toc-link level-3" href="#sec-3.7">3.3.7 防注入与 RAG 检索链路</a><a class="reading-toc-link level-3" href="#sec-3.8">3.3.8 评估方法与容量成本模型</a><a class="reading-toc-link level-3" href="#sec-3.9">3.3.9 不确定性与安全合规</a><a class="reading-toc-link level-2" href="#seg-4">3.4 工程落地与规则护栏</a><a class="reading-toc-link level-3" href="#sec-4.1">3.4.1 端到端链路与接入、编排护栏</a><a class="reading-toc-link level-3" href="#sec-4.2">3.4.2 执行循环与工具层护栏</a><a class="reading-toc-link level-3" href="#sec-4.3">3.4.3 回填注入防护与上下文裁剪落地</a><a class="reading-toc-link level-3" href="#sec-4.4">3.4.4 人工协同、降级矩阵与延迟预算</a><a class="reading-toc-link level-3" href="#sec-4.5">3.4.5 观测压测、护栏清单与上线检查</a><a class="reading-toc-link level-2" href="#seg-5">3.5 端到端案例</a><a class="reading-toc-link level-3" href="#sec-5.1">3.5.1 案例：电商退款工单</a><a class="reading-toc-link level-3" href="#sec-5.2">3.5.2 多渠道客服与单轮多工具案例</a><a class="reading-toc-link level-3" href="#sec-5.3">3.5.3 上下文超限、故障兜底与扩容取舍</a><a class="reading-toc-link level-2" href="#seg-6">3.6 演进、指标与误区</a><a class="reading-toc-link level-3" href="#sec-6.1">3.6.1 演进路线与指标体系</a><a class="reading-toc-link level-3" href="#sec-6.2">3.6.2 评测回归与成本优化</a><a class="reading-toc-link level-3" href="#sec-6.3">3.6.3 产品对比与常见误区</a><a class="reading-toc-link level-3" href="#sec-6.4">3.6.4 高频追问、答题提纲与一页纸手册</a><a class="reading-toc-link level-2" href="#seg-7">3.7 总结</a><a class="reading-toc-link level-3" href="#sec-7.1">3.7.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-7.2">3.7.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-7.3">3.7.3 下一章</a><a class="reading-toc-link level-3" href="#sec-7.4">3.7.4 相关阅读</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/26/agent-design-02-rag/"><small>← 上一篇</small><span>问答 Agent——从知识库到可核验答案</span></a></div><div><a href="/2026/11/26/agent-design-04-marketing/"><small>下一篇 →</small><span>营销 Agent——从自然语言目标到可归因的触达</span></a></div><a class="article-series-return" href="/categories/agent-design/">返回AI Agent 系统设计 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=13" defer></script></body>
+</html>

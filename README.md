@@ -168,7 +168,7 @@ hexo clean、hexo generate、hexo server 和 hexo deploy 只应在源仓库执�
 
 ## ✦ 已知限制
 
-- atom.xml 当前仍有历史 XML 转义问题：`ATT&CK` 未写成 `ATT&amp;CK`，严格 XML 解析会在第 528 行失败。
+- atom.xml 的历史 XML 转义问题（`ATT&CK` 未写成 `ATT&amp;CK`）已于 2026-11-26 修复，`atom.xml` 与 `search.xml` 现可通过 `xmllint --noout` 严格解析。
 - /categories/ 没有分类总览页，请使用六个专题入口或 [/archives/](https://lianjifu.cn/archives/)。
 - Mermaid 使用 CDN 优先、本地资源回退，并在图示接近视口时才加载；网络不可用时，页面可能保留 Mermaid 源文本。
 

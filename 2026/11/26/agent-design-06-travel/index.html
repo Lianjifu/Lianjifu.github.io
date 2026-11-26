@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 6 章：文旅 Agent：文旅 Agent——行程、资源与动态重排 | AI Agent 系统设计</title>
+  <meta name="description" content="文旅 Agent 的核心不是「会推荐景点」，而是时空约束下的组合优化、实时资源锁定与旅中动态重排。本章给出 2.26×10¹⁸ 组合空间、评估预算倒推 K 值、预占支付竞态与影响图局部重排的具体算法与护栏。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 6 章：文旅 Agent：文旅 Agent——行程、资源与动态重排">
+  <meta property="og:url" content="https://www.lianjifu.cn/2026/11/26/agent-design-06-travel/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="文旅 Agent 的核心不是「会推荐景点」，而是时空约束下的组合优化、实时资源锁定与旅中动态重排。本章给出 2.26×10¹⁸ 组合空间、评估预算倒推 K 值、预占支付竞态与影响图局部重排的具体算法与护栏。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-26T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-26T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="agent-design">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" content="https://www.lianjifu.cn/2026/11/26/agent-design-06-travel/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="/css/2026.css?v=2">
+  <link rel="stylesheet" href="/css/portal.css?v=13">
+  <link rel="stylesheet" href="/css/article.css?v=8">
+  <link rel="stylesheet" href="/css/agent-design.css?v=1">
+  <script src="/js/portal.js?v=7" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="agent-design"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+        <path d="M8 3v4M16 3v4M3.5 10.5h17" />
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24">
+        <path
+          d="M3.5 6.6a2 2 0 0 1 2-2h3.3a2 2 0 0 1 1.5.7l1.3 1.7h6.9a2 2 0 0 1 2 2v8.4a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"
+        />
+      </symbol>
+    </svg>
+<header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/agent-design/"
+                  ><span class="series-dot slate"></span
+                  ><span
+                    ><strong>AI Agent 系统设计</strong
+                    ><small>十类 Agent 的系统设计</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/agent-design/">AI Agent 系统设计</a></div>
+      <span class="article-kicker">第 6 章：文旅 Agent</span>
+      <h1 class="post-title" itemprop="name headline">文旅 Agent——行程、资源与动态重排</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-26T10:00:00+08:00">2026-11-26</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/agent-design/" itemprop="url" rel="index"><span itemprop="name">AI Agent 系统设计</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body agent-design-body" itemprop="articleBody">
+<p class="oc-lead">
+  文旅 AI Agent 覆盖旅行前、中、后全周期：理解用户偏好与实时环境，完成行程规划、资源检索、预订交易、旅中伴游、突发重排与经营分析。它和前面几章的根本差别有两个：约束来自物理世界——营业时间、余票、天气、交通、人力，不是模型能商量的；资源是共享且强实时的——房间、座位、机票有限且会被别人买走。所以硬约束校验层不可省且必须在生成之前跑，资源必须预占加 TTL 加对账，缓存不能承诺有位。难点不在「排得顺」，而在组合空间会指数爆炸、资源会被抢走、行程会在旅中被现实打断。本章围绕需求解析与槽位、时空搜索与剪枝、预占支付与对账、影响图与旅中重排展开。
+</p>
+
+<table class="guide-card collapsed">
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr class="guide-card-header">
+      <td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>文旅 Agent 面对的不是数据量，是组合数</li>
+          <li>别的系统放大的是数据量，文旅放大的是组合数——3 天每天 3 个点就是 2.26×10¹⁸ 种排法</li>
+          <li>所以它的第一性问题不是「召回得够不够全」，而是「评估预算能覆盖多少分支」</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>它把一句自然语言变成一次有物理后果的承诺</li>
+          <li>「五天四晚、预算 6000、带老人小孩、不赶路」要变成一串真正订得到的机酒景</li>
+          <li>承诺错了是超售——用户到了现场才知道，而超售在社交平台上的传播成本比打扰高一个量级</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>它站在用户与实时资源之间，两头都要压住</li>
+          <li>一头是物理世界的硬约束，一头是会被别人买走的库存</li>
+          <li>事实源是行程对象、订单、预占记录与资源服务实时返回；缓存与索引全是投影，投影不能当承诺</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>局部重排的价值是组合数，不是「少改几项比较温和」</li>
+          <li>全行程 20 项重排是 3.5×10⁹ 种算不出来，只重排受影响的 8 项是 6,561 种</li>
+          <li>所以影响图必须写清「不传播」规则，否则航班晚 4 小时会把用户的美食偏好也重排一遍</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+<div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p><strong>本章回答</strong>：一个文旅 Agent 怎样在组合爆炸与强实时资源之间，规划出行得通、订得到、改得动的行程</p>
+  <p><strong>核心机制</strong>：需求解析与槽位 → 候选召回 → 单点硬约束预筛 → 时空剪枝与组合优化 → 预占（TTL）→ 支付（续期防竞态）→ 履约 → 旅中影响图重排</p>
+  <p><strong>关键数字</strong>：日会话 50 万 · 峰值 29 QPS · 组合空间 2.26×10¹⁸ · 必须剪枝 15 个数量级 · 重排降 5 个数量级 · 客单价 ¥6,700 · 日 LLM 成本 ¥32,800</p>
+  <p><strong>读完能做什么</strong>：设计一条文旅 Agent 链路，并说清 K 值怎么倒推、预占竞态怎么防、影响图怎么划、重排怎么降级</p>
+</div>
+
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>一个文旅 Agent 怎样在组合爆炸与强实时资源之间，规划出行得通、订得到、改得动的行程</td></tr>
+    <tr><td>核心机制</td><td>需求解析与槽位 → 候选召回 → 单点硬约束预筛 → 时空剪枝与组合优化 → 预占（TTL）→ 支付（续期防竞态）→ 履约 → 旅中影响图重排</td></tr>
+    <tr><td>关键数字</td><td>日会话 50 万 · 峰值 29 QPS · 组合空间 2.26×10¹⁸ · 必须剪枝 15 个数量级 · 重排降 5 个数量级 · 客单价 ¥6,700 · 日 LLM 成本 ¥32,800</td></tr>
+    <tr><td>读完能做什么</td><td>设计一条文旅 Agent 链路，并说清 K 值怎么倒推、预占竞态怎么防、影响图怎么划、重排怎么降级</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 文旅 Agent 是什么</div>
+    <div>它是什么、与传统 OTA 和通用旅行 LLM 差在哪、边界与硬约束指标在哪里。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 核心矛盾</div>
+    <div>自由度与硬约束的冲突，三个放大器与四层正确性，以及信任分级的输出契约。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 理论与方法论</div>
+    <div>从七项前置锚点推到搜索剪枝、资源锁定、旅中重排、上下文治理与容量成本。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · 工程落地与护栏</div>
+    <div>把方法论变成链路：规划与预订护栏、重排护栏、四条轨道的延迟预算与十条 P0。</div>
+  </div>
+  <div class="oc-card">
+    <div>第五段 · 端到端案例</div>
+    <div>一次航班延误 4 小时后的行程重排，以及搜索预算的三条处置路径。</div>
+  </div>
+  <div class="oc-card">
+    <div>第六段 · 演进与误区</div>
+    <div>六级演进路线、六层指标体系，以及十四条最贵的误区。</div>
+  </div>
+  <div class="oc-card">
+    <div>总结</div>
+    <div>把这一章压成一页纸：结论、边界、下一章。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">6.1 文旅 Agent 是什么</h2><div class="oc-part-lead"><strong>第一段 · 文旅 Agent 是什么</strong>这一段回答：文旅 Agent 究竟是什么、给谁用、边界划在哪里，以及哪些决策一旦做错就要停机迁移。</div>
+
+<h3 id="sec-1.1">6.1.1 定义与两个根本差别</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>文旅 AI Agent 是在旅行前、中、后全周期内，理解用户偏好与实时环境，完成行程规划、资源检索、预订交易、旅中伴游、突发重排与经营分析的智能体系统——它不只「会推荐景点」，还要「排得顺、订得到、改得动、算得清」。它与前面各章的 Agent 有两个根本差别：约束来自物理世界，营业时间、余票、天气、交通、人力不是模型能商量的，所以硬约束校验层不可省且必须在生成之前跑；资源是共享且强实时的，房间、座位、机票有限且会被别人买走，所以必须预占加 TTL 加对账，缓存不能承诺有位。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>第二个差别是文旅与营销的分水岭：营销发错了可以撤回一部分，文旅发错了是超售——用户到了现场才知道。营销的触达是「打扰用户」，文旅的超售是「让用户白跑一趟」，后者在社交平台上的传播成本高一个量级。所以这一章的 P0 护栏几乎全部集中在「承诺之前」。</p>
+</div>
+
+<p><strong>定义</strong>：文旅 AI Agent 是在旅行前、中、后全周期内，理解用户偏好与实时环境，完成行程规划、资源检索、预订交易、旅中伴游、突发重排与经营分析的智能体系统。它不仅「会推荐景点」，还要「排得顺、订得到、改得动、算得清」。</p>
+<p><strong>它与前面几章的 Agent 有两个根本差别</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">差别</th><th scope="col">具体含义</th><th scope="col">对设计的影响</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>约束来自物理世界</strong></td><td>营业时间、余票、天气、交通、人力——<strong>不是模型能商量的</strong></td><td>硬约束校验层不可省，且<strong>必须在生成之前跑</strong></td></tr>
+      <tr><td><strong>资源是共享且强实时的</strong></td><td>房间、座位、机票是<strong>有限且会被别人买走的</strong></td><td>必须预占 + TTL + 对账，<strong>缓存不能承诺有位</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第二个差别决定了文旅 Agent 与营销 Agent 的分水岭</strong>：营销发错了可以撤回一部分，文旅发错了是<strong>超售</strong>——用户到了现场才知道。而营销的触达是「打扰用户」，文旅的超售是「<strong>让用户白跑一趟</strong>」，后者在社交平台上的传播成本高一个量级。<strong>所以本章的 P0 护栏几乎全部集中在「承诺之前」。</strong></p>
+</blockquote>
+
+<h3 id="sec-1.2">6.1.2 三类能力层次与典型用户</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>三类能力层次对应三种决策周期：L1 规划回答「去哪、怎么排」，输出行程时间轴与候选清单，决策周期分钟级，难度中；L2 预订回答「订得到吗、花多少」，输出预占、订单与支付，决策周期在资源侧是秒级，难度较高；L3 旅中回答「现在怎么办」，输出伴游回答与突发重排方案，决策周期秒级，难度高。四类典型用户是自由行游客、家庭亲子、景区运营与文旅集团，诉求分别是规划比价预订、节奏无障碍安全、客流核销收益、多景区经营分析，主要风险则是闭园扑空与超售、强度不匹配与安全风险、口径错与越权、口径不一与归因虚高。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三层能力分开的意义在于它们的时间预算差了一个数量级：规划给 15 秒、伴游只给 1.5 秒、预订的资源侧只给 1 秒。把这三层塞进同一条链路，结果必然是拿规划的钱做伴游的事——最后谁都做不好。所以「这是哪一层」应该是第一道路由判断，而不是默认都走 Agent。</p>
+</div>
+
+<p><strong>三类能力层次</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">回答的问题</th><th scope="col">典型输出</th><th scope="col">决策周期</th><th scope="col">难度</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>L1 规划</strong></td><td>去哪、怎么排</td><td>行程时间轴、候选清单</td><td>分钟级</td><td>中</td></tr>
+      <tr><td><strong>L2 预订</strong></td><td>订得到吗、花多少</td><td>预占、订单、支付</td><td>秒级（资源侧）</td><td>较高</td></tr>
+      <tr><td><strong>L3 旅中</strong></td><td>现在怎么办</td><td>伴游回答、突发重排方案</td><td>秒级</td><td>高</td></tr>
+  </tbody>
+</table>
+<p><strong>典型用户与场景</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">用户</th><th scope="col">诉求</th><th scope="col">关注点</th><th scope="col">主要风险</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>自由行游客</td><td>规划、比价、预订</td><td>可行、省心、不被坑</td><td>闭园扑空、超售</td></tr>
+      <tr><td>家庭 / 亲子</td><td>节奏、无障碍、安全</td><td>老人小孩体力</td><td>强度不匹配、安全风险</td></tr>
+      <tr><td>景区运营</td><td>客流、核销、收益</td><td>口径、权限</td><td>口径错、越权</td></tr>
+      <tr><td>文旅集团</td><td>多景区经营分析</td><td>跨域对比、归因</td><td>口径不一、归因虚高</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-1.3">6.1.3 与相近系统的区别与系统边界</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>与传统 OTA 的差异是：OTA 卖「机票酒店」这一个个单品，不组合也不排程。旅游攻略与内容社区说得好，但不管今天能不能去、还有没有房。地图导航只管两点之间的路径，不管多点组合与时间窗。通用旅行 LLM 会生成建议，但不接实时资源，会推荐已闭园的地方。文旅 Agent 的差异是把「建议」变成「订得到、改得动」。系统边界上，范围内是需求理解与行程规划、资源检索与实时校验、预占下单支付编排、旅中伴游与重排、经营问数与营销触达；范围外是 POI 与酒店航班主数据、航司与酒店内部系统、支付渠道、景区现场调度、数仓建模与渠道网关。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「通用旅行 LLM 会推荐已闭园的地方」这句看着像吐槽，其实是整个行业的能力分界线：内容生成的边际成本几乎为零，实时资源的边际成本很高。所以文旅产品的价值不在「能不能写出一段漂亮的攻略」，而在「能不能让用户按它出门并且真的走得通」——这也是为什么这一章的工程量全在约束与锁定上。</p>
+</div>
+
+<p><strong>与相近系统的区别</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">系统</th><th scope="col">核心</th><th scope="col">与文旅 Agent 的差异</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>传统 OTA</td><td>固定商品位 + 交易</td><td>卖「机票酒店」这一个个单品，<strong>不组合、不排程</strong></td></tr>
+      <tr><td>旅游攻略 / 内容社区</td><td>内容推荐</td><td><strong>说得好，但不管今天能不能去、还有没有房</strong></td></tr>
+      <tr><td>地图导航</td><td>路径规划</td><td><strong>只管两点之间，不管多点组合与时间窗</strong></td></tr>
+      <tr><td>通用旅行 LLM</td><td>生成建议</td><td><strong>不接实时资源，会推荐已闭园的地方</strong></td></tr>
+      <tr><td>文旅 Agent</td><td>规划 + 锁定 + 重排</td><td><strong>把「建议」变成「订得到、改得动」</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>系统边界</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">范围内</th><th scope="col">范围外</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>需求理解与行程规划</td><td>POI / 酒店 / 航班主数据</td></tr>
+      <tr><td>资源检索与实时校验</td><td>航司 / 酒店内部系统</td></tr>
+      <tr><td>预占、下单、支付编排</td><td>支付渠道</td></tr>
+      <tr><td>旅中伴游与重排</td><td>景区现场调度</td></tr>
+      <tr><td>经营问数</td><td>数仓建模</td></tr>
+      <tr><td>营销触达</td><td>渠道网关</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-1.4">6.1.4 核心指标、SLO 与不可逆决策清单</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>核心指标分行程、搜索、交易、体验、经营与安全六类，其中两个是本章特有：可行解产出率衡量有多少比例的规划请求真的产出了可行行程，评估次数与预算则是剪枝效率的直接读数。SLO 里三条是硬约束：超售 0、重复扣款 0、约束违反的行程 0；延迟目标分别是行程规划 P95 小于 15 秒、伴游回答 P95 小于 1.5 秒、库存查询 P95 小于 300 毫秒、预占 P99 小于 1 秒、重排方案生成 P95 小于 30 秒，审计覆盖率 100%。七项不可逆决策覆盖行程对象模型与版本语义、硬约束的定义与数据来源、预占语义与 TTL 策略、写操作的幂等键构造规则、与资源服务的对接契约、支付与退款的账务口径、归因窗口与 Holdout 分流规则。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>没有可行解产出率与评估次数这两个指标，团队只会盯着「采纳率」，而采纳率低的时候根本分不清是模型不行还是搜索预算被吃光了。采纳率是结果指标，它是两个原因相乘的结果——只看它，等于把两个独立的工程问题混成一个，然后去优化那个看起来更好看的那个。</p>
+</div>
+
+<p><strong>核心指标</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>行程</td><td>采纳率、<strong>约束满足率</strong>、绕路率、重排成功率与耗时</td></tr>
+      <tr><td>搜索</td><td><strong>可行解产出率</strong>、剪枝后候选数、<strong>评估次数 / 预算</strong></td></tr>
+      <tr><td>交易</td><td>预订转化率、<strong>超售率</strong>、预占过期率、退款率、<strong>重复扣款数</strong></td></tr>
+      <tr><td>体验</td><td>首响、P99、客诉率、通知打扰率</td></tr>
+      <tr><td>经营</td><td>净营收、核销率、连带消费、营销增量 ROI</td></tr>
+      <tr><td>安全</td><td>越权拦截、注入拦截、资损事件、安全提醒触达率</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>新增的两个指标是本章特有的</strong>：<strong>可行解产出率</strong>（有多少比例的规划请求真的产出了可行行程——它衡量搜索效率），<strong>评估次数 / 预算</strong>（剪枝效率的直接读数）。<strong>没有这两个指标，团队只会盯着「采纳率」，而采纳率低的时候无法判断是模型不行还是搜索预算被吃光了。</strong></p>
+</blockquote>
+<p><strong>SLO 示例</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">目标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>行程规划 P95</td><td>&lt; 15s</td></tr>
+      <tr><td>伴游回答 P95</td><td>&lt; 1.5s</td></tr>
+      <tr><td>库存查询 P95</td><td>&lt; 300ms</td></tr>
+      <tr><td>预占 P99</td><td>&lt; 1s</td></tr>
+      <tr><td><strong>超售</strong></td><td><strong>0</strong>（硬约束）</td></tr>
+      <tr><td><strong>重复扣款</strong></td><td><strong>0</strong>（硬约束）</td></tr>
+      <tr><td><strong>约束违反的行程</strong></td><td><strong>0</strong>（硬约束）</td></tr>
+      <tr><td>重排方案生成 P95</td><td>&lt; 30s</td></tr>
+      <tr><td>审计覆盖率</td><td><strong>100%</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>本章专属不可逆决策清单</strong>（做错了要停机迁移 + 数据回填 + 全量对账，不是发个版本就能改）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">为什么不可逆</th><th scope="col">改动代价</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>行程对象模型与版本语义</strong>（Itinerary / Day / Item / buffer / <code>confirmed_items</code>）</td><td>行程、订单、重排、通知全部引用这些结构</td><td>存量行程无法迁移 + 通知模板失效 + 已确认项判定错乱</td></tr>
+      <tr><td><strong>硬约束的定义与数据来源</strong>（营业时间、余票、时间矩阵、天气规则的来源与口径）</td><td>决定「行程可行」的判定标准</td><td>所有历史行程的可行性判定失效 + 需全量重跑评测 + 用户的「已确认」承诺失效</td></tr>
+      <tr><td><strong>预占语义与 TTL 策略</strong>（hold 的粒度、时长、回收方式）</td><td>决定库存占用与超售边界</td><td>存量预占无法对账 → <strong>超售与少卖同时可能发生</strong></td></tr>
+      <tr><td><strong>写操作的幂等键构造规则</strong>（<code>booking:{user_id}:{request_id}</code> 等六层）</td><td>下单、支付、退改、预占共用</td><td>存量幂等记录失效 → <strong>已发生的重复扣款无法自动识别</strong></td></tr>
+      <tr><td><strong>与资源服务的对接契约</strong>（库存 / 价格 / 退改规则的接口语义与错误码）</td><td>「查不到」与「查错了」的处理方式完全由它决定</td><td>全部调用方重写 + 历史错误码无法回放 + 降级路径全部失效</td></tr>
+      <tr><td><strong>支付与退款的账务口径</strong>（对账口径、退款归属、佣金与补贴归属）</td><td>决定净营收与营销 ROI 是否可信</td><td>历史账务需重新对账 + 营销归因全部作废</td></tr>
+      <tr><td><strong>归因窗口与 Holdout 分流规则</strong>（窗口长度、抽样比例、随机种子）</td><td>决定增量 ROI 是否可复现</td><td>换种子或窗口 → 同一活动前后两套结论，历史不可比</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>对照「单向门与双向门」的判据</strong>：这七项属单向门，决策时要多评审、做原型、留迁移方案。其余（模型选择、K 值、评估预算、TTL 时长、剪枝策略、召回方式）是双向门，可以快速试错——但 <strong>K 值与评估预算属于「可逆但很贵」</strong>：调它们会改变全部历史行程的形态与可行率，必须伴随黄金行程集回归。</p>
+</blockquote>
+
+<h2 id="seg-2">6.2 核心矛盾与设计原则</h2><div class="oc-part-lead"><strong>第二段 · 核心矛盾</strong>这一段回答：自由度与硬约束的冲突到底有多大，三个放大器与四层正确性分别怎么守。</div>
+
+<h3 id="sec-2.1">6.2.1 本质与六条章级原则</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>本质矛盾是「用户想要的自由度」与「现实世界的硬约束」之间的冲突——模型可以生成任意行程，但景区会闭园、航班会延误、房间会售罄。自由度的上限由约束决定，而约束由实时接口决定，这就是全章工程量的来源。六条章级原则在冲突时说了算：先可行后好看，硬约束全部过闸之后才谈推荐理由与文案；资源服务是唯一事实源，索引、缓存与模型记忆都不构成「有位」的承诺；先预占后支付，写超时先查单；行程是版本化对象，局部变更只重排受影响的天与项，已确认项不可被静默改写；变更必确认、触达必克制；搜索空间靠剪枝不靠召回，候选数上限由评估预算倒推。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>第一条原则里那句「先给理由再校验，等于给用户希望再撤回」，是文旅与电商最本质的差别。电商里先说后撤是体验问题，文旅里先说后撤是白跑一趟。所以顺序在这里不是风格问题，而是产品承诺问题：只要先校验，用户看到的每一句话就已经成立。</p>
+</div>
+
+<p><strong>本质</strong>：文旅 Agent 的核心矛盾，是「用户想要的自由度」与「现实世界的硬约束」之间的冲突。模型可以生成任意行程，但景区会闭园、航班会延误、房间会售罄。<strong>自由度的上限由约束决定，而约束由实时接口决定——所以这是本章所有工程量的来源。</strong></p>
+<p><strong>六条章级原则</strong>（贯穿全章，冲突时以这六条为准）：</p>
+<ol>
+<li><strong>先可行、后好看</strong>——硬约束（营业时间、余票、交通耗时、天气、人力）全部过闸之后，才谈推荐理由与文案。<strong>顺序不能反：先给理由再校验，等于给用户希望再撤回。</strong></li>
+<li><strong>资源服务是唯一事实源</strong>——价格、库存、余票、退改规则必须实时查询。<strong>索引、缓存、模型记忆都不构成「有位」的承诺。</strong></li>
+<li><strong>先预占、后支付；写超时先查单</strong>——没有成功预占就不承诺有位；支付超时<strong>先查单确认，绝不盲目重试</strong>。</li>
+<li><strong>行程是版本化对象</strong>——局部变更只重排受影响的天 / 项，已确认项不可被静默改写。</li>
+<li><strong>变更必确认、触达必克制</strong>——涉及资金或行程大改时让用户确认；旅中通知严格频控，紧急安全事件才可突破。</li>
+<li><strong>搜索空间靠剪枝，不靠召回</strong>——候选数的上限由<strong>评估预算倒推</strong>，不由召回率正推。<strong>召回更多候选，大部分会死在第一道硬约束上，白白吃掉上下文与时间预算。</strong></li>
+</ol>
+
+<h3 id="sec-2.2">6.2.2 三个不等式、三个放大器与四层正确性</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>三个不等式划出本章的工程量来源：候选组合数 C(N,k) 的 D 次方远大于评估预算能覆盖的分支数，所以靠剪枝不靠穷举；行程项数远大于单次事件的受影响项数，所以靠影响图不靠全量重排；行程客单价远大于单次错误的容忍度，所以资金类错误必须 fail-closed。三个放大器给出量化：时空搜索放大，3 天每天 3 点是 2.26×10¹⁸ 种组合、可行解只剩万分之一、必须剪枝 15 个数量级；行程变更放大，全行程 20 项重排是 3.5×10⁹ 种、只重排受影响 8 项是 6,561 种、降 5 个数量级；资金与安全放大，5 天 4 晚行程客单价 ¥6,700、重复扣款一次实际损失约 ¥10,000。四层正确性是时空可行、资源真实、资金正确、变更可控。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三个放大器里最容易被忽略的是第三个：客单价高意味着单次错误的绝对损失巨大，也就意味着它不能用概率来安慰自己。重复扣款率 1e-5 在别的系统里是完全可接受的数字，在日 2.5 万单的文旅里是每天 0.25 单、约 ¥2,500 直接损失——绝对值太小，小到在报表上看不见，于是就永远不会被修。</p>
+</div>
+
+<p><strong>三个不等式</strong>：</p>
+<pre><code>候选组合数 C(N,k)^D   &gt;&gt;  评估预算能覆盖的分支数  → 靠剪枝，不靠穷举
+行程项数              &gt;&gt;  单次事件的受影响项数    → 靠影响图，不靠全量重排
+行程客单价            &gt;&gt;  单次错误的容忍度        → 资金类错误必须 fail-closed</code></pre>
+<p><strong>三个放大器</strong>（本章最贵的量都藏在这里）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">放大器</th><th scope="col">说明</th><th scope="col">后果</th><th scope="col">量化</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>时空搜索放大</strong></td><td>候选组合数随天数与每日点数指数增长，而可行比例随约束收紧急降</td><td>规划跑不完、可行解找不到</td><td>3 天 × 每天 3 点 = <strong>2.26 × 10¹⁸ 种组合</strong>；可行解只剩 <strong>万分之一</strong>；<strong>必须剪枝 15 个数量级</strong>（<a href="#sec-3.4.9">时空搜索放大：候选、可行解与剪枝</a>）</td></tr>
+      <tr><td><strong>行程变更放大</strong></td><td>一个事件沿行程依赖图传播，重排是受影响项的组合爆炸</td><td>全量重排毁掉已确认项</td><td>全行程 20 项重排 = <strong>3.5 × 10⁹ 种</strong>；只重排受影响 8 项 = <strong>6,561 种</strong>，<strong>降 5 个数量级</strong>（<a href="#sec-3.6.12">旅中事件驱动重排</a>）</td></tr>
+      <tr><td><strong>资金与安全放大</strong></td><td>机酒客单价高，旅中错误指引危及人身</td><td>真金白银 + 不可逆后果</td><td>5 天 4 晚行程客单价 <strong>¥6,700</strong>；重复扣款一次实际损失 <strong>≈ ¥10,000</strong>（<a href="#sec-3.5.11">资源锁定：预占、支付与对账</a>）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章与前面各章的放大器方向不同</strong>：<a href="/2026/11/26/agent-design-01-text2sql/">问数</a>放大的是结果集，<a href="/2026/11/26/agent-design-03-customer-service/">客服</a>放大的是上下文，<a href="/2026/11/26/agent-design-04-marketing/">营销</a>放大的是触达，<a href="/2026/11/26/agent-design-11-supply-chain/">供应链</a>放大的是需求波动，抢购这类场景放大的是写冲突。<strong>文旅章的放大器是时空搜索放大</strong>——它是唯一一个「<strong>搜索空间随用户要求变复杂而指数爆炸</strong>」的架构。<strong>别的系统放大的是数据量，文旅放大的是组合数。</strong></p>
+</blockquote>
+<p><strong>四层正确性</strong>（必须分开保证）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">要求</th><th scope="col">保障手段</th><th scope="col">典型漏法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>时空可行</strong></td><td>营业、交通、天气、人力允许</td><td>硬约束校验 + 时间矩阵</td><td>先推荐后校验，用户到了才发现闭园</td></tr>
+      <tr><td><strong>资源真实</strong></td><td>库存、价格、余票准确</td><td>实时接口 + 预占 + TTL</td><td>用缓存承诺有位 → 超售</td></tr>
+      <tr><td><strong>资金正确</strong></td><td>预占、支付、退改金额一致</td><td>状态机 + 幂等 + 对账</td><td>超时盲目重试 → 重复扣款</td></tr>
+      <tr><td><strong>变更可控</strong></td><td>不静默改已确认项</td><td>版本化 + 影响图 + 用户确认</td><td>全量重排 → 已付的酒店被改掉</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-2.3">6.2.3 八组关键矛盾与八类失败模式</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>八组关键矛盾各配默认策略与反转条件：可行 vs 好看默认硬约束优先、时间充裕可绕行；预占 vs 库存利用默认 TTL 加主动释放、高价值客户可延长；自动化 vs 确认默认重大变更必须确认、低影响可自动；长归因 vs 时效默认快慢信号分离、短周期可缩短；灵活重排 vs 已确认项默认局部重排加版本、结构大改才全量；召回量 vs 评估预算默认按预算倒推 K 值、单次评估极快时可放宽。八类失败模式是闭园扑空、绕路、规划跑不出、超售、价格变动、重复扣款、重排失败、打扰与归因虚高，各有根因与防线，其中「规划跑不出」的根因是候选爆炸与无剪枝，防线是评估预算加分层剪枝。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「召回量 vs 评估预算」这一组在别的章里不存在，所以它需要单独记住：在文旅，多召回候选不是「更保险」，而是主动消耗预算——多召回的那部分大概率死在第一道硬约束上，一个可行解都换不回来。所以「召回 Top-K 越大越好」在这里是错的直觉，而不是一个可以自由调整的参数。</p>
+</div>
+
+<p><strong>八组关键矛盾</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">矛盾</th><th scope="col">典型表现</th><th scope="col">默认策略</th><th scope="col">何时反转</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>可行 vs 好看</td><td>网红点但不顺路</td><td>硬约束优先</td><td>时间充裕可绕行</td></tr>
+      <tr><td>实时 vs 成本</td><td>频繁查库存 / 价格</td><td>缓存 + 关键节点复核</td><td>大促可加缓存</td></tr>
+      <tr><td>预占 vs 库存利用</td><td>占而不买</td><td>TTL + 主动释放</td><td>高价值客户可延长</td></tr>
+      <tr><td>自动化 vs 确认</td><td>静默改行程</td><td>重大变更必须确认</td><td>低影响可自动</td></tr>
+      <tr><td>个性化 vs 安全</td><td>推荐野景点</td><td>安全优先</td><td>专业用户可放宽</td></tr>
+      <tr><td>长归因 vs 时效</td><td>等 30 天太久</td><td>快慢信号分离</td><td>短周期可缩短</td></tr>
+      <tr><td>丰富信息 vs 低延迟</td><td>伴游要塞很多</td><td>精简 + 分层</td><td>非实时场景可详</td></tr>
+      <tr><td>灵活重排 vs 已确认项</td><td>全量重算</td><td>局部重排 + 版本</td><td>结构大改才全量</td></tr>
+      <tr><td><strong>召回量 vs 评估预算</strong></td><td><strong>召回越多越全，越跑不完</strong></td><td><strong>按预算倒推 K 值</strong></td><td>单次评估极快时可放宽</td></tr>
+  </tbody>
+</table>
+<p><strong>八类失败模式</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">失败</th><th scope="col">表现</th><th scope="col">根因</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>闭园扑空</td><td>到景区发现关闭</td><td>未查实时状态</td><td>实时校验</td></tr>
+      <tr><td>绕路</td><td>行程不可行</td><td>无时间矩阵</td><td>路线优化 + 时间矩阵</td></tr>
+      <tr><td><strong>规划跑不出</strong></td><td><strong>超时或给不出可行解</strong></td><td><strong>候选爆炸、无剪枝</strong></td><td><strong>评估预算 + 分层剪枝</strong></td></tr>
+      <tr><td>超售</td><td>到店无房 / 无座</td><td>缓存承诺</td><td>预占 + TTL</td></tr>
+      <tr><td>价格变动</td><td>支付时涨价</td><td>未复检</td><td>支付前复核</td></tr>
+      <tr><td>重复扣款</td><td>超时重试</td><td>盲目重试</td><td>先查单后重试</td></tr>
+      <tr><td>重排失败</td><td>行程中断</td><td>无备选</td><td>多方案 + 确认</td></tr>
+      <tr><td>打扰</td><td>高频通知</td><td>无频控</td><td>合并 + 频控</td></tr>
+      <tr><td>归因虚高</td><td>预算浪费</td><td>末次点击</td><td>Holdout + 长窗口</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-2.4">6.2.4 信任分级、威胁模型与成本结构</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>信任分级是行程建议的输出契约，分四档：高信任要求全部硬约束已校验、资源已实时确认、时间矩阵完整，输出行程加每个点的校验依据加总预算；中信任是行程可行但部分点位信息较旧或余票未锁，输出行程但要标注哪些点需要出发前复核；低信任是约束校验未跑完、资源接口超时或未查余票，此时只给候选清单与「请自行确认」的提示，不给行程；拒绝态则是越权、资源被占或超出安全策略，明确拒绝并给替代路径。威胁模型覆盖黄牛抢票、虚假预订、冒充越权、Prompt 注入、恶意退改与景区侧提示注入。成本结构里最大的是 LLM，尤其候选 POI 描述；其次是实时资源查询；地图与天气居中；人工审批视风险而定。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「低」这一档是本章新增的，也是很多系统最缺的一档：把「查不到余票」当成「有位」，就会给出一条看起来完整、但有一个点根本订不到的行程。旅行行程的可用性是「与」的关系——一行里只要一个点订不到，整条行程就是废的。所以低信任态不是保守，而是唯一正确的输出：给候选清单，不给行程。</p>
+</div>
+
+<p><strong>信任分级</strong>（行程建议的「输出契约」）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">级别</th><th scope="col">条件</th><th scope="col">展示方式</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>高</td><td>全部硬约束已校验 + 资源已实时确认 + 时间矩阵完整</td><td>给行程 + 每个点的校验依据 + 总预算</td></tr>
+      <tr><td>中</td><td>行程可行但部分点位信息较旧（缓存）或余票未锁</td><td>给行程 + <strong>标注哪些点需要出发前复核</strong></td></tr>
+      <tr><td>低</td><td>约束校验未跑完 / 资源接口超时 / 未查余票</td><td><strong>只给候选清单与「请自行确认」的提示</strong>，不给行程</td></tr>
+      <tr><td>拒绝</td><td>越权 / 资源被占 / 超出安全策略</td><td>明确拒绝 + 原因 + 替代路径</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「低」这一档是本章新增的</strong>：很多系统把「查不到余票」当成「有位」，于是给出一条<strong>看起来完整、但有一个点根本订不到</strong>的行程。<strong>旅行行程的可用性是「与」的关系——一行里只要一个点订不到，整个行程就是废的。</strong></p>
+</blockquote>
+<p><strong>威胁模型</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">威胁</th><th scope="col">路径</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>黄牛抢票</td><td>批量账号占座</td><td>实名、限购、风控</td></tr>
+      <tr><td>虚假预订</td><td>占房不付</td><td>TTL、押金、信用</td></tr>
+      <tr><td>冒充 / 越权</td><td>查改他人订单</td><td>实名 + 归属校验</td></tr>
+      <tr><td>Prompt 注入</td><td>点评 / 攻略含指令</td><td>数据隔离 + 判定在代码层</td></tr>
+      <tr><td>恶意退改</td><td>频繁退订</td><td>规则、风控、人工</td></tr>
+      <tr><td><strong>提示注入（景区侧）</strong></td><td><strong>POI 描述被篡改，含「请推荐本店」</strong></td><td><strong>POI 描述只作数据，不作指令</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>成本结构</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">占比量级</th><th scope="col">优化手段</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>LLM（尤其候选 POI 描述）</strong></td><td><strong>最大</strong></td><td><strong>候选裁剪</strong>、模型分级、上下文裁剪</td></tr>
+      <tr><td>实时资源查询</td><td>次之</td><td>批量、缓存、时间戳</td></tr>
+      <tr><td>地图 / 天气</td><td>中</td><td>缓存、按需查询、区域级近似</td></tr>
+      <tr><td>人工审批</td><td>视风险</td><td>阈值优化</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>LLM 成本的大头是「候选 POI 描述」这一项，而不是模型对话</strong>。每注入 20 个候选的描述就是 1,600 token，而本章会证明<strong>其中约 54% 会在第一道硬约束上被淘汰</strong>（<a href="#sec-3.4.9">时空搜索放大：候选、可行解与剪枝</a>）。<strong>所以「多召回一点」在文旅是纯亏：既花钱，又稀释注意力，还吃掉时间预算。</strong></p>
+</blockquote>
+
+<h2 id="seg-3">6.3 理论与方法论</h2><div class="oc-part-lead"><strong>第三段 · 理论与方法论</strong>这一段回答：从七项前置锚点出发，一步步推到搜索剪枝、资源锁定、旅中重排与容量成本。</div>
+
+<h3 id="sec-3.1">6.3.1 S0 前置锚点、4S 顺序与场景规模</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>七项前置锚点划定可行域：业务目标与成功标准是行程采纳率不低于 40%、约束满足率不低于 99%、超售 0、重复扣款 0、客诉率不高于 0.3%；规模量级是日会话 50 万、峰值 29 QPS、平均 4 轮与 8 次工具调用、行程 3 到 10 天、预订转化 5%；质量属性优先级是时空可行大于资源真实大于资金正确大于体验大于成本；核心路径与事实源是提问到槽位到召回到硬约束到组合优化到预占到支付到履约到旅中重排，事实源是行程对象加订单加预占记录加资源服务实时返回。4S 收敛顺序是 S0 定题、Scenario 定会话量与行程长度与每天点数、Service 定各服务边界、Storage 定唯一事实源、Scale 定剪枝与评估预算与预占 TTL 与对账与降级。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「行程长度 × 每天点数」是本章独有的关键参数。传统系统的容量参数是 QPS，文旅系统还必须给出这两个乘积参数——它们决定了搜索空间的大小，也决定了「规划 P95 小于 15 秒」这个 SLO 到底能不能成立。3 天 3 点已经是 10¹⁸，没有这两个参数就估不出搜索预算，也就不知道自己系统能撑多大的行程。</p>
+</div>
+
+<h4 id="sec-3.1.1" data-toc-skip>S0：七项前置锚点</h4>
+
+<p>先落定七件事，它们共同决定<strong>可行域</strong>——不在可行域内的方案不参与讨论。</p>
+<table>
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">锚点</th><th scope="col">本章答案</th><th scope="col">影响</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>业务目标与成功标准</strong></td><td>行程采纳率 ≥ 40%、约束满足率 ≥ 99%、超售 0、重复扣款 0、客诉率 ≤ 0.3%</td><td>决定自动化分级与拒答阈值</td></tr>
+      <tr><td>2</td><td><strong>规模量级</strong></td><td>日会话 50 万、峰值 29 QPS、<strong>平均 4 轮 / 8 次工具调用</strong>、行程 3–10 天、预订转化 5%</td><td>决定搜索预算、预占集群与 token 预算</td></tr>
+      <tr><td>3</td><td><strong>质量属性优先级</strong></td><td>时空可行 &gt; 资源真实 &gt; 资金正确 &gt; 体验 &gt; 成本</td><td>决定降级顺序与 fail-closed 边界</td></tr>
+      <tr><td>4</td><td><strong>硬约束</strong></td><td>营业时间、预约余票、天气、人力与无障碍；超售 0、重复扣款 0、行程不得违反硬约束</td><td>定义可行域；物理约束不可用模型折抵</td></tr>
+      <tr><td>5</td><td><strong>不可逆决策清单</strong></td><td>见 <a href="#sec-1.4">SLO 与不可逆决策清单</a> 的本章七项</td><td>决策流程：多评审 + 原型 + 迁移方案</td></tr>
+      <tr><td>6</td><td><strong>核心路径与事实源</strong></td><td>核心路径 = 提问 → 槽位 → 召回 → 硬约束 → 组合优化 → 预占 → 支付 → 履约 → 旅中重排；事实源 = <strong>行程对象 + 订单 + 预占记录 + 资源服务实时返回</strong></td><td>决定缓存与对账对象；缓存与索引全是投影</td></tr>
+      <tr><td>7</td><td><strong>竞争与协作边界</strong></td><td>航司 / 酒店 / 票务 / 支付渠道在外部；规划、预占编排、重排、伴游、问数自建</td><td>决定服务边界与团队成本</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 2 项为什么改变答案</strong>：文旅系统的规模参数不只是 QPS，还有<strong>「行程长度」与「每天的点数」</strong>。同样是 50 万会话，1 天 2 个点和 10 天 4 个点，<strong>组合空间的量级完全不同</strong>（3 天 3 点已是 10¹⁸）。<strong>没有这两个参数，就没法估搜索预算，也就没法知道系统能撑多大的行程。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.1.2" data-toc-skip>4S 收敛顺序</h4>
+
+<pre><code>S0 定题（锚点 + 不可逆清单）
+   → Scenario 定会话量、行程长度、每天点数、预算、实时性、渠道
+      → Service 定规划、检索、预占、支付、重排、伴游、问数的边界
+         → Storage 定行程、订单、预占、事件、归因的唯一事实源
+            → Scale 定剪枝、评估预算、预占 TTL、对账、降级</code></pre>
+
+<h4 id="sec-3.1.3" data-toc-skip>Scenario：场景与规模</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">数值</th><th scope="col">推导与来源</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>日会话</td><td>50 万</td><td>—</td></tr>
+      <tr><td>平均会话 QPS</td><td>50 万 ÷ 86400</td><td>≈ <strong>5.8</strong></td></tr>
+      <tr><td><strong>峰值会话 QPS</strong></td><td>5.8 × 5</td><td><strong>29</strong>（峰值系数 5：节假日前 2 周晚 8–10 点与周末全天两个高峰）</td></tr>
+      <tr><td>场景占比</td><td>规划 40%、预订 35%、伴游 15%、问数 / 营销 10%</td><td>决定各链路的负载结构</td></tr>
+      <tr><td><strong>平均轮数</strong></td><td><strong>4 轮</strong></td><td><strong>直接决定上下文成本曲线</strong></td></tr>
+      <tr><td><strong>每会话工具调用</strong></td><td><strong>8 次</strong></td><td>规划 4、预订 3、伴游 1</td></tr>
+      <tr><td><strong>行程长度</strong></td><td>1–10 天，<strong>均值 4 天</strong></td><td><strong>决定组合空间</strong></td></tr>
+      <tr><td><strong>每天点数</strong></td><td>2–4 个，<strong>均值 3 个</strong></td><td><strong>决定组合空间</strong></td></tr>
+      <tr><td>预订转化率</td><td>5%</td><td>决定预占与支付写流量</td></tr>
+      <tr><td>资源实时性</td><td>库存 / 价格秒级；营业与余票分钟级</td><td>决定缓存 TTL 与复核节点</td></tr>
+      <tr><td>决策周期</td><td>行前 7–30 天；旅中秒级</td><td>决定快慢双轨</td></tr>
+      <tr><td>多租户</td><td>景区、酒店、航司、文旅集团</td><td>决定权限隔离与口径</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「行程长度 × 每天点数」是本章独有的关键参数</strong>。传统系统的容量参数是 QPS，文旅系统还必须给出<strong>这两个乘积参数</strong>——它们决定了搜索空间的大小，也决定了「规划 P95 &lt; 15s」这个 SLO 到底能不能成立。</p>
+</blockquote>
+
+<h3 id="sec-3.2">6.3.2 服务接口、数据模型与扩展兜底</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>服务表 11 个，关键标注是 Planner 负责约束求解与剪枝、Inventory Service 要实时且原子、Booking Service 用状态机与幂等、Route Service 的时间矩阵做区域级近似、ChatBI Service 用语义层与沙箱、Growth Service 异步做频控与 Holdout。核心 API 七条覆盖生成行程、重排、查库存价格、预占、支付、取消退改与伴游附近推荐。数据模型里行程对象、订单、预占记录与事件是事实源，槽位与会话可重建，资源快照不是事实源但必须有查询时点；行程对象含 version、days 与每日的 items 与 buffer，以及不可静默修改的 confirmed_items。Scale 一列写清每类扩展的触发条件：规划用分层剪枝加评估预算加早停应对组合爆炸，预占用分片加 TTL 加异步回收应对并发抢购，重排用影响图加局部重排加批应对事件频繁。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「资源快照必须带查询时点」这一列是这张表里最重要的一列。缓存里的「有房」在用户下单那一刻可能已经过期 40 秒——没有时点，客服无法判断一个投诉是系统的错还是缓存的错，对账也无从下手。所以时点不是日志字段，它是这个表的一等列。</p>
+</div>
+
+<h4 id="sec-3.2.4" data-toc-skip>Service：服务与接口</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">服务</th><th scope="col">职责</th><th scope="col">同步 / 异步</th><th scope="col">关键点</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Gateway</td><td>鉴权、限流、路由</td><td>同步</td><td>租户隔离</td></tr>
+      <tr><td>Intent Router</td><td>意图识别与分流</td><td>同步</td><td>快慢分离</td></tr>
+      <tr><td>Planner</td><td>行程规划与重排</td><td>同步 / 异步</td><td><strong>约束求解 + 剪枝</strong></td></tr>
+      <tr><td>Agent Orchestrator</td><td>工具编排</td><td>同步 / 异步</td><td>DAG、槽位</td></tr>
+      <tr><td>Inventory Service</td><td>库存 / 价格 / 余票</td><td>同步</td><td><strong>实时、原子</strong></td></tr>
+      <tr><td>Booking Service</td><td>预占、下单、支付</td><td>同步</td><td>状态机、幂等</td></tr>
+      <tr><td>POI Service</td><td>景点 / 餐饮检索</td><td>同步</td><td>实时营业</td></tr>
+      <tr><td>Route Service</td><td>路线与耗时</td><td>同步</td><td><strong>时间矩阵（区域级近似）</strong></td></tr>
+      <tr><td>Weather Service</td><td>天气与预警</td><td>同步</td><td>缓存</td></tr>
+      <tr><td>ChatBI Service</td><td>经营问数</td><td>同步</td><td>语义层、沙箱</td></tr>
+      <tr><td>Growth Service</td><td>营销触达</td><td>异步</td><td>频控、Holdout</td></tr>
+  </tbody>
+</table>
+<p><strong>核心 API</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方法</th><th scope="col">路径</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>POST</td><td><code>/api/v1/trips/plan</code></td><td>生成行程</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/trips/{id}/replan</code></td><td>重排（带事件 / 影响范围）</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/inventory/{type}/{id}</code></td><td>查库存 / 价格</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/bookings/hold</code></td><td>预占</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/bookings/{id}/pay</code></td><td>支付</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/bookings/{id}/cancel</code></td><td>取消 / 退改</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/nearby</code></td><td>伴游附近推荐</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.2.5" data-toc-skip>Storage：数据模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">数据</th><th scope="col">存储</th><th scope="col">关键设计</th><th scope="col">是事实源吗</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>行程对象</strong></td><td>MySQL / 文档库</td><td><code>itinerary_id</code>、版本、每日项</td><td><strong>是</strong></td></tr>
+      <tr><td><strong>订单</strong></td><td>MySQL</td><td><code>booking_id</code>、状态机</td><td><strong>是</strong></td></tr>
+      <tr><td><strong>预占记录</strong></td><td>Redis + DB</td><td><code>hold_id</code>、TTL、幂等键</td><td><strong>是</strong></td></tr>
+      <tr><td><strong>槽位与会话</strong></td><td>Redis / DB</td><td>偏好、已确认、已否决</td><td>否（可重建）</td></tr>
+      <tr><td>资源快照</td><td>缓存</td><td>价格 / 库存 + 查询时点</td><td>否（<strong>必须有查询时点</strong>）</td></tr>
+      <tr><td>事件</td><td>Kafka / 数仓</td><td>统一 Envelope</td><td><strong>是</strong></td></tr>
+      <tr><td>归因宽表</td><td>数仓</td><td>长窗口、Holdout</td><td><strong>是</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>资源快照必须带查询时点</strong>。缓存里的「有房」在用户下单那一刻可能已经过期 40 秒——<strong>没有时点，客服无法判断一个投诉是系统的错还是缓存的错</strong>，对账也无从下手。<strong>时点是这个表里最重要的一列。</strong></p>
+</blockquote>
+<p><strong>行程对象</strong>：</p>
+<pre><code>Itinerary
+  ├→ version
+  ├→ days[]
+  │    ├→ date
+  │    ├→ items[]（POI/餐饮/交通/住宿）
+  │    └→ buffer（用餐/休息/机动）
+  └→ confirmed_items[]（不可静默修改）</code></pre>
+
+<h4 id="sec-3.2.6" data-toc-skip>Scale：扩展与兜底</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">手段</th><th scope="col">触发条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>规划</strong></td><td><strong>分层剪枝 + 评估预算 + 早停</strong></td><td><strong>组合爆炸、跑不完</strong></td></tr>
+      <tr><td>资源查询</td><td>批量、缓存、批量合并</td><td>QPS 高</td></tr>
+      <tr><td>预占</td><td>分片、TTL、异步回收</td><td>并发抢购</td></tr>
+      <tr><td>重排</td><td>影响图、局部重排、批量</td><td>事件频繁</td></tr>
+      <tr><td>伴游</td><td>精简上下文、缓存热点状态</td><td>低延迟要求</td></tr>
+      <tr><td>降级</td><td>候选清单 + 保守方案、Fail-Closed</td><td>依赖故障</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.3">6.3.3 需求解析、候选召回与硬约束</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>结构化槽位有六类：目的地与日期范围、人群结构（成人、儿童、老人）、预算上限与分项预算、节奏偏好、已确认的机酒票、用户已否决的景点。解析要求四条：隐含约束要显式化（「带老人小孩」变成步行强度、休息点与无障碍）、缺失关键字段要追问、预算给区间与分项而不给单点假精确、多轮对话保留已确认槽位。槽位必须区分「偏好」与「约束」——「带老人小孩」不是偏好而是硬约束，它会排除掉需要爬 800 级台阶的景点。硬约束按淘汰顺序排列：已闭园封路不可达通过率 92%、营业时间与行程时段吻合 85%、预约有余票可容纳人数 70%、天气适配 90%、体力与同行人匹配 90%、价格带与预算匹配 95%，联合通过率约 0.421。无可行解时的放宽顺序是减少点数、放宽时段、提高预算、调整日期、换区域、明确告知无解。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>联合通过率 0.421 意味着约 58% 的候选死在硬约束上，而这个数字会决定后面所有的成本结论。更要紧的是「槽位必须区分偏好与约束」：一旦不区分，放宽策略会连老人孩子的体力约束一起放宽，于是系统给出一条老人根本走不动的行程——而且它每一步校验都通过了，因为那一步的输入本身就是错的。</p>
+</div>
+
+<h4 id="sec-3.3.7" data-toc-skip>需求解析与结构化槽位</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">槽位</th><th scope="col">作用</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>destination</code>、<code>date_range</code></td><td>目的地与日期范围</td></tr>
+      <tr><td><code>travelers</code>（成人 / 儿童 / 老人）</td><td>人群结构与体力约束</td></tr>
+      <tr><td><code>budget_cap</code></td><td>预算上限与分项预算</td></tr>
+      <tr><td><code>pace_preference</code></td><td>紧凑 / 宽松 / 不赶路</td></tr>
+      <tr><td><code>confirmed_items</code></td><td>已确认的机酒票，重排时不可静默修改</td></tr>
+      <tr><td><code>rejected_pois</code></td><td>用户已否决的景点，避免重复推荐</td></tr>
+  </tbody>
+</table>
+<p><strong>解析要求</strong>：</p>
+<ul>
+<li>隐含约束要显式化（「带老人小孩」→ 步行强度、休息点、无障碍）。</li>
+<li>缺失关键字段要追问（日期、人数、预算）。</li>
+<li>预算给区间与分项，不给单点假精确。</li>
+<li>多轮对话保留已确认槽位。</li>
+</ul>
+<p><strong>槽位即约束的来源</strong>：「带老人小孩」不是偏好，是<strong>硬约束</strong>——它会排除掉需要爬 800 级台阶的景点。<strong>槽位必须区分「偏好」（可放宽）与「约束」（不可放宽）</strong>，否则放宽策略会连老人孩子的体力约束一起放宽。</p>
+
+<h4 id="sec-3.3.8" data-toc-skip>候选召回与硬约束</h4>
+
+<p><strong>召回维度</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">示例</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>目的地</td><td>城市、景区、商圈</td></tr>
+      <tr><td>主题</td><td>亲子、人文、自然、美食</td></tr>
+      <tr><td>人群</td><td>老人、儿童、无障碍</td></tr>
+      <tr><td>季节</td><td>花期、雨季、冰雪</td></tr>
+      <tr><td>预算</td><td>价格带</td></tr>
+  </tbody>
+</table>
+<p><strong>硬约束校验（按淘汰顺序排列）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">序</th><th scope="col">约束</th><th scope="col">通过率（参考）</th><th scope="col">数据来源</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>已闭园 / 封路 / 不可达</strong></td><td>92%</td><td>POI 实时状态</td></tr>
+      <tr><td>2</td><td><strong>营业时间与行程时段吻合</strong></td><td>85%</td><td>营业时间表 + 实时状态</td></tr>
+      <tr><td>3</td><td><strong>预约有余票 / 可容纳人数</strong></td><td>70%</td><td>票务实时接口</td></tr>
+      <tr><td>4</td><td><strong>天气适配</strong>（暴雨、极端高温）</td><td>90%</td><td>天气 + 预警</td></tr>
+      <tr><td>5</td><td><strong>体力与同行人匹配</strong>（老人、儿童、无障碍）</td><td>90%</td><td>POI 属性 + 槽位</td></tr>
+      <tr><td>6</td><td><strong>价格带与预算匹配</strong></td><td>95%</td><td>实时价格</td></tr>
+  </tbody>
+</table>
+<p><strong>联合通过率</strong>：</p>
+<pre><code>单点通过率 = 0.92 × 0.85 × 0.70 × 0.90 × 0.90 × 0.95 ≈ 0.421</code></pre>
+<blockquote>
+  <p><strong>约 58% 的候选会死在硬约束上。</strong> 这个数字是<a href="#sec-3.4.9">时空搜索放大：候选、可行解与剪枝</a>全部结论的基础——<strong>大部分召回是白召回的</strong>。</p>
+</blockquote>
+<p><strong>无可行解时的放宽顺序</strong>（按影响从小到大，让用户选，而不是硬凑）：</p>
+<pre><code>减少点数 → 放宽时段（接受排队）→ 提高预算 → 调整日期 → 换区域 → 明确告知无解</code></pre>
+<blockquote>
+  <p><strong>「明确告知无解」必须排在最后而不是排除掉</strong>。硬凑出来的行程——闭园的景点、过期的余票、超出预算的门票——<strong>每一个都会在旅途中变成一次客诉</strong>。</p>
+</blockquote>
+
+<h3 id="sec-3.4">6.3.4 时空搜索放大、剪枝与组合优化</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>组合空间是每天的无序组合数 C(N,k) 的 D 次方。代入基准召回 Top-200、每天 3 点、3 天：每天组合数 1,313,400，三天组合空间约 2.26×10¹⁸；每天可行比例约 4.5%，三天可行比例约 0.009%。评估预算才是真正的稀缺资源：规划 P95 15 秒里留 10 秒给评估，单点约束评估 2ms 给出 5,000 次预算，单组合评估 50ms 给出 200 次预算——两者差 2.26×10¹⁸，必须剪枝 15 个数量级。五层剪枝漏斗是召回裁剪（200 候选到 80）、单点硬约束预筛（80 到 34）、时空分块剪枝、回溯剪枝、局部搜索收敛，每层省 2 到 3.6 个量级。结论是 K 值要按预算倒推而不是按召回率正推：K 从 200 降到 84，进 Prompt 的描述从 16,000 token 降到 6,720、预筛时间同样降 58%，而可行解一个不少。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「可行解数量是 2.0×10¹⁴，所以可行解多不多根本不是瓶颈——能不能找到才是」是这一节最重要的一句翻转。组合空间大到没有意义，真正的问题是「你只有几万次评估机会，而可行解分散在 10¹⁸ 的空间里」。所以整套工程的重点不是生成更聪明的行程，而是把搜索效率提上去——剪枝不是优化，是这个系统能不能存在的前提。</p>
+</div>
+
+<h4 id="sec-3.4.9" data-toc-skip>时空搜索放大：候选、可行解与剪枝</h4>
+
+<p><strong>本节是搜索与剪枝的权威版</strong>，<a href="#sec-3.4.10">组合优化与路线排序</a>、<a href="#sec-4.2.3">行程规划护栏</a>、<a href="#sec-5.3.5">变体 D：时空搜索预算与 K 值取舍</a>只引用。</p>
+<p><strong>问题定义</strong>：给定候选集 N 个 POI、行程 D 天、每天 k 个点，求一个满足全部硬约束的时间轴。</p>
+<p><strong>组合空间</strong>：</p>
+<pre><code>每天的无序组合数 = C(N, k)
+D 天的组合数     = C(N, k)^D</code></pre>
+<p><strong>五层剪枝漏斗</strong>（把 10¹⁸ 降到能算的量级）：</p>
+<pre><code>原始组合空间
+  → 召回裁剪（域 / 主题聚类）           2.26e18 → 6.3e16
+  → 单点硬约束预筛（通过率 0.421）      → 2.2e11
+  → 时空分块剪枝（区域 × 时段）          → 6.1e11
+  → 回溯剪枝（排除与已选点冲突的分支）   → 3e6
+  → 局部搜索收敛（2-opt 邻域改进）       → 1e3–1e4</code></pre>
+<p>代入基准（召回 Top-200，每天 3 点，3 天）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">量</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>每天组合数</td><td>C(200, 3)</td><td>1,313,400</td></tr>
+      <tr><td><strong>3 天组合空间</strong></td><td>1,313,400³</td><td><strong>≈ 2.26 × 10¹⁸</strong></td></tr>
+      <tr><td><strong>每天可行比例</strong></td><td>(0.421)³ × 跨点冲突折扣 0.6</td><td>≈ <strong>4.5%</strong></td></tr>
+      <tr><td><strong>3 天可行比例</strong></td><td>0.045³</td><td>≈ <strong>0.009%（万分之一）</strong></td></tr>
+      <tr><td><strong>可行解数量</strong></td><td>2.26e18 × 9e-5</td><td>≈ <strong>2.0 × 10¹⁴</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>数字大到没有意义，这才是重点</strong>：真正的问题不是「组合数多大」，而是<strong>「你只有几万次评估机会，而可行解分散在 10¹⁸ 的空间里」</strong>。<strong>所以可行解多不多根本不是瓶颈——能不能找到才是。</strong></p>
+</blockquote>
+<p><strong>评估预算是真正的稀缺资源</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">数值</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>规划 P95</td><td>15s</td><td>用户可感知的上限</td></tr>
+      <tr><td>留给评估的时间</td><td>10s</td><td>留 5s 给 LLM 生成与序列化</td></tr>
+      <tr><td>单点约束评估</td><td>2ms</td><td>时间矩阵查表 + 规则校验，本地内存</td></tr>
+      <tr><td>单组合评估</td><td>50ms</td><td>两两衔接 + 路径搜索 + 时间窗冲突</td></tr>
+      <tr><td><strong>单点评估预算</strong></td><td>10,000 ÷ 2ms</td><td><strong>5,000 次</strong></td></tr>
+      <tr><td><strong>单组合评估预算</strong></td><td>10,000 ÷ 50ms</td><td><strong>200 次</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>算一下差距</strong>：组合空间 2.26 × 10¹⁸，评估预算 5,000 次 → <strong>必须剪枝 15 个数量级</strong>。<strong>「剪枝」不是优化，它是这个系统能不能存在的前提。</strong></p>
+</blockquote>
+<p><strong>五层剪枝漏斗</strong>（把 10¹⁸ 降到能算的量级）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">手段</th><th scope="col">剩余（三天组合数）</th><th scope="col">省掉的量级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0</td><td>原始</td><td>2.26 × 10¹⁸</td><td>—</td></tr>
+      <tr><td>1</td><td><strong>召回裁剪</strong>：按域 / 主题聚类，候选 200 → 80</td><td>C(80, 3)³ ≈ 5.5 × 10¹⁴</td><td>3.6 个量级</td></tr>
+      <tr><td>2</td><td><strong>单点硬约束预筛</strong>（营业 / 余票 / 天气 / 体力 / 预算），80 → 34</td><td>C(34, 3)³ ≈ 2.2 × 10¹¹</td><td>3.4 个量级</td></tr>
+      <tr><td>3</td><td><strong>时空分块剪枝</strong>：按「区域 × 时段」分块，只在块内组合</td><td>≈ 1 × 10⁹</td><td>2.3 个量级</td></tr>
+      <tr><td>4</td><td><strong>回溯剪枝</strong>：逐点插入时排除与已选点冲突的分支</td><td>≈ 1 × 10⁶</td><td>3 个量级</td></tr>
+      <tr><td>5</td><td><strong>局部搜索收敛</strong>（2-opt / 邻域改进）</td><td>≈ 10³–10⁴</td><td>2–3 个量级</td></tr>
+  </tbody>
+</table>
+<p><strong>单点预筛的那一刀最值钱</strong>：它把 80 个候选砍到 <strong>34 个</strong>（通过率 0.421），<strong>一步去掉 58% 的组合空间</strong>，而且成本极低（80 × 2ms = 160ms）。</p>
+<p><strong>「召回 Top-K 越大越好」在文旅是错的</strong>（这是本章的核心结论）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">进 Prompt 的 POI 描述</th><th scope="col">预筛耗时 / 天</th><th scope="col">通过硬约束</th><th scope="col">产出的可行解</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>K = 200</td><td>200 × 80 = 16,000 token</td><td>400ms</td><td>84 个</td><td>基准</td></tr>
+      <tr><td><strong>K = 84</strong></td><td><strong>84 × 80 = 6,720 token</strong></td><td><strong>168ms</strong></td><td>84 个</td><td><strong>完全相同</strong></td></tr>
+      <tr><td>节省</td><td><strong>−58% 上下文</strong></td><td><strong>−58% 预筛时间</strong></td><td>—</td><td><strong>0 损失</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这个对照是本章最反直觉、也最省钱的一条结论</strong>：<strong>把 K 从 200 降到 84，规划和预筛都省 58%，可行解一个不少。</strong> 因为那 116 个多召回的候选<strong>全部死在第一道硬约束上</strong>——它们消耗了 Prompt 上下文、消耗了评估时间、稀释了模型的注意力，却<strong>一个可行解都没贡献</strong>。</p>
+  <p><strong>所以 K 的正确取法是倒推，不是正推</strong>：</p>
+  <pre><code>K 上限 = 单点评估预算 ÷ (每天点数 × 剪枝保留率)</code></pre>
+  <p>而不是「召回率能到多少就取多少」。<strong>文旅的系统不是缺候选，是缺剪枝。</strong></p>
+</blockquote>
+<p><strong>剪枝之外的两个工程约束</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">约束</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>时间矩阵必须降维</strong></td><td>全量两两时间矩阵 = C(10万, 2) = <strong>5 × 10⁹ 项</strong>，不可行。必须按区域聚类：2,000 个区域 × 每区 50 个 POI → 区域对 200 万项，缓存 ≈ 32MB。<strong>代价是同区域内耗时用平均值 + 距离修正，精度下降</strong></td></tr>
+      <tr><td><strong>必须有早停</strong></td><td>找到第一个满足全部约束且评分达标的解即可停止；继续搜索只在「用户要最优解」时才需要。<strong>搜索预算的默认花法是「够好就停」，不是「搜到最优」</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>规划的输出契约</strong>：不是「一个行程」，而是<strong>「一个行程 + 每个点的校验依据 + 未通过项的说明 + 总预算与耗时」</strong>。用户需要知道哪一天比较紧、哪个点是雨天备选、哪里超了预算 80 元——<strong>这比多推荐两个景点重要得多</strong>。</p>
+
+<h4 id="sec-3.4.10" data-toc-skip>组合优化与路线排序</h4>
+
+<p><strong>目标</strong>：在时间窗内最小化通勤、平衡每日强度、满足全部硬约束。</p>
+<p><strong>方法</strong>：</p>
+<ul>
+<li>时间矩阵：POI 两两之间的通勤时间（<strong>必须区域级降维，见<a href="#sec-3.4.9">时空搜索放大：候选、可行解与剪枝</a></strong>）。</li>
+<li>时间窗约束：营业时间、预约时段。</li>
+<li>启发式：最近邻构造 + 2-opt 局部优化。</li>
+<li>每日缓冲：用餐、休息、机动时间。</li>
+</ul>
+<p><strong>输出</strong>：每天时间轴、交通方式、预约提醒、室内备选方案。</p>
+<p><strong>评分函数</strong>（在可行解里挑「最好的」）：</p>
+<pre><code>总分 = w1·(行程紧凑度) + w2·(用户偏好命中) + w3·(体力均衡)
+     − w4·(预算超支) − w5·(绕路惩罚) − w6·(天气风险)</code></pre>
+<blockquote>
+  <p><strong>权重不是玄学，必须能被解释与回放</strong>。用户问「为什么排成这样」，系统要能说出「因为你说不赶路，所以每天只排 2 个点并留了 1.5 小时缓冲」——<strong>权重表 + 槽位 + 约束余量，三样加起来就是行程的解释</strong>。解释不了的评分函数，用户不会信任，也不会采纳。</p>
+</blockquote>
+<p><strong>「不赶路」的工程含义</strong>：不是「少排一个点」，而是<strong>把缓冲时间显式建模</strong>。带老人小孩的行程若不留缓冲，路上 20 分钟的延误就会顶掉下一个预约——<strong>缓冲不是浪费，它是可行性的一部分</strong>。</p>
+
+<h3 id="sec-3.5">6.3.5 资源锁定：预占、支付与对账</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>资源锁定分五个波次：只读波次并发查酒店、航班状态、票务余量与接送路线；校验波次查价格、余票、退改规则、实名信息与入住规则；预占波次锁房、占座、锁票，带 TTL 与幂等键；支付与确认波次成功后确认订单、失败则释放预占；补偿波次处理多段订单部分失败。预订状态机从 QUOTED 到 HELD 到 PAYING 到 CONFIRMED，异常路径是 EXPIRED（TTL 到期回收）、NEED_RECONFIRM（价格或库存变化）、FAILED 与 CANCELLED、REFUNDED。资金放大算得很具体：5 天 4 晚行程客单价 ¥6,700，重复扣款一次的实际损失约 ¥10,000，超售一次约 ¥1,200 每间；日预订量 2.5 万单，重复扣款率 1e-5 意味着每天约 ¥2,500，超售率 1e-4 意味着每天约 ¥3,000。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这些数字说明一件事：在日 2.5 万单的量级上，「重复扣款 0」和「超售 0」不能靠事后对账兜底——概率乘上单量就是每天几千元的直接损失，再加上不可控的口碑损失。它们必须是 P0 护栏，必须在架构上不可能发生，而不是「概率很低所以还行」。这句话可以直接搬到任何高客单价的交易系统里。</p>
+</div>
+
+<h4 id="sec-3.5.11" data-toc-skip>资源锁定：预占、支付与对账</h4>
+
+<p><strong>本节是预占 / 支付 / 对账的权威版</strong>，<a href="#sec-4.2.4">预订与写操作护栏</a>、<a href="#sec-5.3.6">故障与兜底</a>只引用。</p>
+<p><strong>多工具 DAG / Wave</strong>：</p>
+<ol>
+<li><strong>只读波次</strong>：并发 <code>search_hotels</code>、<code>check_flight_status</code>、<code>get_ticket_quota</code>、<code>get_transfer_routes</code>。</li>
+<li><strong>校验波次</strong>：价格、余票、退改规则、实名信息、日期与入住规则。</li>
+<li><strong>预占波次</strong>：锁房 / 占座 / 锁票，带 TTL 与幂等键。</li>
+<li><strong>支付与确认</strong>：支付成功后确认订单；失败则释放预占。</li>
+<li><strong>补偿波次</strong>：多段订单部分失败时，取消 / 退款已成功段或改订备选。</li>
+</ol>
+<p><strong>预订状态机</strong>：</p>
+<pre><code>QUOTED → HELD → PAYING → CONFIRMED
+   │       │       │          │
+   │       │       └→ FAILED  └→ CANCELLED / REFUNDED
+   │       └→ EXPIRED（TTL 到期回收）
+   └→ NEED_RECONFIRM（价格/库存变化）</code></pre>
+<p><strong>资金放大：一次错误值多少钱</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">数值</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>5 天 4 晚行程客单价</td><td>机票 ¥2,000 + 酒店 4 晚 ¥3,200 + 门票餐饮 ¥1,500</td><td><strong>¥6,700</strong></td></tr>
+      <tr><td><strong>重复扣款一次的实际损失</strong></td><td>¥6,700 + 客诉处理与补偿 ≈ ¥3,300</td><td><strong>≈ ¥10,000</strong></td></tr>
+      <tr><td><strong>超售一次（到店无房）</strong></td><td>同级安置差价 ¥600 + 交通 ¥200 + 赔付</td><td><strong>≈ ¥1,200 / 间</strong></td></tr>
+      <tr><td>日预订量</td><td>50 万会话 × 5%</td><td><strong>2.5 万单 / 天</strong></td></tr>
+      <tr><td>重复扣款率 1e-5</td><td>2.5 万 × 1e-5</td><td>0.25 单 / 天 → <strong>≈ ¥2,500 / 天</strong></td></tr>
+      <tr><td>超售率 1e-4</td><td>2.5 万 × 1e-4</td><td>2.5 单 / 天 → <strong>≈ ¥3,000 / 天</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这些数字说明一件事：在 2.5 万单/天的量级上，「重复扣款 0」和「超售 0」不能靠事后对账兜底</strong>。1e-5 的概率乘上单量就是每天几千元的直接损失，再加上不可控的口碑损失。<strong>它们必须是 P0 护栏，必须在架构上不可能发生，而不是「概率很低所以还行」。</strong></p>
+</blockquote>
+<p><strong>预占与支付之间的竞态</strong>（本章最隐蔽的一个 bug 来源）：</p>
+<pre><code>预占 TTL 900s，支付 P99 800ms
+若不做续期：
+  回收线程在 TTL 边界扫到「支付中」的持有 → 释放 → 支付成功 → 超售
+峰值预占创建 3,000 QPS
+  每秒扫过 3,000 个持有，其中处于支付窗口的 ≈ 3,000 × 0.8s / 900s ≈ 2.7 个
+  竞态率 ≈ 2.7 / 3,000 ≈ 0.09%
+日订单 2.5 万单 → 每天约 22 单可能超售 → 每天 ≈ ¥26,400 直接损失</code></pre>
+<p><strong>三道防护</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">防护</th><th scope="col">做法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>支付前续期</strong></td><td>进入支付流程即延长 TTL（一次延长到覆盖支付 P99 + 余量）</td></tr>
+      <tr><td><strong>「支付中」状态</strong></td><td>回收线程遇到 <code>PAYING</code> 状态的持有<strong>跳过</strong>，不释放</td></tr>
+      <tr><td><strong>超时先查单</strong></td><td>支付 / 退改超时<strong>先查订单状态</strong>，确认未成功再决定是否重试</td></tr>
+  </tbody>
+</table>
+<p><strong>关键护栏</strong>：</p>
+<ul>
+<li><strong>防超售</strong>：库存扣减以资源服务为准，预占用原子操作与 TTL；<strong>绝不在本地缓存上直接承诺有位</strong>。</li>
+<li><strong>价格变化</strong>：报价到支付之间重新校验；涨幅超过阈值必须让用户确认，<strong>不能静默扣款</strong>。</li>
+<li><strong>幂等</strong>：下单、支付、退改都带 <code>idempotency_key</code>；同一订单的写操作加版本号或订单级锁。</li>
+<li><strong>高金额 / 非标退改</strong>：挂起 <code>WAITING_FOR_HUMAN</code>，由用户确认或规则审批。</li>
+<li><strong>对账</strong>：预占、支付、确认、退款定时对账，处理超时未决与单边账。</li>
+</ul>
+
+<h3 id="sec-3.6">6.3.6 旅中事件驱动重排与伴游导览</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>行程变更放大是本章第二个签名量：全行程 20 项、每项 3 个备选是 3²⁰ 约 3.49×10⁹ 种重排组合，只重排受影响 8 项是 3⁸ 即 6,561 种，降 5 个数量级——全量重排不是慢，是根本算不出来。影响图的传播规则决定边界：硬时间依赖、资源依赖与预算耦合传播，软时间依赖与偏好耦合不传播。重排四条纪律是只改受影响项、至少两个方案、涉及费用变化必须确认、失败要回滚并给备选。伴游依赖实时定位、当前时段与步行或打车距离，要求低延迟、短回答、强可核验性；五个工具覆盖附近召回、营业状态、排队预约余量、路线耗时与天气预警。因为伴游只有 1.5 秒，它只注入当前位置、同行人约束与附近候选 Top-8，不注入完整行程。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>最后两条「不传播」规则是影响图设计的核心。影响图的价值不在于「找全受影响项」，而在于「精确切出不相关的项」——没有它们，航班晚 4 小时会把用户的美食偏好也重排一遍，既慢又没意义。这也说明一件事：影响图的难点不在算法，在规则。规则要人来维护，而且要明确谁负责维护。</p>
+</div>
+
+<h4 id="sec-3.6.12" data-toc-skip>旅中事件驱动重排</h4>
+
+<p><strong>本节是重排的权威版</strong>，<a href="#sec-4.3.5">重排护栏</a>、<a href="#sec-5.1.1">案例：航班延误 4 小时后的行程重排</a>只引用。</p>
+<p><strong>行程变更放大（本章第二个签名量）</strong>：</p>
+<pre><code>全行程 20 项、每项 3 个备选 → 3^20 = 3.49 × 10^9 种重排组合
+只重排受影响 8 项            → 3^8  = 6,561 种
+                                    ↓
+                              降 5 个数量级</code></pre>
+<blockquote>
+  <p><strong>这就是「局部重排」的全部价值</strong>：不是「少改几项比较温和」，而是<strong>组合数从 10⁹ 降到 10³，让重排能在 30 秒内算完</strong>。全量重排在数学上就不可行——<strong>它不是慢，是根本算不出来</strong>。</p>
+</blockquote>
+<p><strong>影响图</strong>：</p>
+<pre><code>事件（航班延误 4h）
+  → 传播：硬时间依赖 / 资源依赖 / 预算耦合
+  → 不传播：软时间依赖 / 偏好耦合
+  → 受影响 8 项 / 全行程 20 项
+  → 组合数 3^8 = 6,561（全量 3^20 = 3.5e9，降 5 个数量级）
+  → 生成 2–3 个方案 → 成本与可行性比较
+  → 用户确认 → 幂等执行 + 回滚预案</code></pre>
+<p><strong>传播规则（决定影响图的边界）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">关系</th><th scope="col">是否传播</th><th scope="col">例子</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>硬时间依赖（必须在其后开始）</td><td><strong>传播</strong></td><td>机场接送 → 酒店入住</td></tr>
+      <tr><td>资源依赖（同一预占 / 同一名额）</td><td><strong>传播</strong></td><td>景区预约名额 → 次日入园</td></tr>
+      <tr><td>预算耦合</td><td><strong>传播</strong>（成本重算）</td><td>改签费用 → 总预算</td></tr>
+      <tr><td>软时间依赖（推荐顺序）</td><td><strong>不传播</strong></td><td>晚餐排在午餐之后</td></tr>
+      <tr><td><strong>偏好耦合</strong>（主题连贯）</td><td><strong>不传播</strong></td><td>体力变化不重排美食推荐</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>最后两条「不传播」规则是影响图设计的核心</strong>。没有它们，任何一个事件都会沿依赖链扩散到整个行程——<strong>航班晚 4 小时会把用户的美食偏好也算进去重排</strong>，既慢又没意义。<strong>影响图的价值不在于「找全受影响项」，而在于「精确切出不相关的项」。</strong></p>
+</blockquote>
+<p><strong>重排的四条纪律</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">纪律</th><th scope="col">理由</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>只改受影响项</strong></td><td>已确认项不动</td></tr>
+      <tr><td><strong>至少两个方案</strong></td><td>一个备选都没有 = 把选择压力全推给用户</td></tr>
+      <tr><td><strong>涉及费用变化必须确认</strong></td><td>静默扣款是本章最恶劣的失败模式</td></tr>
+      <tr><td><strong>失败要回滚并给备选</strong></td><td>改签成功但接送失败 → 行程更糟</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.6.13" data-toc-skip>旅中伴游导览</h4>
+
+<p><strong>核心挑战</strong>：依赖实时定位（LBS）、当前时段与步行 / 打车距离，要求低延迟、短回答、强可核验性（营业状态、排队 / 预约提示、安全提醒）。</p>
+<p><strong>工具</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">工具</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>get_nearby_pois</code></td><td>按位置、距离、类型召回附近景点 / 餐饮</td></tr>
+      <tr><td><code>get_opening_status</code></td><td>实时营业、闭园、限流状态</td></tr>
+      <tr><td><code>get_queue_or_quota</code></td><td>排队时长、预约余量</td></tr>
+      <tr><td><code>get_route</code></td><td>步行 / 驾车 / 公交耗时与路线</td></tr>
+      <tr><td><code>get_weather_alert</code></td><td>天气预警与安全提示</td></tr>
+  </tbody>
+</table>
+<p><strong>上下文策略</strong>：</p>
+<ul>
+<li>保留当前所在区域、已选 / 已去景点、同行人约束；压缩历史闲聊。</li>
+<li>近期 K 轮保留原始交互，更早内容进滚动摘要。</li>
+<li>回答突出「时间、距离、费用、注意事项」，并标注数据查询时点。</li>
+</ul>
+<p><strong>安全与体验</strong>：</p>
+<ul>
+<li>不推荐已闭园、封路、极端天气下的户外路线。</li>
+<li>老人 / 儿童同行时降低步行强度，提示休息点、洗手间与无障碍设施。</li>
+<li>紧急事件优先给安全指引与官方联系方式，<strong>不做不确定承诺</strong>。</li>
+</ul>
+<p><strong>伴游与规划的上下文差异</strong>：伴游只有 <strong>1.5 秒</strong>，因此<strong>不注入完整行程，只注入「当前位置 + 同行人约束 + 附近候选 Top-8」</strong>。规划要 15 秒，可以注入完整行程与全部候选。<strong>同一个系统在两条轨道上的上下文预算差 10 倍——把它们混成一条链路是伴游做不快的根本原因。</strong></p>
+
+<h3 id="sec-3.7">6.3.7 经营问数、营销归因与上下文治理</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>文旅经营问数的挑战是口径分歧、宽表复杂与跨部门跨景区权限隔离。指标口径要明确统计粒度（小时、日或节假日）、分母（预约量、入园量或可售库存）与退款归属，示例是核销率等于实际核销数除以有效预约数、净营收等于门票加园内消费减退款减渠道佣金；执行安全是语义层固化指标、Schema 裁剪、SQL 走 AST 校验只读并强制 LIMIT 与超时、执行层或视图层强制注入景区门店部门权限过滤。营销与长周期归因的链路是决策模型判断时机与渠道、查实时订单退订免打扰、Redis Lua 原子频控、带幂等键下发、快慢信号归因；文旅特点是决策周期长要覆盖 7 到 30 天、价格敏感度高所以券补贴计入净贡献、促销轰炸反感强所以行前与旅中都要控制频次与静默时段。上下文治理里候选 POI 描述占输入 token 的 32%，是最大的一块。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>文旅问数与上一章电商问数的方法论完全一致，但文旅特有的难点是混杂因素：天气、节假日、促销三个因素不显式控制，「客流下降 5%」的归因结论会全是错的。这提醒一件事：同样一套技术栈，落到不同行业，真正的工作量往往在口径与混杂因素上，而不在查询引擎。</p>
+</div>
+
+<h4 id="sec-3.7.14" data-toc-skip>文旅经营问数</h4>
+
+<p><strong>核心挑战</strong>：景区 / 航司 / 酒店运营分析「分时入园人数、核销率、连带消费、客诉率、淡旺季净收益」，面临口径分歧、宽表复杂与跨部门 / 跨景区权限隔离。</p>
+<p><strong>指标口径</strong>：</p>
+<ul>
+<li>分时入园人数、预约核销率、客单价、连带消费、客诉率、退款率、净营收。</li>
+<li>明确统计粒度（小时 / 日 / 节假日）、分母（预约量 / 入园量 / 可售库存）与退款归属。</li>
+<li>示例：<code>核销率 = 实际核销数 / 有效预约数</code>；<code>净营收 = 门票 + 园内消费 − 退款 − 渠道佣金</code>。</li>
+</ul>
+<p><strong>执行安全</strong>：</p>
+<ul>
+<li>语义层固化指标；Schema 裁剪只召回相关表。</li>
+<li>SQL 经 AST 校验，只读、强制 <code>LIMIT</code> 与超时。</li>
+<li>执行层 / 视图层强制注入景区、门店、部门权限过滤。</li>
+<li>图表自动匹配，并做同比 / 环比、分时与贡献度拆解。</li>
+</ul>
+<p><strong>补充</strong>：文旅数据受天气、节假日、促销影响大，归因时要控制混杂因素；跨景区对比要统一口径与统计周期。</p>
+<blockquote>
+  <p><strong>问数的方法论与<a href="/2026/11/26/agent-design-01-text2sql/">第 1 章 · 问数 Agent</a>完全一致</strong>（语义层、AST 校验、行级权限、结果集下推）。本章只强调文旅特有的两点：<strong>一是跨景区的口径必须先统一再对比</strong>（不同景区的「入园」定义可能包含不同票种），<strong>二是天气 / 节假日 / 促销三个混杂因素必须显式控制</strong>——不控制它们，「客流下降 5%」的归因结论会全是错的。</p>
+</blockquote>
+
+<h4 id="sec-3.7.15" data-toc-skip>营销与长周期归因</h4>
+
+<p><strong>核心场景</strong>：浏览行程未下单、收藏酒店未预订、节假日 / 暑期行前唤醒、会员积分即将到期。</p>
+<p><strong>链路</strong>：决策模型判断时机 / 渠道 → 查实时订单 / 退订 / 免打扰 → Redis Lua 原子频控 → 带幂等键下发 → 快慢信号归因。</p>
+<p><strong>文旅特点</strong>：</p>
+<ul>
+<li>决策周期长，归因窗口要覆盖 7–30 天，并区分直接成单与辅助转化。</li>
+<li>价格敏感度高，券补贴要计入净贡献，不能只看 GMV。</li>
+<li>促销轰炸反感强，旅中与行前都要控制频次与静默时段。</li>
+<li>保留 Holdout 计算真实增量，结合曝光 / 点击 / 退订快信号熔断高打扰变体。</li>
+</ul>
+<blockquote>
+  <p><strong>本章与<a href="/2026/11/26/agent-design-04-marketing/">第 4 章 · 营销 Agent</a>的关系</strong>：频控、MAB、Holdout 与降级细节<strong>见那一章，本节只引用</strong>。本章强调文旅特有的两点：<strong>一是长决策周期下的辅助转化</strong>（用户 20 天前看的行程今天下单，硬分给谁都不对），<strong>二是旅中触达克制</strong>——用户正在路上，此时推送营销是最招人烦的时刻。</p>
+</blockquote>
+
+<h4 id="sec-3.7.16" data-toc-skip>上下文治理</h4>
+
+<ul>
+<li><code>assistant(tool_calls)</code> 与 <code>role="tool"</code> 是<strong>原子组</strong>，先裁剪冗长 JSON / POI 列表，再整组淘汰。</li>
+<li>发往模型前做 <code>tool_call_id</code> 配对校验，防止协议报错或丢失调用结果。</li>
+<li>槽位锁定行程参数、已确认预订、已排除偏好、已执行写操作，防重复占座 / 重复查单。</li>
+<li>工具契约声明 <code>side_effect</code>、超时、重试语义、幂等要求与权限范围。</li>
+</ul>
+<p><strong>本章的上下文大头是候选 POI 描述</strong>（见<a href="#sec-3.4.9">时空搜索放大：候选、可行解与剪枝</a>）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">组成</th><th scope="col">token</th><th scope="col">占比</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>system + 规则</td><td>800</td><td>16%</td></tr>
+      <tr><td>槽位 + 行程摘要</td><td>700</td><td>14%</td></tr>
+      <tr><td><strong>候选 POI 描述（20 个 × 80）</strong></td><td><strong>1,600</strong></td><td><strong>32%</strong></td></tr>
+      <tr><td>工具结果（库存 / 路线 / 天气）</td><td>900</td><td>18%</td></tr>
+      <tr><td>历史对话</td><td>1,000</td><td>20%</td></tr>
+      <tr><td>合计</td><td>5,000</td><td>100%</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>POI 列表占输入 token 的三分之一，而其中约 58% 的候选会死在硬约束上</strong>（<a href="#sec-3.4.9">时空搜索放大：候选、可行解与剪枝</a>）。所以上下文治理的第一刀不是「裁历史对话」，<strong>而是「裁掉注定被淘汰的候选」</strong>——<strong>这一刀同时省了 token、时间和模型的注意力</strong>。</p>
+</blockquote>
+
+<h3 id="sec-3.8">6.3.8 幂等、降级矩阵与可观测</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>幂等分七层：预占用 hold 前缀加类型、资源、用户与请求号，下单用 booking 前缀加用户与请求号，支付用 booking_id 与支付请求号做状态机条件更新，退改同理，状态用条件更新，消息用去重表加 msg_id 唯一，最后一层是资源查询必须带查询时点——写操作必须复核，不复用查询结果。降级矩阵按「依赖失效时，失效的后果是少卖一单，还是让用户白跑一趟、白扣一次钱」判断：支付退款退改、库存票务余量、退订黑名单、Redis 频控、营业状态闭园都是 Fail-Closed，天气保守降级，地图路线降级并标注不确定性，硬约束评估超时则降级为候选清单、不给行程。事件 Envelope 里除了通用字段还多了 itinerary_id、booking_id 与 poi_id，原因码新增了搜索相关的三个：搜索预算耗尽、无可行解、被剪枝到上限。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「硬约束评估超时 → 降级为候选清单，不给行程」是这一章最独特的一条降级方向，其它章降级都是换一个更差但真实的答案，唯独这里必须不给答案。因为行程的价值是「可行」，一个不可行的行程比没有行程更糟——用户会照着它出门。降级也有底线，而这一条就是文旅的底线。</p>
+</div>
+
+<h4 id="sec-3.8.17" data-toc-skip>幂等设计</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">方案</th><th scope="col">幂等键 / 约束</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>预占</td><td><code>hold:{type}:{resource_id}:{user_id}:{request_id}</code></td><td>TTL 内唯一</td></tr>
+      <tr><td>下单</td><td><code>booking:{user_id}:{request_id}</code></td><td>唯一索引</td></tr>
+      <tr><td>支付</td><td><code>pay:{booking_id}:{pay_request_id}</code></td><td>状态机条件更新</td></tr>
+      <tr><td>退改</td><td><code>change:{booking_id}:{change_request_id}</code></td><td>状态机条件更新</td></tr>
+      <tr><td>状态</td><td>条件更新</td><td><code>WHERE status = ?</code></td></tr>
+      <tr><td>消息</td><td>去重表 + <code>msg_id</code> 唯一</td><td>通知不重复</td></tr>
+      <tr><td><strong>资源查询</strong></td><td><strong>查询带查询时点</strong></td><td><strong>写操作必须复核，不复用查询结果</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>最后一层容易被忽略</strong>：查询结果<strong>不能直接当作写操作的依据</strong>。「30 秒前查到有房」不能作为 30 秒后扣款的理由——<strong>写之前必须重新确认</strong>，否则超售就发生了。</p>
+</blockquote>
+
+<h4 id="sec-3.8.18" data-toc-skip>降级矩阵（Fail-Open / Fail-Closed）</h4>
+
+<p><strong>本节是降级的权威版</strong>，<a href="#sec-4.4.7">降级与熔断</a>、<a href="#sec-5.3.6">故障与兜底</a>只引用。</p>
+<p>判据：<strong>依赖失效时，失效的后果是「少卖一单」还是「让用户白跑一趟 / 白扣一次钱」？</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">依赖 / 环节</th><th scope="col">典型故障</th><th scope="col">策略</th><th scope="col">降级动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>支付 / 退款 / 退改</strong></td><td>超时、结果未知</td><td><strong>Fail-Closed</strong></td><td><strong>查单确认，不重复扣款 / 退款</strong></td></tr>
+      <tr><td><strong>库存 / 票务余量</strong></td><td>服务超时</td><td><strong>Fail-Closed</strong></td><td><strong>不承诺有位</strong>，提示稍后确认</td></tr>
+      <tr><td><strong>退订 / 黑名单（旅中触达）</strong></td><td>状态服务超时</td><td><strong>Fail-Closed</strong></td><td>跳过触达并记原因码</td></tr>
+      <tr><td><strong>Redis 频控</strong></td><td>抖动</td><td><strong>Fail-Closed</strong></td><td>本地粗粒度限流兜底并告警</td></tr>
+      <tr><td><strong>营业状态 / 闭园</strong></td><td>超时</td><td><strong>Fail-Closed</strong></td><td>该点不排入行程；无法确认的点不推荐</td></tr>
+      <tr><td><strong>天气 / 预警</strong></td><td>超时</td><td>保守降级</td><td>采用保守方案并提示用户自行确认</td></tr>
+      <tr><td><strong>地图 / 路线</strong></td><td>超时</td><td>降级</td><td>用缓存 / 直线距离估算并<strong>标注不确定性</strong></td></tr>
+      <tr><td><strong>决策模型</strong></td><td>超时</td><td>规则兜底</td><td>默认低打扰渠道或跳过</td></tr>
+      <tr><td><strong>推荐 / 文案生成</strong></td><td>失败</td><td>模板兜底</td><td>预审安全模板，仍失败则给基础列表</td></tr>
+      <tr><td><strong>LLM 服务</strong></td><td>超时 / 限流</td><td>模型降级</td><td>切备用模型，仍失败转人工</td></tr>
+      <tr><td><strong>硬约束评估</strong></td><td>超时</td><td><strong>降级为候选清单</strong></td><td><strong>不给行程</strong>，只给候选与提示</td></tr>
+  </tbody>
+</table>
+<p><strong>治理要点</strong>：降级打标 <code>degraded=true</code> 与 <code>reason_code</code>；资金、库存、合规默认 Fail-Closed；高频抖动依赖配置熔断器；预占到期与支付超时要定时对账。</p>
+<blockquote>
+  <p><strong>最后一行的降级方向与其它章都不同</strong>：文旅在硬约束评估失败时，<strong>正确的降级不是「给一个宽松的行程」，而是「不给行程」</strong>。因为行程的价值是「可行」，一个不可行的行程比没有行程更糟——<strong>用户会照着它出门</strong>。</p>
+</blockquote>
+
+<h4 id="sec-3.8.19" data-toc-skip>事件、原因码与可观测</h4>
+
+<p><strong>统一事件 Envelope</strong>：</p>
+<pre><code>trace_id, session_id, turn_id, user_id, intent,
+tool_name, tool_call_id, idempotency_key,
+itinerary_id, booking_id, poi_id, amount,
+decision_meta, reason_code, degraded</code></pre>
+<p><strong>核心事件</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">事件示例</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>行程规划</td><td><code>itinerary.plan.created</code>、<code>itinerary.item.rejected</code>、<code>itinerary.replanned</code></td></tr>
+      <tr><td>资源与预订</td><td><code>inventory.held</code>、<code>inventory.hold.expired</code>、<code>booking.confirmed</code>、<code>booking.failed</code></td></tr>
+      <tr><td>旅中变更</td><td><code>flight.status.changed</code>、<code>weather.alert</code>、<code>poi.closure.detected</code></td></tr>
+      <tr><td>反馈与归因</td><td><code>traveler.feedback</code>、<code>booking.attributed</code>、<code>refund.completed</code></td></tr>
+  </tbody>
+</table>
+<p><strong>原因码</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">前缀</th><th scope="col">典型原因码</th><th scope="col">含义</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>BIZ_*</code></td><td><code>BIZ_SOLD_OUT</code>、<code>BIZ_OUT_OF_WINDOW</code>、<code>BIZ_STATE_INVALID</code></td><td>业务条件不满足</td></tr>
+      <tr><td><code>INV_*</code></td><td><code>INV_HOLD_EXPIRED</code>、<code>INV_QUOTA_EXCEEDED</code>、<code>INV_PRICE_CHANGED</code></td><td>库存 / 票务 / 价格异常</td></tr>
+      <tr><td><code>TOOL_*</code></td><td><code>TOOL_TIMEOUT</code>、<code>TOOL_SCHEMA_MISMATCH</code>、<code>TOOL_RESULT_UNKNOWN</code></td><td>工具调用异常</td></tr>
+      <tr><td><code>AUTH_*</code></td><td><code>AUTH_PERMISSION_DENIED</code>、<code>AUTH_IDENTITY_MISMATCH</code></td><td>权限或实名问题</td></tr>
+      <tr><td><code>DEC_*</code></td><td><code>DEC_LOW_CONFIDENCE</code>、<code>DEC_MODEL_SKIP</code></td><td>模型 / 门控决策</td></tr>
+      <tr><td><code>SYS_*</code></td><td><code>SYS_DEPENDENCY_TIMEOUT</code>、<code>SYS_CIRCUIT_BREAKER_OPEN</code></td><td>系统依赖异常</td></tr>
+      <tr><td><strong>搜索相关（本章新增）</strong></td><td><strong><code>SEARCH_BUDGET_EXHAUSTED</code>、<code>SEARCH_NO_FEASIBLE_SOLUTION</code>、<code>SEARCH_PRUNED_TO_CAP</code></strong></td><td><strong>搜索预算耗尽 / 无可行解 / 被剪枝到上限</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>搜索相关的原因码是本章新增的</strong>。没有它们，「用户没订」这件事无法区分是「行程不可行」还是「行程太烂」还是「搜索没跑完」——<strong>而这三者的改进方向完全不同</strong>。</p>
+</blockquote>
+<p><strong>核心指标</strong>：行程采纳率、约束满足率、<strong>可行解产出率</strong>、<strong>评估次数 / 预算</strong>、预订转化率、超售率、预占过期率、重排成功率与耗时、工具成功率、P99 延迟、单会话成本、客诉率、退款率、净营收、营销增量 ROI。</p>
+
+<h3 id="sec-3.9">6.3.9 评测闭环与容量成本估算</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>评测闭环包含黄金行程集、资源沙箱、故障注入与在线 A/B 四层常规手段，外加本章新增的搜索专项评测：给定候选集与约束，统计剪枝后候选数、评估次数、可行解产出率与是否触发预算耗尽。容量估算假设日会话 50 万、峰值系数 5、平均 4 轮 8 次工具调用、预订转化 5%、单次输入 5,000 token 单次输出 800 token：峰值会话 29 QPS、峰值 LLM 调用 116 QPS、峰值工具调用 232 QPS、其中资源查询约 139 QPS、峰值预订写约 12 QPS；日合计 token 116 亿，日 LLM 成本约 ¥32,800，约合 98 万元一个月。存储合计约 23.5GB 一天、约 8.6TB 一年，时间矩阵缓存约 32MB。结论是瓶颈在 LLM 成本与资源查询，而预订写只有 12 QPS，但写操作虽少，一次错误的代价是查询的一万倍。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「搜索专项评测」是本章特有的评测维度：规划质量不只由「最终行程好不好」衡量，还由「花了多少评估找到它」衡量。同样一个好行程，用 5,000 次评估找到的和用 500 次找到的，是两个系统——后者才能扛住峰值流量。所以这四个数必须进回归门禁，而不是只在压测时看一眼。</p>
+</div>
+
+<h4 id="sec-3.9.20" data-toc-skip>评测闭环</h4>
+
+<ul>
+<li><strong>黄金行程集</strong>：需求 + 期望约束 + 可行路线。</li>
+<li><strong>资源沙箱</strong>：模拟航班、酒店、票务、天气、闭园，覆盖售罄、超时、价格变动、重复提交。</li>
+<li><strong>故障注入</strong>：航班延误、台风闭园、预约余票归零、支付超时。</li>
+<li><strong>搜索专项评测</strong>（本章新增）：给定候选集与约束，统计<strong>剪枝后候选数、评估次数、可行解产出率、是否触发预算耗尽</strong>。</li>
+<li>在线 A/B / Holdout：验证采纳率、转化率与客诉率；决策快照、工具轨迹、原因码与结果回流，用于约束权重、阈值与策略优化。</li>
+</ul>
+<blockquote>
+  <p><strong>「搜索专项评测」是本章特有的</strong>：规划质量不只由「最终行程好不好」衡量，还由「花了多少评估找到它」衡量。<strong>同样一个好行程，用 5,000 次评估找到的和用 500 次找到的，是两个系统</strong>——后者才能扛住峰值流量。</p>
+</blockquote>
+
+<h4 id="sec-3.9.21" data-toc-skip>容量与成本估算</h4>
+
+<p><strong>本节是容量口径的权威版</strong>，<a href="#seg-5">第 5 段</a>与<a href="#seg-6">第 6 段</a>只引用。</p>
+<p><strong>假设</strong>：日会话 50 万，峰值系数 5，平均 4 轮 / 8 次工具调用，预订转化 5%；system + 规则 800 token、槽位 + 行程摘要 700、候选 POI 描述 20 个 × 80 = 1,600、工具结果 900、历史对话 1,000，<strong>单次输入 5,000 token</strong>；单次输出 800 token；模型价格输入 ¥2 / 百万、输出 ¥8 / 百万。</p>
+<p><strong>一、流量</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>平均会话 QPS</td><td>50 万 ÷ 86400</td><td>≈ <strong>5.8</strong></td></tr>
+      <tr><td><strong>峰值会话 QPS</strong></td><td>5.8 × 5</td><td><strong>29</strong></td></tr>
+      <tr><td><strong>峰值 LLM 调用</strong></td><td>29 × 4</td><td><strong>116</strong></td></tr>
+      <tr><td><strong>峰值工具调用</strong></td><td>29 × 8</td><td><strong>232</strong></td></tr>
+      <tr><td>其中资源查询（库存 / 价格 / 余票）</td><td>232 × 60%</td><td>≈ <strong>139</strong></td></tr>
+      <tr><td>其中规划查询（POI / 路线 / 矩阵）</td><td>232 × 40%</td><td>≈ <strong>93</strong></td></tr>
+      <tr><td><strong>峰值预订写</strong></td><td>232 × 5%</td><td>≈ <strong>12</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>二、上下文与 token</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>每会话输入 token</td><td>4 次 × 5,000</td><td>20,000</td></tr>
+      <tr><td>每会话输出 token</td><td>4 × 800</td><td>3,200</td></tr>
+      <tr><td><strong>日输入 token</strong></td><td>20,000 × 50 万</td><td><strong>100 亿</strong></td></tr>
+      <tr><td>日输出 token</td><td>3,200 × 50 万</td><td><strong>16 亿</strong></td></tr>
+      <tr><td><strong>日合计 token</strong></td><td>—</td><td><strong>116 亿</strong></td></tr>
+      <tr><td>输入成本</td><td>10,000 百万 × ¥2</td><td>¥20,000</td></tr>
+      <tr><td>输出成本</td><td>1,600 百万 × ¥8</td><td>¥12,800</td></tr>
+      <tr><td><strong>日 LLM 成本</strong></td><td>—</td><td><strong>≈ ¥32,800</strong>（约 <strong>98 万元 / 月</strong>）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>注意这里的 token 结构与其它章不同</strong>：文旅是<strong>唯一一章「候选描述」占输入三分之一</strong>的（1,600 / 5,000 = 32%）。这直接决定了本章的成本优化第一刀是<strong>裁候选</strong>而不是裁历史对话。</p>
+</blockquote>
+<p><strong>三、候选裁剪的收益</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">每会话输入 token</th><th scope="col">日输入 token</th><th scope="col">日成本</th><th scope="col">可行解</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>K = 20（基线）</td><td>20,000</td><td>100 亿</td><td>¥32,800</td><td>基准</td></tr>
+      <tr><td><strong>K = 8（按通过率裁到 84 个中的 Top-8）</strong></td><td>4 × 4,040</td><td>80.8 亿</td><td>¥28,960</td><td>需实测，通常持平</td></tr>
+      <tr><td>节省</td><td><strong>−19.2%</strong></td><td>−19.2 亿</td><td><strong>−¥3,840 / 天</strong></td><td>—</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>要诚实</strong>：裁到 8 个是否还找得到同样的可行解，取决于「每天 3 个点」这个约束——<strong>8 个候选可能凑不出满足「不重样 + 时间窗 + 交通」的三点组合</strong>。所以正确的做法是<strong>按每天点数动态定 K</strong>：K ≥ 3 × 期望点数 × 安全系数。<strong>这个公式必须按真实数据校准，而不是照抄。</strong></p>
+</blockquote>
+<p><strong>四、存储</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">数据</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>会话存储</td><td>50 万 × 30KB</td><td>≈ 15 GB / 天</td></tr>
+      <tr><td>行程对象</td><td>10 万行程 / 天（20% 会话）× 50KB</td><td>≈ 5 GB / 天</td></tr>
+      <tr><td>订单</td><td>2.5 万单 / 天 × 20KB</td><td>≈ 500 MB / 天</td></tr>
+      <tr><td>事件</td><td>1,000 万 / 天 × 300B</td><td>≈ 3 GB / 天</td></tr>
+      <tr><td><strong>合计</strong></td><td>—</td><td><strong>≈ 23.5 GB / 天（≈ 8.6 TB / 年）</strong></td></tr>
+      <tr><td><strong>时间矩阵缓存</strong></td><td>2,000 区域对 × 16B</td><td>≈ 32 MB</td></tr>
+  </tbody>
+</table>
+<p><strong>五、结论</strong></p>
+<ol>
+<li><strong>瓶颈在 LLM 成本（约 ¥98 万 / 月）与资源查询（139 QPS）</strong>，而预订写只有 12 QPS——<strong>但写操作虽少，一次错误的代价是查询的一万倍</strong>（<a href="#sec-3.5.11">资源锁定：预占、支付与对账</a>）。</li>
+<li><strong>上下文的大头是候选 POI 描述（32%）</strong>，成本优化的第一刀是裁候选。</li>
+<li><strong>时间矩阵必须区域级降维</strong>：全量 5 × 10⁹ 项不可行，降到 200 万项、32MB，代价是同区域精度下降。</li>
+<li><strong>搜索预算（评估次数）必须被当作容量指标</strong>：它不体现在 QPS 上，但决定规划 P95 能不能守住。</li>
+<li><strong>必须先量「行程长度 × 每天点数」的分布</strong>——它决定搜索空间，进而决定「规划 P95 &lt; 15s」的可行区间。</li>
+</ol>
+
+<h2 id="seg-4">6.4 工程落地与规则护栏</h2><div class="oc-part-lead"><strong>第四段 · 工程落地与护栏</strong>这一段回答：方法论怎么变成链路上的一环一环——规划、预订、重排各自的护栏，以及四条轨道的时间预算。</div>
+
+<h3 id="sec-4.1">6.4.1 端到端链路与门控路由护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>端到端链路从用户请求或旅中事件经 Gateway 的鉴权、租户与限流，到 Intent Router 分流规划、预订、伴游、问数与营销，再进 Planner 与 Agent Orchestrator：加载槽位与行程版本、按预算定 K 做候选召回、单点硬约束预筛、组合优化或影响图重排并带评估预算、经 Tool Gateway 走白名单与 Schema 与幂等、高风险变更走用户确认或审批，最后资源服务执行、结果校验与回复、事件审计与归因。门控护栏五条：快慢分离，意图置信度低就追问，高风险意图强制进入工作流，租户隔离，以及规划类请求必须带「行程长度 × 每天点数」的槽位，否则无法估搜索预算。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>链路图里最该盯的三行是「按预算定 K」「硬约束预筛」「带评估预算」：前两行决定搜不搜得到，第三行决定来不来得及。三行都在 Planner 内部——所以 Planner 不是「一次 LLM 调用」，而是一套有明确时间预算的搜索系统。这一点如果搞错，整个架构的预算表就全是错的。</p>
+</div>
+
+<h4 id="sec-4.1.1" data-toc-skip>端到端链路</h4>
+
+<pre><code>用户请求 / 旅中事件
+  → Gateway（鉴权、租户、限流）
+  → Intent Router（规划/预订/伴游/问数/营销）
+  → Planner / Agent Orchestrator
+      ├→ 加载槽位与行程版本
+      ├→ 候选召回（按预算定 K）
+      ├→ 硬约束预筛（单点，2ms × K）
+      ├→ 组合优化 / 影响图重排（带评估预算）
+      ├→ Tool Gateway（白名单、Schema、幂等）
+      └→ 高风险变更 → 用户确认/审批
+  → 资源服务执行（预占/支付/退改）
+  → 结果校验与回复
+  → 事件、审计、归因</code></pre>
+<blockquote>
+  <p><strong>图里最重要的三行是「按预算定 K」「硬约束预筛」「带评估预算」</strong>。前两行决定搜不搜得到，第三行决定来不来得及。<strong>这三行都在 Planner 内部——所以 Planner 不是「一个 LLM 调用」，而是一套有明确时间预算的搜索系统。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.1.2" data-toc-skip>门控与路由护栏</h4>
+
+<ul>
+<li>快慢分离：简单查询走规则 / 轻模型，复杂规划进 Planner。</li>
+<li>意图置信度低 → 追问。</li>
+<li>高风险意图（支付、退改）强制进入工作流。</li>
+<li>租户 / 景区 / 商家隔离。</li>
+<li><strong>规划类请求必须带「行程长度 × 每天点数」的槽位</strong>，否则无法估搜索预算。</li>
+</ul>
+
+<h3 id="sec-4.2">6.4.2 行程规划与预订写操作护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>行程规划护栏九条：硬约束优先，营业、余票、交通、天气、体力、预算全过；K 按预算倒推不按召回率正推；评估预算设硬限，超出即早停返回当前最优可行解；时间矩阵区域级降维且精度下降要在答案里标注；每日缓冲要留用餐休息与机动；已确认项重排不可静默修改；无解时让用户选择而不硬凑，「明确告知无解」是合法输出；预算给区间不给单点假精确；校验依据随行程输出，每个点附校验结果与查询时点。预订与写操作护栏八条：先预占后支付且预占带 TTL、支付前续期加「支付中」状态加回收跳过来消除 TTL 竞态、支付前复检价格与库存、所有写操作用幂等键与状态机条件更新、写超时先查单不盲目重试、高金额与非标退改转人工、多段订单失败按 Saga 逆序补偿、定时对账预占支付确认与退款。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「明确告知无解」这条排在护栏清单里而不是被排除掉，是这一节最重要的判断。硬凑出来的行程——闭园的景点、过期的余票、超出预算的门票——每一个都会在旅途中变成一次客诉。所以搜索系统的降级顺序应该是先降质量、最后降可行性，因为可行性是这个产品唯一不可妥协的东西。</p>
+</div>
+
+<h4 id="sec-4.2.3" data-toc-skip>行程规划护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>硬约束优先</strong></td><td>营业、余票、交通、天气、体力、预算</td></tr>
+      <tr><td><strong>K 按预算倒推</strong></td><td>不按召回率正推（<a href="#sec-3.4.9">时空搜索放大：候选、可行解与剪枝</a>）</td></tr>
+      <tr><td><strong>评估预算硬限</strong></td><td>超出即早停，返回当前最优可行解</td></tr>
+      <tr><td><strong>时间矩阵区域级降维</strong></td><td>精度下降要在答案里标注</td></tr>
+      <tr><td><strong>每日缓冲</strong></td><td>用餐、休息、机动</td></tr>
+      <tr><td><strong>已确认项</strong></td><td>重排不可静默修改</td></tr>
+      <tr><td><strong>无解放宽</strong></td><td>让用户选择，不硬凑；「明确告知无解」是合法输出</td></tr>
+      <tr><td><strong>预算区间</strong></td><td>不给单点假精确</td></tr>
+      <tr><td><strong>校验依据随行程输出</strong></td><td>每个点附校验结果与查询时点</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-4.2.4" data-toc-skip>预订与写操作护栏</h4>
+
+<ul>
+<li>先预占后支付，预占带 TTL。</li>
+<li><strong>支付前续期 + 「支付中」状态 + 回收跳过</strong>（消除 TTL 竞态）。</li>
+<li>支付前复检价格 / 库存。</li>
+<li>所有写操作用幂等键 + 状态机条件更新。</li>
+<li><strong>写超时先查单，不盲目重试</strong>。</li>
+<li>高金额 / 非标退改转人工。</li>
+<li>多段订单失败按 Saga 逆序补偿。</li>
+<li>定时对账：预占、支付、确认、退款。</li>
+</ul>
+
+<h3 id="sec-4.3">6.4.3 重排护栏与上下文工具护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>重排护栏七条：事件驱动不做全量轮询；用影响图定位受影响项且必须有「不传播」规则；局部重排不重算未受影响项；生成至少两个方案并比较成本与可行性；涉及费用变化必须由用户确认；合并通知避免轰炸；执行失败回滚并给备选。上下文与工具护栏六条：原子组裁剪并配对校验；候选 POI 列表按通过率裁剪而不是按 top-k 截断；槽位锁定行程、预订、偏好与已执行动作；工具声明副作用、超时、重试、幂等与权限；查询结果不得直接作为写操作依据；敏感信息脱敏。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「候选 POI 列表按通过率裁剪，而不是按 top-k 截断」这一条是本章的特色护栏：别的系统裁上下文是按 token 从后往前截，而文旅必须按硬约束通过率裁——被截掉的那部分大概率本来就过不了闸。这个差别同样一条工程动作，在两个系统里的收益差了十几倍。</p>
+</div>
+
+<h4 id="sec-4.3.5" data-toc-skip>重排护栏</h4>
+
+<ul>
+<li>事件驱动，不做全量轮询。</li>
+<li>影响图定位受影响项，<strong>且必须有「不传播」规则</strong>（<a href="#sec-3.6.12">旅中事件驱动重排</a>）。</li>
+<li>局部重排，不重算未受影响项。</li>
+<li>生成至少两个方案，比较成本与可行性。</li>
+<li>涉及费用变化必须用户确认。</li>
+<li>合并通知，避免轰炸。</li>
+<li>执行失败回滚并给备选。</li>
+</ul>
+
+<h4 id="sec-4.3.6" data-toc-skip>上下文与工具护栏</h4>
+
+<ul>
+<li>原子组裁剪，配对校验。</li>
+<li><strong>候选 POI 列表按通过率裁剪</strong>（不是按 top-k 截断）。</li>
+<li>槽位锁定行程、预订、偏好、已执行动作。</li>
+<li>工具声明副作用、超时、重试、幂等、权限。</li>
+<li><strong>查询结果不得直接作为写操作依据</strong>。</li>
+<li>敏感信息脱敏。</li>
+</ul>
+
+<h3 id="sec-4.4">6.4.4 降级熔断与延迟预算</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>降级与熔断的执行动作是：资金、库存与营业状态 Fail-Closed；地图与天气保守降级并提示不确定性；生成与推荐用模板或基础列表兜底；硬约束评估超时降级为候选清单，不给行程；高频抖动依赖配熔断器；降级打标 `degraded` 加 `fallback_mode` 加 `reason_code`。延迟预算是本章唯一的时间口径来源，分四条轨道：规划轨道 P95 小于 15 秒，七段里单点硬约束预筛 400ms、组合评估 8 秒、LLM 生成说明 2 秒；伴游轨道 P95 小于 1.5 秒，五段里营业与排队预约状态 300ms、LLM 生成短答 500ms；预订写轨道预占创建 200ms、支付 500ms、退改 500ms，全部写超时先查单；重排轨道 P95 小于 30 秒，受影响项重新评估 5 秒、多方案生成 10 秒、用户确认异步最长 24 小时后转保守执行。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>四条轨道的时间预算是同一个方法论：每一步都要有「超时后用户看到什么」的答案，而不是「超时了报错」。最反直觉的是伴游轨道——结构化列表（距离、耗时、是否开放）比一段生成的散文更快也更有用，在 1.5 秒的预算里，生成散文是最不该花的钱。</p>
+</div>
+
+<h4 id="sec-4.4.7" data-toc-skip>降级与熔断</h4>
+
+<p>降级矩阵以<a href="#sec-3.8.18">降级矩阵（Fail-Open / Fail-Closed）</a>为准，本节只列执行动作：</p>
+<ul>
+<li>资金 / 库存 / 营业状态：<strong>Fail-Closed</strong>。</li>
+<li>地图 / 天气：保守降级并提示不确定性。</li>
+<li>生成 / 推荐：模板或基础列表兜底。</li>
+<li><strong>硬约束评估超时 → 降级为候选清单，不给行程。</strong></li>
+<li>高频抖动依赖：熔断器。</li>
+<li>降级打标 <code>degraded</code> + <code>fallback_mode</code> + <code>reason_code</code>。</li>
+</ul>
+
+<h4 id="sec-4.4.8" data-toc-skip>延迟预算与超时降级</h4>
+
+<p><strong>本表是唯一的延迟口径来源</strong>，其他小节只引用。</p>
+<p><strong>规划轨道（P95 &lt; 15s）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>槽位解析与追问</td><td>300ms</td><td>1s</td><td>追问 / 转人工</td></tr>
+      <tr><td>候选召回（多路并行）</td><td>500ms</td><td>1.5s</td><td>减少召回路数，缩小 K</td></tr>
+      <tr><td><strong>单点硬约束预筛</strong></td><td><strong>400ms</strong></td><td><strong>1s</strong></td><td><strong>收紧 K，宁可少候选</strong></td></tr>
+      <tr><td><strong>组合评估</strong></td><td><strong>8s</strong></td><td><strong>12s</strong></td><td><strong>早停，返回当前最优可行解</strong></td></tr>
+      <tr><td>行程渲染与校验依据</td><td>500ms</td><td>1.5s</td><td>输出基础时间轴</td></tr>
+      <tr><td>LLM 生成说明</td><td>2s</td><td>4s</td><td>模板文案</td></tr>
+      <tr><td><strong>规划合计</strong></td><td><strong>&lt; 15s（P95）</strong></td><td>25s</td><td>—</td></tr>
+  </tbody>
+</table>
+<p><strong>伴游轨道（P95 &lt; 1.5s）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>定位与附近召回（Top-8）</td><td>200ms</td><td>500ms</td><td>缩小半径 / 减少类型</td></tr>
+      <tr><td>营业 / 排队 / 预约状态</td><td>300ms</td><td>800ms</td><td><strong>无法确认的点不推荐</strong></td></tr>
+      <tr><td>路线耗时</td><td>200ms</td><td>500ms</td><td>直线距离估算 + 标注</td></tr>
+      <tr><td>LLM 生成短答</td><td>500ms</td><td>1.2s</td><td>结构化列表，不生成散文</td></tr>
+      <tr><td><strong>伴游合计</strong></td><td><strong>&lt; 1.5s（P95）</strong></td><td>3s</td><td>—</td></tr>
+  </tbody>
+</table>
+<p><strong>预订写轨道</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>预占创建</td><td>200ms</td><td>800ms</td><td><strong>不重试，先查预占状态</strong></td></tr>
+      <tr><td>支付</td><td>500ms</td><td>2s</td><td><strong>先查单，确认未成功再决定是否重试</strong></td></tr>
+      <tr><td>退改</td><td>500ms</td><td>2s</td><td>同上</td></tr>
+  </tbody>
+</table>
+<p><strong>重排轨道（P95 &lt; 30s）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>事件接入与影响图构建</td><td>1s</td><td>3s</td><td>人工介入</td></tr>
+      <tr><td>受影响项重新评估</td><td>5s</td><td>15s</td><td>只给「取消受影响项」的保守方案</td></tr>
+      <tr><td>多方案生成（2–3 个）</td><td>10s</td><td>20s</td><td>只给一个方案 + 说明</td></tr>
+      <tr><td>用户确认（异步）</td><td>—</td><td>24h</td><td>过期 → 保守执行（取消受影响项）</td></tr>
+      <tr><td><strong>方案生成合计</strong></td><td><strong>&lt; 30s（P95）</strong></td><td>60s</td><td>—</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>四条轨道的时间预算是同一个方法论</strong>：<strong>每一步都要有「超时后用户看到什么」的答案</strong>，而不是「超时了报错」。本章最反直觉的一条是伴游轨道：<strong>结构化列表（距离、耗时、是否开放）比一段生成的散文更快也更有用</strong>——在 1.5 秒的预算里，生成散文是最不该花的钱。</p>
+</blockquote>
+
+<h3 id="sec-4.5">6.4.5 观测压测、护栏清单与上线检查</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>观测分六类，行程看采纳率、约束满足率与重排耗时，搜索看可行解产出率、剪枝后候选数、评估次数与预算、预算耗尽率，资源看查询 P99、预占成功率、过期率与支付竞态次数，交易看转化率、超售率、退款率与重复扣款数，体验看首响、客诉率与通知打扰率，成本看单会话成本、token 与降级比例。压测八项含峰值 5 倍会话、10 天行程每天 4 点的最坏搜索、热门景区与航班抢购、预占 TTL 到期回收含与支付并发、航班大面积延误的重排风暴、天气与闭园事件风暴、支付超时与重复回调、硬约束评估超时。规则护栏清单十六条，其中十条是 P0。上线检查十问覆盖 K 值倒推、硬约束六项实时校验、时间矩阵降维与误差标注、预占与 TTL 与回收跳过支付中、幂等与超时先查单与支付前复检、局部重排与不传播规则与用户确认、原子组裁剪与候选按通过率裁剪、降级分级与硬约束超时不给行程、对账覆盖支付竞态、四类评测全部可回归。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>十个 P0 里有五个是「承诺之前」——硬约束、超售、重复扣款、支付前复检、资源唯一事实源，两个是「变更可控」——已确认项与影响图。这与营销章的「发出去之前」是同一个道理，但文旅多了一条：钱一旦扣错，用户在千里之外，而用户此刻可能连信号都不稳定。</p>
+</div>
+
+<h4 id="sec-4.5.9" data-toc-skip>观测与压测</h4>
+
+<p><strong>观测</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>行程</td><td>采纳率、约束满足率、重排耗时</td></tr>
+      <tr><td><strong>搜索</strong></td><td><strong>可行解产出率、剪枝后候选数、评估次数 / 预算、预算耗尽率</strong></td></tr>
+      <tr><td>资源</td><td>查询 P99、预占成功率、过期率、<strong>支付竞态次数</strong></td></tr>
+      <tr><td>交易</td><td>转化率、超售率、退款率、<strong>重复扣款数</strong></td></tr>
+      <tr><td>体验</td><td>首响、客诉率、通知打扰率</td></tr>
+      <tr><td>成本</td><td>单会话成本、token、降级比例</td></tr>
+  </tbody>
+</table>
+<p><strong>压测</strong>：</p>
+<ul>
+<li>峰值 5 倍会话。</li>
+<li><strong>10 天行程 × 每天 4 点的最坏搜索</strong>（验证评估预算与早停）。</li>
+<li>热门景区 / 航班抢购。</li>
+<li>预占 TTL 到期回收（<strong>含与支付并发</strong>）。</li>
+<li>航班大面积延误（重排风暴）。</li>
+<li>天气 / 闭园事件风暴。</li>
+<li>支付超时与重复回调。</li>
+<li><strong>硬约束评估超时</strong>（验证降级为候选清单而不是给出不可行行程）。</li>
+</ul>
+
+<h4 id="sec-4.5.10" data-toc-skip>规则护栏清单</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">领域</th><th scope="col">护栏</th><th scope="col">优先级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>硬约束前置</strong></td><td>行程不得违反营业 / 余票 / 交通 / 天气 / 体力 / 预算；违反数 0</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>超售 0</strong></td><td>预占原子 + TTL + <strong>回收跳过「支付中」</strong> + 定时对账</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>重复扣款 0</strong></td><td>六层幂等键 + 状态机条件更新 + <strong>超时先查单</strong></td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>支付前复检</strong></td><td>价格与库存重新校验；涨幅超阈值必须确认</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>资源唯一事实源</strong></td><td>缓存不得承诺有位；写操作不复用查询结果</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>已确认项不可静默改</strong></td><td>版本化 + 影响图 + 用户确认</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>影响图有「不传播」规则</strong></td><td>软依赖与偏好耦合不传播</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>变更必确认 + 通知克制</strong></td><td>涉资金或行程大改必确认；旅中频控</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>降级打标</strong></td><td><code>degraded</code> + <code>fallback_mode</code> + <code>reason_code</code></td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>审计不可篡改</strong></td><td>行程版本、预占、支付、退改全量留痕</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>安全优先</strong></td><td>老人儿童体力、极端天气、封闭路线优先于推荐</td><td>P1</td></tr>
+      <tr><td><strong>搜索预算</strong></td><td>K 按预算倒推；评估次数硬限；早停</td><td>P1</td></tr>
+      <tr><td><strong>时间矩阵降维</strong></td><td>区域级近似；精度下降要标注</td><td>P1</td></tr>
+      <tr><td><strong>上下文原子组</strong></td><td><code>tool_calls</code> 与 <code>tool</code> 消息整组裁剪与配对校验</td><td>P1</td></tr>
+      <tr><td>长归因</td><td>30 天窗口 + Holdout + 净贡献（券与佣金计入）</td><td>P1</td></tr>
+      <tr><td><strong>成本</strong></td><td>单会话 token 超预算 120% 触发容量评审</td><td>P2</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>文旅 Agent 的十个 P0 里有五个是「承诺之前」</strong>（硬约束、超售、重复扣款、复检、唯一事实源），<strong>两个是「变更可控」</strong>（已确认项、影响图）。<strong>这与营销章的「发出去之前」是同一个道理，但文旅多了一条：钱一旦扣错，用户在千里之外。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.5.11" data-toc-skip>上线检查（10 问）</h4>
+
+<ol>
+<li><strong>K 值是按评估预算倒推的，还是按召回率正推的？</strong> 评估次数是否有硬限与早停？</li>
+<li>硬约束是否<strong>全部实时校验</strong>？营业、余票、交通、天气、体力、预算六项是否都有对应接口？</li>
+<li>时间矩阵是否已降维？<strong>同区域近似带来的精度误差是否在答案里标注</strong>？</li>
+<li>库存承诺是否基于<strong>预占</strong>而非缓存？<strong>预占 TTL 与回收是否可靠？回收是否跳过「支付中」？</strong></li>
+<li>写操作是否全部幂等、<strong>超时先查单</strong>？<strong>支付前是否复检价格与库存</strong>？</li>
+<li>重排是否只改受影响项？<strong>影响图是否有「不传播」规则？</strong> 是否用户确认？</li>
+<li>上下文是否原子组裁剪？<strong>候选 POI 列表是否按通过率裁剪，而非按 top-k 截断？</strong></li>
+<li>降级是否按 Fail-Open / Fail-Closed 分级？<strong>硬约束评估超时是否降级为「候选清单」而不是给出行程？</strong></li>
+<li>对账是否覆盖预占 / 支付 / 退款 / <strong>支付竞态</strong>？</li>
+<li><strong>黄金行程集、资源沙箱、故障注入、搜索专项评测</strong>是否都通过并可回归？</li>
+</ol>
+
+<h2 id="seg-5">6.5 端到端案例</h2><div class="oc-part-lead"><strong>第五段 · 端到端案例</strong>这一段回答：一次真实的航班延误怎么触发重排，以及搜索预算不足时三条路径该怎么排序。</div>
+
+<h3 id="sec-5.1">6.5.1 案例：航班延误 4 小时后的行程重排</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>背景是用户原定 14:00 航班、18:00 入住酒店、次日 09:00 景区预约入园，航班延误到 18:00 起飞。七步走完：事件接入由 flight.status.changed 触发并关联 itinerary_id 与后续预订；影响分析按传播规则判定——机场接送、酒店入住、晚餐、次日预约传播，次日早餐与美食推荐不传播，受影响 4 项而不是全行程 20 项；只读查询航班新时刻、酒店最晚入住政策、接送运力与景区次日余票；生成方案，组合数 3⁴ 即 81 种秒级算完，方案 A 改约 22:30 接送并保留房间、景区改约次日 11:00，方案 B 取消当晚酒店改住机场附近；成本与确认是 A 接送加 60 元、景区改约免费，B 产生酒店取消损失，涉及费用变化所以只推送一次并等待用户确认；确认后以幂等键锁定接送与景区新时段并更新酒店入住备注，失败则回滚并给备选；触达合并成一条通知，只在有新变更时再提醒。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「受影响 4 项 vs 20 项」是本章最重要的一个数：它把重排的组合数从 3²⁰ 降到 3⁴，从 35 亿种变成 81 种。如果影响图没有「不传播」规则，这一步就退化成 20 项全排——算法再强也算不出来，而且用户已确认的酒店入住时间会被改掉。数字上省了五个数量级，性质上是从「不可行」变成「可行」。</p>
+</div>
+
+<h4 id="sec-5.1.1" data-toc-skip>案例：航班延误 4 小时后的行程重排</h4>
+
+<p><strong>背景</strong>：用户原定 14:00 航班，18:00 入住酒店，次日 09:00 景区预约入园。航班状态变更为延误至 18:00 起飞。</p>
+<ol>
+<li><strong>事件接入</strong>：<code>flight.status.changed</code> 触发重排，关联 <code>itinerary_id</code> 与后续预订。</li>
+<li><strong>影响分析</strong>：机场接送需后移；酒店入住变为 22:00 后；次日 09:00 预约可能受疲劳影响；晚餐时间被压缩。<strong>按传播规则判定</strong>：接送 → 酒店入住 → 晚餐 → 次日预约 <strong>传播</strong>；次日早餐、次日的美食推荐 <strong>不传播</strong>（软依赖与偏好耦合）→ <strong>受影响 4 项，不是全行程 20 项</strong>。</li>
+<li><strong>只读查询</strong>：航班新时刻、酒店最晚入住政策、接送运力、景区次日各时段余票。</li>
+<li><strong>生成方案</strong>（组合数 3⁴ = 81 种，秒级算完）：
+<ul>
+  <li>方案 A：改约 22:30 接送，酒店确认保留房间，景区改约次日 11:00。</li>
+  <li>方案 B：取消当晚酒店，改住机场附近，次日直接前往景区。</li>
+</ul></li>
+<li><strong>成本与确认</strong>：方案 A 接送 +60 元、景区改约免费；方案 B 产生酒店取消损失。涉及费用变化，推送<strong>一次</strong>并等待用户确认。</li>
+<li><strong>执行</strong>：确认后以幂等键锁定接送与景区新时段，更新酒店入住备注；失败则回滚并给备选。</li>
+<li><strong>触达</strong>：合并为一条通知，避免重复轰炸；后续仅在有新变更时提醒。</li>
+</ol>
+<p><strong>常见失败</strong>：未先查余票就承诺改约 → <code>BIZ_SOLD_OUT</code>；支付超时直接重试 → 可能重复扣款；酒店房间未预占 → 到店无房。</p>
+<blockquote>
+  <p><strong>第 2 步的「受影响 4 项 vs 20 项」是本章最重要的一个数</strong>：它把重排的组合数从 3²⁰ 降到 3⁴，<strong>从 35 亿种变成 81 种</strong>。如果影响图没有「不传播」规则，这一步就会退化成 20 项全排——<strong>算法再强也算不出来，而且用户已确认的酒店入住时间会被改掉。</strong></p>
+</blockquote>
+
+<h3 id="sec-5.2">6.5.2 变体：多日规划、旅中伴游与长周期归因</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>多日行程规划的需求是「带老人小孩，5 天 4 晚，预算 6000，不赶路，避开雨天户外」，六步走：槽位锁定人数结构、日期、预算、节奏与偏好，并把「带老人小孩」标记为硬约束而非偏好；候选召回按亲子、人文、自然并按体力分级，K 按 5 天乘 3 点倒推；六项硬约束全过；组合优化每天 2 到 3 个点并预留午休与机动；每天至少一个室内备选；输出时间轴、交通、预约提醒、预算分项与每个点的校验依据。旅中伴游的需求是「现在在西湖边，带孩子，附近有什么能去的」，五步：LBS 召回 Top-8 而不是 Top-20、实时营业与排队与预约校验、路线耗时与天气提醒、输出 3 个结构化选项加距离耗时注意事项与查询时点、不推荐闭园封路与极端天气路线。长周期营销归因的场景是用户 20 天前看过三亚行程今天下单，用 30 天窗口并区分直接与辅助转化，用 Holdout 算真实增量，扣除券补贴与渠道佣金算净贡献。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三个变体共同暴露的一件事是「同一个参数不能驱动两条轨道」：规划 15 秒、Top-20、可生成解释；伴游 1.5 秒、Top-8、只能给结构化列表。用同一个「召回 Top-K」去驱动两条轨道，是伴游做不快的最常见原因。伴游那条推论尤其值得记：归因窗口按决策周期分布来定，30 天对提前很久订的用户仍然不够。</p>
+</div>
+
+<h4 id="sec-5.2.2" data-toc-skip>变体 A：多日行程规划</h4>
+
+<p><strong>需求</strong>：「带老人小孩，5 天 4 晚，预算 6000，不赶路，避开雨天户外。」</p>
+<ol>
+<li>槽位：人数结构、日期、预算、节奏、偏好；<strong>「带老人小孩」被标记为硬约束而非偏好</strong>。</li>
+<li>候选召回：亲子 / 人文 / 自然，按体力分级；<strong>K 按 5 天 × 3 点倒推</strong>。</li>
+<li>硬约束：营业、预约、交通、天气、体力、预算，六项全过。</li>
+<li>组合优化：每天 2–3 个点，预留午休与机动。</li>
+<li>天气备选：每天至少一个室内方案。</li>
+<li>输出：时间轴 + 交通 + 预约提醒 + 预算分项 + <strong>每个点的校验依据</strong>。</li>
+</ol>
+<p><strong>这个需求最狠的地方</strong>：5 天 × 3 点的组合空间是 C(200,3)⁵ = 3.9 × 10²⁴——<strong>比<a href="#sec-3.4.9">时空搜索放大：候选、可行解与剪枝</a>的 3 天例子还大 6 个数量级</strong>。<strong>所以「5 天行程」必须靠分天求解（每天独立求最优 + 天间衔接约束），而不是全局穷举。</strong></p>
+
+<h4 id="sec-5.2.3" data-toc-skip>变体 B：旅中伴游</h4>
+
+<p><strong>需求</strong>：「现在在西湖边，带孩子，附近有什么能去的？」</p>
+<ol>
+<li>LBS 召回附近 POI（<strong>Top-8，不是 Top-20</strong>——伴游只有 1.5 秒预算）。</li>
+<li>实时营业 / 排队 / 预约校验；<strong>无法确认的点不推荐</strong>。</li>
+<li>路线耗时与天气提醒。</li>
+<li>输出：<strong>3 个结构化选项 + 距离 + 耗时 + 注意事项 + 查询时点</strong>（不生成散文）。</li>
+<li>安全：不推荐闭园 / 封路 / 极端天气路线；带小孩时优先有洗手间与休息点的选项。</li>
+</ol>
+<blockquote>
+  <p><strong>伴游与规划用同一套候选召回逻辑，但预算差 10 倍</strong>：规划 15 秒、Top-20、可生成解释；伴游 1.5 秒、Top-8、只能给结构化列表。<strong>用同一个「召回 Top-K」的参数去驱动两条轨道，是伴游做不快的最常见原因。</strong></p>
+</blockquote>
+
+<h4 id="sec-5.2.4" data-toc-skip>变体 C：长周期营销归因</h4>
+
+<p><strong>场景</strong>：用户 20 天前看过三亚行程，今天下单。</p>
+<ul>
+<li>归因窗口 30 天，区分直接与辅助转化。</li>
+<li>Holdout 计算真实增量。</li>
+<li>扣除券补贴与渠道佣金，算净贡献。</li>
+<li>快信号熔断高退订变体。</li>
+</ul>
+<blockquote>
+  <p><strong>文旅营销的归因有一个别的章没有的陷阱</strong>：用户今天下单的可能是<strong>上个月的行程</strong>（提前很久订好），也可能是<strong>今天的最后一刻</strong>。<strong>30 天窗口对前者仍然不够。</strong> 所以文旅的归因窗口必须按<strong>决策周期分布</strong>来定，而不是拍一个 30 天。</p>
+</blockquote>
+
+<h3 id="sec-5.3">6.5.3 搜索预算取舍、故障兜底、扩容与复盘</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>变体 D 是一次真实的容量危机：规划请求量涨 3 倍（20 万到 60 万一天），规划 P95 从 12 秒涨到 19 秒。三条路的账算清楚：加机器每天多 ¥26,240、可行解产出率 95% 保持不变；下调 K 从 20 到 8 每天省 ¥4,608 但产出率从 95% 掉到 60%；热门行程结果缓存命中 40% 的请求、每天省 24 万乘 4 次乘 5,000 token 即 48 亿 token 约 ¥9,600、可行解一个不少。决策顺序是先做无损的结果缓存，再加机器，最后才考虑降 K。故障与兜底补三条：预占 TTL 与支付竞态用支付前续期加回收跳过支付中，硬约束评估超时降级为候选清单，重排时备选资源也售罄就给出取消该点加退款的方案而不是重试到成功。扩容 10 倍的先坏顺序是搜索预算（最先坏，且是非线性）、资源查询、LLM 配额、预占、重排事件、地图天气、归因存储、成本。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「降 K 是最后手段，不是第一手段」，因为它的代价不是「行程差一点」而是「35% 的请求给不出行程」——而给不出行程的用户不会投诉，只会走掉。所以搜索系统的降级顺序应该是先降质量、最后降可行性，因为可行性是这个产品唯一不可妥协的东西。而扩容那一位的非线性也不是 QPS，是可行解产出率。</p>
+</div>
+
+<h4 id="sec-5.3.5" data-toc-skip>变体 D：时空搜索预算与 K 值取舍</h4>
+
+<p><strong>场景</strong>：规划请求量涨了 3 倍（20 万 → 60 万 / 天），规划 P95 从 12s 涨到 19s。怎么办？</p>
+<p><strong>先算清楚三条路的账</strong>（规划部分日成本基线 ¥13,120）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方案</th><th scope="col">增量成本 / 天</th><th scope="col">可行解产出率</th><th scope="col">性质</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>A 加机器</strong></td><td><strong>+¥26,240</strong></td><td>95% → 95%（不变）</td><td>贵但无损</td></tr>
+      <tr><td><strong>B 下调 K（20 → 8）</strong></td><td><strong>−¥4,608</strong>（规划输入 −19.2%）</td><td><strong>95% → 60%</strong></td><td><strong>省得少，损得多</strong></td></tr>
+      <tr><td><strong>C 热门行程结果缓存</strong></td><td><strong>−¥9,600</strong></td><td>95% → 95%（不变）</td><td><strong>省且无损</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>C 的算法</strong>：命中 40% 的规划请求（60 万 × 40% = 24 万 / 天）直接返回预计算结果，<strong>省 24 万 × 4 次 × 5,000 token = 48 亿 token = ¥9,600 / 天</strong>，且<strong>一个可行解都没损失</strong>。</p>
+<p><strong>决策顺序</strong>：</p>
+<pre><code>1. 先做结果缓存（C）——无损且更便宜
+2. 再加机器（A）——贵但无损
+3. 最后才考虑降 K（B）——有损，且损的是可行性</code></pre>
+<blockquote>
+  <p><strong>降 K 是最后手段，不是第一手段</strong>，因为它的代价不是「行程差一点」而是「<strong>35% 的请求给不出行程</strong>」——而给不出行程的用户不会投诉，只会走掉。<strong>这是本章的一条反直觉但极其重要的结论：搜索系统的降级顺序应该是「先降质量、最后降可行性」，因为可行性是这个产品唯一不可妥协的东西。</strong></p>
+</blockquote>
+
+<h4 id="sec-5.3.6" data-toc-skip>故障与兜底</h4>
+
+<p>降级矩阵以<a href="#sec-3.8.18">降级矩阵（Fail-Open / Fail-Closed）</a>为准，本例补充三条：</p>
+<table>
+  <thead>
+    <tr><th scope="col">故障</th><th scope="col">影响</th><th scope="col">兜底</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>预占 TTL 与支付竞态</strong></td><td>支付成功但库存已释放</td><td><strong>支付前续期 + 回收跳过「支付中」</strong></td></tr>
+      <tr><td><strong>硬约束评估超时</strong></td><td>规划跑不完</td><td><strong>降级为候选清单，不给行程</strong>（不给不可行的行程）</td></tr>
+      <tr><td><strong>重排时备选资源也售罄</strong></td><td>方案不可执行</td><td>给出「取消该点 + 退款」方案，<strong>而不是重试到成功为止</strong></td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-5.3.7" data-toc-skip>扩容 10 倍，哪里先坏？</h4>
+
+<p>以<a href="#sec-3.9.21">容量与成本估算</a>的基准扩容 10 倍（日会话 500 万、峰值 290 QPS、LLM 调用 1,160 QPS、工具调用 2,320 QPS、资源查询 1,390 QPS、预订写 120 QPS、日 token 1,160 亿、日成本 ¥328,000）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">先坏的点</th><th scope="col">现象</th><th scope="col">触发指标</th><th scope="col">对策</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>搜索预算（非线性）</strong></td><td>规划 P95 超 15s、<strong>无行程产出率上升</strong></td><td>评估次数 / 预算 &gt; 80%、预算耗尽率 &gt; 5%</td><td><strong>K 下调（最后手段）、早停、热门行程模板化、结果缓存</strong></td></tr>
+      <tr><td>2</td><td><strong>资源查询</strong></td><td>P99 上升、超时</td><td>峰值 &gt; 1,400 QPS</td><td>批量、缓存、读写分离</td></tr>
+      <tr><td>3</td><td><strong>LLM 配额</strong></td><td>429</td><td>调用 QPS &gt; 配额 80%</td><td>模型分级、候选裁剪、缓存</td></tr>
+      <tr><td>4</td><td><strong>预占</strong></td><td>冲突、TTL 堆积、<strong>竞态增多</strong></td><td>预占成功率下降、过期率上升</td><td>分片、异步回收、<strong>预占准入限流</strong></td></tr>
+      <tr><td>5</td><td><strong>重排事件</strong></td><td>风暴、积压</td><td>事件队列 lag</td><td>影响图、批量、优先级；<strong>全网重排需人工批准</strong></td></tr>
+      <tr><td>6</td><td><strong>地图 / 天气</strong></td><td>限流</td><td>P99 &gt; 500ms</td><td>缓存、按需、区域级近似</td></tr>
+      <tr><td>7</td><td><strong>归因存储</strong></td><td>长窗口数据膨胀</td><td>单分区 &gt; 1TB</td><td>分层、预聚合</td></tr>
+      <tr><td>8</td><td><strong>成本（非线性）</strong></td><td>账单涨幅 &gt; 流量涨幅</td><td>单会话 token &gt; 预算 120%</td><td>裁候选、模型分级、结果缓存</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 1 位的非线性不是 QPS，而是「可行解产出率」</strong>：并发涨 10 倍后，每个请求的<strong>实际</strong>评估时间被排队挤压 → 早停触发率上升 → <strong>给出的行程质量断崖式下降</strong>。而第 8 位的账单（¥98 万/月 → ¥984 万/月）说明：<strong>这一章的扩容成本主要在 LLM，而 LLM 的成本主要在候选描述。</strong></p>
+</blockquote>
+
+<h4 id="sec-5.3.8" data-toc-skip>取舍复盘</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">代价</th><th scope="col">收益</th><th scope="col">重新评估条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>硬约束优先</td><td>推荐不够「惊艳」</td><td>行程可行</td><td>用户明确要求冒险</td></tr>
+      <tr><td>先预占后支付</td><td>占用库存</td><td>不超售</td><td>库存充足可简化</td></tr>
+      <tr><td>局部重排</td><td>实现复杂</td><td>保留已确认项</td><td>结构大改才全量</td></tr>
+      <tr><td>重大变更确认</td><td>多一步交互</td><td>不静默改行程</td><td>低影响可自动</td></tr>
+      <tr><td>长归因窗口</td><td>数据延迟</td><td>真实增量</td><td>短周期可缩短</td></tr>
+      <tr><td>Fail-Closed</td><td>少成交</td><td>不超售 / 不资损</td><td>依赖稳定可放宽</td></tr>
+      <tr><td><strong>按预算定 K（而非按召回率）</strong></td><td><strong>可能漏掉冷门但可行的组合</strong></td><td><strong>时间与 token 双省</strong></td><td>单次评估成本大幅下降时可放宽</td></tr>
+      <tr><td><strong>影响图带「不传播」规则</strong></td><td><strong>规则要人工维护</strong></td><td><strong>组合数降 5 个数量级</strong></td><td>——</td></tr>
+      <tr><td><strong>硬约束超时降级为候选清单</strong></td><td><strong>少给行程</strong></td><td><strong>不给不可行的行程</strong></td><td>——</td></tr>
+      <tr><td><strong>预占准入限流</strong></td><td><strong>峰值时少接单</strong></td><td><strong>不超售</strong></td><td>资源服务容量提升后可放宽</td></tr>
+  </tbody>
+</table>
+
+<h2 id="seg-6">6.6 演进、指标与误区</h2><div class="oc-part-lead"><strong>第六段 · 演进与误区</strong>这一段回答：这套系统怎么一步步长大，成熟后看哪几个数，以及哪些坑最贵。</div>
+
+<h3 id="sec-6.1">6.6.1 演进路线与指标体系</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>演进六级：L0 攻略加人工客服起步做内容与 FAQ，L1 模板行程在标准化需求阶段做模板加参数，L2 规划 Agent 在个性化需求阶段上检索、硬约束与剪枝，L3 预订闭环在交易需求阶段上预占、支付、退改与支付竞态防护，L4 旅中重排在实时事件阶段上影响图加不传播规则与多方案，L5 全周期智能体在成熟后把伴游、问数与营销一体。指标体系六层：行程层的采纳率、约束满足率与绕路率判断规划质量，搜索层的可行解产出率、评估次数与预算、预算耗尽率判断搜索效率，交易层的转化率、超售率、退款率与重复扣款数判断交易可靠，体验层的首响、客诉率与打扰率判断体验，经营层的净营收、核销率与 ROI 判断价值，成本层的单会话 token、候选描述占比与降级比例判断可持续。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>L2 是最容易被跳过、也最不该跳过的一层：很多系统从「攻略内容」直接跳到「能订票」，中间跳过了硬约束校验与剪枝，结果是一套会订票但会给出闭园景点、老人走不动路线的系统。L2 的关键改造是剪枝不是检索——检索是通用能力，剪枝才是这一章独有的工程量。</p>
+</div>
+
+<h4 id="sec-6.1.1" data-toc-skip>演进路线</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">形态</th><th scope="col">触发条件</th><th scope="col">关键改造</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>L0</td><td>攻略 + 人工客服</td><td>起步</td><td>内容、FAQ</td></tr>
+      <tr><td>L1</td><td>模板行程</td><td>标准化需求</td><td>模板 + 参数</td></tr>
+      <tr><td>L2</td><td>规划 Agent</td><td>个性化需求</td><td>检索、硬约束、<strong>剪枝</strong></td></tr>
+      <tr><td>L3</td><td>预订闭环</td><td>交易需求</td><td>预占、支付、退改、<strong>支付竞态防护</strong></td></tr>
+      <tr><td>L4</td><td>旅中重排</td><td>实时事件</td><td><strong>影响图 + 不传播规则</strong>、多方案</td></tr>
+      <tr><td>L5</td><td>全周期智能体</td><td>成熟</td><td>伴游、问数、营销一体</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>L2 是最容易被跳过、也最不该跳过的一层</strong>：很多系统从「攻略内容」直接跳到「能订票」，中间跳过了<strong>硬约束校验与剪枝</strong>。结果是一套会订票但会给出行程的晚、景点会闭园、老人走不动路的系统。<strong>L2 的关键改造是剪枝，不是检索——检索是通用能力，剪枝是本章独有的工程量。</strong></p>
+</blockquote>
+
+<h4 id="sec-6.1.2" data-toc-skip>指标体系</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">层级</th><th scope="col">指标</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>行程</td><td>采纳率、约束满足率、绕路率</td><td>判断规划质量</td></tr>
+      <tr><td><strong>搜索</strong></td><td><strong>可行解产出率、评估次数 / 预算、预算耗尽率</strong></td><td><strong>判断搜索效率</strong></td></tr>
+      <tr><td>交易</td><td>转化率、超售率、退款率、<strong>重复扣款数</strong></td><td>判断交易可靠</td></tr>
+      <tr><td>体验</td><td>首响、客诉率、打扰率</td><td>判断体验</td></tr>
+      <tr><td>经营</td><td>净营收、核销率、ROI</td><td>判断价值</td></tr>
+      <tr><td>成本</td><td>单会话 token、候选描述占比、降级比例</td><td>判断可持续</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.2">6.6.2 评测回归与成本优化</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>评测与回归七条：黄金行程集覆盖亲子、老人、雨季、预算紧等场景；资源沙箱模拟售罄、超时、价格变动与重复提交；故障注入覆盖延误、闭园、余票归零、支付超时与预占和支付并发；搜索专项评测统计剪枝后候选数、评估次数、可行解产出率与预算耗尽率；在线 A/B 与 Holdout 验证采纳率、转化率与客诉率；每周复盘 Top 错误沉淀到约束权重与工具描述；变更回归——改 K 值、改剪枝策略、改硬约束口径都必须重跑黄金行程集，因为它们改变的是「搜不搜得到」而不是「搜得好不好」。成本优化按收益排序六条：裁候选按通过率不按 top-k，输入 token 降 19.2%；热门行程结果缓存让规划请求降 40% 且无损；模型分级约降 30%；上下文原子组裁剪收益有限因为历史对话只占 20%；资源查询批量加缓存；早停降评估次数但质量略降，是最后手段。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>成本优化表的第 1 行收益（−19.2%）远大于第 4 行，而第 4 行恰恰是大家通常先想到的。这又是一个「优化靶子」问题：这一章最贵的不是对话历史，是候选描述。所以先问「输入里最贵的一块是什么」，再问「它值不值得」，比先想到什么优化什么靠谱得多。</p>
+</div>
+
+<h4 id="sec-6.2.3" data-toc-skip>评测与回归</h4>
+
+<ul>
+<li>黄金行程集覆盖亲子、老人、雨季、预算紧等场景。</li>
+<li>资源沙箱模拟售罄、超时、价格变动、重复提交。</li>
+<li>故障注入：延误、闭园、余票归零、支付超时、<strong>预占与支付并发</strong>。</li>
+<li><strong>搜索专项评测</strong>：剪枝后候选数、评估次数、可行解产出率、预算耗尽率。</li>
+<li>在线 A/B 与 Holdout 验证采纳率、转化率、客诉率。</li>
+<li>每周复盘 Top 错误，沉淀到约束权重与工具描述。</li>
+<li><strong>变更回归</strong>：改 K 值、改剪枝策略、改硬约束口径，都必须重跑黄金行程集——<strong>它们改变的是「搜不搜得到」，而不是「搜得好不好」。</strong></li>
+</ul>
+
+<h4 id="sec-6.2.4" data-toc-skip>成本优化</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">手段</th><th scope="col">收益</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>裁候选（按通过率，不按 top-k）</strong></td><td>输入 token <strong>−19.2%</strong></td><td><strong>成本与延迟双赢</strong></td></tr>
+      <tr><td>2</td><td><strong>热门行程结果缓存</strong></td><td>规划请求 −40%</td><td><strong>无损</strong></td></tr>
+      <tr><td>3</td><td>模型分级</td><td>意图 / 抽取用小模型</td><td>约 −30%</td></tr>
+      <tr><td>4</td><td>上下文原子组裁剪</td><td>历史对话</td><td>收益有限（只占 20%）</td></tr>
+      <tr><td>5</td><td>资源查询批量 + 缓存</td><td>外部调用</td><td>降低外部依赖压力</td></tr>
+      <tr><td>6</td><td>早停</td><td>评估次数</td><td>质量略降，<strong>最后手段</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 1 行的收益（−19.2%）远大于第 4 行</strong>（历史对话只占输入的 20%），但第 4 行是大家通常先想到的。<strong>这又是一个「优化靶子」问题</strong>：本章最贵的不是对话历史，是候选描述。</p>
+</blockquote>
+
+<h3 id="sec-6.3">6.6.3 产品对比与常见误区</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>产品对比按 OTA 行程规划、景区伴游、酒店预订、航司改签、文旅集团问数与出境游六种场景列核心与关键挑战。常见误区十四条：先推荐后校验导致闭园扑空，该硬约束前置；召回 Top-K 越大越好导致烧 token、吃时间预算而可行解不变，该按评估预算倒推 K；用两两时间矩阵有 5×10⁹ 项不可行，该区域级降维；全量重排改掉已确认项且算不出来，该影响图加局部重排；影响图无不传播规则导致任何事件都重排全行程，该软依赖与偏好耦合不传播；用缓存承诺库存导致超售，该预占加 TTL；支付前不复检导致价格纠纷，该支付前复核；写超时直接重试导致重复扣款，该先查单后重试；无支付竞态防护导致支付成功但库存已释放，该续期加回收跳过支付中；静默改行程导致用户不满，该重大变更确认；通知轰炸导致投诉，该合并加频控；末次点击归因导致贡献虚高，该 Holdout 加长窗口；硬约束超时后给宽松行程导致用户照着不可行行程出门，该降级为候选清单；用缓存结果直接写操作导致超售，该写前必须重新确认。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>十四条里有三条是同一个病根的不同变体：「召回 Top-K 越大越好」「用两两时间矩阵」「全量重排」——都是在拿规模换可行性，而这三条的收益在文旅全部为零甚至为负。剩下十一条则集中在承诺的时点：什么时候校验、什么时候复检、什么时候确认、什么时候不给答案。文旅的所有护栏，都可以还原成对「承诺时点」的管理。</p>
+</div>
+
+<h4 id="sec-6.3.5" data-toc-skip>产品对比</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">产品 / 场景</th><th scope="col">核心</th><th scope="col">关键挑战</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>OTA 行程规划</td><td>机酒景交组合</td><td>库存、价格、约束</td></tr>
+      <tr><td>景区伴游</td><td>LBS + 实时状态</td><td>低延迟、安全</td></tr>
+      <tr><td>酒店预订</td><td>库存 + 价格</td><td>超售、取消政策</td></tr>
+      <tr><td>航司改签</td><td>运力 + 规则</td><td>退改费、联程</td></tr>
+      <tr><td>文旅集团问数</td><td>多景区经营</td><td>口径、权限</td></tr>
+      <tr><td>出境游</td><td>签证 + 多币种</td><td>合规、汇率</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-6.3.6" data-toc-skip>常见误区</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">误区</th><th scope="col">问题</th><th scope="col">正确做法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>先推荐后校验</td><td>闭园扑空</td><td><strong>硬约束前置</strong></td></tr>
+      <tr><td><strong>召回 Top-K 越大越好</strong></td><td><strong>烧 token、吃时间预算、可行解不变</strong></td><td><strong>按评估预算倒推 K</strong></td></tr>
+      <tr><td><strong>用两两时间矩阵</strong></td><td><strong>5×10⁹ 项，不可行</strong></td><td><strong>区域级降维</strong></td></tr>
+      <tr><td><strong>全量重排</strong></td><td>改掉已确认项、算不出来</td><td><strong>影响图 + 局部重排</strong></td></tr>
+      <tr><td><strong>影响图无「不传播」规则</strong></td><td>任何事件都重排全行程</td><td><strong>软依赖与偏好耦合不传播</strong></td></tr>
+      <tr><td>用缓存承诺库存</td><td>超售</td><td>预占 + TTL</td></tr>
+      <tr><td>支付前不复检</td><td>价格纠纷</td><td>支付前复核</td></tr>
+      <tr><td>写超时直接重试</td><td>重复扣款</td><td><strong>先查单后重试</strong></td></tr>
+      <tr><td><strong>无支付竞态防护</strong></td><td><strong>支付成功但库存已释放</strong></td><td><strong>续期 + 回收跳过「支付中」</strong></td></tr>
+      <tr><td>静默改行程</td><td>用户不满</td><td>重大变更确认</td></tr>
+      <tr><td>通知轰炸</td><td>投诉</td><td>合并 + 频控</td></tr>
+      <tr><td>末次点击归因</td><td>贡献虚高</td><td>Holdout + 长窗口</td></tr>
+      <tr><td><strong>硬约束超时后给宽松行程</strong></td><td><strong>用户照着不可行的行程出门</strong></td><td><strong>降级为候选清单</strong></td></tr>
+      <tr><td><strong>用缓存结果直接写操作</strong></td><td><strong>超售</strong></td><td><strong>写前必须重新确认</strong></td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.4">6.6.4 高频追问、答题提纲与作战手册</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>高频追问十三条覆盖防超售、航班延误后快速重排、避免绕路、规划为什么超时、召回多少候选合适、长决策周期如何归因、伴游如何做到低延迟、依赖超时怎么降级、价格变了怎么办、预占过期怎么办、重排会不会改掉已确认项、如何评估文旅 Agent、紧急安全事件如何触达。答题提纲给 10 分钟版与 35 分钟版两套，10 分钟版是澄清行程长度与每天点数、算会话工具与资源 QPS 与搜索预算与 token、讲门控到召回到预筛到组合优化到预占到支付到重排的架构；35 分钟版里有一整段 9 分钟专门用于搜索放大推导。一页纸作战手册按 S0 到 S5 六阶段组织，每阶段配动作、自检问题与合格线：S0 落七锚点、定优先级、量行程参数，S1 分层、定口径、定事实源，S2 选 K、选剪枝、选矩阵、选降级，S3 算搜索、算并发、算钱、算成本，S4 写延迟预算、写降级矩阵、定护栏，S5 定演进阈值、定指标、建复盘闭环。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>作战手册里最该抄进自己项目文档的是 S0 的第三条自检：「行程多长？每天几个点？」——各给一个带来源的数值，因为它决定搜索空间。大多数文旅项目的评审都卡在「功能上不上线」，而这条自检的作用是在写第一行代码之前就暴露搜索空间的量级，避免三个月后才发现 P95 根本守不住。</p>
+</div>
+
+<h4 id="sec-6.4.7" data-toc-skip>高频追问</h4>
+
+<ul>
+<li><strong>如何防止机酒票超售？</strong> → 资源服务原子扣减 + 预占 TTL + <strong>回收跳过「支付中」</strong> + 幂等键 + 定时对账。</li>
+<li><strong>如何在航班延误后快速重排？</strong> → 事件驱动影响图（<strong>带不传播规则</strong>）+ 实时余票 / 政策查询 + 备选方案 + 用户确认。</li>
+<li><strong>行程规划如何避免绕路？</strong> → 时间矩阵（<strong>区域级降维</strong>）+ 时间窗约束 + 路线排序 + 每日缓冲。</li>
+<li>**<strong>规划为什么会超时？</strong> → <strong>候选组合爆炸</strong>。要查三件事：<strong>K 值是不是按预算定的、剪枝漏斗有没有生效、评估预算有没有硬限与早停</strong>。</li>
+<li><strong>召回多少候选合适？</strong> → <strong>按评估预算倒推</strong>：<code>K ≤ 单点评估预算 ÷ (每天点数 × 剪枝保留率)</code>，而不是按召回率正推。</li>
+<li><strong>长决策周期如何归因？</strong> → 长窗口（按决策周期分布定）+ Holdout + 辅助转化 + 扣除补贴与渠道成本。</li>
+<li><strong>伴游如何做到低延迟？</strong> → 实时工具 + <strong>Top-8 而非 Top-20</strong> + 精简上下文 + 结构化列表 + 缓存热点状态。</li>
+<li><strong>依赖超时怎么降级？</strong> → 资金 / 库存 / 营业状态 Fail-Closed；地图 / 天气保守降级并提示不确定性；<strong>硬约束评估超时 → 给候选清单，不给行程</strong>。</li>
+<li><strong>价格变了怎么办？</strong> → 支付前复检，超阈值让用户确认。</li>
+<li><strong>预占过期怎么办？</strong> → TTL 回收，重新预占或给备选；<strong>回收必须跳过「支付中」的持有</strong>。</li>
+<li><strong>重排会不会改掉已确认项？</strong> → 局部重排 + 版本 + 确认。</li>
+<li><strong>如何评估文旅 Agent？</strong> → 黄金行程 + 资源沙箱 + 故障注入 + <strong>搜索专项评测</strong> + 在线 A/B。</li>
+<li><strong>紧急安全事件如何触达？</strong> → 可突破普通频控，但必须去重与分级。</li>
+</ul>
+
+<h4 id="sec-6.4.8" data-toc-skip>答题提纲与练习</h4>
+
+<p><strong>10 分钟版（自述型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–1 min</td><td>澄清：目的地、<strong>行程长度 × 每天点数</strong>、人群、预算、实时性</td></tr>
+      <tr><td>1–3 min</td><td>容量：会话 / 工具 / 资源 QPS、<strong>搜索预算</strong>、token</td></tr>
+      <tr><td>3–5 min</td><td>架构：门控 → 召回 → <strong>硬约束预筛</strong> → 组合优化 → 预占 → 支付 → 重排</td></tr>
+      <tr><td>5–7 min</td><td>预占与幂等、影响图与局部重排</td></tr>
+      <tr><td>7–9 min</td><td>深挖一个点（推荐：搜索与剪枝 / 超售与幂等）</td></tr>
+      <tr><td>9–10 min</td><td>护栏、降级、评测</td></tr>
+  </tbody>
+</table>
+<p><strong>35 分钟版（深聊型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–5 min</td><td>澄清与七锚点：规模、<strong>行程参数</strong>、实时性、不可逆清单</td></tr>
+      <tr><td>5–14 min</td><td><strong>搜索放大推导：组合空间 2.26e18、可行解万分之一、五层剪枝漏斗、K 值倒推</strong></td></tr>
+      <tr><td>14–22 min</td><td>架构与数据流：门控 / 召回 / 预筛 / 组合优化 / 预占 / 支付 / 重排 / 伴游 / 问数</td></tr>
+      <tr><td>22–26 min</td><td>数据模型与 API：行程版本、预占、六层幂等、事件 Envelope、对账三条线</td></tr>
+      <tr><td>26–34 min</td><td>深挖三个点（各约 3 min）：① 搜索与剪枝 ② 超售 / 重复扣款防护 ③ 影响图与重排</td></tr>
+      <tr><td>34–35 min</td><td>演进阈值、护栏清单、评测闭环</td></tr>
+  </tbody>
+</table>
+<p><strong>练习</strong>：</p>
+<ol>
+<li>设计日 50 万会话的文旅 Agent，给出分层架构与容量（<strong>必须含搜索预算与 K 值推导</strong>）。</li>
+<li>计算：召回 Top-200、每天 3 点、行程 3 天，单点硬约束通过率 0.421，跨点冲突折扣 0.6——组合空间多大？可行解比例多少？评估预算需要剪枝多少个数量级？</li>
+<li>设计多日行程的硬约束与路线优化方案，说明<strong>为什么全量两两时间矩阵不可行</strong>、如何降维、精度代价是什么。</li>
+<li>设计机酒票预占、支付、退改的幂等与对账，并说明<strong>预占 TTL 与支付并发时的超售是怎么发生的、怎么防</strong>。</li>
+<li>设计航班延误后的影响图与重排流程，说明<strong>「不传播」规则为什么是必需的</strong>。</li>
+<li>计算：预占 TTL 900s、支付 P99 800ms、峰值预占创建 3,000 QPS、日订单 2.5 万单——每天有多少单可能因竞态超售？安置成本多少？</li>
+<li>设计「规划 P95 从 12s 涨到 19s」的三条处置路径并排序，说明<strong>为什么降 K 是最后手段</strong>。</li>
+<li>设计伴游 1.5 秒的上下文预算：注入什么、不注入什么、输出用散文还是结构化列表。</li>
+</ol>
+
+<h4 id="sec-6.4.9" data-toc-skip>一页纸作战手册</h4>
+
+<p><strong>S0 定题</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>落七锚点</td><td>唯一事实源是什么？哪几个决策不可逆？</td><td>7 项写下来，事实源 = 行程对象 + 订单 + 预占记录 + 资源实时返回</td></tr>
+      <tr><td>定优先级</td><td>可行、真实、钱、体验冲突时保谁？</td><td>时空可行 &gt; 资源真实 &gt; 资金正确 &gt; 体验 &gt; 成本</td></tr>
+      <tr><td><strong>量行程参数</strong></td><td><strong>行程多长？每天几个点？</strong></td><td>各给一个带来源的数值；<strong>它决定搜索空间</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S1 建模</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>分层</td><td>每层只做什么、明确不做什么？</td><td>门控 / 召回 / 预筛 / 组合 / 预占 / 支付 / 重排 / 伴游 / 问数九层职责表</td></tr>
+      <tr><td>定口径</td><td>可售怎么算？行程对象长什么样？</td><td>行程版本 + Day + Item + buffer + <code>confirmed_items</code></td></tr>
+      <tr><td>定事实源</td><td>哪些不可重建？</td><td>行程对象、订单、预占、事件是事实源；缓存与索引是投影</td></tr>
+  </tbody>
+</table>
+<p><strong>S2 决策</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>选 K</td><td>召回多少候选？</td><td><strong>按评估预算倒推</strong>，不按召回率正推</td></tr>
+      <tr><td>选剪枝</td><td>漏斗有几层？</td><td>召回裁剪 → 单点预筛 → 时空分块 → 回溯 → 局部搜索</td></tr>
+      <tr><td>选矩阵</td><td>时间矩阵怎么建？</td><td><strong>区域级降维</strong>（5e9 → 200 万项，32MB）</td></tr>
+      <tr><td>选降级</td><td>每个依赖挂了用户看到什么？</td><td>资金 / 库存 / 营业 Fail-Closed；<strong>硬约束超时 → 候选清单</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S3 论证</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>算搜索</td><td>组合空间多大、要剪几层？</td><td>2.26e18 → 剪枝 15 个数量级 → 评估预算 5,000 / 200 次</td></tr>
+      <tr><td>算并发</td><td>扛得住吗？</td><td>峰值 29 QPS、LLM 116 QPS、工具 232 QPS、预订写 12 QPS</td></tr>
+      <tr><td>算钱</td><td>一次错误值多少？</td><td>重复扣款 ≈ ¥10,000；超售 ≈ ¥1,200 / 间；日 2.5 万单</td></tr>
+      <tr><td>算成本</td><td>钱花在哪？</td><td>日 116 亿 token ≈ ¥32,800；<strong>候选描述占输入 32%</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S4 兜底</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>写延迟预算</td><td>四条轨道各多少？</td><td>规划 7 段 / 伴游 5 段 / 预订写 3 段 / 重排 4 段</td></tr>
+      <tr><td>写降级矩阵</td><td>每个依赖挂了用户看到什么？</td><td>11 类依赖各有行为；<strong>硬约束超时不给行程</strong></td></tr>
+      <tr><td>定护栏</td><td>安全排第几？</td><td>硬约束 / 超售 / 重复扣款 / 复检 / 唯一事实源 / 已确认项 / 影响图 / 确认与克制 / 打标 / 审计 <strong>十项 P0</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S5 闭环</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>定演进阈值</td><td>涨 10 倍哪里先坏？</td><td><strong>搜索预算 → 资源查询 → LLM 配额</strong>（<a href="#sec-5.3.7">扩容 10 倍，哪里先坏？</a>）</td></tr>
+      <tr><td>定指标</td><td>技术好了业务就好了吗？</td><td>采纳率必须与<strong>可行解产出率</strong>、客诉率合看</td></tr>
+      <tr><td>建复盘闭环</td><td>行动项有负责人吗？</td><td>行动项 → 负责人 → 验证结果</td></tr>
+  </tbody>
+</table>
+<hr>
+
+<h2 id="seg-7">6.7 总结</h2><div class="oc-part-lead"><strong>总结</strong>把这一章收成一页纸：结论、边界，以及下一章要解决什么。</div>
+
+<h3 id="sec-7.1">6.7.1 一句话总结</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>文旅 Agent 的第一性问题不是「推荐得准不准」，而是「评估预算能覆盖多少分支」：先量行程长度与每天点数，再按预算倒推 K 值，把硬约束前置、把资源锁进预占、把影响图的「不传播」规则写死——剩下的才轮到模型去做表达。</p>
+</div>
+
+<h3 id="sec-7.2">6.7.2 本章结论</h3><ol class="oc-points">
+  <li><strong>搜索空间靠剪枝，不靠召回。</strong>3 天每天 3 点是 2.26×10¹⁸ 种组合，评估预算只有 5,000 次单点与 200 次组合，必须剪掉 15 个数量级。K 从 200 降到 84，省 58% 的上下文与预筛时间，可行解一个不少。</li>
+  <li><strong>硬约束前置，超时就不给行程。</strong>先可行后好看：闭园的景点、过期的余票、超预算的门票，每一个都会在旅途中变成一次客诉。硬约束评估超时正确的产品形态是候选清单加提示，不是一份宽松的行程。</li>
+  <li><strong>资源服务是唯一事实源，写操作不复用查询结果。</strong>缓存里的「有房」可能已过期 40 秒，查询必须带查询时点；「30 秒前查到有房」不能作为 30 秒后扣款的理由。缓存与索引全是投影，投影不能当承诺。</li>
+  <li><strong>预占与支付之间有一道竞态，三道防护都要上。</strong>TTL 900 秒、支付 P99 800 毫秒、峰值预占 3,000 QPS，竞态率约 0.09%，日订单 2.5 万单就是每天 22 单可能超售、约 ¥26,400 损失。支付前续期、「支付中」状态跳过回收、超时先查单。</li>
+  <li><strong>影响图的价值在于切出不相关的项。</strong>全行程 20 项重排是 3.5×10⁹ 种，只重排受影响的 8 项是 6,561 种，降 5 个数量级。软时间依赖与偏好耦合不传播——航班晚 4 小时不该把用户的美食偏好也重排一遍。</li>
+</ol>
+
+<h3 id="sec-7.3">6.7.3 下一章</h3><p>下一章 <strong>第 7 章：运维 Agent——从告警风暴到受控止血</strong>：文旅面对的是物理世界的约束，运维面对的是「系统正在流血」——同一套先查后写、幂等、降级分级的原则，落在告警收敛、根因定位与止血动作的受控执行上。</p>
+
+<h3 id="sec-7.4">6.7.4 相关阅读</h3><ul>
+  <li><a href="/2026/11/26/agent-design-05-ecommerce/"><strong>第 5 章 · 电商 Agent</strong></a> — 同一专题的写路径对照章：电商守的是金额与库存，文旅守的是资源与行程，两者都靠幂等键与状态机兜底。</li>
+  <li><a href="/2026/06/13/observable-ops-01-08-impact-analysis/"><strong>智能系统运维可观测性 · 业务 08 · 影响分析</strong></a> — 与本章的影响图同源：事件沿依赖传播后如何切出受影响范围，决定了重排能不能局部做。</li>
+  <li><a href="/2026/08/08/llm-agent-principles/"><strong>AI 编程工程实践 02 · Agent 平台原理</strong></a> — 从更上层看一次交付如何发生：上下文、工具与检查点如何被组织成可复用的能力。</li>
+</ul>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">6.1 文旅 Agent 是什么</a><a class="reading-toc-link level-3" href="#sec-1.1">6.1.1 定义与两个根本差别</a><a class="reading-toc-link level-3" href="#sec-1.2">6.1.2 三类能力层次与典型用户</a><a class="reading-toc-link level-3" href="#sec-1.3">6.1.3 与相近系统的区别与系统边界</a><a class="reading-toc-link level-3" href="#sec-1.4">6.1.4 核心指标、SLO 与不可逆决策清单</a><a class="reading-toc-link level-2" href="#seg-2">6.2 核心矛盾与设计原则</a><a class="reading-toc-link level-3" href="#sec-2.1">6.2.1 本质与六条章级原则</a><a class="reading-toc-link level-3" href="#sec-2.2">6.2.2 三个不等式、三个放大器与四层正确性</a><a class="reading-toc-link level-3" href="#sec-2.3">6.2.3 八组关键矛盾与八类失败模式</a><a class="reading-toc-link level-3" href="#sec-2.4">6.2.4 信任分级、威胁模型与成本结构</a><a class="reading-toc-link level-2" href="#seg-3">6.3 理论与方法论</a><a class="reading-toc-link level-3" href="#sec-3.1">6.3.1 S0 前置锚点、4S 顺序与场景规模</a><a class="reading-toc-link level-3" href="#sec-3.2">6.3.2 服务接口、数据模型与扩展兜底</a><a class="reading-toc-link level-3" href="#sec-3.3">6.3.3 需求解析、候选召回与硬约束</a><a class="reading-toc-link level-3" href="#sec-3.4">6.3.4 时空搜索放大、剪枝与组合优化</a><a class="reading-toc-link level-3" href="#sec-3.5">6.3.5 资源锁定：预占、支付与对账</a><a class="reading-toc-link level-3" href="#sec-3.6">6.3.6 旅中事件驱动重排与伴游导览</a><a class="reading-toc-link level-3" href="#sec-3.7">6.3.7 经营问数、营销归因与上下文治理</a><a class="reading-toc-link level-3" href="#sec-3.8">6.3.8 幂等、降级矩阵与可观测</a><a class="reading-toc-link level-3" href="#sec-3.9">6.3.9 评测闭环与容量成本估算</a><a class="reading-toc-link level-2" href="#seg-4">6.4 工程落地与规则护栏</a><a class="reading-toc-link level-3" href="#sec-4.1">6.4.1 端到端链路与门控路由护栏</a><a class="reading-toc-link level-3" href="#sec-4.2">6.4.2 行程规划与预订写操作护栏</a><a class="reading-toc-link level-3" href="#sec-4.3">6.4.3 重排护栏与上下文工具护栏</a><a class="reading-toc-link level-3" href="#sec-4.4">6.4.4 降级熔断与延迟预算</a><a class="reading-toc-link level-3" href="#sec-4.5">6.4.5 观测压测、护栏清单与上线检查</a><a class="reading-toc-link level-2" href="#seg-5">6.5 端到端案例</a><a class="reading-toc-link level-3" href="#sec-5.1">6.5.1 案例：航班延误 4 小时后的行程重排</a><a class="reading-toc-link level-3" href="#sec-5.2">6.5.2 变体：多日规划、旅中伴游与长周期归因</a><a class="reading-toc-link level-3" href="#sec-5.3">6.5.3 搜索预算取舍、故障兜底、扩容与复盘</a><a class="reading-toc-link level-2" href="#seg-6">6.6 演进、指标与误区</a><a class="reading-toc-link level-3" href="#sec-6.1">6.6.1 演进路线与指标体系</a><a class="reading-toc-link level-3" href="#sec-6.2">6.6.2 评测回归与成本优化</a><a class="reading-toc-link level-3" href="#sec-6.3">6.6.3 产品对比与常见误区</a><a class="reading-toc-link level-3" href="#sec-6.4">6.6.4 高频追问、答题提纲与作战手册</a><a class="reading-toc-link level-2" href="#seg-7">6.7 总结</a><a class="reading-toc-link level-3" href="#sec-7.1">6.7.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-7.2">6.7.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-7.3">6.7.3 下一章</a><a class="reading-toc-link level-3" href="#sec-7.4">6.7.4 相关阅读</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/26/agent-design-05-ecommerce/"><small>← 上一篇</small><span>电商 Agent——导购、交易与售后的受控编排</span></a></div><div><a href="/2026/11/26/agent-design-07-sre-ops/"><small>下一篇 →</small><span>运维 Agent——从告警风暴到受控止血</span></a></div><a class="article-series-return" href="/categories/agent-design/">返回AI Agent 系统设计 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=13" defer></script></body>
+</html>

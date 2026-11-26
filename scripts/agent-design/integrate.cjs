@@ -250,41 +250,60 @@ ${items}
 }
 
 /* ---------- 4. 搜索索引 ---------- */
-if (todo.length) {
+{
   const file = 'search.xml';
   let s = read(file);
   const anchor = '  <entry>\n    <title>OpenClaw 是什么——概览与心智模型</title>';
-  const entries = todo
-    .map(
-      (no) => `  <entry>
-    <title>${meta[no].title}</title>
-    <url>${meta[no].url}</url>
-    <content><![CDATA[${meta[no].desc}]]></content>
+  let added = 0;
+  built.forEach((c) => {
+    const m = meta[c.no];
+    const re = new RegExp(
+      '(<title>' + m.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</title>\\n    <url>' +
+        m.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</url>\\n    <content><!\\[CDATA\\[)[\\s\\S]*?(\\]\\]></content>)'
+    );
+    if (re.test(s)) {
+      s = s.replace(re, (_, a, b) => a + m.desc + b);
+    } else {
+      const entry = `  <entry>
+    <title>${m.title}</title>
+    <url>${m.url}</url>
+    <content><![CDATA[${m.desc}]]></content>
     <categories><category>${series.SERIES}</category></categories>
     <tags><tag>agent-design</tag><tag>system-design</tag></tags>
   </entry>
-`
-    )
-    .join('');
-  if (!s.includes(anchor)) throw new Error('search.xml 找不到锚点');
-  s = s.replace(anchor, entries + anchor);
+`;
+      if (!s.includes(anchor)) throw new Error('search.xml 找不到锚点');
+      s = s.replace(anchor, entry + anchor);
+      added += 1;
+    }
+  });
   write(file, s);
+  console.log('  新增 ' + added + ' 条，其余按 plan 的描述对齐');
 }
 
 /* ---------- 5. 订阅文件 ---------- */
-if (todo.length) {
+{
   const file = 'atom.xml';
   let s = read(file);
   const anchor = '<entry><title>OpenClaw 是什么——概览与心智模型</title>';
-  const entries = todo
-    .map(
-      (no) =>
-        `<entry><title>${meta[no].title}</title><link href="http://lianjifu.cn${meta[no].url}"/><id>http://lianjifu.cn${meta[no].url}</id><published>${series.DATE}T10:00:00.000Z</published><updated>${series.DATE}T12:00:00.000Z</updated><summary type="html">${meta[no].desc}</summary><category term="${series.SERIES}"/><category term="agent-design"/></entry>\n`
-    )
-    .join('');
-  if (!s.includes(anchor)) throw new Error('atom.xml 找不到锚点');
-  s = s.replace(anchor, entries + anchor);
+  let added = 0;
+  built.forEach((c) => {
+    const m = meta[c.no];
+    const re = new RegExp(
+      '(<title>' + m.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</title><link href="http://lianjifu\\.cn' +
+        m.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"/><id>[^<]*</id><published>[^<]*</published><updated>[^<]*</updated><summary type="html">)[\\s\\S]*?(</summary>)'
+    );
+    if (re.test(s)) {
+      s = s.replace(re, (_, a, b) => a + m.desc.replace(/&/g, '&amp;') + b);
+    } else {
+      const entry = `<entry><title>${m.title}</title><link href="http://lianjifu.cn${m.url}"/><id>http://lianjifu.cn${m.url}</id><published>${series.DATE}T10:00:00.000Z</published><updated>${series.DATE}T12:00:00.000Z</updated><summary type="html">${m.desc.replace(/&/g, '&amp;')}</summary><category term="${series.SERIES}"/><category term="agent-design"/></entry>\n`;
+      if (!s.includes(anchor)) throw new Error('atom.xml 找不到锚点');
+      s = s.replace(anchor, entry + anchor);
+      added += 1;
+    }
+  });
   write(file, s);
+  console.log('  新增 ' + added + ' 条，其余按 plan 的描述对齐');
 }
 
 /* ---------- 6. 正文基准：插入新条目的占位 ---------- */

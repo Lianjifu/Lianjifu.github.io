@@ -69,7 +69,7 @@ npx --yes --package @playwright/cli playwright-cli -s=blog-check run-code --file
 
 ## 已知限制
 
-截至 2026-11-07，`atom.xml` 中 `ATT&CK` 未转义，严格 XML 解析会失败；修复后需重新验证订阅内容。Mermaid 使用 CDN 优先、本地资源回退，网络不可用时可能保持源文本。
+Mermaid 使用 CDN 优先、本地资源回退，网络不可用时可能保持源文本。`atom.xml` 曾因 `ATT&CK` 未转义导致严格 XML 解析失败，已于 2026-11-26 转义修复，`atom.xml` 与 `search.xml` 现可通过 `xmllint --noout`。
 
 更多细节见：
 

@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#0f172a">
+  <title>第 4 章：营销 Agent：营销 Agent——从自然语言目标到可归因的触达 | AI Agent 系统设计</title>
+  <meta name="description" content="营销 Agent 把自然语言营销目标变成可圈选、可生成、可合规、可原子频控、可增量归因的生产级增长闭环。本章拆开触达放大的三段推导、打扰成本与 LTV 量化、顺序铁律与降级矩阵，给出日 5000 万触达的容量与成本估算。">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="第 4 章：营销 Agent：营销 Agent——从自然语言目标到可归因的触达">
+  <meta property="og:url" content="https://www.lianjifu.cn/2026/11/26/agent-design-04-marketing/">
+  <meta property="og:site_name" content="LianJiFu'blogs">
+  <meta property="og:description" content="营销 Agent 把自然语言营销目标变成可圈选、可生成、可合规、可原子频控、可增量归因的生产级增长闭环。本章拆开触达放大的三段推导、打扰成本与 LTV 量化、顺序铁律与降级矩阵，给出日 5000 万触达的容量与成本估算。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <meta property="article:published_time" content="2026-11-26T10:00:00.000Z">
+  <meta property="article:modified_time" content="2026-11-26T12:00:00.000Z">
+  <meta property="article:author" content="JiFuLian">
+  <meta property="article:tag" content="agent-design">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="http://lianjifu.cn/uploads/avatar.png">
+  <link rel="canonical" content="https://www.lianjifu.cn/2026/11/26/agent-design-04-marketing/">
+  <link rel="alternate" href="/atom.xml" title="LianJiFu'blogs" type="application/atom+xml">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="/css/2026.css?v=2">
+  <link rel="stylesheet" href="/css/portal.css?v=13">
+  <link rel="stylesheet" href="/css/article.css?v=8">
+  <link rel="stylesheet" href="/css/agent-design.css?v=1">
+  <script src="/js/portal.js?v=7" defer></script>
+  <script src="/js/article-reader.js?v=2" defer></script>
+</head>
+<body id="top" class="personal-article" data-series="agent-design"><svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path d="M6 18 18 6M6 6h12v12" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.8-1-2.3 3-.3 6-1.5 6-6.7a5.2 5.2 0 0 0-1.4-3.6c.2-.8.6-2.5-.2-3.4 0 0-1.1-.3-3.7 1.4a13 13 0 0 0-6.7 0C5.4 1.7 4.3 2 4.3 2c-.8.9-.4 2.6-.2 3.4A5.2 5.2 0 0 0 2.7 9c0 5.2 3 6.4 6 6.7-.7.5-1 1.3-1 2.3v4"
+        />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" />
+        <path d="M8 3v4M16 3v4M3.5 10.5h17" />
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24">
+        <path
+          d="M3.5 6.6a2 2 0 0 1 2-2h3.3a2 2 0 0 1 1.5.7l1.3 1.7h6.9a2 2 0 0 1 2 2v8.4a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"
+        />
+      </symbol>
+    </svg>
+<header class="portal-header" id="site-header">
+      <div class="nav-shell">
+        <a class="wordmark" href="/" aria-label="JiFu Lian 首页"
+          ><span class="brand-glyph" aria-hidden="true"><img src="/images/jifu-mark.svg" alt="" /></span
+          ><span>JiFu Lian<span class="wordmark-dot">.</span></span></a
+        >
+        <button
+          class="mobile-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="打开导航菜单"
+        >
+          <span></span><span></span>
+        </button>
+        <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+          <a class="nav-link" href="/">首页</a>
+          <a class="nav-link" href="/about/">关于我</a>
+          <a class="nav-link" href="/#projects">项目</a>
+          <details class="blog-disclosure">
+            <summary class="nav-link is-current" aria-current="page">
+              博客
+              <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+            </summary>
+            <div class="blog-panel">
+              <div class="blog-panel-heading">
+                <span class="eyebrow">THE WRITING ROOM</span
+                ><a href="/archives/"
+                  >全部文章 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+              <div class="blog-panel-grid">
+                <a href="/categories/ai-agent/"
+                  ><span class="series-dot violet"></span
+                  ><span
+                    ><strong>AI 编程工程实践</strong
+                    ><small>从个人交付到数字员工平台</small></span
+                  ></a
+                >
+                <a href="/categories/agent-design/"
+                  ><span class="series-dot slate"></span
+                  ><span
+                    ><strong>AI Agent 系统设计</strong
+                    ><small>十类 Agent 的系统设计</small></span
+                  ></a
+                >
+                <a href="/categories/claude-code/"
+                  ><span class="series-dot blue"></span
+                  ><span
+                    ><strong>Claude Code</strong
+                    ><small>Agent 源码与运行机制</small></span
+                  ></a
+                >
+<a href="/categories/openclaw/"
+                  ><span class="series-dot rose"></span
+                  ><span
+                    ><strong>OpenClaw</strong
+                    ><small>个人 AI 网关的完整链路</small></span
+                  ></a
+                >
+
+                <a href="/categories/observable-security/"
+                  ><span class="series-dot amber"></span
+                  ><span
+                    ><strong>安全运营可观测性</strong
+                    ><small>感知、研判与响应</small></span
+                  ></a
+                >
+                <a href="/categories/observable-ops/"
+                  ><span class="series-dot teal"></span
+                  ><span
+                    ><strong>系统运维可观测性</strong
+                    ><small>故障诊断与自动化执行</small></span
+                  ></a
+                >
+              </div>
+              <a class="blog-panel-footer" href="/archives/"
+                >浏览全部专题
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </div>
+          </details>
+          <a class="nav-link" href="/#notes">札记</a>
+          <a
+            class="nav-github"
+            href="https://github.com/Lianjifu"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+            GitHub <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
+<main id="main">
+  <article class="post-block" itemscope itemtype="https://schema.org/Article">
+    <header class="post-header">
+      <div class="article-breadcrumb"><a href="/archives/">博客</a><span>/</span><a href="/categories/agent-design/">AI Agent 系统设计</a></div>
+      <span class="article-kicker">第 4 章：营销 Agent</span>
+      <h1 class="post-title" itemprop="name headline">营销 Agent——从自然语言目标到可归因的触达</h1>
+      <div class="post-meta">
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-calendar" /></svg></span><span class="post-meta-item-text">发表于</span><time datetime="2026-11-26T10:00:00+08:00">2026-11-26</time></span>
+        <span class="post-meta-item"><span class="post-meta-item-icon"><svg class="icon meta-icon" aria-hidden="true"><use href="#i-folder" /></svg></span><span class="post-meta-item-text">分类于</span><span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/agent-design/" itemprop="url" rel="index"><span itemprop="name">AI Agent 系统设计</span></a></span></span>
+      </div>
+    </header>
+    <div class="article-reading-layout">
+      <div class="post-body agent-design-body" itemprop="articleBody">
+<p class="oc-lead">
+  营销 AI Agent 接收自然语言营销目标，完成目标解析、人群圈选、物料生成、合规审核、延迟调度、实时状态复核、原子频控、幂等下发、增量归因与策略调优。它和客服 Agent 的根本差别在方向：客服是响应式的，用户先来系统再答；营销是主动式的，系统先决定打扰谁再去打扰。难点不在生成文案，而在「高并发下不发错、不超发、不违规、不算错」。本章围绕目标解析与动态分群、千人千面与合规、触达放大与频控阈值、增量归因与降级矩阵展开。
+</p>
+
+<table class="guide-card collapsed">
+    <thead>
+      <tr>
+        <th>思考维度</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr class="guide-card-header">
+      <td colspan="2"><span class="collapse-icon"></span>引导思考 <span class="collapse-hint">展开</span></td>
+    </tr>
+    <tr>
+      <td><strong>它为什么存在</strong></td>
+      <td>
+        <ul>
+          <li>营销是主动式的：系统先决定打扰谁，再去打扰</li>
+          <li>客服的一次误判最多害了一个用户，营销的一次误判会复制到百万人的手机里</li>
+          <li>所以营销的第一性问题不是「怎么做得更准」，而是「一次决策最多能放大到多少」</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它解决什么问题</strong></td>
+      <td>
+        <ul>
+          <li>它把一句自然语言变成一次有预算的打扰</li>
+          <li>「对加购未支付用户做 30 分钟召回，预算 5 万，ROI 不低于 3」要变成圈选、生成、审核、调度、下发</li>
+          <li>这条链上每一步都可能把误差放大到几百万人身上，所以模型只能决定「更优」，不能决定「能不能发」</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它在系统中的位置</strong></td>
+      <td>
+        <ul>
+          <li>它站在渠道与用户之间，两头都要压住</li>
+          <li>一头是预算与补贴的钱，一头是用户对打扰的容忍度</li>
+          <li>事实源是活动配置、人群快照、触达事件与预算账本；频控计数只是投影，但它的扣减日志不能丢</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>它如何工作</strong></td>
+      <td>
+        <ul>
+          <li>顺序比模型更决定成败</li>
+          <li>状态复核、决策、频控扣减、下发，四步顺序固定，绝不先扣后查</li>
+          <li>因为状态复核是只读免费的，频控扣减是有副作用且不可撤销的——无副作用的检查永远在前</li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+<div class="oc-keypoint">
+  <h3>本章全景</h3>
+  <p><strong>本章回答</strong>：一个营销 Agent 怎样做到不打扰过头、不超发资金、不把自然转化算成自己的功劳</p>
+  <p><strong>核心机制</strong>：目标解析 → 规模预检与人群快照 → 离线生成 → 双层合规 → 调度 → 决策（150ms）→ 状态复核 → Lua 原子频控 → 幂等下发 → Holdout 归因与快慢信号</p>
+  <p><strong>关键数字</strong>：日触达 5000 万 · 峰值 2894 QPS · 人群池 1 亿 · 人均日触达 0.5 次 · 放大 564 万倍 · 慢信号比快信号晚 288 倍</p>
+  <p><strong>读完能做什么</strong>：设计一条营销触达链路，并说清放大倍数、打扰强度、扣减顺序与降级分级各自该怎么算</p>
+</div>
+
+<table class="oc-overview">
+  <thead><tr><th scope="col">维度</th><th scope="col">内容</th></tr></thead>
+  <tbody>
+    <tr><td>本章回答</td><td>一个营销 Agent 怎样做到不打扰过头、不超发资金、不把自然转化算成自己的功劳</td></tr>
+    <tr><td>核心机制</td><td>目标解析 → 规模预检与人群快照 → 离线生成 → 双层合规 → 调度 → 决策（150ms）→ 状态复核 → Lua 原子频控 → 幂等下发 → Holdout 归因与快慢信号</td></tr>
+    <tr><td>关键数字</td><td>日触达 5000 万 · 峰值 2894 QPS · 人群池 1 亿 · 人均日触达 0.5 次 · 放大 564 万倍 · 慢信号比快信号晚 288 倍</td></tr>
+    <tr><td>读完能做什么</td><td>设计一条营销触达链路，并说清放大倍数、打扰强度、扣减顺序与降级分级各自该怎么算</td></tr>
+  </tbody>
+</table>
+
+<div class="oc-cards">
+  <div class="oc-card">
+    <div>第一段 · 营销 Agent 是什么</div>
+    <div>它是什么、与风控和广告差在哪、边界划在哪里，以及哪些决策一旦做错就要停机迁移。</div>
+  </div>
+  <div class="oc-card">
+    <div>第二段 · 核心矛盾</div>
+    <div>多触达与不打扰之间的冲突，以及六条必须坚持的原则。</div>
+  </div>
+  <div class="oc-card">
+    <div>第三段 · 理论与方法论</div>
+    <div>从七项前置锚点一路推到容量与成本：放大、频控、幂等、归因各怎么治。</div>
+  </div>
+  <div class="oc-card">
+    <div>第四段 · 工程落地与护栏</div>
+    <div>把方法论变成链路上的一环一环：十个 P0 护栏与七类依赖的降级行为。</div>
+  </div>
+  <div class="oc-card">
+    <div>第五段 · 端到端案例</div>
+    <div>一次加购未支付的 30 分钟召回，走完整条链路。</div>
+  </div>
+  <div class="oc-card">
+    <div>第六段 · 演进与误区</div>
+    <div>六级演进路线、六个指标层，以及十七条最贵的误区。</div>
+  </div>
+  <div class="oc-card">
+    <div>总结</div>
+    <div>把这一章压成一页纸：结论、边界、下一章。</div>
+  </div>
+</div>
+
+<h2 id="seg-1">4.1 营销 Agent 是什么</h2><div class="oc-part-lead"><strong>第一段 · 营销 Agent 是什么</strong>这一段回答：营销 Agent 究竟是什么、给谁用、边界划在哪里，以及哪些决策一旦做错就要停机迁移。</div>
+
+<h3 id="sec-1.1">4.1.1 定义与营销闭环七段</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>营销 AI Agent 接收自然语言营销目标（例如「对加购未支付用户做 30 分钟召回，预算 5 万，增量 ROI 不低于 3」），完成目标解析、人群圈选、物料生成、合规审核、延迟调度、实时状态复核、原子频控、幂等下发、增量归因与策略调优。它和客服 Agent 的根本差别在方向：客服是响应式的，用户先来系统再答；营销是主动式的，系统先决定打扰谁再去打扰。闭环七段是目标解析、人群圈选、策略与物料、合规审核、调度触达、行为归因、策略调优。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「主动式的系统天生带着放大能力」这句话是全章的地基：客服的一次误判最多害了一个用户，营销的一次误判会复制到百万人的手机里。所以营销的第一性问题不是「怎么做得更准」，而是「一次决策最多能放大到多少」——这个数必须先算出来，再谈链路怎么搭。</p>
+</div>
+
+<p><strong>定义</strong>：营销 AI Agent 是面向增长场景的智能体系统。它接收自然语言营销目标（如「对加购未支付用户做 30 分钟召回，预算 5 万，ROI ≥ 3」），完成目标解析、人群圈选、物料生成、合规审核、延迟调度、实时状态复核、原子频控、幂等下发、增量归因与策略调优。</p>
+<p>它和客服 Agent 的根本差别在于<strong>方向</strong>：客服是<strong>响应式</strong>的——用户先来，系统再答；营销是<strong>主动式</strong>的——系统先决定打扰谁，再去打扰。<strong>主动式的系统，天生带着放大能力</strong>：客服的一次误判最多害了一个用户，营销的一次误判会复制到百万人的手机里。</p>
+<p><strong>营销闭环七段</strong>：</p>
+<pre><code>目标解析 → 人群圈选 → 策略与物料 → 合规审核 → 调度触达 → 行为归因 → 策略调优</code></pre>
+
+<h3 id="sec-1.2">4.1.2 与其他系统的区别与三方价值</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>广告投放是竞价买量，营销 Agent 主要用自有渠道触达；CRM 管客户关系与销售流程，营销 Agent 是自动化触达闭环；营销自动化用规则流程编排，Agent 多出目标解析、生成与多臂老虎机；推荐系统做站内内容分发，营销 Agent 跨渠道主动触达；风控 Agent 的默认动作是拦截，营销 Agent 的默认动作是放行与打扰——两者的默认动作正好相反。三方价值分别是用户的不过度打扰、商家的转化与留存、平台的增长与商业化，任何一方失效都会反噬。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>最后一行值得单独记住：营销与风控面对同一个决策时，默认动作是相反的——风控的默认值是「拦」，营销的默认值是「发」。这意味着营销系统的护栏必须是显式的、可熔断的、并且带明确预算上限的，而不是「系统里恰好有这些检查」。</p>
+</div>
+
+<p><strong>与其他系统的区别</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">系统</th><th scope="col">核心</th><th scope="col">与营销 Agent 的差异</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>广告投放</td><td>竞价买量</td><td>营销 Agent 主要用自有渠道触达</td></tr>
+      <tr><td>CRM</td><td>客户关系与销售流程</td><td>营销 Agent 是自动化触达闭环</td></tr>
+      <tr><td>营销自动化（MA）</td><td>规则流程编排</td><td>Agent 增加目标解析、生成、MAB</td></tr>
+      <tr><td>推荐系统</td><td>站内内容分发</td><td>营销 Agent 跨渠道主动触达</td></tr>
+      <tr><td>客服 Agent</td><td>响应式服务</td><td>营销 Agent 是主动式增长</td></tr>
+      <tr><td><strong>风控 Agent</strong></td><td><strong>拦截与阻断</strong></td><td><strong>营销 Agent 是放行与打扰</strong>——<strong>两者的默认动作正好相反</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>最后一行值得单独记住</strong>：营销与风控面对同一个决策时，默认动作是相反的。风控的默认值是「拦」，营销的默认值是「发」。<strong>这意味着营销系统的护栏必须是显式的、有预算的、可熔断的，而不是「系统里恰好有这些检查」。</strong></p>
+</blockquote>
+<p><strong>三方价值</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">角色</th><th scope="col">价值</th><th scope="col">失效后果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>用户</td><td>及时、相关、不过度打扰的权益信息</td><td>骚扰、退订、投诉</td></tr>
+      <tr><td>商家</td><td>转化、复购、留存提升</td><td>预算浪费、ROI 为负</td></tr>
+      <tr><td>平台</td><td>增长与商业化</td><td>生态恶化、合规风险</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-1.3">4.1.3 系统边界、核心指标与不可逆决策</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>范围内是目标解析与策略建模、人群圈选、文案与图片生成、合规审核与风控、调度频控下发、归因与实验调优；范围外是商品与权益主数据、埋点采集、品牌视觉规范制定、法务最终裁定、渠道网关底层与财务结算。核心指标五类，其中两个是本章特有：人均日触达次数是打扰的即时度量，累计退订存量是打扰的不可逆资产损失。SLO 里有三条硬约束：状态复核覆盖率 100%、退订与黑名单拦截 100%、频控超发与预算超发为 0。七项不可逆决策覆盖幂等键规则、频控维度与窗口、人群快照版本、触达事件主键、归因窗口与 Holdout 分流、权益结构化契约与渠道适配契约。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「累计退订存量」是这一节最该带走的新指标。退订不像点击率那样会自己恢复——退订过的用户永远不会再被触达，所以只看退订率会低估一个正在不断累积的漏损：它是一个只增不减的存量，而不是一个当期的流量率。</p>
+</div>
+
+<p><strong>系统边界</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">范围内</th><th scope="col">范围外</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>目标解析与策略建模</td><td>商品与权益主数据</td></tr>
+      <tr><td>人群圈选（CDP）</td><td>埋点与数据采集</td></tr>
+      <tr><td>文案 / 图片生成</td><td>品牌视觉规范制定</td></tr>
+      <tr><td>合规审核与风控</td><td>法务最终裁定</td></tr>
+      <tr><td>调度、频控、下发</td><td>渠道网关底层</td></tr>
+      <tr><td>归因与 MAB 调优</td><td>财务结算</td></tr>
+  </tbody>
+</table>
+<p><strong>核心指标</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>触达</td><td>触达量、送达率、点击率、决策延迟 P99、<strong>人均日触达次数</strong></td></tr>
+      <tr><td>效果</td><td>转化率、增量转化（Uplift）、净 ROI、客单价</td></tr>
+      <tr><td>体验</td><td>退订率、投诉率、频控命中率、跳过率、<strong>累计退订存量</strong></td></tr>
+      <tr><td>合规</td><td>违规拦截率、文案一致率、审批通过率</td></tr>
+      <tr><td>成本</td><td>单次触达成本、补贴成本、token 成本</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>新增的两个指标是本章特有的</strong>：「人均日触达次数」是打扰的即时度量，「累计退订存量」是打扰的<strong>不可逆资产损失</strong>——退订不像点击率那样会自己恢复，<strong>退订过的用户永远不会再被触达</strong>。只看「退订率」会低估一个正在不断累积的漏损。</p>
+</blockquote>
+<p><strong>SLO 示例</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">目标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>决策 P99</td><td>&lt; 150ms</td></tr>
+      <tr><td>下发 P99</td><td>&lt; 500ms</td></tr>
+      <tr><td>状态复核覆盖率</td><td><strong>100%</strong></td></tr>
+      <tr><td>退订 / 黑名单拦截</td><td><strong>100%</strong></td></tr>
+      <tr><td>频控超发</td><td><strong>0</strong>（硬约束）</td></tr>
+      <tr><td>预算超发</td><td><strong>0</strong>（硬约束）</td></tr>
+      <tr><td>归因回填（T+24h）</td><td>完成率 &gt; 99%</td></tr>
+  </tbody>
+</table>
+<p><strong>本章专属不可逆决策清单</strong>（做错了要停机迁移 + 数据回填 + 全量对账，不是发个版本就能改）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">为什么不可逆</th><th scope="col">改动代价</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>幂等键的构造规则</strong>（<code>campaign_id + user_id + step_id + trigger_bucket</code>）</td><td>所有下发、频控、状态机、去重表共用它</td><td>存量幂等记录失效 → <strong>历史重复触达无法自动识别</strong>，需人工对账与用户补偿</td></tr>
+      <tr><td><strong>频控的维度与窗口定义</strong>（日 / 周上限口径、冷却期、跨渠道共享配额的范围）</td><td>决定打扰强度与退订率的换算关系</td><td>阈值改一次 → <strong>全部历史活动的实际打扰量无法重算</strong>，退订归因全部作废</td></tr>
+      <tr><td><strong>人群快照的版本与标签口径模型</strong>（CDP 标签定义、快照粒度与有效期）</td><td>决定「同一活动内口径可复现」这个承诺能否兑现</td><td>存量快照无法重放 → 历史活动的圈选结果不可审计</td></tr>
+      <tr><td><strong>触达事件的主键与 Envelope</strong>（<code>trace_id</code> / <code>decision_id</code>）</td><td>归因、样本回流、实验分流、离线校准全建立在它上面</td><td>历史事件无法补齐 <code>decision_id</code> → <strong>全部历史归因不可复现</strong>，模型无法回溯校准</td></tr>
+      <tr><td><strong>归因窗口与 Holdout 分流规则</strong>（窗口长度、抽样比例、随机种子）</td><td>决定增量 ROI 是否可复现</td><td>换种子或窗口 → <strong>同一活动前后两套 Uplift</strong>，历史实验结论不可比</td></tr>
+      <tr><td><strong>权益 / 补贴的结构化契约</strong>（权益 ID、面额、有效期、库存、适用人群）</td><td>决定文案与实际发放是否强一致</td><td>存量权益失效 → 历史文案需重新审核，且已发券无法回溯核销</td></tr>
+      <tr><td><strong>渠道适配契约</strong>（各渠道的能力声明、限流、回执语义、重试规则）</td><td>决定下发顺序、降级链与「失败是否回补」</td><td>换渠道语义 → 全部下发逻辑重写 + 历史投递状态需重新映射</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>对照「单向门与双向门」的判据</strong>：这七项属单向门，决策时要多评审、做原型、留迁移方案。其余（模型选择、批大小、生成并发、频控阈值数值、Holdout 比例）是双向门，可以快速试错——但 <strong>频控阈值与 Holdout 比例属于「可逆但很贵」</strong>：调它们会改变全部历史活动的打扰强度与增量口径，必须伴随归因回归。</p>
+</blockquote>
+
+<h2 id="seg-2">4.2 核心矛盾与设计原则</h2><div class="oc-part-lead"><strong>第二段 · 核心矛盾</strong>这一段回答：多触达与不打扰之间的矛盾到底有多大，为什么这六条原则在冲突时说了算。</div>
+
+<h3 id="sec-2.1">4.2.1 本质与六条章级原则</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>本质矛盾是「尽可能多触达以提升 GMV」与「不能打扰、不能违规、不能资损」之间的冲突，设计原则一句话：模型负责「更优」，规则负责「不出事」。六条章级原则规定冲突时以谁为准：模型只能决定哪个变体更好、什么时候更值得发，不能决定能不能发；顺序铁律是状态复核、决策、频控扣减、下发，绝不先扣后查；宁可少发不可发错；触达量必须与错误率一起写进方案；快信号止损、慢信号调优；每一次降级都要打标。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「模型负责更优，规则负责出事」这句话是本章最省事的判据。落到日常争论上，它能一刀切开大多数分歧：要不要换更大的模型，是「更优」的问题，可以讨论；要不要在下发前查一次订单状态，是「出事」的问题，不能讨论——因为它与模型强弱无关，只与系统敢不敢放行有关。</p>
+</div>
+
+<p><strong>本质</strong>：营销 Agent 的核心矛盾，是「尽可能多触达以提升 GMV」与「不能打扰、不能违规、不能资损」之间的冲突。设计原则一句话：<strong>模型负责「更优」，规则负责「不出事」</strong>。</p>
+<p><strong>六条章级原则</strong>（贯穿全章，冲突时以这六条为准）：</p>
+<ol>
+<li><strong>模型负责「更优」，规则负责「不出事」</strong>——模型只能决定「哪个变体更好」「什么时候更值得发」，<strong>不能决定「能不能发」</strong>。所有合规、权限、频控、预算判定必须落在确定性代码层。</li>
+<li><strong>顺序铁律：状态复核 → 决策 → 频控扣减 → 下发</strong>——<strong>绝不先扣后查</strong>。先扣频控再查状态，会给已付款的用户扣掉额度并发出一条催单。</li>
+<li><strong>宁可少发，不可发错</strong>——一次错误触达的代价是单次价值的<strong>上百倍</strong>（<a href="#sec-3.6.11">打扰成本与频控阈值</a>）。少发只是少一次机会，发错是永久损失一个用户。</li>
+<li><strong>触达量必须与错误率一起写进方案</strong>——每次决策的放大倍数要显式算出来。<strong>「一次决策触达 564 万人」和「一次决策触达 564 人」是两个完全不同风险等级的系统</strong>，而它们在目标描述里长得一模一样。</li>
+<li><strong>快信号止损，慢信号调优</strong>——退订与投诉 5 分钟能发现，转化与 ROI 24 小时才能发现。<strong>慢信号永远来不及止损，只能用来调权重。</strong></li>
+<li><strong>每一次降级都要打标</strong>——<code>degraded</code> + <code>fallback_mode</code> + <code>reason_code</code> 三件套缺一不可。<strong>不打标的降级会让效果被算成策略效果，模型会因此学到错误的因果。</strong></li>
+</ol>
+
+<h3 id="sec-2.2">4.2.2 三个不等式、四大挑战与三个放大器</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>三个不等式：一次决策的触达量远大于一次决策的纠错能力，快信号检测窗 5 分钟远小于慢信号检测窗 24 小时，打扰强度远大于退订率的线性预期。四大挑战是高并发下的状态一致性与防过期触达、多维频控的原子性、千人千面多模态物料的合规性、短期点击与长期净转化的平衡。三个放大器量化代价：触达放大让一次决策复制成 564 万次打扰，资损放大让一张券错发到全量变成 100 万沉没成本，合规放大让一句违禁词进入全量文案变成 8460 次投诉。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三个不等式里最要命的是第一条：一次决策的触达量远大于纠错能力，所以错误必须在发出前拦住，不能靠事后修。而第二条进一步说明为什么必须前置——慢信号 24 小时才出结果，这期间一个坏策略能触达 2.5 亿次。「事后归因发现不对再改」是营销系统最贵的错误。</p>
+</div>
+
+<p><strong>三个不等式</strong>：</p>
+<pre><code>一次决策的触达量   &gt;&gt;  一次决策的纠错能力     → 错误必须在发出前拦住，不能靠事后修
+快信号检测窗(5min) &lt;&lt;  慢信号检测窗(24h)     → 止损只能靠快信号与前置护栏
+打扰强度            &gt;&gt;  退订率的线性预期      → 频控阈值必须按退订曲线的拐点定</code></pre>
+<p><strong>四大挑战</strong>：</p>
+<ol>
+<li><strong>高并发下的状态一致性与防过期触达</strong>：用户可能已经下单、退订或标的失效，消息却仍在队列里。</li>
+<li><strong>多维频控的原子性</strong>：日 / 周上限、活动冷却、静默时段、退订黑名单往往同时生效，不能并发超发。</li>
+<li><strong>千人千面多模态物料的合规性</strong>：文案、图片、权益必须真实一致，且不能触碰违禁词与品牌底线。</li>
+<li><strong>短期点击 / 探索 vs 长期净转化与 ROI 的平衡</strong>：高点击可能带来高退订，自然转化又容易把功劳误记给营销。</li>
+</ol>
+<p><strong>三个放大器</strong>（本章最贵的量都藏在这里）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">放大器</th><th scope="col">说明</th><th scope="col">后果</th><th scope="col">量化</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>触达放大（人群 × 并发 × 时间）</strong></td><td>一次决策复制成百万次触达</td><td>打扰、退订、投诉、品牌受损</td><td>1 次决策 → 564 万次触达；幂等失效时单用户再放大 50–100 倍；慢信号止损比快信号晚 288 倍（<a href="#sec-3.5.10">触达放大的三段放大</a>）</td></tr>
+      <tr><td><strong>资损放大</strong></td><td>一张券错发到全量</td><td>直接资金损失</td><td>直接发券 10 万人 = <strong>¥100 万</strong>沉没成本；延迟发券 = ¥3 万，<strong>差 33 倍</strong>（<a href="#sec-3.9.21">成本模型</a>）</td></tr>
+      <tr><td><strong>合规放大</strong></td><td>一句违禁词进入全量文案</td><td>监管处罚、下架</td><td>564 万次触达 × 0.15% 投诉率 = <strong>8,460 次投诉</strong>（<a href="#sec-3.6.11">打扰成本与频控阈值</a>）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>本章的放大器方向值得单独记</strong>：<a href="/2026/11/26/agent-design-01-text2sql/">问数</a>放大的是结果集，<a href="/2026/11/26/agent-design-03-customer-service/">客服</a>放大的是上下文，<strong>营销章放大的是触达</strong>——它是唯一一个「错误会主动跑到用户手机里」的架构。<strong>别的系统错了是一行脏数据，营销错了是几百万人今天被打扰。</strong></p>
+</blockquote>
+
+<h3 id="sec-2.3">4.2.3 四类正确性与八组关键矛盾</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>四类正确性必须分开保证：状态正确靠下发前实时复核，频控正确靠 Lua 原子加幂等键，合规正确靠双层审核加结构化权益，归因正确靠 Holdout 加净 ROI；每一类都写了典型漏法，比如状态正确最常见的漏法是「队列里的消息发出时状态已变」。八组关键矛盾各配默认策略与反转条件，比如「短期点击 vs 长期 ROI」默认净 ROI 加慢信号，拉新期可容忍。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「状态正确」被排在频控、合规、归因之前，这个顺序本身就是设计判断：状态正确是唯一一类「错了会立刻被用户看见」的错误——用户收到一条催单时，你还没来得及算 ROI，投诉已经到了。其余三类错了至少还能在报表上被追查。</p>
+</div>
+
+<p><strong>四类正确性</strong>（必须分开保证）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层次</th><th scope="col">要求</th><th scope="col">保障手段</th><th scope="col">典型漏法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>状态正确</strong></td><td>不催已付款、不发失效标的</td><td>下发前实时复核</td><td>队列里的消息发出时状态已变</td></tr>
+      <tr><td><strong>频控正确</strong></td><td>不超发、不重复发</td><td>Lua 原子 + 幂等键</td><td>check-then-act 竞态</td></tr>
+      <tr><td><strong>合规正确</strong></td><td>文案与权益一致、无违禁词</td><td>双层审核 + 结构化权益</td><td>模型编造权益</td></tr>
+      <tr><td><strong>归因正确</strong></td><td>剔除自然转化水分</td><td>Holdout + 净 ROI</td><td>无对照组</td></tr>
+  </tbody>
+</table>
+<p><strong>八组关键矛盾</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">矛盾</th><th scope="col">典型表现</th><th scope="col">默认策略</th><th scope="col">何时反转</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>触达量 vs 打扰</td><td>多发 GMV 高但退订高</td><td>频控 + 护栏指标</td><td>低打扰场景可放宽</td></tr>
+      <tr><td>短期点击 vs 长期 ROI</td><td>大额券拉 CVR 却亏毛利</td><td>净 ROI + 慢信号</td><td>拉新期可容忍</td></tr>
+      <tr><td>千人千面 vs 合规</td><td>个性化易越界</td><td>模板 + 双层审核</td><td>品牌强管控统一</td></tr>
+      <tr><td>实时 vs 状态准确</td><td>实时快但状态旧</td><td>下发前复核</td><td>非时效场景可异步</td></tr>
+      <tr><td>自动化 vs 审批</td><td>全自动快但风险</td><td>分级审批</td><td>低预算可全自动</td></tr>
+      <tr><td>频控严 vs 机会</td><td>严则少触达</td><td>分渠道 / 分场景阈值</td><td>高价值用户可放宽</td></tr>
+      <tr><td>探索 vs 利用</td><td>一直探索亏</td><td>MAB + 最小探索比例</td><td>明确假设时用固定 A/B</td></tr>
+      <tr><td>归因窗口 vs 时效</td><td>等 7 天太久</td><td>快慢信号分离</td><td>短周期活动可缩短</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-2.4">4.2.4 八类失败模式、快慢分层与成本结构</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>八类失败模式：催单靠下发前复核，重复发靠幂等键与版本，超发靠 Lua 原子与预算锁，违规靠双层审核与模板，资损靠预算中心 Fail-Closed，误归因靠 Holdout，打扰靠静默时段与版本号，素材错配靠结构化权益服务。快慢双层智能把决策模型层放在 50 到 150ms 的实时门控上，生成与规划层离线做秒级工作，确定性规则与状态层在 10ms 内完成退订一票否决、原子频控与状态校验。成本结构里补贴与权益最大，渠道费用次之，模型生成可忽略。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「生成层必须离线」是这一节最容易被忽略的架构约束：千人千面文案的生成是秒级的，而决策链路的预算只有 150ms，把生成放进实时链路等于用 150ms 的预算去跑 3 秒的任务。所以生成要提前批量做好、按人群包乘变体缓存，下发时只做查表加渲染。</p>
+</div>
+
+<p><strong>八类失败模式</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">失败</th><th scope="col">表现</th><th scope="col">根因</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>催单</td><td>已支付仍收到提醒</td><td>状态过期</td><td>下发前复核</td></tr>
+      <tr><td>重复发</td><td>同用户多次收到</td><td>重试 / 并发</td><td>幂等键 + 版本</td></tr>
+      <tr><td>超发</td><td>超频控 / 超预算</td><td>check-then-act</td><td>Lua 原子 + 预算锁</td></tr>
+      <tr><td>违规</td><td>违禁词 / 虚假宣传</td><td>生成不可控</td><td>双层审核 + 模板</td></tr>
+      <tr><td>资损</td><td>超发券 / 补贴</td><td>预算无强约束</td><td>预算中心 Fail-Closed</td></tr>
+      <tr><td>误归因</td><td>自然转化算作营销</td><td>无对照组</td><td>Holdout</td></tr>
+      <tr><td>打扰</td><td>静默时段发送</td><td>时区 / 顺延错误</td><td>静默时段 + <code>schedule_seq</code></td></tr>
+      <tr><td>素材错配</td><td>文案与权益不符</td><td>模型编造</td><td>结构化权益服务</td></tr>
+  </tbody>
+</table>
+<p><strong>快慢双层智能</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">职责</th><th scope="col">典型实现</th><th scope="col">延迟</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>决策模型层（System One）</td><td>高频、封闭选项、低延迟门控：渠道选择、打扰敏感度、是否值得立即触达</td><td>轻量模型 / 规则 / 特征服务</td><td>50–150ms</td></tr>
+      <tr><td>生成与规划层（System Two / Agent）</td><td>人群标签组合、千人千面文案与多模态物料、异动归因、策略提案</td><td>LLM、工具调用、规划与反思</td><td>秒级（<strong>离线，不在实时链路</strong>）</td></tr>
+      <tr><td>确定性规则与状态层</td><td>退订 / 黑名单一票否决、Redis 原子频控、实时业务状态校验、任务幂等</td><td>Lua、状态机、幂等表、版本号</td><td>&lt; 10ms</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>生成层必须离线</strong>。这是本章最容易被忽略的一条架构约束：千人千面文案的生成是秒级的，而决策链路的预算只有 150ms。<strong>把生成放进实时链路，等于用 150ms 的预算去跑 3 秒的任务。</strong> 生成必须提前批量做好、按「人群包 × 变体」缓存，下发时只做查表 + 渲染。</p>
+</blockquote>
+<p><strong>威胁模型</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">威胁</th><th scope="col">路径</th><th scope="col">防线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>薅羊毛</td><td>批量账号领券</td><td>风控、限购、设备指纹</td></tr>
+      <tr><td>刷量</td><td>伪造点击 / 曝光</td><td>归因去重、反作弊</td></tr>
+      <tr><td>Prompt 注入</td><td>商品标题 / 评论含指令</td><td>清洗隔离、数据包裹</td></tr>
+      <tr><td>PII 泄露</td><td>画像 / 标签外泄</td><td>脱敏、最小化、权限</td></tr>
+      <tr><td>内部越权</td><td>超预算 / 超范围投放</td><td>审批、预算锁、审计</td></tr>
+      <tr><td><strong>误触达（内部无意）</strong></td><td><strong>条件写反，圈中全量敏感人群</strong></td><td><strong>规模上下界预检 + 样本预览 + 分级审批</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>成本结构</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">占比量级</th><th scope="col">优化手段</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>补贴 / 权益</strong></td><td><strong>最大</strong></td><td>精准圈选、增量归因、预算控制、<strong>延迟发券</strong></td></tr>
+      <tr><td>渠道费用</td><td>次之</td><td>渠道选择、频控</td></tr>
+      <tr><td>LLM 生成</td><td>中（可忽略）</td><td>模板缓存、批量生成</td></tr>
+      <tr><td>计算 / 存储</td><td>小</td><td>分层、TTL</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>补贴是最大的成本项，而它有一个被忽略的杠杆：发券时机</strong>。直接发券的成本 = 触达量 × 面额，与转化率完全无关；延迟发券的成本 = 触达量 × 转化率 × 面额。<strong>10 万人的活动，两者相差 33 倍</strong>（<a href="#sec-3.9.21">成本模型</a>）。<strong>同样的钱，先优化「发给谁」的收益通常远大于优化「什么时候发」。</strong></p>
+</blockquote>
+
+<h2 id="seg-3">4.3 理论与方法论</h2><div class="oc-part-lead"><strong>第三段 · 理论与方法论</strong>这一段回答：从七项前置锚点出发，一步步推到方法论与容量成本；放大、频控、幂等、归因各怎么治。</div>
+
+<h3 id="sec-3.1">4.3.1 S0 前置锚点与 4S 收敛顺序</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>七项锚点划定可行域：业务目标与成功标准、规模量级、质量属性优先级、硬约束、不可逆决策清单、核心路径与事实源、竞争与协作边界。第 2 项之所以改变答案，是因为营销的规模参数不只是 QPS，还有人群池大小——同样日触达 5000 万，人群池 1 亿时人均日触达 0.5 次，人群池 500 万时人均 10 次，后者必然退订率爆表。4S 收敛顺序是定题、场景、服务、存储、规模。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「人群池」是营销章独有的关键参数，它决定触达量与打扰强度之间的换算关系。传统系统的容量参数是 QPS，营销系统还必须给出人群池，否则「日触达 5000 万」这个数字完全无法解读：它可以是「每天打扰全公司一次」，也可以是「每天打扰百分之一的用户十次」。</p>
+</div>
+
+<h4 id="sec-3.1.1" data-toc-skip>S0：七项前置锚点</h4>
+
+<p>先落定七件事，它们共同决定<strong>可行域</strong>——不在可行域内的方案不参与讨论。</p>
+<table>
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">锚点</th><th scope="col">本章答案</th><th scope="col">影响</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>业务目标与成功标准</strong></td><td>净 ROI ≥ 3、退订率 ≤ 0.1%、投诉率 ≤ 0.05%、频控超发 0</td><td>决定自动化分级与熔断阈值</td></tr>
+      <tr><td>2</td><td><strong>规模量级</strong></td><td>日触达 5000 万、峰值 2894 QPS、活动 1 万 / 天、单活动 10 万–1000 万人、<strong>人群池 1 亿</strong></td><td>决定频控集群、渠道容量、预算与成本模型</td></tr>
+      <tr><td>3</td><td><strong>质量属性优先级</strong></td><td>不打扰 &gt; 不资损 &gt; 不违规 &gt; 增量 ROI &gt; 触达量</td><td>决定降级顺序与熔断优先级</td></tr>
+      <tr><td>4</td><td><strong>硬约束</strong></td><td>广告法与平台合规红线；退订与黑名单 100% 拦截；频控超发 0；预算不超发；静默时段与冷却期不得违反；PII 最小化</td><td>定义可行域；合规与资金要求不可用增长折抵</td></tr>
+      <tr><td>5</td><td><strong>不可逆决策清单</strong></td><td>见 <a href="#sec-1.3">系统边界、核心指标与不可逆决策</a> 的本章七项</td><td>决策流程：多评审 + 原型 + 迁移方案</td></tr>
+      <tr><td>6</td><td><strong>核心路径与事实源</strong></td><td>核心路径 = 目标 → 圈选 → 生成 → 审核 → 调度 → 决策 → 状态复核 → 频控 → 下发 → 归因；事实源 = <strong>活动配置 + 人群快照 + 触达事件 + 预算账本</strong></td><td>决定缓存与对账对象；频控计数与结果缓存全是投影</td></tr>
+      <tr><td>7</td><td><strong>竞争与协作边界</strong></td><td>渠道网关、短信 / 推送服务商、支付与权益库存在外部；触达、频控、归因、实验、审核自建</td><td>决定服务边界与团队成本</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 2 项为什么改变答案</strong>：营销系统的规模参数不只是 QPS，还有<strong>人群池大小</strong>。同样日触达 5000 万，人群池 1 亿时人均日触达 0.5 次，人群池 500 万时人均 10 次——<strong>后者必然退订率爆表</strong>。<strong>「人群池」是营销章独有的关键参数，它决定触达量与打扰强度之间的换算关系。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.1.2" data-toc-skip>4S 收敛顺序</h4>
+
+<pre><code>S0 定题（锚点 + 不可逆清单）
+   → Scenario 定触达量、活动数、人群池、单活动规模、渠道、合规要求
+      → Service 定解析、圈选、生成、审核、调度、决策、频控、下发、归因的边界
+         → Storage 定人群快照、触达事件、频控计数、预算账本的唯一事实源
+            → Scale 定分层决策、原子频控、异步调度、离线生成、降级熔断</code></pre>
+
+<h3 id="sec-3.2">4.3.2 场景、规模、服务与存储模型</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>规模给全：日触达 5000 万条、平均 579 QPS、峰值 2894 QPS（峰值系数 5）、活动 1 万个每天、单活动人群 10 万到 1000 万、人群池 1 亿、人均日触达 0.5 次；渠道占比是 Push 60%、短信 25%、站内信 10%、IM 5%。服务表 14 个服务分清同步与异步，关键标注是内容服务异步离线、决策服务 50 到 150ms、状态服务 Fail-Closed、频控服务 Redis Lua 原子、预算服务原子扣减。数据模型里人群快照、活动配置、幂等表、触达事件、归因宽表与预算账本是事实源，频控计数是投影，但必须保留扣减日志。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>频控计数是不是事实源值得想清楚：它可以重放，从触达事件重算，但重放结果与线上的原子计数可能不一致——并发顺序与失败回补都不同。所以投影可以丢，投影的日志不能丢，否则事后无法解释「为什么这个人收到了 5 条」。</p>
+</div>
+
+<h4 id="sec-3.2.3" data-toc-skip>Scenario：场景与规模</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">数值</th><th scope="col">推导与来源</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>日触达量</td><td>5000 万条</td><td>—</td></tr>
+      <tr><td>平均下发 QPS</td><td>5000 万 ÷ 86400</td><td>≈ <strong>579</strong></td></tr>
+      <tr><td><strong>峰值下发 QPS</strong></td><td>579 × 5</td><td><strong>2,894</strong>（峰值系数 5：晚 8 点与 10 点两个高峰承载当日 35%，叠加 12 点大促脉冲）</td></tr>
+      <tr><td>活动数</td><td>1 万个 / 天</td><td>决定目标解析与审批的并发形态</td></tr>
+      <tr><td><strong>人群池</strong></td><td><strong>1 亿可触达用户</strong></td><td><strong>决定打扰强度：人均日触达 = 触达量 / 人群池</strong></td></tr>
+      <tr><td>单活动人群</td><td>10 万 – 1000 万</td><td>决定审批级别与分批放量策略</td></tr>
+      <tr><td><strong>人均日触达次数</strong></td><td>5000 万 ÷ 1 亿</td><td><strong>0.5 次 / 人 / 日</strong>（基线；<strong>这是打扰强度的直接读数</strong>）</td></tr>
+      <tr><td>决策延迟</td><td>50–150ms</td><td>决定快慢分层与降级链</td></tr>
+      <tr><td>渠道</td><td>Push 60%、短信 25%、站内信 10%、IM 5%</td><td>渠道占比决定成本与频控共享口径</td></tr>
+      <tr><td>生成模式</td><td>离线批量，按「人群包 × 变体」缓存</td><td><strong>生成不在实时链路</strong></td></tr>
+      <tr><td>合规</td><td>广告法、退订、静默时段、PII</td><td>—</td></tr>
+      <tr><td>归因</td><td>快信号 T+0（5 min 内）、慢信号 T+24h / T+7d</td><td>决定止损窗口</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「人均日触达次数」是本章独有的关键参数</strong>。传统系统的容量参数是 QPS，营销系统还必须给出<strong>人群池</strong>，否则「日触达 5000 万」这个数字完全无法解读：它可以是「每天打扰全公司一次」，也可以是「每天打扰百分之一的用户十次」。<strong>同样的 QPS，用户的感受天差地别。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.2.4" data-toc-skip>Service：服务与接口</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">服务</th><th scope="col">职责</th><th scope="col">同步 / 异步</th><th scope="col">关键点</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>Goal Parser</td><td>自然语言目标解析</td><td>同步</td><td>结构化、可确认</td></tr>
+      <tr><td>Audience Service</td><td>CDP 圈选、规模预检、快照</td><td>同步</td><td>规模上下界、版本</td></tr>
+      <tr><td>Content Service</td><td>文案 / 图片生成</td><td><strong>异步（离线）</strong></td><td>多模态、合规、<strong>按人群包缓存</strong></td></tr>
+      <tr><td>Compliance Service</td><td>硬规则 + 语义审核</td><td>同步</td><td>一票否决</td></tr>
+      <tr><td>Scheduler</td><td>延迟 / 定时 / 事件触发</td><td>异步</td><td><code>schedule_seq</code></td></tr>
+      <tr><td>Decision Service</td><td>渠道 / 时机 / 打扰门控</td><td>同步</td><td><strong>50–150ms</strong></td></tr>
+      <tr><td>State Service</td><td>实时业务状态复核</td><td>同步</td><td><strong>Fail-Closed</strong></td></tr>
+      <tr><td>Frequency Service</td><td>多维频控</td><td>同步</td><td><strong>Redis Lua 原子</strong></td></tr>
+      <tr><td>Delivery Service</td><td>幂等下发</td><td>异步</td><td>渠道适配、失败回补</td></tr>
+      <tr><td>Attribution Service</td><td>归因、Holdout</td><td>异步</td><td>快慢信号分层</td></tr>
+      <tr><td>Experiment Service</td><td>A/B、MAB、护栏熔断</td><td>同步</td><td>分流、护栏优先</td></tr>
+      <tr><td>Budget Service</td><td>补贴 / 权益预算</td><td>同步</td><td><strong>原子扣减、Fail-Closed</strong></td></tr>
+      <tr><td>Audit Service</td><td>全链路审计</td><td>异步</td><td>不可篡改</td></tr>
+  </tbody>
+</table>
+<p><strong>核心 API</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">方法</th><th scope="col">路径</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>POST</td><td><code>/api/v1/campaigns</code></td><td>创建活动（自然语言目标）</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/campaigns/{id}/audience/preview</code></td><td>人群预估与样本分布</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/campaigns/{id}/submit</code></td><td>提交审批</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/campaigns/{id}/launch</code></td><td>启动</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/campaigns/{id}/pause</code></td><td>暂停</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/campaigns/{id}/report</code></td><td>效果报告</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-3.2.5" data-toc-skip>Storage：数据模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">数据</th><th scope="col">存储</th><th scope="col">关键设计</th><th scope="col">是事实源吗</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>人群快照</td><td>对象存储 / 位图</td><td><code>campaign_id + snapshot_version</code></td><td><strong>是</strong></td></tr>
+      <tr><td>活动配置</td><td>MySQL</td><td>目标、预算、护栏、状态、版本</td><td><strong>是</strong></td></tr>
+      <tr><td>触达任务</td><td>MySQL / Redis</td><td><code>campaign_id + user_id + step_id</code></td><td>否（可重建）</td></tr>
+      <tr><td>延迟调度</td><td>延迟队列 / 时间轮</td><td><code>schedule_seq</code></td><td>否（可重建）</td></tr>
+      <tr><td>频控计数</td><td>Redis</td><td><code>freq:{user_id}:{scope}:{window}</code></td><td>否（可重建，但<strong>必须能重放</strong>）</td></tr>
+      <tr><td>幂等表</td><td>Redis / MySQL</td><td><code>idempotency_key</code> 唯一</td><td><strong>是</strong>（去重的依据）</td></tr>
+      <tr><td>触达事件</td><td>Kafka / 数仓</td><td>统一 Envelope</td><td><strong>是</strong></td></tr>
+      <tr><td>归因宽表</td><td>数仓</td><td><code>trace_id</code> 对齐</td><td><strong>是</strong></td></tr>
+      <tr><td>预算账本</td><td>预算中心</td><td>原子扣减、Fail-Closed、对账</td><td><strong>是</strong></td></tr>
+      <tr><td>生成结果缓存</td><td>Redis / 对象存储</td><td>按「人群包 × 变体」</td><td>否（可重建）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>频控计数是不是事实源，是一个需要想清楚的问题</strong>。它可以重放（从触达事件重算），但<strong>重放的结果与线上的原子计数可能不一致</strong>（并发顺序、失败回补）。因此它虽然可以重建，<strong>却必须保留原始的扣减日志</strong>，否则事后无法解释「为什么这个人收到了 5 条」。<strong>投影可以丢，投影的日志不能丢。</strong></p>
+</blockquote>
+<p><strong>任务模型</strong>：</p>
+<pre><code>Campaign（活动）
+  └→ Strategy（策略）
+       └→ Step（触达步骤）
+            └→ Delivery Task（单用户单次下发）</code></pre>
+
+<h4 id="sec-3.2.6" data-toc-skip>Scale：扩展与兜底</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">维度</th><th scope="col">手段</th><th scope="col">触发条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>决策</td><td>快慢分层、模型分级</td><td>决策 P99 上升</td></tr>
+      <tr><td>频控</td><td>Redis 集群 + Lua</td><td>触达 QPS 高</td></tr>
+      <tr><td>调度</td><td>延迟队列分片</td><td>延迟任务堆积</td></tr>
+      <tr><td>人群</td><td>位图 / 快照</td><td>圈选慢、口径漂移</td></tr>
+      <tr><td>生成</td><td>离线批量、模板缓存</td><td>token 成本高、延迟超限</td></tr>
+      <tr><td>下发</td><td>渠道分流、错峰</td><td>渠道限流</td></tr>
+      <tr><td>降级</td><td>规则兜底、Fail-Closed</td><td>依赖故障</td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-3.3">4.3.3 目标解析与动态分群</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>目标解析把自然语言变成结构化字段：目标、人群、预算、周期、渠道、约束、护栏；缺字段必须追问，预算、周期与护栏必须显式确认，解析结果进审批不能直接执行。分群侧给五类标签（生命周期、时间、偏好、价值、约束）与四条执行前预检：预估规模与样本特征、防止条件写反导致误圈全量或圈出 0 人、规模上下界告警、高预算与敏感人群挂起审批。规模预检给了量化阈值：超过人群池 20% 强制审批，超过 60% 强制收紧频控，预估为 0 直接阻断。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「必须解析出触达量与预算的比值」是本章新增的硬要求：一个「预算 5 万、覆盖 1000 万人」的目标，人均补贴只有 0.5 元——要么根本发不出有意义的权益，要么必然大面积打扰却换不来转化。所以目标解析阶段就要把人均补贴算出来显示给审批人，因为它是「这个活动值不值得做」的第一道判断。</p>
+</div>
+
+<h4 id="sec-3.3.7" data-toc-skip>目标解析与策略建模</h4>
+
+<p><strong>目标结构化字段</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">字段</th><th scope="col">示例</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>目标</td><td>召回、复购、拉新、唤醒</td></tr>
+      <tr><td>人群</td><td>加购未支付、近 30 天未活跃</td></tr>
+      <tr><td>预算</td><td>5 万元</td></tr>
+      <tr><td>周期</td><td>30 分钟延迟、持续 7 天</td></tr>
+      <tr><td>渠道</td><td>Push 优先，短信兜底</td></tr>
+      <tr><td>约束</td><td>ROI ≥ 3，退订率 ≤ 0.1%</td></tr>
+      <tr><td>护栏</td><td>日上限 2，静默时段不发</td></tr>
+  </tbody>
+</table>
+<p><strong>目标解析要求</strong>：</p>
+<ul>
+<li>输出结构化 JSON，缺字段时追问。</li>
+<li>预算、周期、护栏必须显式确认。</li>
+<li>解析结果进入审批，不能直接执行。</li>
+<li><strong>必须解析出「触达量」与「预算」的比值</strong>——这是唯一能提前判断「这个活动会不会打扰过头」的量。</li>
+</ul>
+<blockquote>
+  <p><strong>最后一条是本章新增的硬要求</strong>。一个「预算 5 万、覆盖 1000 万人」的目标，人均补贴只有 0.5 元——<strong>这个活动要么根本发不出有意义的权益，要么必然大面积打扰却换不来转化</strong>。<strong>目标解析阶段就要把「人均预算 / 人均补贴面额」算出来并显示给审批人</strong>，因为它是「这个活动值不值得做」的第一道判断。</p>
+</blockquote>
+
+<h4 id="sec-3.3.8" data-toc-skip>用户洞察与动态分群（CDP）</h4>
+
+<p><strong>五类标签</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">示例</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>生命周期</td><td>新客、首购、复购、流失预警、赢回</td></tr>
+      <tr><td>时间</td><td>最近活跃、最近购买、加购未支付时长</td></tr>
+      <tr><td>偏好</td><td>品类偏好、价格带、渠道偏好</td></tr>
+      <tr><td>价值</td><td>客单价区间、历史 GMV、毛利贡献</td></tr>
+      <tr><td>约束</td><td>免打扰、退订、黑名单、静默时段</td></tr>
+  </tbody>
+</table>
+<p><strong>执行前预检</strong>：</p>
+<ul>
+<li>输出预估人群规模与样本特征（地域、活跃、品类分布）。</li>
+<li>防止条件写反导致「误圈全量」或「圈出 0 人」；设置规模上下界告警。</li>
+<li>高预算、全量触达、敏感人群进入 <code>WAITING_APPROVAL</code> 挂起审批。</li>
+<li>固定人群快照版本，保证同一活动内口径可复现、可审计。</li>
+</ul>
+<p><strong>规模预检的量化阈值</strong>（参考）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">预检项</th><th scope="col">阈值参考</th><th scope="col">触发动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>预估规模 &gt; 目标人群池 20%</td><td>相当于人均日触达 ≥ 1 次</td><td>强制审批 + 分批放量</td></tr>
+      <tr><td>预估规模 &gt; 人群池 60%</td><td>相当于人均日触达 ≥ 3 次</td><td><strong>强制收紧频控 + 分级审批</strong></td></tr>
+      <tr><td>预估规模 = 0</td><td>条件写错</td><td>阻断，不允许发起</td></tr>
+      <tr><td>预估规模 &gt; 历史同活动 P99 × 3</td><td>条件可能写宽了</td><td>阻断，要求二次确认</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>规模预检的本质是「在发出之前把触达量翻译成打扰强度」</strong>。业务方看到的是「圈了 600 万人」，而用户感受到的是「我今天收到了 5 条推送」。<strong>这两个数字之间必须有一个自动换算，否则规模预检形同虚设。</strong></p>
+</blockquote>
+<p><strong>排除与去重</strong>：</p>
+<ul>
+<li>近期已购、已退订、已投诉、其他活动冷却期内用户应被抑制。</li>
+<li>多活动并行时按优先级分配同一用户配额。</li>
+</ul>
+
+<h3 id="sec-3.4">4.3.4 千人千面物料生成与合规</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>生成侧只向模型输入标签化、脱敏后的偏好与画像；双层合规网关是硬规则与一致性校验加语义与多模态审核；兜底是预审通过的安全模板，模板也失败就跳过。权益、价格与有效期必须来自结构化权益服务，不能让模型编造。生成粒度给了成本与收益表：不分群 3 次生成约 0.02 元，20 个人群包 60 次约 0.38 元，100 个人群包 300 次约 1.92 元，每人一份 10 万次约 640 元。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>最后一行比「贵」更严重：每人一份不只是浪费，它还破坏了实验的可解释性——同一活动的用户看到完全不同的文案，你无法归因「是文案好还是人群选得好」。所以粒度的上限是「人能理解的分组数」，不是「用户数」；而且粒度不该由成本决定，该由收益拐点决定，因为再细分下去文案差异很小、转化提升很快趋近于零。</p>
+</div>
+
+<h4 id="sec-3.4.9" data-toc-skip>千人千面物料生成与合规</h4>
+
+<p><strong>上下文收敛与脱敏</strong>：只向生成模型输入标签化、脱敏后的偏好与画像，避免暴露敏感隐私，也避免把细碎行为生硬拼进文案。</p>
+<p><strong>双层合规网关</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">检查内容</th><th scope="col">失败处理</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>硬规则与一致性校验</td><td>绝对化用语、违规承诺、违禁词；文案与实际权益 / 价格 / 有效期是否一致</td><td>直接拦截或改写</td></tr>
+      <tr><td>语义 / 多模态审核</td><td>图文合规、品牌调性、歧视与误导风险</td><td>重生成或降级模板</td></tr>
+  </tbody>
+</table>
+<p><strong>兜底</strong>：生成超时或审核未通过时，降级到预审通过的安全模板，保证任务不卡死；若连模板或权益校验都失败，则跳过。</p>
+<p><strong>补充</strong>：</p>
+<ul>
+<li>商品标题、用户评论等外部文本可能含 Prompt 注入，进入上下文前要清洗与隔离。</li>
+<li>权益、价格、有效期必须来自结构化权益服务，不能让模型编造。</li>
+<li>按「模板 × 人群包 × 权益」缓存生成结果，控制 token 成本与延迟。</li>
+<li>渠道有长度、图片尺寸、敏感词差异，渲染前按渠道能力裁剪。</li>
+</ul>
+<p><strong>生成粒度的成本与收益</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">粒度</th><th scope="col">单活动生成次数</th><th scope="col">单活动生成成本</th><th scope="col">个性化收益</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1 套文案（不分群）</td><td>3 次</td><td>≈ ¥0.02</td><td>无</td></tr>
+      <tr><td>20 个人群包</td><td>60 次</td><td>≈ ¥0.38</td><td>品类级个性化</td></tr>
+      <tr><td>100 个人群包</td><td>300 次</td><td>≈ ¥1.92</td><td>品类 × 价格带级</td></tr>
+      <tr><td>每人一份</td><td>10 万次</td><td>≈ ¥640</td><td>近乎随机，<strong>且违反「同一人群收到不同文案」的公平性</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>生成成本几乎可以忽略</strong>——单活动最多 ¥2，相比补贴成本是四位数对两位数。所以<strong>人群包粒度不该由成本决定，而该由「收益拐点」决定</strong>：同一品类偏好的人群，再细分下去文案差异很小、转化提升很快趋近于零。<strong>但更重要的是第 4 行：每人一份的写法不仅是浪费，它还破坏了实验的可解释性</strong>——同一活动的用户看到完全不同的文案，你无法归因「是文案好还是人群选得好」。<strong>粒度的上限是「人能理解的分组数」，不是「用户数」。</strong></p>
+</blockquote>
+
+<h3 id="sec-3.5">4.3.5 触达放大的三段放大</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>第一段人群放大：一次决策的触达量等于圈选人数乘决策通过率乘渠道成功率乘送达率，大促全量 Push 的例子是 1000 万乘 60% 乘 99% 乘 95%，放大 564 万倍。第二段并发放大：读限额、判断、写计数三步之间有约 1ms 的时间缝隙，热点键上会出现 50 到 100 并发，单用户收到 50 到 100 条而不是 1 条；Lua 原子脚本把并发窗口压到 0。第三段时间放大：快信号 5 分钟可抑制 87 万条，慢信号 24 小时可抑制 2.5 亿条，倍差 288 倍。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>三段里前两段可以彻底解决，第三段不能。所以真正的架构问题不是「怎么发现错」，而是「怎么让它错得少、错得早」——止损只能靠前置护栏、幂等与原子频控、快信号熔断这三样。指望事后归因再改，是营销系统最贵的错误。</p>
+</div>
+
+<h4 id="sec-3.5.10" data-toc-skip>触达放大的三段放大</h4>
+
+<p><strong>本节是触达放大的权威版</strong>，<a href="#sec-3.6.11">打扰成本与频控阈值</a>、<a href="#sec-5.2.2">变体：大促全量 Push</a>与<a href="#sec-5.3.7">扩容 10 倍，哪里先坏</a>只引用。</p>
+<p><strong>营销系统与其它系统最根本的差别</strong>：一次决策会复制成百万次触达。别的系统错了是一行脏数据，营销错了是几百万人今天被打扰。<strong>因此本章的第一性问题不是「怎么做得更准」，而是「一次决策最多能放大到多少」。</strong></p>
+<p><strong>第一段：人群放大（决策 → 触达）</strong></p>
+<pre><code>一次决策 → 触达 N 人
+N = 圈选人数 × 决策通过率 × 渠道成功率 × 送达率</code></pre>
+<p>以大促全量 Push 为例（目标 1000 万人，人群池 1 亿）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">环节</th><th scope="col">系数</th><th scope="col">剩余</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>圈选人数</td><td>—</td><td>10,000,000</td></tr>
+      <tr><td>决策通过率（值得立即触达）</td><td>60%</td><td>6,000,000</td></tr>
+      <tr><td>渠道成功率</td><td>99%</td><td>5,940,000</td></tr>
+      <tr><td>送达率</td><td>95%</td><td><strong>5,640,000</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>放大倍率 = 564 万倍</strong>。一次自然语言目标、一个人群圈选、一条策略，复制成 564 万次打扰。<strong>这个数字必须出现在方案里</strong>，因为它是后续所有风险（合规、退订、资损）的公共乘数。</p>
+</blockquote>
+<p><strong>第二段：并发放大（幂等 / 频控不原子）</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">做法</th><th scope="col">并发窗口</th><th scope="col">单 key 并发</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>GET 读限额 → 判断 → INCR 写计数</td><td>读返回到写入生效 ≈ <strong>1ms</strong></td><td>热点 key 上 50–100</td><td><strong>单用户收到 50–100 条，而不是 1 条</strong></td></tr>
+      <tr><td>Lua 原子脚本</td><td>0（单次脚本内完成）</td><td>不限</td><td>单用户恒为 1 条</td></tr>
+  </tbody>
+</table>
+<p>量化：1000 万次下发中，若 0.5% 落在已触达用户上 → 5 万条重复触达；<strong>重复触达是退订的第一诱因</strong>，退订率因此额外 +0.03%。</p>
+<blockquote>
+  <p><strong>并发放大的本质是「读—判断—写」这三步之间存在一个时间缝隙</strong>。这个缝隙在低并发时看不出来（单用户并发为 1），在大促首分钟才暴露。<strong>幂等键 + Lua 原子是唯一的解</strong>——加机器、加超时都无效。</p>
+</blockquote>
+<p><strong>第三段：时间放大（检测延迟）</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">信号</th><th scope="col">典型检测窗</th><th scope="col">峰值 2,894 QPS 下可抑制的触达量</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>快信号</strong>（退订、投诉、点击异常）</td><td><strong>5 min</strong></td><td>2,894 × 300 ≈ <strong>87 万条</strong></td></tr>
+      <tr><td><strong>慢信号</strong>（转化、净 ROI）</td><td><strong>24 h</strong></td><td>2,894 × 86,400 ≈ <strong>2.5 亿条</strong></td></tr>
+      <tr><td><strong>倍差</strong></td><td>—</td><td><strong>288 倍</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这条是本章最重要的结论</strong>：<strong>慢信号永远来不及止损。</strong> 转化和 ROI 要 24 小时后才算得出来，而在这一天里，一个坏策略可以触达 2.5 亿次。<strong>止损只能靠三样东西</strong>：前置护栏（规模预检、审批、合规审核）、幂等与原子频控、快信号熔断。<strong>指望「事后归因发现不对再改」是营销系统最贵的错误。</strong></p>
+</blockquote>
+<p><strong>三段放大合起来</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">段</th><th scope="col">放大</th><th scope="col">防线</th><th scope="col">防得住吗</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>人群放大</td><td>564 万倍</td><td>规模预检 + 分级审批 + 频控</td><td>✅ 可控（但必须在发出前）</td></tr>
+      <tr><td>并发放大</td><td>单用户 50–100 倍</td><td>幂等键 + Lua 原子</td><td>✅ 完全可控</td></tr>
+      <tr><td>时间放大</td><td>止损差 288 倍</td><td>快信号熔断 + 前置护栏</td><td>⚠️ <strong>只能部分控制</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>前两段是可以彻底解决的，第三段不能</strong>。所以真正的架构问题不是「怎么发现错」，而是「<strong>怎么让它错得少、错得早</strong>」——这是本章所有护栏的出发点。</p>
+</blockquote>
+
+<h3 id="sec-3.6">4.3.6 打扰成本与频控阈值</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>单次触达的总成本里渠道成本可忽略，补贴可占 90%，而打扰成本当期看不见、事后最大：退订的 LTV 损失按人均月毛利 30 元乘 24 个月算约 720 元。以 564 万次触达、退订率从 0.02% 升到 0.15% 为例，增量退订 7332 人、LTV 损失约 528 万、投诉 8460 次，是活动补贴预算 50 万的 10.6 倍。退订率与打扰强度是超线性关系：人均 0.5 次对应 0.02%，1 次 0.03%，2 次 0.07%，3 次 0.11%，5 次 0.15%。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「日上限 2」和「日上限 3」在退订率上是 0.07% 与 0.11% 的差别，而这两个数字通常是被随手拍出来的。所以频控阈值必须按曲线的拐点定，三步是：量出自己的退订率与人均日触达曲线（按渠道、按人群分层）、找拐点、阈值设在拐点之前并对高价值人群单独放宽。</p>
+</div>
+
+<h4 id="sec-3.6.11" data-toc-skip>打扰成本与频控阈值</h4>
+
+<p><strong>本节是打扰成本核算的权威版</strong>，<a href="#sec-3.9.21">成本模型</a>与<a href="#sec-5.3.5">变体 D：频控阈值与打扰曲线</a>只引用。</p>
+<p><strong>单次触达的总成本</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">量级</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>渠道成本</td><td>Push ¥0.005 / 短信 ¥0.03</td><td>可忽略</td></tr>
+      <tr><td>补贴成本</td><td>券面额 × 发放率</td><td>可占 90%</td></tr>
+      <tr><td><strong>打扰成本</strong></td><td><strong>退订 LTV 损失 + 投诉处理 + 信任消耗</strong></td><td><strong>当期看不见，事后最大</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>退订的 LTV 损失量化</strong>（这是最容易被漏算的一项）：</p>
+<pre><code>人均月毛利贡献 ¥30 × 期望活跃 24 个月 = 单用户生命周期毛利 ≈ ¥720
+一次退订 = 永久失去该用户的全部未来触达价值 ≈ −¥720（不是 0，是负的）</code></pre>
+<p>以 564 万次触达、退订率从 0.02% 升到 0.15% 为例：</p>
+<table>
+  <thead>
+    <tr><th scope="col">项</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>增量退订人数</td><td>564 万 × 0.13%</td><td><strong>7,332 人</strong></td></tr>
+      <tr><td><strong>LTV 损失</strong></td><td>7,332 × ¥720</td><td><strong>≈ ¥528 万</strong></td></tr>
+      <tr><td>投诉次数</td><td>564 万 × 0.15%</td><td><strong>8,460 次</strong></td></tr>
+      <tr><td>对比：活动补贴预算</td><td>—</td><td>¥50 万</td></tr>
+      <tr><td><strong>LTV 损失 / 活动预算</strong></td><td>528 / 50</td><td><strong>10.6 倍</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这是本章最重要的一组对比</strong>：一次触达放大造成的用户资产损失，是整个活动补贴预算的十倍。<strong>补贴花的是「这一单的钱」，打扰花的是「这个用户剩下的所有钱」。</strong> 而后者在当期报表上完全看不见——它只表现为「下个月的转化率莫名其妙降了」。</p>
+</blockquote>
+<p><strong>打扰强度与退订率是超线性关系</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">人均日触达次数</th><th scope="col">退订率（参考曲线）</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0.5</td><td>0.02%</td><td>基线，良性</td></tr>
+      <tr><td>1</td><td>0.03%</td><td>平稳</td></tr>
+      <tr><td><strong>2</strong></td><td><strong>0.07%</strong></td><td><strong>拐点附近</strong></td></tr>
+      <tr><td><strong>3</strong></td><td><strong>0.11%</strong></td><td><strong>超过拐点</strong></td></tr>
+      <tr><td>5</td><td>0.15%</td><td>明显打扰</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「日上限 2」和「日上限 3」在退订率上是 0.07% 与 0.11% 的差别</strong>，而这两个数字通常是被随手拍出来的。<strong>频控阈值必须按曲线定，不能拍脑袋定。</strong> 三步：① 量出自己的「退订率 — 人均日触达」曲线（按渠道、按人群分层）；② 找拐点；③ 阈值设在拐点之前，并对高价值人群单独放宽。</p>
+</blockquote>
+<p><strong>人群池固定时，触达量就是打扰强度</strong>：</p>
+<pre><code>人均日触达次数 = 日触达量 ÷ 人群池</code></pre>
+<table>
+  <thead>
+    <tr><th scope="col">规模</th><th scope="col">日触达</th><th scope="col">人群池</th><th scope="col">人均日触达</th><th scope="col">退订率（曲线）</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>基线</td><td>5000 万</td><td>1 亿</td><td>0.5 次</td><td>0.02%</td></tr>
+      <tr><td><strong>扩容 10 倍</strong></td><td><strong>5 亿</strong></td><td><strong>1 亿</strong></td><td><strong>5 次</strong></td><td><strong>0.15%（涨 7.5 倍）</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>扩容 10 倍，在用户手机上表现为「每天 0.5 条」变成「每天 5 条」。</strong> 人群池不会因为流量涨而变大——<strong>它是存量用户的集合</strong>。所以<strong>营销系统的扩容不是纯技术问题</strong>：QPS 翻 10 倍很容易，但「打扰强度翻 10 倍」会直接引爆退订。<strong>频控阈值必须先收紧，再谈扩容。</strong></p>
+</blockquote>
+<p><strong>净价值模型</strong>（用来定「最优触达量」）：</p>
+<pre><code>净增量价值 = 触达人数 × (增量转化率 × 客单毛利 − 人均补贴) − 触达人数 × 单位打扰成本
+最优点在：边际增量价值 = 边际打扰成本</code></pre>
+<blockquote>
+  <p><strong>单位打扰成本随打扰强度上升而上升</strong>（超线性），所以最优触达量是一个<strong>内点解</strong>，而不是「能触达多少就触达多少」。<strong>没有这个模型，触达量的决策只能靠拍脑袋。</strong></p>
+</blockquote>
+
+<h3 id="sec-3.7">4.3.7 事件触达、状态复核与幂等设计</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>下发前二次校验要重新检查实时业务状态：是否已支付、是否已退订、标的是否失效、是否处于免打扰时段，状态已变就取消或顺延。顺序铁律是状态复核、决策、频控扣减、下发，颠倒的代价分别是误扣额度并发催单、超发且无法回补、决策基于过期状态。延迟与顺延任务要三重防重：任务级幂等键、到达时刻二次状态复核、用户加活动级短锁加原子频控；顺延时递增版本号，只有版本一致才允许执行。幂等分七层，各有各的职责。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「无副作用的检查永远放在有副作用的动作之前」是这一段的核心，理由很直白：状态复核是只读的、免费的、无副作用的；频控扣减是有副作用的、不可撤销的。这个原则的迁移价值远超营销场景——它可以直接当成所有有副作用链路的排序准则。</p>
+</div>
+
+<h4 id="sec-3.7.12" data-toc-skip>事件驱动触达与频控</h4>
+
+<p><strong>触发方式</strong>：实时行为事件（加购未支付、浏览未下单、会员到期）或定时任务；支持延迟触发与多步推进。</p>
+<p><strong>下发前二次校验</strong>：真正发送前重新检查实时业务状态——是否已支付、是否已退订、标的是否失效、是否处于免打扰时段。状态已变则取消或顺延。</p>
+<p><strong>任务幂等</strong>：<code>campaign_id + user_id + step_id + trigger_ts_bucket</code> 等幂等键，防止重试、乱序、跨节点重复下发。</p>
+<p><strong>分布式频控</strong>（Redis Lua 原子）：</p>
+<ul>
+<li>日 / 周触达上限；</li>
+<li>活动冷却期；</li>
+<li>静默时段；</li>
+<li>退订 / 黑名单强拦截；</li>
+<li>同用户多策略的配额抢占。</li>
+</ul>
+<p>Lua 一次完成「检查 + 计数 + 记录原因」，避免 check-then-act 竞态。</p>
+<p><strong>关键顺序</strong>：</p>
+<pre><code>状态复核 → 决策 → 频控扣减 → 下发</code></pre>
+<table>
+  <thead>
+    <tr><th scope="col">顺序颠倒的后果</th><th scope="col">具体表现</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>先扣频控再查状态</td><td>已付款用户被扣掉额度，并收到一条催单</td></tr>
+      <tr><td>先下发再扣频控</td><td>超发，且无法回补</td></tr>
+      <tr><td>先决策再复核状态</td><td>决策基于已过期的状态，方向就错了</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>顺序铁律的四步里，「状态复核」在最前、「频控扣减」在第三。</strong> 理由是：<strong>状态复核是只读的、免费的、无副作用的；频控扣减是有副作用的、不可撤销的。</strong> <strong>永远把无副作用的检查放在有副作用的动作之前</strong>——这是本章最容易被违反、也最容易修的一条。</p>
+</blockquote>
+<p><strong>决策模型超时兜底</strong>：短超时（50–150ms），超时降级到确定性规则（默认低打扰渠道或 SKIP），但仍必须通过硬频控与退订校验。</p>
+
+<h4 id="sec-3.7.13" data-toc-skip>延迟 / 顺延任务的状态复核与并发防重入</h4>
+
+<p>延迟触发（加购 30 分钟后）与静默顺延（22:00–08:00 顺延到次日 08:30）最容易出现状态过期、重复消费与并发抢占。</p>
+<p><strong>三重防重</strong>：</p>
+<ol>
+<li><strong>任务级幂等键</strong>：<code>campaign_id:user_id:step_id:biz_id</code>，多轮触发加入 <code>trigger_bucket</code>。</li>
+<li><strong>到达时刻二次状态复核</strong>：入队状态只代表过去，执行前重新拉取订单、退订、库存 / 券状态。</li>
+<li><strong>用户 + 活动级短锁 + 原子频控</strong>：短 TTL 锁串行化关键门控检查，再由 Lua 原子扣减配额。</li>
+</ol>
+<p><strong>顺延版本控制</strong>：重新计算唤醒时间时更新 <code>schedule_seq</code>；只有当前调度单的 <code>schedule_seq</code> 与消息携带值一致才允许执行，防止旧延迟消息在顺延后误触发。</p>
+<p><strong>状态机原子跃迁</strong>：</p>
+<pre><code>SCHEDULED → EVALUATING → DISPATCHED / CANCELLED</code></pre>
+<p>使用条件更新或版本号，确保同一任务不会被两个 Worker 同时推进。</p>
+<p><strong>常见竞态</strong>：</p>
+<ul>
+<li>先扣频控还是先查状态？→ 先查状态，再扣频控。</li>
+<li>频控已扣但渠道报错？→ 记录 <code>delivery_failed</code>，按规则回补额度并告警。</li>
+<li>锁超时？→ 合理 TTL + 幂等键兜底，避免死锁与重复发送。</li>
+</ul>
+
+<h4 id="sec-3.7.14" data-toc-skip>幂等设计</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">层</th><th scope="col">方案</th><th scope="col">幂等键 / 约束</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>任务</td><td>任务级幂等</td><td><code>campaign_id + user_id + step_id + trigger_ts_bucket</code></td></tr>
+      <tr><td>下发</td><td>渠道去重</td><td><code>idempotency_key</code> + 渠道侧去重</td></tr>
+      <tr><td>频控</td><td>原子计数 + 记录</td><td>Lua 脚本 + 计数版本</td></tr>
+      <tr><td>状态</td><td>条件更新</td><td><code>WHERE status = ?</code></td></tr>
+      <tr><td>顺延</td><td>版本校验</td><td><code>schedule_seq</code> 一致才执行</td></tr>
+      <tr><td>归因</td><td>主键对齐</td><td><code>trace_id</code> 唯一</td></tr>
+      <tr><td>预算</td><td>原子扣减 + 账本</td><td><code>budget_ledger</code> 唯一键</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>七层幂等不是冗余，是职责分离</strong>：任务层防「重发任务」，下发层防「渠道重投」，频控层防「超发」，状态层防「并发推进」，顺延层防「旧消息误触发」，归因层防「重复计功」，预算层防「超发资金」。<strong>任何一层单独存在都不够</strong>——最常见的漏洞是「任务幂等做了，但渠道重投没做」。</p>
+</blockquote>
+
+<h3 id="sec-3.8">4.3.8 增量归因、MAB 与降级矩阵</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>固定 A/B 适合验证明确假设，MAB 适合在探索与利用之间动态分配流量，三种策略分别是 ε-greedy、UCB 与 Thompson Sampling；快慢双信号决定用途：快信号 5 分钟内用于熔断高退订高投诉变体，慢信号 24 小时到 7 天用于修正权重与最终评估。Holdout 增量归因用处理组减对照组的转化差，再算净价值。降级矩阵的判据只有一条：依赖失效时，后果是少赚一点还是伤到用户。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「护栏指标与收益指标不在同一个量纲上，必须硬隔离」是这一段的关键。一个变体可以点击率最高但退订率也最高，如果两者一起加权，模型会去探索「高点击高退订」的变体——那是在优化打扰，不是在优化生意。所以护栏指标触达上限直接熔断，不参与常规放量。</p>
+</div>
+
+<h4 id="sec-3.8.15" data-toc-skip>自动化 A/B、MAB 与增量归因</h4>
+
+<p><strong>固定 A/B</strong> 适合验证明确假设；<strong>Multi-Armed Bandit</strong> 适合在探索与利用之间动态分配流量：</p>
+<ul>
+<li>ε-greedy：以 ε 概率探索，其余选择当前最优。</li>
+<li>UCB：按均值 + 不确定性给冷门臂探索机会。</li>
+<li>Thompson Sampling：从各变体后验分布采样，选择采样收益最高者。</li>
+</ul>
+<p><strong>快慢双信号</strong>：</p>
+<pre><code>快信号检测窗 = 5 min  → 峰值 2,894 QPS 下可抑制 87 万条
+慢信号检测窗 = 24 h   → 峰值 2,894 QPS 下可抑制 2.5 亿条
+倍差 288 倍 → 慢信号永远来不及止损，止损只能靠快信号 + 前置护栏</code></pre>
+<table>
+  <thead>
+    <tr><th scope="col">信号</th><th scope="col">内容</th><th scope="col">延迟</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>快信号</strong></td><td>曝光、点击、退订、投诉</td><td>T+0（5 min 内）</td><td><strong>熔断高退订 / 高投诉变体——止损</strong></td></tr>
+      <tr><td><strong>慢信号</strong></td><td>归因窗口内的真实转化、客单价、补贴成本、净贡献、ROI</td><td>T+24h / T+7d</td><td>修正权重与最终评估——<strong>调优，不是止损</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>Holdout 增量归因</strong>：保留空白对照组，计算真实增量提升（Uplift），剔除自然转化水分：</p>
+<pre><code>Uplift = Conversion(TREATMENT) − Conversion(HOLDOUT)
+Net Value_i = Attributed GMV_i × Margin Rate − Subsidy Cost_i − Channel Cost_i</code></pre>
+<p><strong>Thompson Sampling 细节</strong>：</p>
+<ul>
+<li>二元转化用 Beta-Bernoulli 后验，成功 / 失败计数可加先验与时间衰减。</li>
+<li>连续收益（客单价、净 ROI 差异大）用正态 / 伽马等后验或分桶近似，避免「大额券拉高 CVR 却亏毛利」。</li>
+<li>保留最小探索比例（Floor Exploration）与 Holdout，防止早期噪音锁死变体。</li>
+<li>大促、季节、生命周期变化时使用滑动窗口 / 折扣因子，避免旧赢家长期霸占流量。</li>
+</ul>
+<p><strong>护栏优先</strong>：退订率、投诉率触达上限直接熔断（<code>mkt.strategy.circuit_broken</code>），不参与常规放量。</p>
+<blockquote>
+  <p><strong>护栏指标与收益指标不在同一个量纲上，必须硬隔离</strong>。一个变体可以「点击率最高」但「退订率也最高」。如果退订与 ROI 一起参与加权，模型会去探索「高点击高退订」的变体——<strong>那是在优化打扰，不是在优化生意</strong>。</p>
+</blockquote>
+
+<h4 id="sec-3.8.16" data-toc-skip>降级矩阵（Fail-Open / Fail-Closed）</h4>
+
+<p><strong>本节是降级的权威版</strong>，<a href="#sec-4.3.7">降级与熔断</a>与<a href="#sec-5.3.6">故障与兜底</a>只引用。</p>
+<p>不能一刀切全拦截，也不能在资金 / 合规 / 防打扰场景盲目放行。<strong>判据只有一条：依赖失效时，失效的后果是「少赚一点」还是「伤到用户」？</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">依赖 / 门控环节</th><th scope="col">典型故障</th><th scope="col">推荐策略</th><th scope="col">降级动作</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>退订与全局黑名单</td><td>状态服务超时</td><td><strong>Fail-Closed</strong></td><td>状态不明直接跳过，记 <code>SYS_STATE_SERVICE_TIMEOUT</code></td></tr>
+      <tr><td>召回标的实时状态</td><td>订单 / 加购服务超时</td><td>视场景</td><td>强时效召回（防催单）Fail-Closed；仅辅助标签且有快照可设短容忍窗口</td></tr>
+      <tr><td>Redis 分布式频控</td><td>节点抖动 / 超时</td><td><strong>Fail-Closed</strong></td><td>拦截并告警，或切本地粗粒度限流兜底</td></tr>
+      <tr><td>预算 / 权益额度</td><td>预算中心超时或余额不足</td><td><strong>Fail-Closed</strong></td><td>拦截发券 / 补贴，防超发资损</td></tr>
+      <tr><td>决策模型（时机 / 渠道）</td><td>超时 / 降级</td><td>降级兜底</td><td>切确定性规则（默认低打扰渠道或 SKIP），仍过硬频控与退订</td></tr>
+      <tr><td>千人千面物料生成</td><td>生成失败 / 超时</td><td>降级兜底</td><td>切预审安全模板；模板也失败则 Fail-Closed</td></tr>
+      <tr><td>渠道网关</td><td>限流 / 故障</td><td>降级兜底</td><td>换备用渠道；全不可用则记录失败并回补额度</td></tr>
+  </tbody>
+</table>
+<p><strong>治理要点</strong>：</p>
+<ul>
+<li>每次降级打标 <code>degraded=true</code>、<code>fallback_mode</code> 与 <code>reason_code</code>，避免把降级效果误算成策略效果。</li>
+<li>高频抖动依赖配置熔断器，触发后快速失败（<code>SYS_CIRCUIT_BREAKER_OPEN</code>），避免线程堆积。</li>
+<li>降级比例、原因码分布进入监控与告警。</li>
+</ul>
+<blockquote>
+  <p><strong>「语义层 / 权限不可用就停」在本章对应的是「退订状态不可用就停」「预算不可用就停」</strong>。这两条与<a href="/2026/11/26/agent-design-01-text2sql/">第 1 章 · 问数 Agent</a>的 fail-closed 是同一个原则：<strong>宁可少触达，不可打扰一个不该被打扰的人；宁可少发券，不可超发资金。</strong></p>
+</blockquote>
+
+<h3 id="sec-3.9">4.3.9 事件规范、样本回流与渠道容量成本</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>统一事件 Envelope 里有事件标识、追踪标识、幂等键、活动与策略与变体标识、实验分组、用户标识、决策元数据与原因码；核心事件按圈群调度、决策物料、触达执行、反馈归因四层组织。原因码按领域分类规范，每一类指向明确的排查方向。样本回流以追踪标识对齐，慢信号在归因窗口结束后回填并排除未到期样本。渠道必须显式声明七类能力：限流、内容、回执、重试、幂等、费用、合规。容量口径给出：峰值下发 2894 QPS、峰值下游合计约 1.3 万 QPS、决策链路硬约束 150ms、离线生成每天约 960 元、事件链路每天 2.5 亿条。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>原因码是营销系统最被低估的可观测资产：它把「退订率上升」这个笼统现象拆成可定位的原因——取消类上升说明延迟窗口太长，频控类上升说明触达量超了人群承受力，合规类上升说明文案模板出了问题。没有原因码，退订率上升永远只能靠猜。另一处要点是决策链路的 150ms：频控与状态复核只能分到 50ms，这不是性能优化项而是架构约束。</p>
+</div>
+
+<h4 id="sec-3.9.17" data-toc-skip>事件规范、原因码与可观测</h4>
+
+<p><strong>统一事件 Envelope</strong>：</p>
+<pre><code>event_id, event_name, event_time, ingest_time, trace_id,
+idempotency_key, campaign_id, strategy_id, variant_id,
+experiment_group, user_id, biz_context, decision_meta,
+reason_code, ext</code></pre>
+<p><strong>核心事件分层</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">事件示例</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>圈群与调度</td><td><code>mkt.audience.matched</code>、<code>mkt.holdout.assigned</code>、<code>mkt.schedule.delayed</code></td></tr>
+      <tr><td>决策与物料</td><td><code>mkt.decision.evaluated</code>、<code>mkt.content.generated</code>、<code>mkt.gate.skipped</code></td></tr>
+      <tr><td>触达执行</td><td><code>mkt.delivery.dispatched</code>、<code>mkt.delivery.delivered</code>、<code>mkt.delivery.failed</code></td></tr>
+      <tr><td>反馈与归因</td><td><code>mkt.user.exposed</code>、<code>mkt.user.clicked</code>、<code>mkt.user.unsubscribed</code>、<code>mkt.user.complained</code>、<code>mkt.attribution.converted</code>、<code>mkt.strategy.circuit_broken</code></td></tr>
+  </tbody>
+</table>
+<p><strong>原因码规范</strong>：<code>[领域]_[类别]_[具体原因]</code>。</p>
+<table>
+  <thead>
+    <tr><th scope="col">前缀</th><th scope="col">典型原因码</th><th scope="col">排查方向</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><code>CANCEL_*</code></td><td><code>CANCEL_ALREADY_CONVERTED</code>、<code>CANCEL_TARGET_INVALID</code>、<code>CANCEL_LIFECYCLE_CHANGED</code>、<code>CANCEL_WINDOW_EXPIRED</code></td><td>延迟窗口过长、标的有效期短、触发滞后</td></tr>
+      <tr><td><code>FREQ_*</code></td><td><code>FREQ_USER_DAILY_CAP</code>、<code>FREQ_USER_WEEKLY_CAP</code>、<code>FREQ_CAMPAIGN_COOLDOWN</code>、<code>FREQ_QUIET_HOURS_DROPPED</code>、<code>FREQ_CONFLICT_HIGHER_PRIO</code></td><td>打扰强度、冷却期、多策略抢占配额</td></tr>
+      <tr><td><code>COMP_*</code></td><td><code>COMP_GLOBAL_OPT_OUT</code>、<code>COMP_CHANNEL_UNSUBSCRIBED</code>、<code>COMP_USER_BLOCKLIST</code>、<code>COMP_CONTENT_COMPLIANCE_FAIL</code></td><td>退订 / 黑名单底线，或合规规则与模板</td></tr>
+      <tr><td><code>DEC_* / CNT_*</code></td><td><code>DEC_MODEL_SKIP</code>、<code>DEC_LOW_CONFIDENCE</code>、<code>CNT_GENERATION_FAILED</code>、<code>CNT_BUDGET_EXHAUSTED</code></td><td>模型阈值 / 特征、生成兜底、预算策略</td></tr>
+      <tr><td><code>SYS_*</code></td><td><code>SYS_STATE_SERVICE_TIMEOUT</code>、<code>SYS_DECISION_TIMEOUT</code>、<code>SYS_LOCK_CONTENTION</code>、<code>SYS_CIRCUIT_BREAKER_OPEN</code></td><td>下游状态接口、决策模型、锁与熔断器</td></tr>
+  </tbody>
+</table>
+<p><strong>可观测指标</strong>：触达量、送达率、决策延迟 P99、跳过率、频控命中率、取消原因分布、退订 / 投诉率、增量转化、净 ROI、降级比例、单次触达成本、<strong>人均日触达次数</strong>、<strong>累计退订存量</strong>。</p>
+<blockquote>
+  <p><strong>原因码是营销系统最被低估的可观测资产</strong>。它把「退订率上升」这个笼统的现象拆成可定位的原因：<code>CANCEL_ALREADY_CONVERTED</code> 上升说明延迟窗口太长，<code>FREQ_USER_DAILY_CAP</code> 上升说明触达量超了人群承受力，<code>COMP_CONTENT_COMPLIANCE_FAIL</code> 上升说明文案模板出了问题。<strong>没有原因码，退订率上升永远只能靠猜。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.9.18" data-toc-skip>样本回流与离线校准</h4>
+
+<p>在线决策、门控拦截、触达反馈与延迟归因必须按统一主键对齐沉淀。</p>
+<p><strong>对齐主键</strong>：<code>decision_id / trace_id</code>，关联 <code>campaign_id</code>、<code>strategy_id</code>、<code>variant_id</code>、<code>user_id</code>、<code>experiment_group</code>、<code>event_time</code>。</p>
+<p><strong>回填机制</strong>：曝光 / 点击 / 退订为快信号，可较快拼接；转化、净成交、补贴成本为慢信号，通常在归因窗口结束后（T+24h / T+7d）批流一体回填，避免把「尚未到期的转化」误标为负样本。</p>
+<p><strong>核心宽表字段</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">分组</th><th scope="col">关键字段</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>标识与实验</td><td><code>trace_id</code>、<code>user_id</code>、<code>campaign_id</code>、<code>strategy_id</code>、<code>variant_id</code>、<code>experiment_group</code></td><td>区分 TREATMENT / HOLDOUT，支撑增量归因</td></tr>
+      <tr><td>决策输入快照</td><td><code>trigger_type</code>、<code>lifecycle_stage</code>、<code>recent_active_hours</code>、<code>is_quiet_hours</code>、<code>user_feature_ver</code></td><td>还原决策上下文，防特征穿越与口径漂移</td></tr>
+      <tr><td>模型输出</td><td><code>model_name</code>、<code>model_version</code>、<code>choice_dist</code>、<code>selected_choice</code>、<code>score_val</code>、<code>confidence</code>、<code>is_fallback</code></td><td>评估校准度、阈值合理性与降级占比</td></tr>
+      <tr><td>门控与执行</td><td><code>final_action</code>（SENT / SKIPPED / DELAYED / FAILED）、<code>stage</code>、<code>reason_code</code>、<code>channel</code>、<code>delivery_status</code></td><td>区分模型主动跳过、频控拦截与真正触达</td></tr>
+      <tr><td>反馈与归因</td><td><code>is_exposed</code>、<code>is_clicked</code>、<code>is_unsubscribed</code>、<code>is_converted</code>、<code>order_gmv</code>、<code>subsidy_cost</code>、<code>net_margin</code></td><td>快信号熔断，慢信号做 ROI 调优与训练</td></tr>
+  </tbody>
+</table>
+<p><strong>典型用法</strong>：</p>
+<ul>
+<li><strong>模型校准</strong>：对比预测分数与真实转化 / 退订，校准概率并调整 SKIP 与置信度阈值。</li>
+<li><strong>反事实与漏放分析</strong>：结合 Holdout 与被 <code>DEC_MODEL_SKIP</code> / <code>FREQ_*</code> 拦截的样本，分析高价值机会流失与过度打扰边界。</li>
+<li><strong>策略库沉淀</strong>：高转化、低退订、高净贡献的变体沉淀为模板 / 先验；高频合规失败与高退订表达进入负样本与规则库。</li>
+</ul>
+<p><strong>补充</strong>：只对「已触达用户」建模会产生选择偏差，需保留随机探索与 Holdout；标签成熟度要按归因窗口打标，训练时排除未到期样本。</p>
+<blockquote>
+  <p><strong>这里有一个容易被忽略的选择偏差</strong>：模型只在「已触达用户」身上学到「什么该发」，但真正的目标函数是「什么该发<strong>且</strong>不打扰」。被 <code>FREQ_*</code> 拦下的人没有标签，于是<strong>频控抑制掉的高价值人群永远学不到</strong>。<strong>Holdout 不只是用来算增量，它还是模型能看见「被抑制者」的唯一样本来源。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.9.19" data-toc-skip>渠道契约与容量预估</h4>
+
+<p><strong>渠道能力声明</strong>（每个渠道必须显式声明，不能靠约定俗成）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">能力</th><th scope="col">声明项</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>限流</td><td>最大 QPS、单渠道并发上限、单租户配额</td></tr>
+      <tr><td>内容</td><td>标题长度、正文长度、图片尺寸、模板 ID、富文本能力</td></tr>
+      <tr><td>回执</td><td>送达 / 打开 / 点击 / 失败 的语义与到达延迟</td></tr>
+      <tr><td>重试</td><td>可重试错误码、重试次数、退避策略</td></tr>
+      <tr><td>幂等</td><td>渠道侧是否支持去重键、支持的去重窗口</td></tr>
+      <tr><td>费用</td><td>单条费用与计费口径（按发送还是按送达）</td></tr>
+      <tr><td>合规</td><td>渠道侧签名规则、渠道自有敏感词、黑名单</td></tr>
+  </tbody>
+</table>
+<p><strong>容量预估</strong>（下发前必做）：</p>
+<pre><code>预计下发量 = 圈选人数 × 决策通过率 × 渠道占比
+若 预计下发量 / 渠道限流 &gt; 1 → 分批放量或降级到备用渠道</code></pre>
+<table>
+  <thead>
+    <tr><th scope="col">场景</th><th scope="col">处置</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>预计量 &gt; 渠道限流 × 10s</td><td><strong>必须分批</strong>，并把放量节奏与静默时段一起规划</td></tr>
+      <tr><td>预计量 &gt; 渠道限流</td><td>降级到备用渠道或延长窗口</td></tr>
+      <tr><td>单渠道不可用</td><td>切换备用渠道，<strong>但不重复计数、不重复计费</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「渠道切换」是营销系统特有的失败模式</strong>：切换意味着同一个用户可能被两个渠道各触达一次，而频控口径必须跨渠道共享。<strong>如果不共享配额，渠道切换就成了绕过频控的后门。</strong></p>
+</blockquote>
+
+<h4 id="sec-3.9.20" data-toc-skip>容量与成本估算</h4>
+
+<p><strong>本节是容量口径的权威版</strong>，<a href="#seg-5">第 5 段</a>与<a href="#seg-6">第 6 段</a>只引用。</p>
+<p><strong>假设</strong>：日触达 5000 万条，峰值系数 5，活动 1 万个 / 天，人群池 1 亿；每条触达产生 5 个事件；在线链路上「决策 + 状态复核 + 频控 + 下发」各 1 次调用；生成离线进行。</p>
+<p><strong>一、在线链路</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>平均下发 QPS</td><td>5000 万 ÷ 86400</td><td>≈ 579</td></tr>
+      <tr><td><strong>峰值下发 QPS</strong></td><td>579 × 5</td><td><strong>2,894</strong></td></tr>
+      <tr><td>峰值决策 QPS</td><td>与下发同量级</td><td>2,894</td></tr>
+      <tr><td>峰值状态复核 QPS</td><td>1 × 下发</td><td>2,894</td></tr>
+      <tr><td>峰值频控 Redis QPS</td><td>Lua 1 次 + 失败回补 0.5 次</td><td>≈ 4,341</td></tr>
+      <tr><td>峰值渠道网关 QPS</td><td>1 × 下发</td><td>2,894</td></tr>
+      <tr><td><strong>峰值下游总 QPS</strong></td><td>—</td><td><strong>≈ 1.3 万</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>二、决策链路的延迟可行性</strong>（这才是真正的硬约束）</p>
+<pre><code>决策模型 80ms + 状态复核 40ms + 频控 Lua 10ms + 序列化与网络 20ms = 150ms ✓</code></pre>
+<blockquote>
+  <p><strong>150ms 的预算意味着频控与状态复核只能分到 50ms。</strong> 这不是「性能优化项」，而是<strong>架构约束</strong>：状态复核要批量化（一次拉多个字段）、频控要一次脚本覆盖全部维度、决策模型必须能降级。<strong>任何一段超过预算，方案就只剩「扩容」或「降级」两条路。</strong></p>
+</blockquote>
+<p><strong>三、离线生成</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>需生成的日活动数</td><td>1 万 × 10%</td><td>1,000</td></tr>
+      <tr><td>单活动生成次数</td><td>人群包 50 × 变体 3</td><td>150</td></tr>
+      <tr><td>日生成次数</td><td>1,000 × 150</td><td>15 万</td></tr>
+      <tr><td>单次 token</td><td>输入 2,000 + 输出 300</td><td>2,300</td></tr>
+      <tr><td><strong>日生成 token</strong></td><td>15 万 × 2,300</td><td><strong>3.45 亿</strong></td></tr>
+      <tr><td><strong>日生成成本</strong></td><td>300×¥2 + 45×¥8</td><td><strong>≈ ¥960</strong>（约 ¥2.9 万 / 月）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>生成成本几乎可以忽略</strong>（¥960 / 天），因为人群包粒度把「千人千面」压到了 150 次 / 活动。<strong>若改成「每人一份」</strong>：5000 万次 × 2,300 token = <strong>115 亿 token / 天 ≈ ¥3.2 万 / 天（约 96 万元 / 月）</strong>——<strong>不可接受</strong>。<strong>这正是人群包粒度必须受限的原因</strong>（<a href="#sec-3.4.9">千人千面物料生成与合规</a>）。</p>
+</blockquote>
+<p><strong>四、事件与存储</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">计算</th><th scope="col">结果</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>事件量 / 天</td><td>5000 万 × 5</td><td><strong>2.5 亿</strong></td></tr>
+      <tr><td>事件峰值 QPS</td><td>2.5 亿 ÷ 86400 × 5</td><td>≈ <strong>1.4 万</strong></td></tr>
+      <tr><td>事件存储 / 天</td><td>2.5 亿 × 500B</td><td>≈ <strong>125 GB</strong></td></tr>
+      <tr><td>归因宽表 / 天</td><td>5000 万 × 1KB</td><td>≈ <strong>50 GB</strong></td></tr>
+      <tr><td>人群位图 / 快照</td><td>1 亿 bit</td><td>≈ <strong>12.5 MB</strong></td></tr>
+      <tr><td><strong>频控 key 空间</strong></td><td>1 亿用户 × 3 scope</td><td><strong>≈ 3 亿 key（约 30 GB）</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>频控的 key 空间比它的 QPS 更值得担心</strong>：3 亿个 key 常驻 Redis 是很重的资产。<strong>必须给每个 scope 设计独立的 TTL</strong>（用户日窗口 2 天、用户周窗口 8 天、活动冷却按活动周期），否则 key 空间只增不减。<strong>而且要注意：触达量涨 10 倍时，key 空间不涨（人群池固定），但 TTL 内的写入量涨 10 倍</strong>——这是本章少见的「扩容不涨成本」的地方。</p>
+</blockquote>
+<p><strong>五、结论</strong></p>
+<ol>
+<li><strong>在线链路 1.3 万 QPS，真正要精算的是决策链路的 150ms</strong>——频控与状态复核只能分到 50ms。</li>
+<li><strong>生成成本可忽略（¥960 / 天），触达成本才可怕</strong>——生成不是成本问题，补贴与打扰才是（<a href="#sec-3.6.11">打扰成本与频控阈值</a>、<a href="#sec-3.9.21">成本模型</a>）。</li>
+<li><strong>频控 key 空间（3 亿）比 QPS 更需要治理</strong>——靠 TTL 分层，不靠扩容。</li>
+<li><strong>事件链路（1.4 万 QPS、125 GB / 天）是最大存储消耗</strong>——必须分层与 TTL。</li>
+<li><strong>必须先量人群池</strong>——它决定打扰强度，进而决定退订率与全部合规风险。</li>
+</ol>
+
+<h4 id="sec-3.9.21" data-toc-skip>成本模型</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">成本项</th><th scope="col">占比量级</th><th scope="col">优化手段</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>补贴 / 权益</strong></td><td><strong>最大</strong></td><td>精准圈选、增量归因、预算控制、<strong>延迟发券</strong></td></tr>
+      <tr><td>渠道费用</td><td>次之</td><td>渠道选择、频控、跨渠道配额共享</td></tr>
+      <tr><td>LLM 生成</td><td>可忽略</td><td>人群包粒度约束 + 模板缓存</td></tr>
+      <tr><td>计算 / 存储</td><td>小</td><td>分层、TTL</td></tr>
+      <tr><td><strong>打扰成本（LTV 损失）</strong></td><td><strong>当期不显现，长期最大</strong></td><td>频控曲线、静默时段、退订前置拦截</td></tr>
+  </tbody>
+</table>
+<p><strong>补贴成本的两种形态</strong>（本章最实用的一条成本知识）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">形态</th><th scope="col">成本公式</th><th scope="col">10 万人群 × ¥10 券</th><th scope="col">转化率假设</th><th scope="col">风险</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>直接发券</strong>（下单即得）</td><td>触达量 × 面额</td><td><strong>¥100 万</strong></td><td>与转化率<strong>无关</strong></td><td><strong>纯沉没成本，无论转化多少</strong></td></tr>
+      <tr><td><strong>延迟发券</strong>（转化后发）</td><td>触达量 × 转化率 × 面额</td><td><strong>¥3 万</strong></td><td>3%</td><td>转化率略降（需回访）</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>两者相差 33 倍，而转化率的损失通常只有 10–20%。</strong> 这个对比说明一件事：<strong>营销成本优化的第一杠杆是「发给谁」和「什么时候发」，而不是「生成得更好看」。</strong> 千人千面、文案质量这些大家最爱讨论的事，成本加起来只有补贴的千分之一。</p>
+</blockquote>
+<p><strong>成本优化手段与收益量级</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">手段</th><th scope="col">说明</th><th scope="col">本章收益量级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>精准圈选</strong></td><td>减少无效触达</td><td><strong>直接减少补贴成本（最大）</strong></td></tr>
+      <tr><td><strong>延迟发券</strong></td><td>转化后才发</td><td>补贴成本降 90%+</td></tr>
+      <tr><td><strong>增量归因</strong></td><td>砍掉负 ROI 策略</td><td><strong>防止长期亏损</strong>（当期看不见）</td></tr>
+      <tr><td>频控</td><td>降低退订与渠道成本</td><td><strong>保护长期 LTV</strong></td></tr>
+      <tr><td>渠道选择</td><td>优先低成本高转化渠道</td><td>渠道费降约 60%</td></tr>
+      <tr><td>模型分级</td><td>决策用小模型</td><td>决策成本降约 70%</td></tr>
+      <tr><td>模板缓存</td><td>降低生成成本</td><td>生成成本本就可忽略</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>注意最后三行的量级远小于前两行</strong>。这说明一个反直觉的事实：<strong>在营销系统里，生成与模型的优化天花板很低，而「圈谁」「什么时候发」「发不发」这三件事的优化空间是数量级的。</strong> 很多团队把精力花在第一条上。</p>
+</blockquote>
+
+<h2 id="seg-4">4.4 工程落地与规则护栏</h2><div class="oc-part-lead"><strong>第四段 · 工程落地与护栏</strong>这一段回答：方法论怎么变成链路上的一环一环——哪些依赖必须 fail-closed，哪些可以降级，降级时打什么标。</div>
+
+<h3 id="sec-4.1">4.4.1 端到端链路与目标解析护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>端到端链路 13 站：自然语言目标、目标解析、人群圈选、内容生成、合规审核、调度、决策、状态复核、频控、下发、归因、实验与样本回流。目标解析护栏五条：输出结构化 JSON 且字段缺失必须追问，预算、周期、护栏显式确认，必须计算并展示人均补贴与预估人均日触达次数，高风险目标强制审批，解析结果可回放可审计。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>链路图里最该盯的两行是「规模预检」与「状态复核」：前者把「圈了 600 万人」翻译成「人均打扰 6 次每天」让审批人看见，后者保证发出的每一条都不是过期状态。这两行决定了错误是在发出前被拦住，还是在 24 小时后被归因发现。</p>
+</div>
+
+<h4 id="sec-4.1.1" data-toc-skip>端到端链路</h4>
+
+<pre><code>自然语言目标
+  → Goal Parser（结构化 + 追问 + 人均预算提示）
+  → Audience Service（CDP + 规模预检 + 快照）
+  → Content Service（离线批量生成，按人群包缓存）
+  → Compliance Service（硬规则 + 语义审核）
+  → Scheduler（延迟 / 事件触发 + schedule_seq）
+  → Decision Service（渠道 / 时机 / 打扰，50–150ms）
+  → State Service（实时业务状态复核，Fail-Closed）
+  → Frequency Service（Redis Lua 原子频控）
+  → Delivery Service（幂等下发 + 失败回补）
+  → Attribution Service（快慢信号 + Holdout）
+  → Experiment Service（MAB / 护栏熔断）
+  → 样本回流与离线校准</code></pre>
+<blockquote>
+  <p><strong>图里最重要的一行是「规模预检」与「State Service」</strong>：前者把「圈了 600 万人」翻译成「人均打扰 6 次 / 日」让审批人看见，后者保证发出的每一条都不是过期状态。<strong>这两行决定了错误是在发出前被拦住，还是在 24 小时后被归因发现。</strong></p>
+</blockquote>
+
+<h4 id="sec-4.1.2" data-toc-skip>目标解析护栏</h4>
+
+<ul>
+<li>输出结构化 JSON，字段缺失必须追问。</li>
+<li>预算、周期、护栏必须显式确认。</li>
+<li><strong>必须计算并展示「人均预算 / 人均补贴面额」与「预估人均日触达次数」。</strong></li>
+<li>高风险目标（全量、高预算、敏感人群）强制审批。</li>
+<li>解析结果可回放、可审计。</li>
+</ul>
+
+<h3 id="sec-4.2">4.4.2 圈选、生成与审核护栏</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>圈选护栏六条：规模上下界、打扰强度换算、样本预览、快照版本、排除规则与分级审批。生成与审核护栏七条：只输入脱敏标签，权益来自结构化服务，硬规则查违禁词、绝对化用语与价格有效期一致性，语义与多模态查品牌调性、歧视与误导，失败降级安全模板，外部文本清洗防注入，以及生成必须离线批量且粒度受人群包数约束。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「打扰强度换算」这条是本章特有的护栏：规模上下界只能告诉你圈了多少人，换算才能告诉审批人这个规模意味着用户会收到几条。少这一条，规模预检就退化成一道纯粹的容量检查——它能拦住 0 人和全量，却拦不住「圈了 20% 人群池、也就是人均每天被打扰一次」这种真正危险的情况。</p>
+</div>
+
+<h4 id="sec-4.2.3" data-toc-skip>圈选护栏</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">护栏</th><th scope="col">说明</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>规模上下界</td><td>防误圈全量 / 0 人（阈值见 <a href="#sec-3.3.8">目标解析与动态分群</a>）</td></tr>
+      <tr><td><strong>打扰强度换算</strong></td><td><strong>规模 ÷ 人群池 = 人均日触达，超阈值必须提示</strong></td></tr>
+      <tr><td>样本预览</td><td>地域 / 活跃 / 品类分布</td></tr>
+      <tr><td>快照版本</td><td>口径可复现</td></tr>
+      <tr><td>排除规则</td><td>已购、退订、投诉、冷却</td></tr>
+      <tr><td>审批</td><td>高预算 / 全量 / 敏感人群</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-4.2.4" data-toc-skip>生成与审核护栏</h4>
+
+<ul>
+<li>只输入脱敏标签，不输入原始 PII。</li>
+<li>权益来自结构化服务，模型不得编造。</li>
+<li>硬规则：违禁词、绝对化用语、价格 / 有效期一致性。</li>
+<li>语义 / 多模态：品牌调性、歧视、误导。</li>
+<li>失败降级安全模板；模板失败则跳过。</li>
+<li>外部文本清洗，防 Prompt 注入。</li>
+<li><strong>生成必须离线批量，且粒度受「人群包数」约束（<a href="#sec-3.4.9">千人千面物料生成与合规</a>）。</strong></li>
+</ul>
+
+<h3 id="sec-4.3">4.4.3 调度复核、频控幂等与降级熔断</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>调度与状态复核四条：延迟任务带版本号且顺延时递增，到达时先复核状态再决定发送、取消或顺延，状态机条件更新防并发推进，用户加活动级短锁防重复进入；复核覆盖率必须 100% 并单独监控而不是抽样。频控与幂等强调顺序「先复核后扣减」、一次脚本完成多维度检查、扣减成功后写幂等键、下发失败按规则回补并记录失败。降级与熔断分两级：单变体熔断与全局降级，所有降级都要打上降级标记、兜底模式与原因码。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「复核覆盖率 100%，不是抽样」这条常被当成可以妥协的工程指标，但它是这一章里唯一一条必须全量的检查：抽样等于接受一定比例的催单，而催单是投诉的直接来源。另一条容易被漏掉的是「下发失败要回补额度」——不回补的话，渠道抖动会悄悄吃掉用户的频控额度，用户明明没收到消息却再也收不到下一条。</p>
+</div>
+
+<h4 id="sec-4.3.5" data-toc-skip>调度与状态复核</h4>
+
+<ul>
+<li>延迟任务带 <code>schedule_seq</code>，顺延时递增。</li>
+<li>到达时先复核状态，再决定发送 / 取消 / 顺延。</li>
+<li>状态机条件更新，防并发推进。</li>
+<li>用户 + 活动级短锁，防重复进入。</li>
+<li><strong>复核覆盖率必须为 100%，并单独监控（不是抽样）。</strong></li>
+</ul>
+
+<h4 id="sec-4.3.6" data-toc-skip>频控与幂等</h4>
+
+<p><strong>顺序</strong>：状态复核 → 决策 → 频控扣减 → 下发。<strong>绝不先扣后查</strong>（理由见 <a href="#sec-3.7.12">事件触达、状态复核与幂等设计</a>）。</p>
+<p><strong>Lua 频控要点</strong>：</p>
+<ul>
+<li>一次脚本完成多维度检查（日 / 周 / 冷却 / 静默 / 黑名单）。</li>
+<li>返回明确原因码。</li>
+<li>扣减成功后写入幂等键。</li>
+<li>下发失败按规则回补，并记录 <code>delivery_failed</code>。</li>
+</ul>
+<p><strong>频控阈值的三步法</strong>：① 量退订-打扰曲线 → ② 找拐点 → ③ 阈值设在拐点前，并按人群价值分层（<a href="#sec-3.6.11">打扰成本与频控阈值</a>）。</p>
+
+<h4 id="sec-4.3.7" data-toc-skip>降级与熔断</h4>
+
+<p>降级矩阵以<a href="#sec-3.8.16">增量归因、MAB 与降级矩阵</a>为准，本节只列执行动作：</p>
+<ul>
+<li>退订 / 黑名单、频控、预算：<strong>Fail-Closed</strong>。</li>
+<li>物料生成、决策模型：降级到安全模板 / 规则。</li>
+<li>高频抖动依赖配置熔断器。</li>
+<li>所有降级打标 <code>degraded</code> + <code>fallback_mode</code> + <code>reason_code</code>。</li>
+<li><strong>熔断要分两级</strong>：单变体熔断（护栏指标触发）与全局降级（依赖故障触发）。</li>
+</ul>
+
+<h3 id="sec-4.4">4.4.4 延迟预算、观测与压测</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>延迟预算表是唯一口径：接入鉴权 30ms、目标解析 200ms、规模预检 100ms、决策 80ms 目标与 150ms 硬限、实时状态复核 40ms 与 120ms 硬限、频控扣减 10ms 与 40ms 硬限、在线链路合计 150ms；离线生成不在实时链路里。观测分七类，其中「Uplift 与点击率的背离度」是本章特有的健康指标。压测八项包含单用户并发触达、单活动千万级人群、频控节点故障、状态服务超时，以及人群池固定而触达量放大 10 倍。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「Uplift 与点击率的背离度」值得单独记：点击率高而 Uplift 低，说明这个变体吸引的是本来就会买的人，它的真实价值接近零。这个指标比点击率更能反映策略质量，也正是 Holdout 存在的意义——没有对照组，你永远分不清这两种情况。</p>
+</div>
+
+<h4 id="sec-4.4.8" data-toc-skip>延迟预算与超时降级</h4>
+
+<p><strong>本表是唯一的延迟口径来源</strong>，其他小节只引用。</p>
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">预算（目标）</th><th scope="col">超时上限（硬限）</th><th scope="col">超时后的降级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>接入与鉴权</td><td>30ms</td><td>100ms</td><td>429 / 鉴权失败提示</td></tr>
+      <tr><td>目标解析</td><td>200ms</td><td>800ms</td><td>追问补全；仍失败则转人工</td></tr>
+      <tr><td>人群规模预检</td><td>100ms</td><td>500ms</td><td>拒绝执行，要求重跑</td></tr>
+      <tr><td><strong>决策（渠道 / 时机）</strong></td><td><strong>80ms</strong></td><td><strong>150ms</strong></td><td><strong>切确定性规则（默认低打扰渠道或 SKIP）</strong>，仍过硬频控与退订</td></tr>
+      <tr><td><strong>实时状态复核</strong></td><td><strong>40ms</strong></td><td><strong>120ms</strong></td><td><strong>Fail-Closed</strong>（强时效场景跳过）</td></tr>
+      <tr><td><strong>频控扣减（Lua）</strong></td><td><strong>10ms</strong></td><td><strong>40ms</strong></td><td><strong>Fail-Closed</strong> + 本地粗粒度限流</td></tr>
+      <tr><td>序列化与网络</td><td>20ms</td><td>—</td><td>—</td></tr>
+      <tr><td><strong>在线链路合计</strong></td><td><strong>150ms（P99）</strong></td><td>500ms</td><td>—</td></tr>
+      <tr><td><strong>物料生成（离线，不在实时链路）</strong></td><td>秒级</td><td>30s</td><td>切预审安全模板</td></tr>
+      <tr><td>下发（渠道网关）</td><td>120ms</td><td>500ms</td><td>记录失败 + 回补额度</td></tr>
+      <tr><td>归因回填</td><td>异步</td><td>T+24h</td><td>分批补齐</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>预算与超时是两个数</strong>：预算是正常情况下希望花多少，超时是超过就触发降级的硬限，两者必须满足「超时 ≥ 预算」。<strong>「决策 P99 &lt; 150ms」是用户可感知的承诺，「归因 T+24h」是后台完成时间，两者不是同一个数</strong>——原版把它们混在一张 SLO 表里，没有给出每一步的分解，<strong>导致超时降级无从设计</strong>。</p>
+</blockquote>
+
+<h4 id="sec-4.4.9" data-toc-skip>观测与压测</h4>
+
+<p><strong>观测</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">类别</th><th scope="col">指标</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>决策</td><td>QPS、P99、跳过率、降级比例、<strong>各原因码分布</strong></td></tr>
+      <tr><td>触达</td><td>下发量、送达率、失败率、<strong>人均日触达次数</strong></td></tr>
+      <tr><td>频控</td><td>命中率、各原因码分布、<strong>扣减后回补率</strong></td></tr>
+      <tr><td>体验</td><td>退订率、投诉率、<strong>累计退订存量</strong></td></tr>
+      <tr><td>效果</td><td>增量转化、净 ROI、<strong>Uplift 与 CTR 的背离度</strong></td></tr>
+      <tr><td>成本</td><td>单次触达成本、补贴成本</td></tr>
+      <tr><td>状态</td><td><strong>复核覆盖率、复核失败率</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>「Uplift 与 CTR 的背离度」是本章特有的健康指标</strong>：点击率高而 Uplift 低，说明这个变体吸引的是<strong>本来就会买的人</strong>（自然转化被误记为营销功劳），它的真实价值接近零。<strong>这个指标比 CTR 更能反映策略质量</strong>，也正是 Holdout 存在的意义。</p>
+</blockquote>
+<p><strong>压测</strong>：</p>
+<ul>
+<li>峰值 5 倍触达。</li>
+<li><strong>单用户并发触达</strong>（验证幂等与 Lua 原子）。</li>
+<li>单活动千万级人群（验证规模预检与分批放量）。</li>
+<li>Redis 频控节点故障（验证 Fail-Closed）。</li>
+<li>状态服务超时（验证不催单）。</li>
+<li>延迟队列堆积。</li>
+<li>生成服务超时。</li>
+<li>预算中心余额不足。</li>
+<li><strong>人群池固定、触达量放大 10 倍</strong>（验证频控阈值与熔断在超线性打扰下仍有效）。</li>
+</ul>
+
+<h3 id="sec-4.5">4.4.5 规则护栏清单与上线检查</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>护栏清单 18 条，其中十条 P0：退订与黑名单、频控原子性、幂等、预算原子扣减、下发前状态复核、合规双层审核、静默时段与冷却期、规模预检、降级打标与审计；P1 里有快信号熔断、Holdout 分流、样本回流对齐、跨渠道配额共享、模型校准与渠道容量预估。上线检查 10 问覆盖目标解析、圈选、快照版本、权益一致性、复核覆盖率、频控顺序、幂等回补、降级分级、事件原因码与快信号熔断演练。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>十个 P0 里有六个是「发出去之前」的检查——复核、频控、幂等、预检、合规、静默。这不是过度设计，而是因为发出去就收不回来：用户可以关掉推送、可以退订、可以投诉，但系统不能撤销一次打扰。客服 Agent 也有大量 P0，但它守的是钱和隐私，营销守的是「打扰的可逆性」。</p>
+</div>
+
+<h4 id="sec-4.5.10" data-toc-skip>规则护栏清单</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">领域</th><th scope="col">护栏</th><th scope="col">优先级</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>退订与黑名单</strong></td><td>全局 + 分渠道退订一票否决，100% 拦截，状态不明即跳过</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>频控原子性</strong></td><td>单次 Lua 完成全部维度；<strong>顺序为「先复核后扣减」</strong></td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>幂等</strong></td><td>七层幂等键；状态机条件更新；<code>schedule_seq</code> 版本校验</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>预算原子扣减</strong></td><td>预算中心原子扣减 + 账本对账，Fail-Closed</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>下发前状态复核</strong></td><td>覆盖率 <strong>100%</strong>（非抽样），强时效场景 Fail-Closed</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>合规双层审核</strong></td><td>硬规则一票否决 + 语义 / 多模态审核；权益来自结构化服务</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>静默时段与冷却期</strong></td><td>强制生效，顺延必须更新 <code>schedule_seq</code></td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>规模预检</strong></td><td>规模上下界 + 人均打扰强度换算 + 样本预览</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>降级打标</strong></td><td><code>degraded</code> + <code>fallback_mode</code> + <code>reason_code</code> 三件套</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>审计</strong></td><td>目标、圈选快照、审批、下发、归因全量留痕、不可篡改</td><td><strong>P0</strong></td></tr>
+      <tr><td><strong>快信号熔断</strong></td><td>退订 / 投诉超护栏阈值即熔断变体，不参与放量</td><td>P1</td></tr>
+      <tr><td><strong>Holdout 分流</strong></td><td>固定比例 + 固定随机种子，可复现</td><td>P1</td></tr>
+      <tr><td><strong>样本回流对齐</strong></td><td><code>trace_id</code> 主键、快慢信号分层回填、排除未到期样本</td><td>P1</td></tr>
+      <tr><td><strong>跨渠道配额共享</strong></td><td>渠道切换不得绕过频控</td><td>P1</td></tr>
+      <tr><td><strong>模型校准</strong></td><td>预测分数与真实退订 / 转化对比校准，定期重定阈值</td><td>P1</td></tr>
+      <tr><td><strong>渠道容量预估</strong></td><td>下发前按渠道限流预估，超限分批或降级</td><td>P1</td></tr>
+      <tr><td><strong>MAB 最小探索比例</strong></td><td>保底探索 + Holdout 防早期噪音锁死</td><td>P2</td></tr>
+      <tr><td>成本</td><td>单次触达成本与补贴成本看板</td><td>P2</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>营销 Agent 的十个 P0 里有六个是「发出去之前」的检查</strong>（复核、频控、幂等、预检、合规、静默）。<strong>这不是过度设计，而是因为发出去就收不回来</strong>——用户可以关掉推送、可以退订、可以投诉，但<strong>系统不能撤销一次打扰</strong>。</p>
+</blockquote>
+
+<h4 id="sec-4.5.11" data-toc-skip>上线检查（10 问）</h4>
+
+<ol>
+<li>目标解析是否结构化并可确认？<strong>是否计算并展示了人均补贴与预估人均日触达次数？</strong></li>
+<li>圈选是否有规模上下界、样本预览与<strong>打扰强度换算</strong>？高风险规模是否强制审批？</li>
+<li>人群快照是否版本化？<strong>快照标签口径变更后历史活动是否仍可复现？</strong></li>
+<li>文案与权益是否强一致校验？权益是否只来自结构化服务、模型无法编造？</li>
+<li><strong>下发前状态复核覆盖率是否 100%</strong>？复核失败时是否 Fail-Closed？</li>
+<li>频控是否 Lua 原子？<strong>顺序是否为「复核 → 决策 → 扣减 → 下发」？</strong> 阈值是否按退订-打扰曲线的拐点定的？</li>
+<li>幂等键是否覆盖重试、乱序、并发与顺延？扣减后下发失败是否回补并告警？</li>
+<li>降级是否按 Fail-Open / Fail-Closed 分级？<strong>是否每次降级都打了 <code>degraded</code> + <code>reason_code</code>？</strong></li>
+<li>事件与原因码是否统一？Holdout 与归因是否可复现？<strong>是否排除了未到期样本？</strong></li>
+<li><strong>快信号熔断是否已演练？</strong> 人群池固定、触达量放大 10 倍时，退订率是否会失控？</li>
+</ol>
+
+<h2 id="seg-5">4.5 端到端案例</h2><div class="oc-part-lead"><strong>第五段 · 端到端案例</strong>这一段回答：一个真实的召回活动怎么走完整条链路，以及四个变体分别暴露什么。</div>
+
+<h3 id="sec-5.1">4.5.1 案例：加购未支付 30 分钟召回</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>目标是对加购未支付用户做 30 分钟召回、预算 5 万、增量 ROI 不低于 3、退订率不高于 0.1%。先算放大：圈选 12 万人乘决策通过率 85% 乘渠道成功率 99% 乘送达率 95%，放大 9.6 万倍，但人均日触达只有 0.001 次，是低放大低打扰的良性活动。链路九步里最关键的是第一步：目标解析算出人均补贴 0.42 元，直接决定只能发小额券而不能发满减。结果是增量转化提升 1.8 个百分点、净 ROI 4.2、退订率 0.03%。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>这个案例最有价值的地方就在第一步。如果等生成阶段才发券，很可能给 12 万人各发一张 10 元的券——那是 120 万的沉没成本，而预算是 5 万。同时它示范了本章的习惯：先算放大倍数，再设计链路；先算人均补贴，再决定发什么权益。</p>
+</div>
+
+<h4 id="sec-5.1.1" data-toc-skip>案例：加购未支付 30 分钟召回</h4>
+
+<p><strong>目标</strong>：对加购未支付用户做 30 分钟召回，预算 5 万，要求增量 ROI ≥ 3，退订率 ≤ 0.1%。</p>
+<p><strong>先算触达放大</strong>（这是本章的习惯：先算放大倍数，再设计链路）：</p>
+<table>
+  <thead>
+    <tr><th scope="col">环节</th><th scope="col">系数</th><th scope="col">剩余</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>圈选人数</td><td>—</td><td>120,000</td></tr>
+      <tr><td>决策通过率（30 分钟后仍值得召回）</td><td>85%</td><td>102,000</td></tr>
+      <tr><td>渠道成功率</td><td>99%</td><td>100,980</td></tr>
+      <tr><td>送达率</td><td>95%</td><td><strong>95,931</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>放大倍率 ≈ 9.6 万倍</strong>；但对照人群池 1 亿，<strong>这个活动贡献的人均日触达只有 0.001 次</strong>——<strong>这是一个低放大、低打扰的良性活动</strong>，可以放心跑自动化。</p>
+<p><strong>链路</strong>：</p>
+<ol>
+<li><strong>目标解析</strong>：解析出「人群 = 近 24h 加购未支付；预算 ¥50,000；延迟 30 分钟；ROI ≥ 3；护栏 = 日上限 2、72h 冷却」。<strong>计算并展示人均补贴 = ¥50,000 / 120,000 ≈ ¥0.42 / 人</strong>——低于常规券面额，因此<strong>只能发小额券或权益，不能发满减</strong>。这个提示直接决定了后续的权益设计。</li>
+<li><strong>圈选</strong>：近 24h 加购、未支付、未退订、非黑名单、近 7 天未购买；预估 12 万人，抽样 10% 作为 Holdout。<strong>规模预检通过</strong>（12 万 ÷ 1 亿，远低于阈值）。</li>
+<li><strong>生成</strong>：按品类与价格带切 20 个人群包 × 3 套文案，权益为小额券；<strong>离线批量生成 60 次</strong>（成本约 ¥0.4）。硬规则校验「限时」「最高」等措辞与券有效期一致。</li>
+<li><strong>触发</strong>：消费 <code>add_to_cart_unpaid</code>，延迟 30 分钟；到达后决策模型输出渠道 Push、置信度 0.82。</li>
+<li><strong>复核</strong>：8% 用户已支付 → <code>CANCEL_ALREADY_CONVERTED</code>；部分处于静默时段 → 顺延并更新 <code>schedule_seq</code>。</li>
+<li><strong>频控</strong>：日上限 2、活动冷却 72h；超限记 <code>FREQ_USER_DAILY_CAP</code>，<strong>不扣减、不发送</strong>。</li>
+<li><strong>下发</strong>：渲染通过后带幂等键发送；渠道失败记 <code>delivery_failed</code> 并按规则回补额度。</li>
+<li><strong>归因</strong>：点击与退订实时回流；T+24h 回填支付转化与补贴成本，对比 Holdout 计算 Uplift 与净 ROI。</li>
+<li><strong>调优</strong>：变体 B 退订率超护栏被熔断；变体 A/C 由 Thompson Sampling 动态倾斜流量，保留 10% 探索。</li>
+</ol>
+<p><strong>结果示例</strong>：增量转化 +1.8pp，净 ROI 4.2，退订率 0.03%；确认「先状态复核、再频控、后下发」的顺序避免了催单投诉。</p>
+<blockquote>
+  <p><strong>这个案例最有价值的地方是第 1 步</strong>：人均补贴 ¥0.42 在目标解析阶段就把「发什么权益」定了。<strong>如果等生成阶段才发券，很可能发了一张 ¥10 的券给 12 万人 —— 那是 ¥120 万的沉没成本，而预算是 ¥5 万。</strong></p>
+</blockquote>
+
+<h3 id="sec-5.2">4.5.2 变体：大促全量、会员续费与多渠道协同</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>三个变体分别加不同的护栏。大促全量 Push 的放大倍率是 564 万倍，单个活动贡献人均日触达 0.1 次，是大促日基线 0.5 次的两成，所以要全量审批、分批放量、频控阈值临时收紧从 2 降到 1、渠道容量预估、按批释放预算。会员到期续费强时效，要下发前核验会员状态与到期时间、已续费必须取消、三步递进提醒共享同一活动配额。多渠道协同要统一频控口径跨渠道共享配额，渠道失败切换时不重复计数、不重复计费、不重复占用配额。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>大促全量最危险的地方不是技术，而是它把「日上限 2」在事实上架空了：全量推送让 564 万人各收到一条，而这一天还有别的活动在跑。频控阈值不随活动规模收紧，就等于没有频控。多渠道那条坑同样隐蔽——切换时多扣一次额度，系统会误判「打扰强度高」而提前收紧频控，久而久之营销量自己就上不去了。</p>
+</div>
+
+<h4 id="sec-5.2.2" data-toc-skip>变体 A：大促全量 Push</h4>
+
+<p><strong>特点</strong>：人群大、预算高、时效强。</p>
+<p><strong>先算触达放大</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">环节</th><th scope="col">系数</th><th scope="col">剩余</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>圈选人数</td><td>—</td><td>10,000,000</td></tr>
+      <tr><td>决策通过率</td><td>60%</td><td>6,000,000</td></tr>
+      <tr><td>渠道成功率</td><td>99%</td><td>5,940,000</td></tr>
+      <tr><td>送达率</td><td>95%</td><td><strong>5,640,000</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>放大倍率 564 万倍</strong>。这个活动单独贡献<strong>人均日触达 0.1 次</strong>，是大促日基线 0.5 次的 <strong>20%</strong>——<strong>一个活动就贡献了五分之一的日常打扰</strong>。</p>
+<p><strong>额外护栏</strong>：</p>
+<ul>
+<li>全量人群必须审批，且<strong>分批放量</strong>（按小时拆 4–6 批）。</li>
+<li><strong>频控阈值临时收紧</strong>（日上限从 2 降到 1），避免与常规活动叠加。</li>
+<li>渠道容量预估，防止 Push 网关过载。</li>
+<li>实时监控退订 / 投诉，超阈值自动熔断。</li>
+<li><strong>预算按批释放</strong>，避免第一批就把额度用光。</li>
+</ul>
+<blockquote>
+  <p><strong>「大促全量」最危险的地方不是技术，是它把「日上限 2」这个约束在事实上架空了</strong>：全量推送让 564 万人各收到 1 条，而这一天还有其它活动在跑。<strong>频控阈值不随活动规模收紧，就等于没有频控。</strong></p>
+</blockquote>
+
+<h4 id="sec-5.2.3" data-toc-skip>变体 B：会员到期续费</h4>
+
+<p><strong>特点</strong>：标的时效强，错发代价高。</p>
+<p><strong>额外护栏</strong>：</p>
+<ul>
+<li>下发前核验会员状态与到期时间。</li>
+<li>已续费用户必须取消（<code>CANCEL_ALREADY_CONVERTED</code>）。</li>
+<li>权益与价格以结构化服务为准。</li>
+<li>归因窗口对齐续费周期。</li>
+<li><strong>到期前 30 / 7 / 1 天三步递进提醒，三步共享同一活动配额</strong>（否则「递进提醒」变成三次打扰）。</li>
+</ul>
+
+<h4 id="sec-5.2.4" data-toc-skip>变体 C：多渠道协同</h4>
+
+<p><strong>特点</strong>：Push、短信、站内信、IM 组合。</p>
+<p><strong>额外护栏</strong>：</p>
+<ul>
+<li>统一频控口径，跨渠道共享配额。</li>
+<li>渠道优先级与降级链。</li>
+<li>同一用户同一活动只触达一次。</li>
+<li>渠道失败自动切换，但<strong>不重复计数、不重复计费、不重复占用配额</strong>。</li>
+</ul>
+<blockquote>
+  <p><strong>「渠道切换不重复占用配额」是本章特有的一个坑</strong>：Push 失败降级到短信，如果短信侧再扣一次频控配额，用户实际收到 1 条却扣了 2 次额度，<strong>系统会误判「打扰强度高」而提前收紧频控</strong>，久而久之营销量自己就上不去了。</p>
+</blockquote>
+
+<h3 id="sec-5.3">4.5.3 频控阈值、故障兜底与扩容取舍</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>频控阈值用一组数据做决策：日触达从 3 亿压到 2 亿，人均从 3 次降到 2 次，退订率从 0.11% 降到 0.07%，日新增退订从 33 万降到 14 万，日 LTV 损失从 2376 万降到 1008 万，节省 1368 万；代价是少转化 3 万单、毛利 150 万且是一次性的，收益是代价的 9 倍且是永久的。故障兜底补三条：渠道切换后重复计费、频控扣减成功但下发失败、生成缓存未命中且超时。扩容 10 倍的先坏顺序是频控 Redis、渠道网关、然后是打扰。取舍复盘用十条决策记录了各自的代价、收益与重新评估条件。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「用永久收益去换一次性损失，永远划算」是这一段的判断准则。扩容那一段的提醒更刺人：触达量涨 10 倍、人群池不变，人均日触达就从 0.5 次涨到 5 次，退订率涨 7.5 倍，日 LTV 损失从 720 万涨到 5.4 亿，而频控 key 空间完全不变——成本的增长百分之百来自打扰，不来自技术。</p>
+</div>
+
+<h4 id="sec-5.3.5" data-toc-skip>变体 D：频控阈值与打扰曲线</h4>
+
+<p><strong>场景</strong>：大促期人群池 1 亿，日触达从 3 亿（人均 3 次）被业务要求压回 2 亿（人均 2 次）。要不要做？</p>
+<p><strong>数据（按 <a href="#sec-3.6.11">打扰成本与频控阈值</a>的退订曲线）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">指标</th><th scope="col">人均 3 次 / 日</th><th scope="col">人均 2 次 / 日</th><th scope="col">差异</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>日触达量</td><td>3 亿</td><td>2 亿</td><td>−1 亿人次</td></tr>
+      <tr><td>退订率</td><td>0.11%</td><td>0.07%</td><td>−0.04pct</td></tr>
+      <tr><td><strong>日新增退订</strong></td><td>33 万人</td><td>14 万人</td><td><strong>−19 万人</strong></td></tr>
+      <tr><td><strong>日 LTV 损失</strong></td><td>¥2,376 万</td><td>¥1,008 万</td><td><strong>−¥1,368 万</strong></td></tr>
+      <tr><td>投诉</td><td>3 亿 × 0.05% = 15 万次</td><td>10 万次</td><td>−5 万次</td></tr>
+  </tbody>
+</table>
+<p><strong>代价（少触达 1 亿人次）</strong>：</p>
+<pre><code>少触达 1 亿 × 增量转化率 0.3pp = 少 3 万单 × 毛利 ¥50 = ¥150 万（一次性、当期可补）</code></pre>
+<p><strong>结论</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col"></th><th scope="col">收益</th><th scope="col">代价</th><th scope="col">性质</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>收紧频控</td><td><strong>¥1,368 万 / 天</strong></td><td>¥150 万（一次性）</td><td><strong>收益是代价的 9 倍，且收益是永久的</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>这就是频控阈值的正确算法</strong>：<strong>边际 LTV 损失 vs 边际转化收益，比值 &gt; 1 就该收紧。</strong> 而不是「日上限 2 还是 3 拍脑袋定」。<strong>注意两者的性质差异</strong>：收紧阈值省下的 LTV 是<strong>永久的</strong>（少退订 19 万人，这 19 万人今后两年还会继续买），而少掉的 3 万单转化是<strong>一次性的</strong>。<strong>用永久收益去换一次性损失，永远划算。</strong></p>
+</blockquote>
+<p><strong>定阈值的三步</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">步骤</th><th scope="col">动作</th><th scope="col">产出</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td>量「退订率 — 人均日触达」曲线（按渠道、按人群价值分层）</td><td>一张曲线，不是拍脑袋</td></tr>
+      <tr><td>2</td><td>找拐点（例中在 2–3 次 / 日之间）</td><td>一个可解释的阈值区间</td></tr>
+      <tr><td>3</td><td>阈值设在拐点前，并对高价值人群单独放宽</td><td>分层的频控策略</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-5.3.6" data-toc-skip>故障与兜底</h4>
+
+<p>降级矩阵以<a href="#sec-3.8.16">增量归因、MAB 与降级矩阵</a>为准，本例补充三条：</p>
+<table>
+  <thead>
+    <tr><th scope="col">故障</th><th scope="col">影响</th><th scope="col">兜底</th></tr>
+  </thead>
+  <tbody>
+      <tr><td><strong>渠道切换后重复计费</strong></td><td>预算与频控双错</td><td>渠道去重键 + 配额只扣一次</td></tr>
+      <tr><td><strong>频控扣减成功但下发失败</strong></td><td>额度被吞</td><td>按规则回补 + 记录 <code>delivery_failed</code> + 告警；<strong>回补失败需人工兜底</strong></td></tr>
+      <tr><td><strong>生成缓存未命中且生成超时</strong></td><td>大促时大面积缺物料</td><td>预审安全模板兜底；模板也失败则<strong>跳过该人群包</strong>，不得临时降级为无差别文案</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-5.3.7" data-toc-skip>扩容 10 倍，哪里先坏？</h4>
+
+<p>以<a href="#sec-3.9.20">渠道契约、容量与成本模型</a>的基准放大 10 倍（日 5 亿触达、峰值 28,940 QPS、Redis 43,410 QPS、事件峰值 14 万 QPS、事件存储 1.25 TB / 天），<strong>人群池仍是 1 亿</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">先坏的点</th><th scope="col">现象</th><th scope="col">触发指标</th><th scope="col">对策</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>频控 Redis（热点 key）</strong></td><td>延迟 P99 上升、单用户超发</td><td>单分片 QPS &gt; 10 万、热点 key 集中度 &gt; 5%</td><td>分片 + 用户哈希打散 + 预扣 + 本地粗粒度限流</td></tr>
+      <tr><td>2</td><td><strong>渠道网关</strong></td><td>限流、失败率上升</td><td>下发失败率 &gt; 1%</td><td>分渠道分流、错峰、降级备用渠道</td></tr>
+      <tr><td>3</td><td><strong>打扰（非线性，扩容本身造成）</strong></td><td><strong>退订率上升、投诉上升</strong></td><td><strong>人均日触达 &gt; 2 次</strong></td><td><strong>收紧频控阈值、分批放量、熔断变体</strong></td></tr>
+      <tr><td>4</td><td>决策模型</td><td>P99 上升</td><td>决策 P99 &gt; 150ms</td><td>模型分级、特征缓存</td></tr>
+      <tr><td>5</td><td>延迟调度</td><td>堆积、延迟</td><td>队列积压 &gt; 10 万</td><td>分片、时间轮、扩容</td></tr>
+      <tr><td>6</td><td>事件链路</td><td>Kafka 积压</td><td>lag &gt; 100 万</td><td>扩分区、批量、采样</td></tr>
+      <tr><td>7</td><td>归因宽表</td><td>存储与计算压力</td><td>单分区 &gt; 1TB</td><td>分层、预聚合</td></tr>
+      <tr><td>8</td><td>预算中心</td><td>扣减 P99 上升、失败率上升</td><td>扣减 P99 &gt; 50ms</td><td>预扣 + 批量对账</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>第 3 位是本章特有的非线性，也是唯一由「扩容本身」造成的破坏</strong>。触达量涨 10 倍、人群池不变 → 人均日触达从 0.5 次涨到 <strong>5 次</strong>：</p>
+  <ul>
+  <li>退订率 0.02% → <strong>0.15%</strong>（涨 7.5 倍）</li>
+  <li>日新增退订 1 万人 → <strong>75 万人</strong></li>
+  <li><strong>日 LTV 损失 ¥720 万 → ¥5.4 亿</strong></li>
+  </ul>
+  <p><strong>同时频控的 key 空间完全不变</strong>（人群池固定）——<strong>成本的增长 100% 来自打扰，不来自技术</strong>。</p>
+  <p><strong>所以「扩容 10 倍」的容量评审必须加一条：频控阈值同步收紧，否则技术上撑住了、用户却流失了。</strong> 只做乘 10 的评审，会在第一次大促把用户的信任烧光。</p>
+</blockquote>
+
+<h4 id="sec-5.3.8" data-toc-skip>取舍复盘</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">决策</th><th scope="col">代价</th><th scope="col">收益</th><th scope="col">重新评估条件</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>快慢双层</td><td>架构复杂</td><td>低延迟 + 高质量</td><td>场景简单可合并</td></tr>
+      <tr><td>Fail-Closed</td><td>少触达</td><td>不打扰、不资损</td><td>依赖稳定性提升</td></tr>
+      <tr><td>Holdout</td><td>损失部分触达</td><td>真实增量 + 无偏样本</td><td>归因体系成熟</td></tr>
+      <tr><td>MAB</td><td>探索成本</td><td>动态最优</td><td>假设明确可用 A/B</td></tr>
+      <tr><td>模板兜底</td><td>个性化下降</td><td>任务不卡死</td><td>生成稳定性提升</td></tr>
+      <tr><td>严格频控</td><td>触达机会减少</td><td>退订下降、<strong>LTV 保住</strong></td><td>用户偏好可学习</td></tr>
+      <tr><td><strong>离线生成 + 人群包粒度</strong></td><td><strong>个性化上限受限</strong></td><td><strong>生成成本从 ¥3.2 万/天降到 ¥960/天</strong></td><td>生成成本可忽略时可放宽</td></tr>
+      <tr><td><strong>延迟发券</strong></td><td><strong>转化率略降</strong></td><td><strong>补贴成本降 90%+</strong></td><td>券后核销链路成熟时可提前发</td></tr>
+      <tr><td><strong>规模预检（打扰强度换算）</strong></td><td><strong>多一次查询</strong></td><td><strong>在发出前拦下误圈全量</strong></td><td>——</td></tr>
+      <tr><td><strong>渠道配额共享</strong></td><td><strong>切换逻辑复杂</strong></td><td><strong>防止切换绕过频控</strong></td><td>单渠道场景可简化</td></tr>
+  </tbody>
+</table>
+
+<h2 id="seg-6">4.6 演进、指标与误区</h2><div class="oc-part-lead"><strong>第六段 · 演进与误区</strong>这一段回答：这套系统怎么一步步长大，成熟后看哪几个数，以及哪些坑最贵。</div>
+
+<h3 id="sec-6.1">4.6.1 演进路线与指标体系</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>演进路线 L0 到 L5：人工配置活动、规则自动化、数据驱动圈选、生成加合规、MAB 加增量归因、自主策略，每一级都有触发条件与关键改造。指标体系六层：触达、体验、效果、合规、成本，以及护栏层——频控超发数、预算超发数、复核覆盖率。护栏指标必须与业务指标分层看板，因为业务指标涨了但护栏指标也涨了并不是好消息。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>L2 是最容易被跳过、也最不能跳过的一层：很多系统直接从人工配置跳到模型生成文案，结果是一套会写文案但不知道自己在打扰谁的系统。规模预检、快照版本化、排除规则这三条属于 L2，它们不产生任何智能，却决定了这套系统会不会伤到用户。</p>
+</div>
+
+<h4 id="sec-6.1.1" data-toc-skip>演进路线</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">阶段</th><th scope="col">形态</th><th scope="col">触发条件</th><th scope="col">关键改造</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>L0</td><td>人工配置活动</td><td>起步</td><td>规则 + 模板</td></tr>
+      <tr><td>L1</td><td>规则自动化</td><td>活动量大</td><td>调度、频控</td></tr>
+      <tr><td>L2</td><td>数据驱动圈选</td><td>精准度需求</td><td>CDP、快照、<strong>规模预检</strong></td></tr>
+      <tr><td>L3</td><td>生成 + 合规</td><td>个性化需求</td><td>离线生成、双层审核</td></tr>
+      <tr><td>L4</td><td>MAB + 增量归因</td><td>ROI 压力</td><td>Holdout、Thompson、<strong>快慢信号分层</strong></td></tr>
+      <tr><td>L5</td><td>自主策略</td><td>成熟</td><td>目标解析、自动调优、<strong>打扰曲线驱动的频控</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>L2 是最容易被跳过、也最不能跳过的一层</strong>。很多系统直接从「人工配置」跳到「LLM 生成文案」，结果是一套会写文案但不知道自己在打扰谁的系统。<strong>规模预检、快照版本化、排除规则这三条属于 L2，它们不产生任何智能，却决定了这套系统会不会伤到用户。</strong></p>
+</blockquote>
+
+<h4 id="sec-6.1.2" data-toc-skip>指标体系</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">层级</th><th scope="col">指标</th><th scope="col">用途</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>触达</td><td>下发量、送达率、决策 P99、<strong>人均日触达次数</strong></td><td>判断链路与打扰</td></tr>
+      <tr><td>体验</td><td>退订率、投诉率、频控命中、<strong>累计退订存量</strong></td><td>判断打扰</td></tr>
+      <tr><td>效果</td><td>转化率、Uplift、净 ROI、<strong>CTR 与 Uplift 的背离度</strong></td><td>判断真实价值</td></tr>
+      <tr><td>合规</td><td>违规拦截、文案一致率</td><td>判断风险</td></tr>
+      <tr><td>成本</td><td>单次触达成本、补贴成本</td><td>判断可持续</td></tr>
+      <tr><td>护栏</td><td><strong>频控超发数、预算超发数、复核覆盖率</strong></td><td><strong>判断底线是否守住</strong></td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>护栏指标必须与业务指标分层看板</strong>。业务指标涨了但护栏指标也涨了（超发、复核覆盖率下降），<strong>这不是好消息</strong>——它意味着增长有一部分是拿底线换来的。</p>
+</blockquote>
+
+<h3 id="sec-6.2">4.6.2 实验调优与成本优化</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>实验与调优六条：固定 A/B 验证明确假设，MAB 做动态分配并保留最小探索比例，护栏指标优先直接熔断不参与收益加权，快信号熔断慢信号定输赢，每次策略变更记录版本与实验分组，阈值类参数变更必须带归因回归。成本优化分两条轨道：补贴与触达成本占大头（精准圈选、延迟发券、增量归因、渠道选择），模型与计算成本占小头（离线生成加人群包粒度、模型分级、模板缓存）。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>两条轨道的量级差三个数量级，而大家最爱讨论的生成质量属于小头那条轨道的第三项。所以有一个反直觉的结论：把资源投在「生成得更好看」上，优化空间不到「少发一点」的二十分之一。阈值类参数尤其要小心——它们改变的不是一次活动，是所有未来活动的打扰强度。</p>
+</div>
+
+<h4 id="sec-6.2.3" data-toc-skip>实验与调优</h4>
+
+<ul>
+<li>固定 A/B 验证明确假设。</li>
+<li>MAB 做动态流量分配，保留最小探索比例。</li>
+<li>护栏指标优先：退订 / 投诉超限直接熔断，<strong>不参与收益加权</strong>。</li>
+<li>快信号熔断，慢信号定输赢。</li>
+<li>每次策略变更记录版本与实验分组。</li>
+<li><strong>阈值类参数（频控、折扣、预算）变更必须带归因回归</strong>——它们改变的不是一次活动，是所有未来活动的打扰强度。</li>
+</ul>
+
+<h4 id="sec-6.2.4" data-toc-skip>成本优化</h4>
+
+<p><strong>分两条轨道，不排成一条队</strong>：</p>
+<p><strong>轨道一：补贴与触达成本</strong>（占大头）</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">手段</th><th scope="col">收益</th><th scope="col">备注</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td><strong>精准圈选</strong></td><td><strong>直接减少触达量 → 减少补贴</strong></td><td>最大杠杆</td></tr>
+      <tr><td>2</td><td><strong>延迟发券</strong></td><td>补贴成本降 90%+</td><td>收益与转化率的权衡</td></tr>
+      <tr><td>3</td><td>增量归因</td><td>砍掉负 ROI 策略</td><td>防长期亏损</td></tr>
+      <tr><td>4</td><td>渠道选择</td><td>渠道费降约 60%</td><td></td></tr>
+  </tbody>
+</table>
+<p><strong>轨道二：模型与计算成本</strong>（占小头）</p>
+<table>
+  <thead>
+    <tr><th scope="col">顺序</th><th scope="col">手段</th><th scope="col">收益</th><th scope="col">备注</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>1</td><td>离线生成 + 人群包粒度</td><td>¥3.2 万/天 → ¥960/天</td><td>粒度是主因</td></tr>
+      <tr><td>2</td><td>模型分级</td><td>决策成本降约 70%</td><td>决策用小模型</td></tr>
+      <tr><td>3</td><td>模板缓存</td><td>生成延迟降</td><td>收益有限</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  <p><strong>两条轨道的量级差三个数量级</strong>（补贴 ¥50 万 / 活动，生成 ¥960 / 天）。<strong>把资源投在「生成得更好看」上，优化空间不到「少发一点」的二十分之一。</strong></p>
+</blockquote>
+
+<h3 id="sec-6.3">4.6.3 产品对比与常见误区</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>产品对比按电商大促、会员续费、流失召回、金融营销、本地生活与出海营销六种场景列出触达方式与关键挑战。常见误区 17 条，最贵的是：先扣频控再查状态、频控用读加写不做原子、只靠模型拦违规、让模型编造权益、不做下发前复核、忽略顺延版本、只看看点击率、没有 Holdout、降级不标记、全量触达不审批、跨渠道不共享频控，以及用日上限当频控设计、把生成成本当主要成本、只算当期转化不算 LTV、扩容只做容量评审、规模预检只看人数。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>「只算当期转化不算 LTV」这条误区低估的量级最夸张——退订的损失被低估了一百倍，而它恰恰是这套系统里唯一一项当期看不见的损失：它不体现在这个月的报表上，只表现为下个月的转化率莫名其妙降了。所以凡是讨论打扰成本的场合，都必须把 LTV 摊开，否则整个讨论会系统性地偏向多发。</p>
+</div>
+
+<h4 id="sec-6.3.5" data-toc-skip>产品对比</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">场景</th><th scope="col">触达方式</th><th scope="col">关键挑战</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>电商大促</td><td>Push + 短信 + 站内</td><td>峰值、频控、资损</td></tr>
+      <tr><td>会员续费</td><td>短信 + IM</td><td>状态时效、权益一致</td></tr>
+      <tr><td>流失召回</td><td>Push + 邮件</td><td>打扰、增量归因</td></tr>
+      <tr><td>金融营销</td><td>短信 + App</td><td>合规、审批</td></tr>
+      <tr><td>本地生活</td><td>Push + 小程序</td><td>地理定向、时效</td></tr>
+      <tr><td>出海营销</td><td>邮件 + 本地渠道</td><td>合规、语言</td></tr>
+  </tbody>
+</table>
+
+<h4 id="sec-6.3.6" data-toc-skip>常见误区</h4>
+
+<table>
+  <thead>
+    <tr><th scope="col">误区</th><th scope="col">问题</th><th scope="col">正确做法</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>先扣频控再查状态</td><td>已支付用户被误扣</td><td><strong>先状态后频控</strong></td></tr>
+      <tr><td>频控用 GET + INCR</td><td>并发超发</td><td>Lua 原子</td></tr>
+      <tr><td>只靠模型拦违规</td><td>可被绕过</td><td>硬规则 + 审核</td></tr>
+      <tr><td>让模型编造权益</td><td>虚假宣传</td><td>结构化权益服务</td></tr>
+      <tr><td>不做下发前复核</td><td>催单、发失效标的</td><td>实时状态复核</td></tr>
+      <tr><td>忽略顺延版本</td><td>旧消息误触发</td><td><code>schedule_seq</code></td></tr>
+      <tr><td>只看看点击率</td><td>高退订被掩盖</td><td>护栏 + 净 ROI</td></tr>
+      <tr><td>无 Holdout</td><td>自然转化算营销</td><td>空白对照组</td></tr>
+      <tr><td>归因窗口未到期就训练</td><td>负样本错误</td><td>按窗口打标</td></tr>
+      <tr><td>降级不标记</td><td>效果误算</td><td><code>degraded</code> + 原因码</td></tr>
+      <tr><td>全量触达不审批</td><td>资损 / 舆情</td><td>分级审批</td></tr>
+      <tr><td>跨渠道不共享频控</td><td>重复打扰</td><td>统一配额</td></tr>
+      <tr><td><strong>用「日上限 N」当频控设计</strong></td><td><strong>N 是拍的，退订率是超线性的</strong></td><td><strong>按退订-打扰曲线的拐点定</strong></td></tr>
+      <tr><td><strong>把生成成本当主要成本</strong></td><td><strong>优化错靶子</strong></td><td><strong>补贴与打扰才是大头</strong></td></tr>
+      <tr><td><strong>只算当期转化不算 LTV</strong></td><td><strong>退订的损失被低估 100 倍</strong></td><td><strong>退订必须按 LTV 计</strong></td></tr>
+      <tr><td><strong>扩容只做容量评审</strong></td><td><strong>用户被打扰到退订</strong></td><td><strong>频控阈值同步收紧</strong></td></tr>
+      <tr><td><strong>规模预检只看人数</strong></td><td><strong>看不见打扰强度</strong></td><td><strong>规模 ÷ 人群池 = 人均触达</strong></td></tr>
+  </tbody>
+</table>
+
+<h3 id="sec-6.4">4.6.4 高频追问、答题提纲与一页纸手册</h3><div class="oc-keypoint">
+<h3>本章要点</h3>
+<p>高频追问 14 条覆盖催单、频控故障、重复触达、增量评估、高点击高退订、生成超时、扣减与查状态的顺序、扣减后失败、阈值怎么定、薅羊毛、多渠道协同、样本回流、选择偏差，以及一次活动最多能打扰多少人。答题提纲给 10 分钟版与 35 分钟版，一页纸作战手册按 S0 到 S5 六阶段组织，每阶段配动作、自检问题与合格线，S0 里多了一条专门量人群池的自检。</p>
+</div><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>高频追问最后一条值得当成本章的验收标准：「一次活动最多能打扰多少人」——圈选乘决策通过率乘渠道成功率乘送达率，这个数必须写进方案与审批。一个说不清这个数的营销方案，本质上是一份没有风险评估的排期表。</p>
+</div>
+
+<h4 id="sec-6.4.7" data-toc-skip>高频追问</h4>
+
+<ul>
+<li><strong>如何避免「刚付款又收到催单」？</strong> → 下发前实时状态复核，状态已变记 <code>CANCEL_ALREADY_CONVERTED</code>；<strong>复核覆盖率必须 100%</strong>。</li>
+<li><strong>Redis 频控挂了怎么办？</strong> → 默认 Fail-Closed，本地粗粒度限流兜底并告警。</li>
+<li><strong>如何保证不重复发？</strong> → 七层幂等键 + 状态机条件更新 + <code>schedule_seq</code> 版本校验。</li>
+<li><strong>如何评估营销真实增量？</strong> → Holdout 对照组 + 归因窗口 + 净 ROI；<strong>同一活动同一问法必须可复现</strong>。</li>
+<li><strong>高点击高退订的变体怎么处理？</strong> → 护栏指标熔断，<strong>不参与收益加权</strong>。</li>
+<li><strong>生成模型超时怎么办？</strong> → 降级预审安全模板，仍失败则跳过。</li>
+<li><strong>先扣频控还是先查状态？</strong> → 先查状态，再扣频控。<strong>无副作用的检查永远在前。</strong></li>
+<li><strong>频控扣了但下发失败？</strong> → 回补额度、记录失败、告警；回补失败需人工兜底。</li>
+<li><strong>频控阈值怎么定？</strong> → 量退订-打扰曲线 → 找拐点 → 设在拐点前，按人群价值分层。</li>
+<li><strong>如何防薅羊毛？</strong> → 限购、设备指纹、风控、预算锁。</li>
+<li><strong>如何做多渠道协同？</strong> → 统一频控口径、渠道优先级、失败切换不重复计数也不重复占用配额。</li>
+<li><strong>如何做样本回流？</strong> → <code>trace_id</code> 对齐，快慢信号分层回填。</li>
+<li><strong>如何避免选择偏差？</strong> → 保留随机探索与 Holdout，排除未到期样本。</li>
+<li><strong>一次活动最多能打扰多少人？</strong> → 圈选 × 决策通过率 × 渠道成功率 × 送达率，<strong>这个数必须写进方案与审批</strong>。</li>
+</ul>
+
+<h4 id="sec-6.4.8" data-toc-skip>答题提纲与练习</h4>
+
+<p><strong>10 分钟版（自述型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–1 min</td><td>澄清：触达量、<strong>人群池</strong>、活动数、单活动规模、渠道、护栏</td></tr>
+      <tr><td>1–3 min</td><td><strong>触达放大</strong>：人群 × 并发 × 时间三段；<strong>容量</strong>：QPS、事件量、频控 key 空间</td></tr>
+      <tr><td>3–5 min</td><td>架构：解析 → 圈选 → 生成 → 审核 → 调度 → 决策 → 复核 → 频控 → 下发</td></tr>
+      <tr><td>5–7 min</td><td>顺序铁律、幂等、合规、预算</td></tr>
+      <tr><td>7–9 min</td><td>深挖一个点（推荐：触达放大 / 频控阈值）</td></tr>
+      <tr><td>9–10 min</td><td>护栏、降级、归因（Holdout / MAB）</td></tr>
+  </tbody>
+</table>
+<p><strong>35 分钟版（深聊型）</strong>：</p>
+<table>
+  <thead>
+    <tr><th scope="col">时间</th><th scope="col">内容</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>0–5 min</td><td>澄清与七锚点：规模、<strong>人群池</strong>、合规、不可逆清单</td></tr>
+      <tr><td>5–14 min</td><td><strong>触达放大的三段推导 + 打扰成本与 LTV 量化 + 退订曲线</strong></td></tr>
+      <tr><td>14–22 min</td><td>架构与数据流：解析 / 圈选 / 离线生成 / 审核 / 调度 / 决策 / 复核 / 频控 / 下发 / 归因</td></tr>
+      <tr><td>22–26 min</td><td>数据模型与 API：人群快照、七层幂等、事件 Envelope、预算账本</td></tr>
+      <tr><td>26–34 min</td><td>深挖三个点（各约 3 min）：① 触达放大与止损窗口 ② 频控阈值与 LTV 权衡 ③ Holdout 与归因去偏</td></tr>
+      <tr><td>34–35 min</td><td>演进阈值、护栏清单、评测闭环</td></tr>
+  </tbody>
+</table>
+<p><strong>练习</strong>：</p>
+<ol>
+<li>设计日 5000 万触达的营销 Agent，给出完整链路与容量（<strong>必须包含人群池与人均日触达次数</strong>）。</li>
+<li>计算：圈选 1000 万人、决策通过率 60%、渠道成功率 99%、送达率 95%——一次决策放大成多少次触达？若快信号 5 分钟、慢信号 24 小时才止损，两者各能抑制多少次？</li>
+<li>设计多维频控的 Lua 脚本与原因码，并说明<strong>为什么不能先扣后查</strong>。</li>
+<li>设计延迟任务的幂等与顺延方案，说明 <code>schedule_seq</code> 解决的是哪个竞态。</li>
+<li>设计 Holdout 与净 ROI 的归因方案，并说明<strong>为什么只用「已触达用户」训练会有选择偏差</strong>。</li>
+<li>计算：人群池 1 亿，日触达从 3 亿压到 2 亿，按退订率 0.11% → 0.07%、单用户 LTV ¥720 算，日 LTV 变化是多少？代价是少转化 3 万单、每单毛利 ¥50。请判断该不该压。</li>
+<li>计算：日触达从 5000 万涨到 5 亿（人群池不变 1 亿），人均日触达怎么变？退订率怎么变？日 LTV 损失怎么变？<strong>为什么这条不在容量评审的常规项里？</strong></li>
+<li>设计「生成服务超时 + 渠道故障 + 预算中心超时」三重叠加时的降级矩阵，并说明每一层是 Fail-Open 还是 Fail-Closed。</li>
+</ol>
+
+<h4 id="sec-6.4.9" data-toc-skip>一页纸作战手册</h4>
+
+<p><strong>S0 定题</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>落七锚点</td><td>唯一事实源是什么？哪几个决策不可逆？</td><td>7 项写下来，事实源 = 活动配置 + 人群快照 + 触达事件 + 预算账本</td></tr>
+      <tr><td>定优先级</td><td>打扰、资损、增长冲突时保谁？</td><td>不打扰 &gt; 不资损 &gt; 不违规 &gt; 增量 ROI &gt; 触达量</td></tr>
+      <tr><td><strong>量人群池</strong></td><td><strong>人均日触达是多少？</strong></td><td><strong>给出一个带来源的数值，并换算成退订率</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S1 建模</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>分层</td><td>每层只做什么、明确不做什么？</td><td>解析 / 圈选 / 生成 / 审核 / 调度 / 决策 / 复核 / 频控 / 下发 / 归因十层职责表</td></tr>
+      <tr><td>定顺序</td><td>哪一步必须在前面？</td><td><strong>复核 → 决策 → 扣减 → 下发</strong>，无副作用在前</td></tr>
+      <tr><td>定幂等</td><td>每层怎么防重？</td><td>七层幂等键表 + 状态机条件更新 + <code>schedule_seq</code></td></tr>
+      <tr><td>定事实源</td><td>哪些不可重建？</td><td>快照、事件、幂等表、预算账本是事实源；频控计数是投影但要留扣减日志</td></tr>
+  </tbody>
+</table>
+<p><strong>S2 决策</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>选路径</td><td>快慢怎么分层？</td><td>决策 150ms 在线；<strong>生成离线批量</strong></td></tr>
+      <tr><td>选粒度</td><td>千人千面切几包？</td><td>50 包 / 活动；生成成本 ¥0.4</td></tr>
+      <tr><td>选阈值</td><td>频控日上限定几？</td><td><strong>按退订-打扰曲线的拐点定</strong>，并按人群价值分层</td></tr>
+      <tr><td>选降级</td><td>每个依赖挂了怎么办？</td><td>退订 / 频控 / 预算 Fail-Closed；生成 / 决策降级兜底</td></tr>
+  </tbody>
+</table>
+<p><strong>S3 论证</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>算放大</td><td>一次决策最多打扰多少人？</td><td>圈选 × 通过率 × 成功率 × 送达率，写进方案与审批</td></tr>
+      <tr><td>算容量</td><td>扛得住吗？</td><td>峰值 2,894 QPS、下游 1.3 万 QPS、决策链 150ms</td></tr>
+      <tr><td>算打扰</td><td>会不会伤用户？</td><td>人均日触达 → 退订率 → 日 LTV 损失</td></tr>
+      <tr><td>算成本</td><td>钱花在哪？</td><td>补贴是大头；生成 ¥960/天可忽略；渠道次之</td></tr>
+  </tbody>
+</table>
+<p><strong>S4 兜底</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>写延迟预算</td><td>每一步各多少？</td><td>9 阶段预算 + 硬限（<a href="#sec-4.4.8">延迟预算与超时降级</a>）</td></tr>
+      <tr><td>写降级矩阵</td><td>每个依赖挂了用户看到什么？</td><td>7 类依赖各有行为；<strong>退订 / 频控 / 预算 Fail-Closed</strong></td></tr>
+      <tr><td>定护栏</td><td>安全排第几？</td><td>退订 / 频控 / 幂等 / 预算 / 复核 / 合规 / 静默 / 预检 / 打标 / 审计 <strong>十项 P0</strong></td></tr>
+  </tbody>
+</table>
+<p><strong>S5 闭环</strong></p>
+<table>
+  <thead>
+    <tr><th scope="col">动作</th><th scope="col">自检问题</th><th scope="col">合格线</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>定演进阈值</td><td>涨 10 倍哪里先坏？</td><td>频控 Redis → 渠道 → <strong>打扰（非线性）</strong>（<a href="#sec-5.3.7">扩容 10 倍，哪里先坏</a>）</td></tr>
+      <tr><td>定指标</td><td>技术好了业务就好了吗？</td><td>采纳与 ROI 必须与退订、投诉、Uplift 背离度合看</td></tr>
+      <tr><td>建复盘闭环</td><td>行动项有负责人吗？</td><td>行动项 → 负责人 → 验证结果</td></tr>
+  </tbody>
+</table>
+<hr>
+
+<h2 id="seg-7">4.7 总结</h2><div class="oc-part-lead"><strong>总结</strong>把这一章收成一页纸：结论、边界，以及下一章要解决什么。</div>
+
+<h3 id="sec-7.1">4.7.1 一句话总结</h3><div class="thinking-note">
+<h3>思考笔记</h3>
+<p>营销 Agent 的第一性问题不是「怎么做得更准」，而是「一次决策最多能放大到多少」：先算放大倍数，再把触达规模换算成人均可读的打扰数字，然后把无副作用的状态复核放在有副作用的扣减之前——剩下的才是模型能优化的空间。</p>
+</div>
+
+<h3 id="sec-7.2">4.7.2 本章结论</h3><ol class="oc-points">
+  <li><strong>一次决策的触达量必须先算出来。</strong>圈选乘通过率乘成功率乘送达率，大促全量是 564 万倍。慢信号比快信号晚 288 倍才能止损，所以错误必须在发出前拦住，不能靠事后归因。</li>
+  <li><strong>打扰是这套系统里最大、也最看不见的成本。</strong>一次退订按 LTV 720 元算，564 万次触达让退订率从 0.02% 升到 0.15%，就是 528 万的用户资产损失，是活动补贴预算的 10.6 倍。</li>
+  <li><strong>顺序铁律：状态复核 → 决策 → 频控扣减 → 下发。</strong>状态复核是只读免费的，频控扣减是有副作用且不可撤销的。先扣后查会给已付款的用户扣掉额度并发出一条催单，而这条原则可以迁移到所有有副作用的链路。</li>
+  <li><strong>降级必须分级，而且每次都要打标。</strong>退订状态、频控、预算一律 Fail-Closed；生成与决策可以降级兜底。不打标的降级会让兜底效果被算成策略效果，模型因此学到错误的因果。</li>
+  <li><strong>生成与模型不是成本问题，补贴与打扰才是。</strong>生成每天约 960 元可以忽略，补贴是活动大头，扩容带来的打扰成本甚至涨到日 LTV 5.4 亿。把资源投在文案质量上，优化空间不到「少发一点」的二十分之一。</li>
+</ol>
+
+<h3 id="sec-7.3">4.7.3 下一章</h3><p>下一章 <strong>第 5 章：电商 Agent——导购、交易与售后的受控编排</strong>：营销解决的是「打扰谁」，电商要解决的是「在什么约束下把商品和交易做对」——同一套护栏思路，落在选品、导购、下单、履约与售后的完整链路上。</p>
+
+<h3 id="sec-7.4">4.7.4 相关阅读</h3><ul>
+  <li><a href="/2026/11/26/agent-design-03-customer-service/"><strong>第 3 章 · 客服 Agent</strong></a> — 与本章同构的兄弟：同样有副作用，但守的是钱与隐私，防线落在幂等键、审批挂起与恢复前重校验。</li>
+  <li><a href="/2026/08/08/llm-agent-principles/"><strong>AI 编程工程实践 02 · Agent 平台原理</strong></a> — 从更上层看一次交付如何发生：上下文、工具与检查点如何被组织成可复用的能力。</li>
+  <li><a href="/2026/06/10/observable-security-03-08-soc-operations/"><strong>智能安全运营可观测性 · 参考 08 · SOC 运营体系</strong></a> — 与本章的护栏分层同源：风控的默认动作是拦，营销的默认动作是发，两者必须在设计上分开。</li>
+</ul>
+</div><aside class="article-toc-aside"><details class="reading-toc"><summary>本文目录</summary><nav aria-label="本文目录"><a class="reading-toc-link level-2" href="#seg-1">4.1 营销 Agent 是什么</a><a class="reading-toc-link level-3" href="#sec-1.1">4.1.1 定义与营销闭环七段</a><a class="reading-toc-link level-3" href="#sec-1.2">4.1.2 与其他系统的区别与三方价值</a><a class="reading-toc-link level-3" href="#sec-1.3">4.1.3 系统边界、核心指标与不可逆决策</a><a class="reading-toc-link level-2" href="#seg-2">4.2 核心矛盾与设计原则</a><a class="reading-toc-link level-3" href="#sec-2.1">4.2.1 本质与六条章级原则</a><a class="reading-toc-link level-3" href="#sec-2.2">4.2.2 三个不等式、四大挑战与三个放大器</a><a class="reading-toc-link level-3" href="#sec-2.3">4.2.3 四类正确性与八组关键矛盾</a><a class="reading-toc-link level-3" href="#sec-2.4">4.2.4 八类失败模式、快慢分层与成本结构</a><a class="reading-toc-link level-2" href="#seg-3">4.3 理论与方法论</a><a class="reading-toc-link level-3" href="#sec-3.1">4.3.1 S0 前置锚点与 4S 收敛顺序</a><a class="reading-toc-link level-3" href="#sec-3.2">4.3.2 场景、规模、服务与存储模型</a><a class="reading-toc-link level-3" href="#sec-3.3">4.3.3 目标解析与动态分群</a><a class="reading-toc-link level-3" href="#sec-3.4">4.3.4 千人千面物料生成与合规</a><a class="reading-toc-link level-3" href="#sec-3.5">4.3.5 触达放大的三段放大</a><a class="reading-toc-link level-3" href="#sec-3.6">4.3.6 打扰成本与频控阈值</a><a class="reading-toc-link level-3" href="#sec-3.7">4.3.7 事件触达、状态复核与幂等设计</a><a class="reading-toc-link level-3" href="#sec-3.8">4.3.8 增量归因、MAB 与降级矩阵</a><a class="reading-toc-link level-3" href="#sec-3.9">4.3.9 事件规范、样本回流与渠道容量成本</a><a class="reading-toc-link level-2" href="#seg-4">4.4 工程落地与规则护栏</a><a class="reading-toc-link level-3" href="#sec-4.1">4.4.1 端到端链路与目标解析护栏</a><a class="reading-toc-link level-3" href="#sec-4.2">4.4.2 圈选、生成与审核护栏</a><a class="reading-toc-link level-3" href="#sec-4.3">4.4.3 调度复核、频控幂等与降级熔断</a><a class="reading-toc-link level-3" href="#sec-4.4">4.4.4 延迟预算、观测与压测</a><a class="reading-toc-link level-3" href="#sec-4.5">4.4.5 规则护栏清单与上线检查</a><a class="reading-toc-link level-2" href="#seg-5">4.5 端到端案例</a><a class="reading-toc-link level-3" href="#sec-5.1">4.5.1 案例：加购未支付 30 分钟召回</a><a class="reading-toc-link level-3" href="#sec-5.2">4.5.2 变体：大促全量、会员续费与多渠道协同</a><a class="reading-toc-link level-3" href="#sec-5.3">4.5.3 频控阈值、故障兜底与扩容取舍</a><a class="reading-toc-link level-2" href="#seg-6">4.6 演进、指标与误区</a><a class="reading-toc-link level-3" href="#sec-6.1">4.6.1 演进路线与指标体系</a><a class="reading-toc-link level-3" href="#sec-6.2">4.6.2 实验调优与成本优化</a><a class="reading-toc-link level-3" href="#sec-6.3">4.6.3 产品对比与常见误区</a><a class="reading-toc-link level-3" href="#sec-6.4">4.6.4 高频追问、答题提纲与一页纸手册</a><a class="reading-toc-link level-2" href="#seg-7">4.7 总结</a><a class="reading-toc-link level-3" href="#sec-7.1">4.7.1 一句话总结</a><a class="reading-toc-link level-3" href="#sec-7.2">4.7.2 本章结论</a><a class="reading-toc-link level-3" href="#sec-7.3">4.7.3 下一章</a><a class="reading-toc-link level-3" href="#sec-7.4">4.7.4 相关阅读</a></nav></details></aside>
+    </div>
+    <nav class="article-pager" aria-label="专题阅读导航"><div><a href="/2026/11/26/agent-design-03-customer-service/"><small>← 上一篇</small><span>客服 Agent——从答疑到受控代办</span></a></div><div><a href="/2026/11/26/agent-design-05-ecommerce/"><small>下一篇 →</small><span>电商 Agent——导购、交易与售后的受控编排</span></a></div><a class="article-series-return" href="/categories/agent-design/">返回AI Agent 系统设计 ↗</a></nav>
+  </article>
+</main>
+<footer class="portal-footer">
+      <div class="content-width">
+        <div class="footer-main">
+          <div>
+            <span class="eyebrow">THE EXPLORATION CONTINUES</span>
+            <h2>问题可以很复杂，<br />交流不必有距离<span>。</span></h2>
+          </div>
+          <div class="footer-connect">
+            <p>
+              有不同的看法，或遇到了相似的问题？<br />欢迎带着具体问题来交流。
+            </p>
+            <a
+              href="https://github.com/Lianjifu"
+              target="_blank"
+              rel="noopener noreferrer"
+              >在 GitHub 找到我
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-external" /></svg
+            ></a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <a class="footer-signature" href="#top">JiFu Lian.</a
+          ><span>© 2026 JiFu Lian · 保持好奇，保持创造。</span>
+          <div>
+            <a href="/about/">关于我</a><a href="/atom.xml">RSS 订阅</a
+            ><a href="#top" aria-label="回到顶部">回到顶部 ↑</a>
+          </div>
+        </div>
+      </div>
+    </footer><script src="/js/article-diagrams.js?v=13" defer></script></body>
+</html>
